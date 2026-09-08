@@ -139,6 +139,9 @@ tbody tr:last-child{border-bottom:none}
   max-height:320px;overflow:auto;font-family:"SFMono-Regular",Menlo,Consolas,monospace;
   font-size:12px;line-height:1.6;
 }
+.log.log-full{max-height:none;overflow:visible}
+.log-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.log-head h3{margin:0}
 .log div{padding:2px 0;border-bottom:1px solid rgba(0,0,0,.25)}
 .log b{color:#fff;font-weight:600}
 .unit-ref{font-weight:600;cursor:help;border-bottom:1px dotted currentColor}
@@ -185,6 +188,54 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .stat-table input{width:62px;text-align:right;font-family:"SFMono-Regular",Menlo,Consolas,monospace;font-size:12px}
 .stat-table td,.stat-table th{padding:3px 5px;font-size:12px}
 .stat-table tbody th{font-weight:500;color:var(--text);text-transform:none;letter-spacing:0;border:none}
+
+/* ---------- tab strip ---------- */
+.tabstrip{
+  display:flex;align-items:stretch;gap:2px;
+  margin:-20px -20px 14px;padding:0 16px;
+  height:30px;background:var(--sunken);border-bottom:1px solid var(--border-soft);
+}
+.tab{
+  background:none;border:none;border-bottom:2px solid transparent;
+  color:var(--text-dim);font:500 12px/1 inherit;letter-spacing:.06em;text-transform:uppercase;
+  padding:0 14px;cursor:pointer;
+}
+.tab:hover{color:#fff}
+.tab.active{color:#fff;border-bottom-color:#4ab9db}
+.tab-brand{
+  display:flex;align-items:center;color:var(--text-dim);font-size:12px;font-weight:600;
+  letter-spacing:.08em;text-transform:uppercase;padding-right:14px;margin-right:6px;
+  border-right:1px solid var(--border-soft);
+}
+
+/* ---------- marked presets ---------- */
+.mark-chips{display:inline-flex;align-items:center;gap:3px;flex-wrap:wrap}
+.mark-chip{
+  display:inline-flex;align-items:center;gap:3px;max-width:130px;
+  background-image:linear-gradient(to bottom,var(--btn-default-a),var(--btn-default-b));
+  border:1px solid var(--border-soft);border-radius:9px;
+  padding:1px 4px 1px 7px;font-size:11px;color:#fff;cursor:pointer;
+  text-shadow:0 -1px 0 rgba(0,0,0,.4);
+}
+.mark-chip:hover{filter:brightness(1.14)}
+.mark-chip.on{background-image:linear-gradient(to bottom,var(--btn-info-a),var(--btn-info-b))}
+.mark-chip .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mark-chip .x{
+  border:none;background:none;color:rgba(255,255,255,.6);font-size:12px;line-height:1;
+  cursor:pointer;padding:0 1px;
+}
+.mark-chip .x:hover{color:#fff}
+
+/* ---------- counter finder ---------- */
+.ctr-grid{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+.ctr-rank{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:22px;height:22px;border-radius:50%;font-size:12px;font-weight:600;color:#fff;
+  border:1px solid var(--border-soft);
+  background-image:linear-gradient(to bottom,var(--btn-default-a),var(--btn-default-b));
+}
+.ctr-rank.top{background-image:linear-gradient(to bottom,var(--btn-success-a),var(--btn-success-b))}
+.ctr-target{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
 
 /* ---------- top bar / presets ---------- */
 .topbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
@@ -278,6 +329,14 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 </head>
 <body>
 
+<div class="tabstrip">
+  <span class="tab-brand">Warcalc</span>
+  <button class="tab active" data-tab="battle">Battle</button>
+  <button class="tab" data-tab="counter">Counters</button>
+</div>
+
+<div id="viewBattle">
+
 <div class="topbar">
   <h1>Warcalc <button class="caret-btn" id="btnTools" title="Import / export presets" aria-expanded="false">›</button></h1>
   <span class="spacer"></span>
@@ -286,6 +345,8 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
     <select id="bpSel" class="bp-sel"><option value="">—</option></select>
     <button class="bp-btn" id="bpLoad" title="Load this battle">load</button>
     <button class="bp-btn" id="bpSave" title="Save both sides as a battle">save</button>
+    <button class="bp-btn" id="bpRen" title="Rename this battle preset">rename</button>
+    <button class="bp-btn" id="bpExp" title="Export the current battle as a JSON file">export</button>
     <button class="bp-btn" id="bpDel" title="Delete this battle">del</button>
   </div>
 </div>
@@ -299,11 +360,17 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
     <button class="btn btn-xs" id="expAll">Export everything</button>
     <button class="btn btn-xs btn-info" id="impBtn">Import JSON…</button>
     <input type="file" id="impFile" accept="application/json,.json" style="display:none">
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:10px;
+              border-top:1px solid var(--border-soft)">
+    <button class="btn btn-xs btn-danger" id="delAllArmies">Delete all army presets</button>
+    <button class="btn btn-xs btn-danger" id="delAllBattles">Delete all battle presets</button>
     <span class="spacer"></span>
-    <button class="btn btn-xs btn-danger" id="wipeSaves">Wipe saved data</button>
+    <button class="btn btn-xs btn-danger" id="wipeSaves">Delete everything</button>
   </div>
   <div class="small muted" style="margin-top:8px">
     Everything is stored in this browser only. Autosave keeps your current battle across reloads.
+    <b>Delete everything</b> clears the autosave and every saved preset.
   </div>
 </div>
 
@@ -315,9 +382,13 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
       <span class="badge badge-danger" id="atkCount">0</span>
       <span class="spacer"></span>
       <div class="army-presets">
+        <span class="mark-chips" data-ap-marks="attacker"></span>
         <select class="ap-sel" data-ap-sel="attacker"><option value="">preset…</option></select>
         <button class="bp-btn" data-ap-load="attacker" title="Load this army">load</button>
         <button class="bp-btn" data-ap-save="attacker" title="Save this side as an army preset">save</button>
+        <button class="bp-btn" data-ap-mark="attacker" title="Pin this preset as a quick-swap button">mark</button>
+        <button class="bp-btn" data-ap-ren="attacker" title="Rename this army preset">rename</button>
+        <button class="bp-btn" data-ap-exp="attacker" title="Export this side's composition as a JSON file">export</button>
         <button class="bp-btn" data-ap-del="attacker" title="Delete this army preset">del</button>
       </div>
       <span class="v-div">|</span>
@@ -340,9 +411,13 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
       <span class="badge badge-info" id="defCount">0</span>
       <span class="spacer"></span>
       <div class="army-presets">
+        <span class="mark-chips" data-ap-marks="defender"></span>
         <select class="ap-sel" data-ap-sel="defender"><option value="">preset…</option></select>
         <button class="bp-btn" data-ap-load="defender" title="Load this army">load</button>
         <button class="bp-btn" data-ap-save="defender" title="Save this side as an army preset">save</button>
+        <button class="bp-btn" data-ap-mark="defender" title="Pin this preset as a quick-swap button">mark</button>
+        <button class="bp-btn" data-ap-ren="defender" title="Rename this army preset">rename</button>
+        <button class="bp-btn" data-ap-exp="defender" title="Export this side's composition as a JSON file">export</button>
         <button class="bp-btn" data-ap-del="defender" title="Delete this army preset">del</button>
       </div>
       <span class="v-div">|</span>
@@ -493,7 +568,6 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 
 <!-- ============ RESULTS ============ -->
 <div id="results"></div>
-<div id="tip"></div>
 
 <!-- ============ IMPORT ============ -->
 <div class="panel">
@@ -504,6 +578,92 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
     <button class="btn btn-xs" id="btnImportDef">Import to defenders</button>
   </div>
 </div>
+
+</div><!-- /viewBattle -->
+
+<!-- ============ COUNTER FINDER ============ -->
+<div id="viewCounter" style="display:none">
+  <div class="topbar"><h1>Counters</h1></div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h2>The unit you want dead</h2>
+      <span class="spacer"></span>
+      <button class="btn btn-warning" id="btnCounter" style="padding:7px 18px;font-size:14px">Find the cheapest kill</button>
+      <button class="btn btn-danger btn-xs" id="btnCounterStop" style="display:none">Stop</button>
+    </div>
+
+    <div class="ctr-target">
+      <div id="ctrSprite"></div>
+      <div class="ctr-grid" style="flex:1 1 auto">
+        <div style="width:130px">
+          <label for="ctrType">Type</label>
+          <select id="ctrType"></select>
+        </div>
+        <div style="width:160px">
+          <label for="ctrWeapon">Weapon</label>
+          <select id="ctrWeapon"></select>
+        </div>
+        <div style="width:150px">
+          <label for="ctrArmor">Armor</label>
+          <select id="ctrArmor"></select>
+        </div>
+        <div style="width:90px">
+          <label for="ctrSize">Size</label>
+          <input type="number" id="ctrSize" min="1" value="100">
+        </div>
+        <div style="width:90px">
+          <label for="ctrTrain">Training</label>
+          <input type="number" id="ctrTrain" min="0" max="20" value="20">
+        </div>
+      </div>
+    </div>
+
+    <div class="solve-grid">
+      <div style="width:170px">
+        <label for="ctrSide">You are</label>
+        <select id="ctrSide">
+          <option value="attacker" selected>Attacking them</option>
+          <option value="defender">Defending against them</option>
+        </select>
+      </div>
+      <div style="width:130px">
+        <label for="ctrBonus">Defender bonus</label>
+        <select id="ctrBonus"><option value="Yes">Yes</option><option value="No">No</option></select>
+      </div>
+      <div style="width:96px">
+        <label for="ctrMyTrain">Your training</label>
+        <input type="number" id="ctrMyTrain" min="0" max="20" value="20">
+      </div>
+      <div style="width:220px">
+        <label for="ctrGoal">Goal</label>
+        <select id="ctrGoal">
+          <option value="wipe" selected>Kill every one of them</option>
+          <option value="both">Kill them all and survive</option>
+        </select>
+      </div>
+      <div style="width:150px">
+        <label for="ctrResVal">Raw resource &#3647; each</label>
+        <input type="number" id="ctrResVal" min="0" step="1000" value="0">
+      </div>
+      <div style="width:150px">
+        <label for="ctrAliPrice">Alicorn &#3647; each</label>
+        <input type="number" id="ctrAliPrice" min="0" step="100000" value="0">
+      </div>
+    </div>
+
+    <div class="small muted" style="margin-top:8px" id="ctrNote"></div>
+
+    <div id="ctrProg" style="display:none">
+      <div class="solve-bar-outer"><div class="solve-bar" id="ctrBar"></div></div>
+      <div class="small muted" id="ctrMsg" style="margin-top:6px"></div>
+    </div>
+  </div>
+
+  <div id="ctrOut"></div>
+</div>
+
+<div id="tip"></div>
 
 <script>
 "use strict";
@@ -1411,6 +1571,28 @@ function applySurvivors(){
   btn.title = "Put the pre-battle forces back";
 }
 
+/* ---- expand a scrolling log to its full height ---- */
+const LOG_FULL = new Set();          // remembers the choice across re-renders
+
+function logToggle(id){
+  const open = LOG_FULL.has(id);
+  return `<button class="btn btn-xs" data-log-toggle="${id}"
+    title="${open ? "Put it back in a scrolling box" : "Show the whole thing, no scrollbar"}"
+    >${open ? "Collapse" : "Expand"}</button>`;
+}
+
+document.addEventListener("click", e=>{
+  const btn = e.target.closest?.("[data-log-toggle]");
+  if (!btn) return;
+  const id = btn.dataset.logToggle;
+  const box = document.getElementById(id);
+  if (!box) return;
+  const open = box.classList.toggle("log-full");
+  if (open) LOG_FULL.add(id); else LOG_FULL.delete(id);
+  btn.textContent = open ? "Collapse" : "Expand";
+  btn.title = open ? "Put it back in a scrolling box" : "Show the whole thing, no scrollbar";
+});
+
 function render(result, atkRaw, defRaw, bonus){
   const {units, log, casualties, stalls} = result;
   lastResult = result;
@@ -1440,8 +1622,13 @@ function render(result, atkRaw, defRaw, bonus){
 
       <div>
         <div>
-          <h3>Exchange log</h3>
-          <div class="well log">${
+          <div class="log-head">
+            <h3>Exchange log</h3>
+            <span class="small muted">${log.length} exchange${log.length === 1 ? "" : "s"}</span>
+            <span class="spacer"></span>
+            ${logToggle("logExchange")}
+          </div>
+          <div class="well log${LOG_FULL.has("logExchange") ? " log-full" : ""}" id="logExchange">${
             log.length ? log.map(l=>{
               const A = units[l.aid], D = units[l.did];
               const bonusApplied = !!A.attack_mission && bonus === "Yes";
@@ -1453,8 +1640,13 @@ function render(result, atkRaw, defRaw, bonus){
             }).join("") : '<div class="muted">No hits were exchanged.</div>'}</div>
         </div>
         <div style="margin-top:14px">
-          <h3>Casualties</h3>
-          <div class="well log">${
+          <div class="log-head">
+            <h3>Casualties</h3>
+            <span class="small muted">${casualties.length} entr${casualties.length === 1 ? "y" : "ies"}</span>
+            <span class="spacer"></span>
+            ${logToggle("logCasualties")}
+          </div>
+          <div class="well log${LOG_FULL.has("logCasualties") ? " log-full" : ""}" id="logCasualties">${
             casualties.length ? casualties.map(c=>{
               const u = units[c.uid];
               return c.kind === "kill"
@@ -1552,6 +1744,8 @@ function importRows(side){
 const LS_KEY  = "warcalc.autosave";
 const LS_ARMY = "warcalc.armyPresets";
 const LS_BATL = "warcalc.battlePresets";
+const LS_MARK = "warcalc.markedArmies";
+const LS_TAB  = "warcalc.tab";
 
 let storageOK = true;
 const store = {
@@ -1609,6 +1803,8 @@ function restoreAutosave(){
 /* ---- army presets (shared pool, loadable into either side) ---- */
 const getArmies  = () => store.get(LS_ARMY, {});
 const getBattles = () => store.get(LS_BATL, {});
+const getMarks   = () => { const m = store.get(LS_MARK, []); return Array.isArray(m) ? m : []; };
+const setMarks   = m => store.set(LS_MARK, m);
 
 function refreshPresetSelects(){
   const armies = Object.keys(getArmies()).sort();
@@ -1627,6 +1823,38 @@ function refreshPresetSelects(){
   const tc = document.getElementById("toolsCount");
   if (tc) tc.textContent = `${armies.length} army · ${battles.length} battle` +
     (storageOK ? "" : " · storage unavailable");
+  renderMarks();
+}
+
+/* ---- marked armies: the presets you swap between, one click away ---- */
+function renderMarks(){
+  const armies = getArmies();
+  const marks = getMarks().filter(n => armies[n]);
+  document.querySelectorAll("[data-ap-marks]").forEach(box=>{
+    const side = box.dataset.apMarks;
+    const sel = document.querySelector(`[data-ap-sel="${side}"]`);
+    const sideWord = side === "attacker" ? "attackers" : "defenders";
+    box.innerHTML = marks.map(n=>`<span class="mark-chip${sel && sel.value === n ? " on" : ""}"
+        data-mark-load="${esc(n)}" data-mark-side="${esc(side)}"
+        title="Load ${esc(n)} into the ${sideWord}"><span class="n">${esc(n)}</span
+        ><button class="x" data-mark-off="${esc(n)}" title="Unpin ${esc(n)}">×</button></span>`).join("");
+  });
+}
+
+function toggleArmyMark(side){
+  const sel = document.querySelector(`[data-ap-sel="${side}"]`);
+  const name = sel.value;
+  if (!name){ alert("Pick a preset first — marking pins it as a one-click button."); return; }
+  const marks = getMarks();
+  const i = marks.indexOf(name);
+  if (i >= 0) marks.splice(i, 1); else marks.push(name);
+  setMarks(marks);
+  renderMarks();
+}
+
+function unmarkArmyPreset(name){
+  setMarks(getMarks().filter(n => n !== name));
+  renderMarks();
 }
 
 function saveArmyPreset(side){
@@ -1640,6 +1868,7 @@ function saveArmyPreset(side){
   if (!store.set(LS_ARMY, all)) alert("Could not save — this browser is blocking local storage.");
   refreshPresetSelects();
   document.querySelectorAll("[data-ap-sel]").forEach(sel=>{ sel.value = name; });
+  renderMarks();
 }
 
 function loadArmyPreset(side){
@@ -1651,15 +1880,37 @@ function loadArmyPreset(side){
   setSide(side, units);
 }
 
-function deleteArmyPreset(){
-  const sel = document.querySelector("[data-ap-sel]");
+function deleteArmyPreset(side){
+  const sel = document.querySelector(`[data-ap-sel="${side || "attacker"}"]`)
+           || document.querySelector("[data-ap-sel]");
   const name = sel.value;
   if (!name){ alert("Pick a preset first."); return; }
   if (!confirm(`Delete army preset "${name}"?`)) return;
   const all = getArmies();
   delete all[name];
   store.set(LS_ARMY, all);
+  setMarks(getMarks().filter(n => n !== name));
   refreshPresetSelects();
+}
+
+function renameArmyPreset(side){
+  const sel = document.querySelector(`[data-ap-sel="${side}"]`);
+  const name = sel.value;
+  if (!name){ alert("Pick a preset first."); return; }
+  const all = getArmies();
+  if (!all[name]) return;
+  const next = (prompt(`Rename army preset "${name}" to:`, name) || "").trim();
+  if (!next || next === name) return;
+  if (all[next] && !confirm(`Overwrite "${next}"?`)) return;
+  all[next] = all[name];
+  delete all[name];
+  if (!store.set(LS_ARMY, all)){ alert("Could not save — this browser is blocking local storage."); return; }
+  const marks = getMarks();
+  const i = marks.indexOf(name);
+  if (i >= 0){ marks[i] = next; setMarks(marks); }
+  refreshPresetSelects();
+  document.querySelectorAll("[data-ap-sel]").forEach(o=>{ o.value = next; });
+  renderMarks();
 }
 
 /* ---- battle presets (both sides + bonus) ---- */
@@ -1686,6 +1937,22 @@ function loadBattlePreset(){
   scheduleSave();
 }
 
+function renameBattlePreset(){
+  const sel = document.getElementById("bpSel");
+  const name = sel.value;
+  if (!name){ alert("Pick a battle first."); return; }
+  const all = getBattles();
+  if (!all[name]) return;
+  const next = (prompt(`Rename battle preset "${name}" to:`, name) || "").trim();
+  if (!next || next === name) return;
+  if (all[next] && !confirm(`Overwrite "${next}"?`)) return;
+  all[next] = all[name];
+  delete all[name];
+  if (!store.set(LS_BATL, all)){ alert("Could not save — this browser is blocking local storage."); return; }
+  refreshPresetSelects();
+  sel.value = next;
+}
+
 function deleteBattlePreset(){
   const name = document.getElementById("bpSel").value;
   if (!name){ alert("Pick a battle first."); return; }
@@ -1708,6 +1975,53 @@ function downloadJSON(obj, filename){
 }
 
 const stamp = () => new Date().toISOString().slice(0,10);
+
+/* a name that survives a trip through a filesystem */
+const safeFile = n => (String(n || "").replace(/[^A-Za-z0-9._-]+/g, "-")
+                        .replace(/^-+|-+$/g, "").slice(0, 60)) || "untitled";
+
+/* ---- exporting one thing rather than the whole drawer ---- */
+function exportArmyComposition(side){
+  const units = packSide(side);
+  if (!units.length){ alert("Nothing to export — that side is empty."); return; }
+  const sel = document.querySelector(`[data-ap-sel="${side}"]`);
+  const name = (prompt("Name this army composition:",
+    sel && sel.value ? sel.value : (side === "attacker" ? "attackers" : "defenders")) || "").trim();
+  if (!name) return;
+  downloadJSON({kind:"armyPresets", armyPresets:{[name]: units}},
+               `warcalc-army-${safeFile(name)}-${stamp()}.json`);
+}
+
+function exportBattle(){
+  const battle = {attacker: packSide("attacker"), defender: packSide("defender"),
+                  bonus: document.getElementById("defBonus").value};
+  if (!battle.attacker.length && !battle.defender.length){
+    alert("Nothing to export — both sides are empty."); return;
+  }
+  const sel = document.getElementById("bpSel");
+  const name = (prompt("Name this battle:", sel.value || "battle") || "").trim();
+  if (!name) return;
+  downloadJSON({kind:"battlePresets", battlePresets:{[name]: battle}},
+               `warcalc-battle-${safeFile(name)}-${stamp()}.json`);
+}
+
+/* ---- bulk deletes ---- */
+function deleteAllArmyPresets(){
+  const n = Object.keys(getArmies()).length;
+  if (!n){ alert("There are no army presets to delete."); return; }
+  if (!confirm(`Delete all ${n} army preset${n === 1 ? "" : "s"}? This cannot be undone.`)) return;
+  store.set(LS_ARMY, {});
+  setMarks([]);
+  refreshPresetSelects();
+}
+
+function deleteAllBattlePresets(){
+  const n = Object.keys(getBattles()).length;
+  if (!n){ alert("There are no battle presets to delete."); return; }
+  if (!confirm(`Delete all ${n} battle preset${n === 1 ? "" : "s"}? This cannot be undone.`)) return;
+  store.set(LS_BATL, {});
+  refreshPresetSelects();
+}
 
 function importJSON(text){
   let data;
@@ -1763,16 +2077,37 @@ document.querySelectorAll("[data-ap-save]").forEach(b=>
 document.querySelectorAll("[data-ap-load]").forEach(b=>
   b.addEventListener("click", ()=>loadArmyPreset(b.dataset.apLoad)));
 document.querySelectorAll("[data-ap-del]").forEach(b=>
-  b.addEventListener("click", ()=>deleteArmyPreset()));
+  b.addEventListener("click", ()=>deleteArmyPreset(b.dataset.apDel)));
+document.querySelectorAll("[data-ap-ren]").forEach(b=>
+  b.addEventListener("click", ()=>renameArmyPreset(b.dataset.apRen)));
+document.querySelectorAll("[data-ap-exp]").forEach(b=>
+  b.addEventListener("click", ()=>exportArmyComposition(b.dataset.apExp)));
+document.querySelectorAll("[data-ap-mark]").forEach(b=>
+  b.addEventListener("click", ()=>toggleArmyMark(b.dataset.apMark)));
+
+/* marked presets: the chip loads it, the × unpins it */
+document.addEventListener("click", e=>{
+  const off = e.target.closest?.("[data-mark-off]");
+  if (off){ unmarkArmyPreset(off.dataset.markOff); return; }
+  const chip = e.target.closest?.("[data-mark-load]");
+  if (!chip) return;
+  const name = chip.dataset.markLoad;
+  document.querySelectorAll("[data-ap-sel]").forEach(o=>{ o.value = name; });
+  renderMarks();
+  loadArmyPreset(chip.dataset.markSide);
+});
 /* the two selects share one pool, so keep them in step */
 document.querySelectorAll("[data-ap-sel]").forEach(sel=>
   sel.addEventListener("change", ()=>{
     document.querySelectorAll("[data-ap-sel]").forEach(o=>{ o.value = sel.value; });
+    renderMarks();
   }));
 
 /* --- battle presets --- */
 document.getElementById("bpSave").addEventListener("click", saveBattlePreset);
 document.getElementById("bpLoad").addEventListener("click", loadBattlePreset);
+document.getElementById("bpRen").addEventListener("click", renameBattlePreset);
+document.getElementById("bpExp").addEventListener("click", exportBattle);
 document.getElementById("bpDel").addEventListener("click", deleteBattlePreset);
 
 /* --- tools drawer --- */
@@ -1805,9 +2140,12 @@ document.getElementById("impFile").addEventListener("change", e=>{
   e.target.value = "";
 });
 
+document.getElementById("delAllArmies").addEventListener("click", deleteAllArmyPresets);
+document.getElementById("delAllBattles").addEventListener("click", deleteAllBattlePresets);
+
 document.getElementById("wipeSaves").addEventListener("click", ()=>{
-  if (!confirm("Delete the autosave and every saved preset in this browser?")) return;
-  [LS_KEY, LS_ARMY, LS_BATL].forEach(store.del);
+  if (!confirm("Delete the autosave and every saved preset in this browser? This cannot be undone.")) return;
+  [LS_KEY, LS_ARMY, LS_BATL, LS_MARK].forEach(k=>store.del(k));
   refreshPresetSelects();
   alert("Cleared.");
 });
@@ -2958,9 +3296,295 @@ document.getElementById("solveSide").addEventListener("change", syncSolveSide);
 syncSolveSide();
 
 
+/* ===================================================================
+   9. TABS
+   =================================================================== */
+
+const VIEWS = {battle:"viewBattle", counter:"viewCounter"};
+
+function showTab(name){
+  if (!VIEWS[name]) name = "battle";
+  Object.entries(VIEWS).forEach(([k, id])=>{
+    const el = document.getElementById(id);
+    if (el) el.style.display = k === name ? "" : "none";
+  });
+  document.querySelectorAll(".tab").forEach(b=>
+    b.classList.toggle("active", b.dataset.tab === name));
+  store.set(LS_TAB, name);
+}
+
+document.querySelectorAll(".tab").forEach(b=>
+  b.addEventListener("click", ()=>showTab(b.dataset.tab)));
+
+
+/* ===================================================================
+   10. COUNTER FINDER — cheapest way to kill one particular unit
+   =================================================================== */
+
+const ctrEl = id => document.getElementById(id);
+let ctrBusy = false, ctrHalt = false, ctrLast = null;
+
+/* alicorns only ever stand on the defending side, so which list you get
+   depends on which side of the fight you say you are on */
+const ctrEnemyTypes = () => ctrEl("ctrSide").value === "attacker"
+  ? ["Cavalry","Tanks","Pegasi","Unicorns","Naval","Alicorns"]
+  : ["Cavalry","Tanks","Pegasi","Unicorns","Naval"];
+
+function fillCounterTypes(){
+  const sel = ctrEl("ctrType");
+  const keep = sel.value;
+  const types = ctrEnemyTypes();
+  sel.innerHTML = types.map(t=>`<option value="${t}">${t}</option>`).join("");
+  sel.value = types.includes(keep) ? keep : types[0];
+  fillLoadout(sel.value, ctrEl("ctrWeapon"), ctrEl("ctrArmor"));
+  paintCounterTarget();
+}
+
+function counterTarget(){
+  return {
+    type: ctrEl("ctrType").value,
+    weapon: ctrEl("ctrWeapon").value || "ScroungedWeapons",
+    armor: ctrEl("ctrArmor").value || "ScroungedArmor",
+    size: Math.max(1, clampInt(ctrEl("ctrSize").value, 1, 1e9)),
+    training: clampInt(ctrEl("ctrTrain").value, 0, 20)
+  };
+}
+
+function paintCounterTarget(){
+  const t = counterTarget();
+  ctrEl("ctrSprite").innerHTML =
+    buildSprite(t.type, t.weapon, t.armor, true, {size:t.size, training:t.training});
+  const mine = ctrEl("ctrSide").value;
+  const ali = mine === "defender";
+  ctrEl("ctrNote").innerHTML =
+    `One exchange, your side sized until the goal is met. ` +
+    (ctrEl("ctrGoal").value === "wipe"
+      ? `Armour costs money without adding damage over a single tick, so a pure kill fields
+         scrounged armour &mdash; ask it to survive as well to make armour earn its keep. `
+      : `Your force also has to still be standing afterwards, so armour is on the table. `) +
+    (ali
+      ? `Alicorns join the hunt once you put a price on them.`
+      : `Alicorns can only be fielded by a defender, so they are out while you are attacking.`);
+}
+
+function readCounterOpts(){
+  const side = ctrEl("ctrSide").value;            // the side you are on
+  const bonus = ctrEl("ctrBonus").value;
+  const bonusYes = bonus === "Yes";
+  const goal = ctrEl("ctrGoal").value;
+  const alicornPrice = Math.max(0, parseFloat(ctrEl("ctrAliPrice").value) || 0);
+  const types = ["Cavalry","Tanks","Pegasi","Unicorns","Naval"]
+    .concat(side === "defender" && alicornPrice > 0 ? ["Alicorns"] : []);
+  return {
+    side, bonus, goal, types, alicornPrice,
+    foe: counterTarget(),
+    training: clampInt(ctrEl("ctrMyTrain").value, 0, 20),
+    resValue: Math.max(0, parseFloat(ctrEl("ctrResVal").value) || 0),
+    useArmor: goal !== "wipe",
+    /* the defender bonus scales down whoever is attacking into it */
+    bonusOwn: side === "attacker" ? bonusYes : false,
+    bonusFoe: side === "attacker" ? false : bonusYes,
+    minSurvivors: 1, ticks: 1
+  };
+}
+
+async function runCounter(){
+  if (ctrBusy) return;
+  const o = readCounterOpts();
+  if (!o.foe.type){ alert("Pick a unit type first."); return; }
+
+  const foeProfiles = [solProfile(o.foe)];
+  const so = {goal:o.goal, minSurvivors:1, bonusOwn:o.bonusOwn, bonusFoe:o.bonusFoe,
+              ticks:1, wantLosses:true};
+
+  const cands = buildCandidates({types:o.types, useArmor:o.useArmor, resValue:o.resValue,
+                                 alicornPrice:o.alicornPrice, training:o.training, goal:o.goal},
+                                foeProfiles, o.bonusOwn, o.bonusFoe);
+  if (!cands.length){
+    ctrEl("ctrOut").innerHTML = `<div class="panel"><div class="note warn">Nothing you can field
+      lands a scratch on that unit.</div></div>`;
+    return;
+  }
+
+  ctrBusy = true; ctrHalt = false;
+  ctrEl("btnCounter").disabled = true;
+  ctrEl("btnCounterStop").style.display = "";
+  ctrEl("ctrProg").style.display = "";
+  ctrEl("ctrBar").style.width = "0%";
+  ctrEl("ctrOut").innerHTML = "";
+
+  const started = performance.now();
+  const rough = [];
+  let tick = performance.now();
+
+  for (let i = 0; i < cands.length; i++){
+    if (ctrHalt) break;
+    const c = cands[i];
+    const size = soloSize(c, foeProfiles, so);
+    if (size > 0) rough.push({c, size, metric: size * c.bits});
+    if (performance.now() - tick > sliceMs()){
+      ctrEl("ctrBar").style.width = ((i + 1) / cands.length * 70).toFixed(1) + "%";
+      ctrEl("ctrMsg").textContent =
+        `Sizing loadouts — ${i + 1} of ${cands.length}`;
+      await breathe();
+      tick = performance.now();
+    }
+  }
+
+  rough.sort((a, b) => a.metric - b.metric);
+
+  /* the fast search adds a whole block of hits at once and the real engine adds
+     them one by one, so the front runners get replayed through simulate() and
+     trimmed to the size that genuinely does the job */
+  const shortlist = rough.slice(0, 12);
+  const deadline = Date.now() + 15000;
+  const done = [];
+  for (let i = 0; i < shortlist.length; i++){
+    if (ctrHalt) break;
+    ctrEl("ctrBar").style.width = (70 + (i + 1) / shortlist.length * 29).toFixed(1) + "%";
+    ctrEl("ctrMsg").textContent = `Checking against the full battle engine — ${i + 1} of ${shortlist.length}`;
+    await breathe();
+    const {c} = shortlist[i];
+    const rows = [{type:c.type, weapon:c.weapon, armor:c.armor,
+                   size:shortlist[i].size, training:o.training}];
+    const fix = verifyAndRepair(rows, [o.foe], o.side, o.bonus, o.goal, 1,
+                                o.alicornPrice, deadline, 1);
+    if (!fix || !fix.ok || !fix.rows.length) continue;
+    const row = fix.rows[0];
+    const lost = fix.v.lost[0] || 0;
+    done.push({c, row, size: row.size, lost,
+               metric: row.size * c.bits,
+               costs: solveCosts([row], o.alicornPrice),
+               burned: lost * troopBits(row, o.alicornPrice),
+               left: fix.v.left, wipes: fix.v.wipe});
+  }
+
+  ctrBusy = false;
+  ctrEl("btnCounter").disabled = false;
+  ctrEl("btnCounterStop").style.display = "none";
+  ctrEl("ctrProg").style.display = "none";
+  flagDone("✓ counters");
+
+  if (!done.length){
+    ctrEl("ctrOut").innerHTML = `<div class="panel"><div class="note warn">${ctrHalt
+      ? "Search stopped." : "No force made it through the full engine check — try a softer goal."}</div></div>`;
+    return;
+  }
+  done.sort((a, b) => a.metric - b.metric || a.size - b.size);
+  ctrLast = {results: done, opts: o};
+  renderCounters(done, o, (performance.now() - started) / 1000, cands.length);
+}
+
+function counterCard(r, i, o){
+  const u = r.row;
+  const per = r.metric / o.foe.size;
+  return `
+    <div class="well" style="margin-bottom:12px">
+      <div class="panel-head" style="margin-bottom:10px">
+        <span class="ctr-rank${i === 0 ? " top" : ""}">${i + 1}</span>
+        <span class="bits" style="font-size:15px">${money(r.metric)}</span>
+        <span class="small muted">to kill all ${o.foe.size.toLocaleString("en-US")}
+          · ${money(per)} each</span>
+        <span class="spacer"></span>
+        <span class="small muted">${r.size.toLocaleString("en-US")} troops ·
+          ${r.lost ? `${r.lost.toLocaleString("en-US")} of yours die` : "none of yours die"} ·
+          ${(r.left || 0).toLocaleString("en-US")} left standing</span>
+        <button class="btn btn-xs btn-warning" data-ctr-send="${i}"
+          title="Put both forces on the battle tab, ready to resolve">Send to battle</button>
+      </div>
+      <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">
+        <div class="surv-card ${o.side === "defender" ? "surv-def" : "surv-atk"}" style="min-width:118px">
+          ${buildSprite(u.type, u.weapon, u.armor, true, {size:u.size, training:u.training})}
+          <div class="small mono" style="margin-top:7px;word-break:break-all;color:var(--text-dim)">
+            ${esc(label(u.weapon))} / ${esc(label(u.armor))}</div>
+          <div class="mono" style="margin-top:4px;font-size:15px"><b>${r.size.toLocaleString("en-US")}</b></div>
+          <div class="small muted mono">${esc(u.type)}</div>
+        </div>
+        <div style="flex:1 1 260px;min-width:240px">
+          <div class="cost-row"><span class="cost-label">Raise army</span>
+            <span class="cost-val bits">${money(r.costs.hire)}</span></div>
+          <div class="cost-row"><span class="cost-label">Equipment ${BIT}</span>
+            <span class="cost-val bits">${money(r.costs.gearBits + r.costs.craftBits)}</span></div>
+          <div class="cost-row"><span class="cost-label">Raw resources</span>
+            <span class="cost-val">${resChips(r.costs.rawRes)}</span></div>
+          <div class="cost-row"><span class="cost-label">Upkeep / 12 h</span>
+            <span class="cost-val">${resChips(r.costs.upkeep)}</span></div>
+          <div class="cost-row" style="margin-top:6px;padding-top:7px;border-top:1px solid rgba(0,0,0,.35)">
+            <span class="cost-label" style="color:var(--text)">Total up front</span>
+            <span class="cost-val bits" style="font-size:13px">${money(r.costs.total)}</span></div>
+          <div class="cost-row"><span class="cost-label">Value burned</span>
+            <span class="cost-val bits">${money(r.burned)}
+              <span class="muted small">${r.lost.toLocaleString("en-US")} troops</span></span></div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderCounters(results, o, secs, candCount){
+  const el = ctrEl("ctrOut");
+  const t = o.foe;
+  const top = results.slice(0, 3), rest = results.slice(3);
+  el.innerHTML = `
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Cheapest ways to kill it</h2>
+        <span class="spacer"></span>
+        <span class="badge ${o.side === "defender" ? "badge-info" : "badge-danger"}">
+          you ${esc(o.side === "defender" ? "defend" : "attack")}</span>
+        <span class="badge">Defender bonus: ${esc(o.bonus)}</span>
+      </div>
+      <div class="small muted" style="margin-bottom:10px">
+        Target: <b>${o.foe.size.toLocaleString("en-US")} ${esc(t.type)}</b>
+        with ${esc(label(t.weapon))} / ${esc(label(t.armor))} at training ${t.training},
+        against your training ${o.training} ·
+        ${candCount} loadouts sized · ${secs.toFixed(1)}s ·
+        every force below was replayed through the full battle engine.
+      </div>
+      ${top.map((r, i)=>counterCard(r, i, o)).join("")}
+      ${rest.length ? `
+        <details class="cost-drop">
+          <summary>Runners-up (${rest.length})</summary>
+          <div class="cost-body">${rest.map((r, i)=>counterCard(r, i + 3, o)).join("")}</div>
+        </details>` : ""}
+    </div>`;
+
+  el.querySelectorAll("[data-ctr-send]").forEach(b=>
+    b.addEventListener("click", ()=>sendCounterToBattle(+b.dataset.ctrSend)));
+}
+
+/* drop the answer and its target onto the battle tab, ready to resolve */
+function sendCounterToBattle(i){
+  const r = ctrLast && ctrLast.results[i];
+  if (!r) return;
+  const o = ctrLast.opts;
+  const foeSide = o.side === "attacker" ? "defender" : "attacker";
+  setSide(o.side, [r.row]);
+  setSide(foeSide, [o.foe]);
+  document.getElementById("defBonus").value = o.bonus;
+  scheduleSave();
+  showTab("battle");
+  document.getElementById("btnRun").click();
+}
+
+/* ---- counter wiring ---- */
+["ctrType"].forEach(id=>ctrEl(id).addEventListener("change", ()=>{
+  fillLoadout(ctrEl("ctrType").value, ctrEl("ctrWeapon"), ctrEl("ctrArmor"));
+  paintCounterTarget();
+}));
+["ctrWeapon","ctrArmor","ctrSize","ctrTrain","ctrGoal"].forEach(id=>{
+  ctrEl(id).addEventListener("change", paintCounterTarget);
+  ctrEl(id).addEventListener("input", paintCounterTarget);
+});
+ctrEl("ctrSide").addEventListener("change", fillCounterTypes);
+ctrEl("btnCounter").addEventListener("click", runCounter);
+ctrEl("btnCounterStop").addEventListener("click", ()=>{ ctrHalt = true; });
+fillCounterTypes();
+
+
 restoreAutosave();
 refreshPresetSelects();
 refreshCounts();
+showTab(store.get(LS_TAB, "battle"));
 autosaveArmed = true;
 </script>
 </body>
