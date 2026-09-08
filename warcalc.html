@@ -244,7 +244,6 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .ctr-split{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
 @media (max-width:1100px){.ctr-split{grid-template-columns:1fr}}
 .ctr-split > .panel{margin-bottom:0}
-.ctr-lede{font-size:12px;color:var(--text-dim);margin:-2px 0 10px}
 
 /* ---------- top bar / presets ---------- */
 .topbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
@@ -3598,10 +3597,6 @@ function counterCard(r, i, o, mode){
 function counterColumn(run, mode, base){
   const kill = mode === "kill";
   const head = kill ? "Best way to kill them" : "Best way to absorb them";
-  const lede = kill
-    ? `Cheapest force that wipes all ${base.foe.size.toLocaleString("en-US")} of them.`
-    : "Cheapest force that stands in the way and still wipes them, "
-      + "counting what it loses doing it.";
   const badge = kill
     ? `<span class="badge badge-danger">you attack</span>`
     : `<span class="badge badge-info">you defend</span>`;
@@ -3632,7 +3627,6 @@ function counterColumn(run, mode, base){
         <span class="spacer"></span>
         ${badge}
       </div>
-      <div class="ctr-lede">${lede}</div>
       ${body}
     </div>`;
 }
