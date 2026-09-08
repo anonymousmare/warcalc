@@ -215,11 +215,11 @@ tbody tr:last-child{border-bottom:none}
 /* ---------- jump dock (bottom right) ---------- */
 .hk-dock{
   position:fixed;right:2px;bottom:2px;z-index:900;
-  display:flex;flex-direction:column;gap:6px;align-items:flex-end;
+  display:flex;flex-direction:column;gap:5px;align-items:flex-end;
 }
 .hk-btn{
-  width:44px;height:44px;padding:0;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  width:32px;height:32px;padding:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
   border:1px solid var(--border);border-radius:5px;
   background-image:linear-gradient(to bottom,var(--btn-default-a),var(--btn-default-b));
   color:var(--text);cursor:pointer;opacity:.5;
@@ -234,12 +234,12 @@ tbody tr:last-child{border-bottom:none}
 .hk-dock:hover .hk-btn.hk-off{opacity:.35}
 .hk-btn.hk-off:hover{filter:none;color:var(--text)}
 .hk-ic{
-  width:22px;height:22px;display:block;
-  fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;
+  width:16px;height:16px;display:block;
+  fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;
 }
 .hk-ic .f{fill:currentColor;stroke:none}
 .hk-key{
-  font-size:9px;line-height:1;font-weight:700;letter-spacing:.08em;
+  font-size:8px;line-height:1;font-weight:700;letter-spacing:.06em;
   color:rgba(255,255,255,.72);text-shadow:0 -1px 0 rgba(0,0,0,.4);
 }
 .hk-dock.keys-off .hk-key{visibility:hidden}
