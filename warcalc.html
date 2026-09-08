@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Warcalc — CLOP</title>
+<title>Warcalc 1.1 — CLOP</title>
 <style>
 :root{
   --bg:#272b30;
@@ -346,7 +346,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 <body>
 
 <div class="tabstrip">
-  <span class="tab-brand">Warcalc</span>
+  <span class="tab-brand">Warcalc 1.1</span>
   <button class="tab active" data-tab="battle">Battle</button>
   <button class="tab" data-tab="counter">Counters</button>
 </div>
@@ -354,7 +354,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 <div id="viewBattle">
 
 <div class="topbar">
-  <h1>Warcalc <button class="caret-btn" id="btnTools" title="Import / export presets" aria-expanded="false">›</button></h1>
+  <h1>Warcalc 1.1 <button class="caret-btn" id="btnTools" title="Import / export presets" aria-expanded="false">›</button></h1>
   <span class="spacer"></span>
   <div class="battle-presets">
     <span class="bp-lab">battle</span>
@@ -465,6 +465,19 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 </div>
 
 
+<!-- ============ RESULTS ============ -->
+<div id="results"></div>
+
+<!-- ============ IMPORT ============ -->
+<div class="panel">
+  <div class="panel-head"><h2>Import units</h2></div>
+  <textarea id="txtImport" spellcheck="false" placeholder="4_ACFU_Nope&#10;Cavalry&#10;ACFU&#10;Nope&#10;Size: 200&#10;Training: 20"></textarea>
+  <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn btn-xs" id="btnImportAtk">Import to attackers</button>
+    <button class="btn btn-xs" id="btnImportDef">Import to defenders</button>
+  </div>
+</div>
+
 <!-- ============ SOLVER ============ -->
 <div class="panel">
   <div class="panel-head">
@@ -559,19 +572,6 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
   </div>
 
   <div id="solveOut"></div>
-</div>
-
-<!-- ============ RESULTS ============ -->
-<div id="results"></div>
-
-<!-- ============ IMPORT ============ -->
-<div class="panel">
-  <div class="panel-head"><h2>Import units</h2></div>
-  <textarea id="txtImport" spellcheck="false" placeholder="4_ACFU_Nope&#10;Cavalry&#10;ACFU&#10;Nope&#10;Size: 200&#10;Training: 20"></textarea>
-  <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
-    <button class="btn btn-xs" id="btnImportAtk">Import to attackers</button>
-    <button class="btn btn-xs" id="btnImportDef">Import to defenders</button>
-  </div>
 </div>
 
 </div><!-- /viewBattle -->
@@ -3447,19 +3447,22 @@ function readCounterBase(){
 }
 
 /* mode "kill":   you charge them — cheapest force that wipes them out.
-   mode "absorb": they charge you — cheapest force that stands in the way,
+   mode "absorb": they charge you — cheapest force that eats the whole punch and
+                  is still standing afterwards, i.e. the smallest wall that holds,
                   ranked by what it costs plus what it loses doing it. */
 function counterOpts(base, mode){
   const side = mode === "kill" ? "attacker" : "defender";
   return {
     mode, side,
-    goal: "wipe",                                  // always: kill every one of them
+    /* killing means wiping them out; absorbing only means outlasting the hit,
+       so the absorb column is sized to the minimum that survives, not to the
+       much bigger force it would take to kill them back */
+    goal: mode === "kill" ? "wipe" : "survive",
     bonus: base.bonus,
     foe: base.foe,
     training: base.training,
-    /* alicorns only ever stand on the defending side */
-    types: ["Cavalry","Tanks","Pegasi","Unicorns","Naval"]
-             .concat(side === "defender" ? ["Alicorns"] : []),
+    /* alicorns are never offered as an answer — they are a target only */
+    types: ["Cavalry","Tanks","Pegasi","Unicorns","Naval"],
     resValue: 0,
     /* armour buys nothing on a one-tick charge, but it is the whole point
        of the force that has to stand there and take the hit */
@@ -3654,7 +3657,10 @@ function counterColumn(run, mode, base){
       : "Nothing you can field settles this one."}</div>`;
   } else {
     const top = run.results.slice(0, 3), rest = run.results.slice(3);
-    body = top.map((r, i)=>counterCard(r, i, run.opts, mode)).join("")
+    body = (kill ? "" : `<div class="small muted" style="margin-bottom:10px">The smallest
+        wall that eats the whole hit and is still standing — it holds the line, it does
+        not kill them back.</div>`)
+      + top.map((r, i)=>counterCard(r, i, run.opts, mode)).join("")
       + (rest.length ? `
         <details class="cost-drop">
           <summary>Runners-up (${rest.length})</summary>
