@@ -2052,7 +2052,14 @@ function downloadJSON(obj, filename){
   setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
 }
 
-const stamp = () => new Date().toISOString().slice(0,10);
+/* Local date and time, YYYY-MM-DD-HHMM. Local rather than UTC so the stamp
+   matches the clock the exporter was looking at, and no colons so the name
+   survives a Windows filesystem. */
+const stamp = () => {
+  const d = new Date(), p2 = n => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`
+       + `-${p2(d.getHours())}${p2(d.getMinutes())}`;
+};
 
 /* a name that survives a trip through a filesystem */
 const safeFile = n => (String(n || "").replace(/[^A-Za-z0-9._-]+/g, "-")
