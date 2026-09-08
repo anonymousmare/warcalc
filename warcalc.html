@@ -227,7 +227,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .mark-chip .x:hover{color:#fff}
 
 /* ---------- counter finder ---------- */
-.ctr-grid{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+.ctr-grid{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;justify-content:center}
 .ctr-rank{
   display:inline-flex;align-items:center;justify-content:center;
   width:22px;height:22px;border-radius:50%;font-size:12px;font-weight:600;color:#fff;
@@ -235,7 +235,15 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
   background-image:linear-gradient(to bottom,var(--btn-default-a),var(--btn-default-b));
 }
 .ctr-rank.top{background-image:linear-gradient(to bottom,var(--btn-success-a),var(--btn-success-b))}
-.ctr-target{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.ctr-target{display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:center}
+.ctr-controls{
+  display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;justify-content:center;
+  margin-top:16px;padding-top:14px;border-top:1px solid var(--border-soft);
+}
+/* the two answers, side by side: how to kill it, and how to eat its punch */
+.ctr-split{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+@media (max-width:1100px){.ctr-split{grid-template-columns:1fr}}
+.ctr-split > .panel{margin-bottom:0}
 
 /* ---------- top bar / presets ---------- */
 .topbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
@@ -526,10 +534,6 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
         <label for="solveResVal">Raw resource &#3647; each</label>
         <input type="number" id="solveResVal" min="0" step="1000" value="0">
       </div>
-      <div style="width:150px">
-        <label for="solveAliPrice">Alicorn &#3647; each</label>
-        <input type="number" id="solveAliPrice" min="0" step="100000" value="0">
-      </div>
     </div>
     <div class="solve-grid">
       <div style="min-width:100%">
@@ -574,16 +578,9 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
   <div class="topbar"><h1>Counters</h1></div>
 
   <div class="panel">
-    <div class="panel-head">
-      <h2>The unit you want dead</h2>
-      <span class="spacer"></span>
-      <button class="btn btn-warning" id="btnCounter" style="padding:7px 18px;font-size:14px">Find the cheapest kill</button>
-      <button class="btn btn-danger btn-xs" id="btnCounterStop" style="display:none">Stop</button>
-    </div>
-
     <div class="ctr-target">
       <div id="ctrSprite"></div>
-      <div class="ctr-grid" style="flex:1 1 auto">
+      <div class="ctr-grid">
         <div style="width:130px">
           <label for="ctrType">Type</label>
           <select id="ctrType"></select>
@@ -607,14 +604,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
       </div>
     </div>
 
-    <div class="solve-grid">
-      <div style="width:170px">
-        <label for="ctrSide">You are</label>
-        <select id="ctrSide">
-          <option value="attacker" selected>Attacking them</option>
-          <option value="defender">Defending against them</option>
-        </select>
-      </div>
+    <div class="ctr-controls">
       <div style="width:130px">
         <label for="ctrBonus">Defender bonus</label>
         <select id="ctrBonus"><option value="Yes">Yes</option><option value="No">No</option></select>
@@ -623,20 +613,9 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
         <label for="ctrMyTrain">Your training</label>
         <input type="number" id="ctrMyTrain" min="0" max="20" value="20">
       </div>
-      <div style="width:220px">
-        <label for="ctrGoal">Goal</label>
-        <select id="ctrGoal">
-          <option value="wipe" selected>Kill every one of them</option>
-          <option value="both">Kill them all and survive</option>
-        </select>
-      </div>
-      <div style="width:150px">
-        <label for="ctrResVal">Raw resource &#3647; each</label>
-        <input type="number" id="ctrResVal" min="0" step="1000" value="0">
-      </div>
-      <div style="width:150px">
-        <label for="ctrAliPrice">Alicorn &#3647; each</label>
-        <input type="number" id="ctrAliPrice" min="0" step="100000" value="0">
+      <div>
+        <button class="btn btn-warning" id="btnCounter" style="padding:7px 18px;font-size:14px">Find both answers</button>
+        <button class="btn btn-danger btn-xs" id="btnCounterStop" style="display:none">Stop</button>
       </div>
     </div>
 
@@ -776,7 +755,7 @@ const UNIT_COST = {
   Pegasi:  {hire:300000, upkeep:{coffee:5}},
   Unicorns:{hire:400000, upkeep:{gems:5}},
   Naval:   {hire:250000, upkeep:{gasoline:5}},
-  Alicorns:{hire:0,      upkeep:{}}          // no published price
+  Alicorns:{hire:2000000, upkeep:{gems:10}}
 };
 
 const WEAPON_COST = {
@@ -1399,9 +1378,7 @@ function tipHTML(type, weapon, armor, size, training){
         ${size != null
           ? `<div class="small mono muted">size ${esc(size)} \u00b7 training ${esc(training)}</div>`
           : ""}
-        ${type === "Alicorns"
-          ? `<div class="small muted">no price data</div>`
-          : `<div class="small mono">${money(uc.hire * n)}</div>`}
+        <div class="small mono">${money(uc.hire * n)}</div>
       </div>
     </div>
     <table class="tip-table">
@@ -2304,9 +2281,9 @@ const MAX_SOLVE_STACKS = 20;
 const EXHAUSTIVE_COMBO_CAP = 250000;
 
 /* ---- cost of one troop of a given loadout ---- */
-function loadoutBits(type, weapon, armor, resValue, alicornPrice){
+function loadoutBits(type, weapon, armor, resValue){
   const uc = UNIT_COST[type] || {hire:0, upkeep:{}};
-  const hire = type === "Alicorns" ? Math.max(0, alicornPrice || 0) : uc.hire;
+  const hire = uc.hire;
   const w = gearCost("weapon", weapon), a = gearCost("armor", armor);
   const res = addRes(addRes({}, w.res, 1), a.res, 1);
   const raw = toRaw(res);
@@ -2486,7 +2463,7 @@ function buildCandidates(opts, foeProfiles, bonusOwn, bonusFoe){
     if (!set) return;
     set.weapons.forEach(w => set.armor.forEach(a => {
       if (!opts.useArmor && a !== "ScroungedArmor") return;
-      const cost = loadoutBits(type, w, a, opts.resValue, opts.alicornPrice);
+      const cost = loadoutBits(type, w, a, opts.resValue);
       const p = solProfile({type, weapon:w, armor:a, size:1, training:opts.training});
       const perHit = foeProfiles.map(f => hitDamage(p, f, bonusOwn));
       const incoming = foeProfiles.map(f => hitDamage(f, p, bonusFoe));
@@ -2923,20 +2900,19 @@ const SOLVE_EFFORT = {
 };
 
 const clampInt = (v, lo, hi) => Math.min(hi, Math.max(lo, parseInt(v, 10) || 0));
-const troopBits = (u, ap) => {
+const troopBits = u => {
   const uc = UNIT_COST[u.type] || {hire:0};
-  const hire = u.type === "Alicorns" ? Math.max(0, ap || 0) : uc.hire;
-  return hire + gearCost("weapon", u.weapon).bits + gearCost("armor", u.armor).bits;
+  return uc.hire + gearCost("weapon", u.weapon).bits + gearCost("armor", u.armor).bits;
 };
 
 /* money and materiel for an arbitrary list of unit rows */
-function solveCosts(rows, alicornPrice){
+function solveCosts(rows){
   let hire = 0, gearBits = 0;
   const upkeep = {}, gearRes = {};
   rows.forEach(u => {
     const n = Math.max(0, u.size);
     const uc = UNIT_COST[u.type] || {hire:0, upkeep:{}};
-    hire += (u.type === "Alicorns" ? Math.max(0, alicornPrice || 0) : uc.hire) * n;
+    hire += uc.hire * n;
     addRes(upkeep, uc.upkeep, n);
     const w = gearCost("weapon", u.weapon), a = gearCost("armor", u.armor);
     gearBits += (w.bits + a.bits) * n;
@@ -2996,14 +2972,14 @@ function realCheck(ownRows, foeRows, side, bonus, goal, minSurv, ticks){
                                                           : wipe && left >= minSurv};
 }
 
-function verifyAndRepair(rows, foeRows, side, bonus, goal, minSurv, ap, deadline, ticks){
+function verifyAndRepair(rows, foeRows, side, bonus, goal, minSurv, deadline, ticks){
   const check = () => realCheck(rows, foeRows, side, bonus, goal, minSurv, ticks);
   let v = check();
   if (!v) return null;
   let calls = 1, repaired = false;
 
   if (!v.ok){                                   // short by a hair — buy the cheapest fix
-    const cheap = rows.map((u, i) => i).sort((a, b) => troopBits(rows[a], ap) - troopBits(rows[b], ap))[0];
+    const cheap = rows.map((u, i) => i).sort((a, b) => troopBits(rows[a]) - troopBits(rows[b]))[0];
     const base = rows[cheap].size;
     let add = 1, hi = -1;
     repaired = true;
@@ -3030,7 +3006,7 @@ function verifyAndRepair(rows, foeRows, side, bonus, goal, minSurv, ap, deadline
   }
 
   /* shave any slack back off, priciest stack first, by bisection */
-  const order = rows.map((u, i) => i).sort((a, b) => troopBits(rows[b], ap) - troopBits(rows[a], ap));
+  const order = rows.map((u, i) => i).sort((a, b) => troopBits(rows[b]) - troopBits(rows[a]));
   for (const i of order){
     if (!rows[i].size || calls > 120 || Date.now() > deadline) continue;
     const keep = rows[i].size;
@@ -3115,7 +3091,6 @@ function readSolveOpts(){
     maxStacks: clampInt(document.getElementById("solveStacks").value, 1, MAX_SOLVE_STACKS),
     minSurvivors: Math.max(1, clampInt(document.getElementById("solveSurv").value, 1, 1e9)),
     resValue: Math.max(0, parseFloat(document.getElementById("solveResVal").value) || 0),
-    alicornPrice: Math.max(0, parseFloat(document.getElementById("solveAliPrice").value) || 0),
     /* over several ticks armour earns its keep even on a pure wipe: a troop
        that lives through this tick fires again in the next one */
     useArmor: ticks > 1 || goal !== "wipe" || objective !== "upfront"
@@ -3190,13 +3165,13 @@ async function runSolver(){
       const rows = sol.live.map(l => ({type:l.c.type, weapon:l.c.weapon, armor:l.c.armor,
                                        size:l.size, training:opts.training}));
       const fix = verifyAndRepair(rows, foeRows, opts.side, bonus, opts.goal,
-                                  opts.minSurvivors, opts.alicornPrice, deadline, opts.ticks);
+                                  opts.minSurvivors, deadline, opts.ticks);
       if (!fix || !fix.ok) continue;
       sol.live = fix.rows.map((u, i) => ({c:{type:u.type, weapon:u.weapon, armor:u.armor,
-        bits: troopBits(u, opts.alicornPrice)}, size:u.size, lost: fix.v.lost[i] ?? 0}));
+        bits: troopBits(u)}, size:u.size, lost: fix.v.lost[i] ?? 0}));
       sol.troops = fix.rows.reduce((s, u) => s + u.size, 0);
-      sol.upfront = solveCosts(fix.rows, opts.alicornPrice).total;
-      sol.burned = fix.rows.reduce((s, u, i) => s + (fix.v.lost[i] || 0) * troopBits(u, opts.alicornPrice), 0);
+      sol.upfront = solveCosts(fix.rows).total;
+      sol.burned = fix.rows.reduce((s, u, i) => s + (fix.v.lost[i] || 0) * troopBits(u), 0);
       sol.metric = opts.objective === "upfront" ? sol.upfront
                  : opts.objective === "losses" ? sol.burned : sol.upfront + sol.burned;
       sol.wipes = fix.v.wipe; sol.left = fix.v.left; sol.verified = true;
@@ -3268,7 +3243,7 @@ function renderSolutions(out, opts, bonus, secs){
 
   const card = (sol, i) => {
     const rows = solRows(sol, opts.training);
-    const c = solveCosts(rows, opts.alicornPrice);
+    const c = solveCosts(rows);
     const lostTroops = sol.live.reduce((s, l) => s + (l.lost || 0), 0);
 
     const stacks = rows.map((u, k) => `
@@ -3277,7 +3252,7 @@ function renderSolutions(out, opts, bonus, secs){
         <div class="small mono" style="margin-top:7px;word-break:break-all;color:var(--text-dim)">
           ${esc(label(u.weapon))} / ${esc(label(u.armor))}</div>
         <div class="mono" style="margin-top:4px;font-size:15px"><b>${u.size.toLocaleString("en-US")}</b></div>
-        <div class="small muted mono">${money(troopBits(u, opts.alicornPrice) * u.size)}
+        <div class="small muted mono">${money(troopBits(u) * u.size)}
           ${(sol.live[k].lost || 0) ? `<br><span style="color:#f17a77">−${sol.live[k].lost.toLocaleString("en-US")} lost</span>`
                                     : `<br><span style="color:#78cc78">none lost</span>`}</div>
       </div>`).join("");
@@ -3383,24 +3358,22 @@ document.querySelectorAll(".tab").forEach(b=>
 
 
 /* ===================================================================
-   10. COUNTER FINDER — cheapest way to kill one particular unit
+   10. COUNTER FINDER — the two answers to one enemy unit:
+       the cheapest way to kill it, and the cheapest way to eat its punch
    =================================================================== */
 
 const ctrEl = id => document.getElementById(id);
 let ctrBusy = false, ctrHalt = false, ctrLast = null;
 
-/* alicorns only ever stand on the defending side, so which list you get
-   depends on which side of the fight you say you are on */
-const ctrEnemyTypes = () => ctrEl("ctrSide").value === "attacker"
-  ? ["Cavalry","Tanks","Pegasi","Unicorns","Naval","Alicorns"]
-  : ["Cavalry","Tanks","Pegasi","Unicorns","Naval"];
+/* both sides of the fight get searched at once, so every unit type is a
+   legal target — alicorns included, since they can stand as defenders */
+const CTR_TARGET_TYPES = ["Cavalry","Tanks","Pegasi","Unicorns","Naval","Alicorns"];
 
 function fillCounterTypes(){
   const sel = ctrEl("ctrType");
   const keep = sel.value;
-  const types = ctrEnemyTypes();
-  sel.innerHTML = types.map(t=>`<option value="${t}">${t}</option>`).join("");
-  sel.value = types.includes(keep) ? keep : types[0];
+  sel.innerHTML = CTR_TARGET_TYPES.map(t=>`<option value="${t}">${t}</option>`).join("");
+  sel.value = CTR_TARGET_TYPES.includes(keep) ? keep : CTR_TARGET_TYPES[0];
   fillLoadout(sel.value, ctrEl("ctrWeapon"), ctrEl("ctrArmor"));
   paintCounterTarget();
 }
@@ -3421,44 +3394,116 @@ function paintCounterTarget(){
     buildSprite(t.type, t.weapon, t.armor, true, {size:t.size, training:t.training});
 }
 
-function readCounterOpts(){
-  const side = ctrEl("ctrSide").value;            // the side you are on
-  const bonus = ctrEl("ctrBonus").value;
-  const bonusYes = bonus === "Yes";
-  const goal = ctrEl("ctrGoal").value;
-  const alicornPrice = Math.max(0, parseFloat(ctrEl("ctrAliPrice").value) || 0);
-  const types = ["Cavalry","Tanks","Pegasi","Unicorns","Naval"]
-    .concat(side === "defender" && alicornPrice > 0 ? ["Alicorns"] : []);
+/* the target and the shared settings; each column then picks its own side */
+function readCounterBase(){
   return {
-    side, bonus, goal, types, alicornPrice,
     foe: counterTarget(),
-    training: clampInt(ctrEl("ctrMyTrain").value, 0, 20),
-    resValue: Math.max(0, parseFloat(ctrEl("ctrResVal").value) || 0),
-    useArmor: goal !== "wipe",
+    bonus: ctrEl("ctrBonus").value,
+    bonusYes: ctrEl("ctrBonus").value === "Yes",
+    training: clampInt(ctrEl("ctrMyTrain").value, 0, 20)
+  };
+}
+
+/* mode "kill":   you charge them — cheapest force that wipes them out.
+   mode "absorb": they charge you — cheapest force that stands in the way,
+                  ranked by what it costs plus what it loses doing it. */
+function counterOpts(base, mode){
+  const side = mode === "kill" ? "attacker" : "defender";
+  return {
+    mode, side,
+    goal: "wipe",                                  // always: kill every one of them
+    bonus: base.bonus,
+    foe: base.foe,
+    training: base.training,
+    /* alicorns only ever stand on the defending side */
+    types: ["Cavalry","Tanks","Pegasi","Unicorns","Naval"]
+             .concat(side === "defender" ? ["Alicorns"] : []),
+    resValue: 0,
+    /* armour buys nothing on a one-tick charge, but it is the whole point
+       of the force that has to stand there and take the hit */
+    useArmor: mode === "absorb",
     /* the defender bonus scales down whoever is attacking into it */
-    bonusOwn: side === "attacker" ? bonusYes : false,
-    bonusFoe: side === "attacker" ? false : bonusYes,
+    bonusOwn: side === "attacker" ? base.bonusYes : false,
+    bonusFoe: side === "attacker" ? false : base.bonusYes,
     minSurvivors: 1, ticks: 1
   };
 }
 
-async function runCounter(){
-  if (ctrBusy) return;
-  const o = readCounterOpts();
-  if (!o.foe.type){ alert("Pick a unit type first."); return; }
+/* alicorns never attack, so there is nothing of theirs to absorb */
+const ctrAbsorbImpossible = base => base.foe.type === "Alicorns";
 
+async function searchCounters(o, onProg){
   const foeProfiles = [solProfile(o.foe)];
   const so = {goal:o.goal, minSurvivors:1, bonusOwn:o.bonusOwn, bonusFoe:o.bonusFoe,
               ticks:1, wantLosses:true};
 
   const cands = buildCandidates({types:o.types, useArmor:o.useArmor, resValue:o.resValue,
-                                 alicornPrice:o.alicornPrice, training:o.training, goal:o.goal},
+                                 training:o.training, goal:o.goal},
                                 foeProfiles, o.bonusOwn, o.bonusFoe);
-  if (!cands.length){
-    ctrEl("ctrOut").innerHTML = `<div class="panel"><div class="note warn">Nothing you can field
-      lands a scratch on that unit.</div></div>`;
-    return;
+  if (!cands.length) return {results:[], candCount:0};
+
+  /* what the target throws at one troop of this loadout, over the whole fight */
+  const incoming = c => foeProfiles.reduce((s, f, j) => s + f.size * c.incoming[j], 0);
+
+  const rough = [];
+  let tick = performance.now();
+  for (let i = 0; i < cands.length; i++){
+    if (ctrHalt) break;
+    const c = cands[i];
+    const size = soloSize(c, foeProfiles, so);
+    if (size > 0){
+      const upfront = size * c.bits;
+      /* the absorb column shortlists on cost + the value it expects to lose,
+         so armour that keeps troops alive can pay for itself */
+      const estLost = Math.min(size, Math.ceil(incoming(c)));
+      rough.push({c, size, rank: o.mode === "absorb" ? upfront + estLost * c.bits : upfront});
+    }
+    if (performance.now() - tick > sliceMs()){
+      onProg((i + 1) / cands.length * 0.7, `Sizing loadouts — ${i + 1} of ${cands.length}`);
+      await breathe();
+      tick = performance.now();
+    }
   }
+
+  rough.sort((a, b) => a.rank - b.rank);
+
+  /* the fast search adds a whole block of hits at once and the real engine adds
+     them one by one, so the front runners get replayed through simulate() and
+     trimmed to the size that genuinely does the job */
+  const shortlist = rough.slice(0, o.mode === "absorb" ? 14 : 12);
+  const deadline = Date.now() + 15000;
+  const done = [];
+  for (let i = 0; i < shortlist.length; i++){
+    if (ctrHalt) break;
+    onProg(0.7 + (i + 1) / shortlist.length * 0.29,
+           `Checking against the full battle engine — ${i + 1} of ${shortlist.length}`);
+    await breathe();
+    const {c} = shortlist[i];
+    const rows = [{type:c.type, weapon:c.weapon, armor:c.armor,
+                   size:shortlist[i].size, training:o.training}];
+    const fix = verifyAndRepair(rows, [o.foe], o.side, o.bonus, o.goal, 1, deadline, 1);
+    if (!fix || !fix.ok || !fix.rows.length) continue;
+    const row = fix.rows[0];
+    const lost = fix.v.lost[0] || 0;
+    const metric = row.size * c.bits;
+    const burned = lost * troopBits(row);
+    done.push({c, row, size: row.size, lost, metric, burned,
+               rank: o.mode === "absorb" ? metric + burned : metric,
+               costs: solveCosts([row]),
+               left: fix.v.left, wipes: fix.v.wipe});
+  }
+
+  done.sort((a, b) => a.rank - b.rank || a.metric - b.metric || a.size - b.size);
+  return {results: done, candCount: cands.length};
+}
+
+async function runCounter(){
+  if (ctrBusy) return;
+  const base = readCounterBase();
+  if (!base.foe.type){ alert("Pick a unit type first."); return; }
+
+  const jobs = [{mode:"kill", opts:counterOpts(base, "kill")}];
+  if (!ctrAbsorbImpossible(base)) jobs.push({mode:"absorb", opts:counterOpts(base, "absorb")});
 
   ctrBusy = true; ctrHalt = false;
   ctrEl("btnCounter").disabled = true;
@@ -3468,49 +3513,18 @@ async function runCounter(){
   ctrEl("ctrOut").innerHTML = "";
 
   const started = performance.now();
-  const rough = [];
-  let tick = performance.now();
-
-  for (let i = 0; i < cands.length; i++){
-    if (ctrHalt) break;
-    const c = cands[i];
-    const size = soloSize(c, foeProfiles, so);
-    if (size > 0) rough.push({c, size, metric: size * c.bits});
-    if (performance.now() - tick > sliceMs()){
-      ctrEl("ctrBar").style.width = ((i + 1) / cands.length * 70).toFixed(1) + "%";
-      ctrEl("ctrMsg").textContent =
-        `Sizing loadouts — ${i + 1} of ${cands.length}`;
-      await breathe();
-      tick = performance.now();
-    }
-  }
-
-  rough.sort((a, b) => a.metric - b.metric);
-
-  /* the fast search adds a whole block of hits at once and the real engine adds
-     them one by one, so the front runners get replayed through simulate() and
-     trimmed to the size that genuinely does the job */
-  const shortlist = rough.slice(0, 12);
-  const deadline = Date.now() + 15000;
-  const done = [];
-  for (let i = 0; i < shortlist.length; i++){
-    if (ctrHalt) break;
-    ctrEl("ctrBar").style.width = (70 + (i + 1) / shortlist.length * 29).toFixed(1) + "%";
-    ctrEl("ctrMsg").textContent = `Checking against the full battle engine — ${i + 1} of ${shortlist.length}`;
+  const runs = {};
+  for (let j = 0; j < jobs.length; j++){
+    const {mode, opts} = jobs[j];
+    const lead = mode === "kill" ? "Killing them" : "Absorbing them";
+    const onProg = (frac, msg) => {
+      ctrEl("ctrBar").style.width = ((j + frac) / jobs.length * 100).toFixed(1) + "%";
+      ctrEl("ctrMsg").textContent = `${lead} — ${msg}`;
+    };
+    onProg(0, "starting");
     await breathe();
-    const {c} = shortlist[i];
-    const rows = [{type:c.type, weapon:c.weapon, armor:c.armor,
-                   size:shortlist[i].size, training:o.training}];
-    const fix = verifyAndRepair(rows, [o.foe], o.side, o.bonus, o.goal, 1,
-                                o.alicornPrice, deadline, 1);
-    if (!fix || !fix.ok || !fix.rows.length) continue;
-    const row = fix.rows[0];
-    const lost = fix.v.lost[0] || 0;
-    done.push({c, row, size: row.size, lost,
-               metric: row.size * c.bits,
-               costs: solveCosts([row], o.alicornPrice),
-               burned: lost * troopBits(row, o.alicornPrice),
-               left: fix.v.left, wipes: fix.v.wipe});
+    runs[mode] = Object.assign({opts}, await searchCounters(opts, onProg));
+    if (ctrHalt) break;
   }
 
   ctrBusy = false;
@@ -3519,42 +3533,48 @@ async function runCounter(){
   ctrEl("ctrProg").style.display = "none";
   flagDone("✓ counters");
 
-  if (!done.length){
+  const anything = Object.keys(runs).some(k => runs[k].results.length);
+  if (!anything){
     ctrEl("ctrOut").innerHTML = `<div class="panel"><div class="note warn">${ctrHalt
-      ? "Search stopped." : "No force made it through the full engine check — try a softer goal."}</div></div>`;
+      ? "Search stopped." : "Nothing you can field settles this one."}</div></div>`;
     return;
   }
-  done.sort((a, b) => a.metric - b.metric || a.size - b.size);
-  ctrLast = {results: done, opts: o};
-  renderCounters(done, o, (performance.now() - started) / 1000, cands.length);
+  ctrLast = {runs, base};
+  renderCounters(runs, base, (performance.now() - started) / 1000);
 }
 
-function counterCard(r, i, o){
+function counterCard(r, i, o, mode){
   const u = r.row;
-  const per = r.metric / o.foe.size;
+  const absorb = mode === "absorb";
+  /* the absorb column is ranked on what it costs plus what it loses, so that
+     is the number the card leads with — otherwise the order reads as noise */
+  const headline = absorb ? r.metric + r.burned : r.metric;
   return `
     <div class="well" style="margin-bottom:12px">
       <div class="panel-head" style="margin-bottom:10px">
         <span class="ctr-rank${i === 0 ? " top" : ""}">${i + 1}</span>
-        <span class="bits" style="font-size:15px">${money(r.metric)}</span>
-        <span class="small muted">to kill all ${o.foe.size.toLocaleString("en-US")}
-          · ${money(per)} each</span>
+        <span class="bits" style="font-size:15px">${money(headline)}</span>
+        <span class="small muted">${absorb
+          ? `${money(r.metric)} raised + ${money(r.burned)} burned`
+          : `${money(headline / o.foe.size)} each`}</span>
         <span class="spacer"></span>
-        <span class="small muted">${r.size.toLocaleString("en-US")} troops ·
-          ${r.lost ? `${r.lost.toLocaleString("en-US")} of yours die` : "none of yours die"} ·
-          ${(r.left || 0).toLocaleString("en-US")} left standing</span>
-        <button class="btn btn-xs btn-warning" data-ctr-send="${i}"
+        <button class="btn btn-xs btn-warning" data-ctr-send="${mode}:${i}"
           title="Put both forces on the battle tab, ready to resolve">Send to battle</button>
       </div>
+      <div class="small muted" style="margin-bottom:9px">
+        ${r.size.toLocaleString("en-US")} troops ·
+        ${r.lost ? `${r.lost.toLocaleString("en-US")} of yours die` : "none of yours die"} ·
+        ${(r.left || 0).toLocaleString("en-US")} left standing
+      </div>
       <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">
-        <div class="surv-card ${o.side === "defender" ? "surv-def" : "surv-atk"}" style="min-width:118px">
+        <div class="surv-card ${absorb ? "surv-def" : "surv-atk"}" style="min-width:118px">
           ${buildSprite(u.type, u.weapon, u.armor, true, {size:u.size, training:u.training})}
           <div class="small mono" style="margin-top:7px;word-break:break-all;color:var(--text-dim)">
             ${esc(label(u.weapon))} / ${esc(label(u.armor))}</div>
           <div class="mono" style="margin-top:4px;font-size:15px"><b>${r.size.toLocaleString("en-US")}</b></div>
           <div class="small muted mono">${esc(u.type)}</div>
         </div>
-        <div style="flex:1 1 260px;min-width:240px">
+        <div style="flex:1 1 220px;min-width:210px">
           <div class="cost-row"><span class="cost-label">Raise army</span>
             <span class="cost-val bits">${money(r.costs.hire)}</span></div>
           <div class="cost-row"><span class="cost-label">Equipment ${BIT}</span>
@@ -3574,41 +3594,76 @@ function counterCard(r, i, o){
     </div>`;
 }
 
-function renderCounters(results, o, secs, candCount){
-  const el = ctrEl("ctrOut");
-  const t = o.foe;
-  const top = results.slice(0, 3), rest = results.slice(3);
-  el.innerHTML = `
-    <div class="panel">
-      <div class="panel-head">
-        <h2>Cheapest ways to kill it</h2>
-        <span class="spacer"></span>
-        <span class="badge ${o.side === "defender" ? "badge-info" : "badge-danger"}">
-          you ${esc(o.side === "defender" ? "defend" : "attack")}</span>
-        <span class="badge">Defender bonus: ${esc(o.bonus)}</span>
-      </div>
-      <div class="small muted" style="margin-bottom:10px">
-        <b>${o.foe.size.toLocaleString("en-US")} ${esc(t.type)}</b> ·
-        ${esc(label(t.weapon))} / ${esc(label(t.armor))} · training ${t.training} vs your ${o.training} ·
-        ${candCount} loadouts sized · ${secs.toFixed(1)}s
-      </div>
-      ${top.map((r, i)=>counterCard(r, i, o)).join("")}
-      ${rest.length ? `
+function counterColumn(run, mode, base){
+  const kill = mode === "kill";
+  const head = kill ? "Best way to kill them" : "Best way to absorb them";
+  const badge = kill
+    ? `<span class="badge badge-danger">you attack</span>`
+    : `<span class="badge badge-info">you defend</span>`;
+
+  let body;
+  if (!run && !kill && ctrAbsorbImpossible(base)){
+    body = `<div class="note">Alicorns only ever fight as defenders — they never
+      charge you, so there is nothing of theirs to absorb.</div>`;
+  } else if (!run){
+    body = `<div class="note warn">Search stopped before this half ran.</div>`;
+  } else if (!run.results.length){
+    body = `<div class="note warn">${ctrHalt ? "Search stopped."
+      : "Nothing you can field settles this one."}</div>`;
+  } else {
+    const top = run.results.slice(0, 3), rest = run.results.slice(3);
+    body = top.map((r, i)=>counterCard(r, i, run.opts, mode)).join("")
+      + (rest.length ? `
         <details class="cost-drop">
           <summary>Runners-up (${rest.length})</summary>
-          <div class="cost-body">${rest.map((r, i)=>counterCard(r, i + 3, o)).join("")}</div>
-        </details>` : ""}
+          <div class="cost-body">${rest.map((r, i)=>counterCard(r, i + 3, run.opts, mode)).join("")}</div>
+        </details>` : "");
+  }
+
+  return `
+    <div class="panel">
+      <div class="panel-head">
+        <h2>${head}</h2>
+        <span class="spacer"></span>
+        ${badge}
+      </div>
+      ${body}
+    </div>`;
+}
+
+function renderCounters(runs, base, secs){
+  const t = base.foe;
+  const sized = Object.keys(runs).reduce((s, k) => s + runs[k].candCount, 0);
+  ctrEl("ctrOut").innerHTML = `
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Both answers</h2>
+        <span class="spacer"></span>
+        <span class="badge">Defender bonus: ${esc(base.bonus)}</span>
+      </div>
+      <div class="small muted">
+        <b>${t.size.toLocaleString("en-US")} ${esc(t.type)}</b> ·
+        ${esc(label(t.weapon))} / ${esc(label(t.armor))} · training ${t.training} vs your
+        ${base.training} · ${sized} loadouts sized · ${secs.toFixed(1)}s
+      </div>
+    </div>
+    <div class="ctr-split">
+      ${counterColumn(runs.kill, "kill", base)}
+      ${counterColumn(runs.absorb, "absorb", base)}
     </div>`;
 
-  el.querySelectorAll("[data-ctr-send]").forEach(b=>
-    b.addEventListener("click", ()=>sendCounterToBattle(+b.dataset.ctrSend)));
+  ctrEl("ctrOut").querySelectorAll("[data-ctr-send]").forEach(b=>
+    b.addEventListener("click", ()=>sendCounterToBattle(b.dataset.ctrSend)));
 }
 
 /* drop the answer and its target onto the battle tab, ready to resolve */
-function sendCounterToBattle(i){
-  const r = ctrLast && ctrLast.results[i];
+function sendCounterToBattle(key){
+  if (!ctrLast) return;
+  const [mode, idx] = key.split(":");
+  const run = ctrLast.runs[mode];
+  const r = run && run.results[+idx];
   if (!r) return;
-  const o = ctrLast.opts;
+  const o = run.opts;
   const foeSide = o.side === "attacker" ? "defender" : "attacker";
   setSide(o.side, [r.row]);
   setSide(foeSide, [o.foe]);
@@ -3619,15 +3674,14 @@ function sendCounterToBattle(i){
 }
 
 /* ---- counter wiring ---- */
-["ctrType"].forEach(id=>ctrEl(id).addEventListener("change", ()=>{
+ctrEl("ctrType").addEventListener("change", ()=>{
   fillLoadout(ctrEl("ctrType").value, ctrEl("ctrWeapon"), ctrEl("ctrArmor"));
   paintCounterTarget();
-}));
-["ctrWeapon","ctrArmor","ctrSize","ctrTrain","ctrGoal"].forEach(id=>{
+});
+["ctrWeapon","ctrArmor","ctrSize","ctrTrain"].forEach(id=>{
   ctrEl(id).addEventListener("change", paintCounterTarget);
   ctrEl(id).addEventListener("input", paintCounterTarget);
 });
-ctrEl("ctrSide").addEventListener("change", fillCounterTypes);
 ctrEl("btnCounter").addEventListener("click", runCounter);
 ctrEl("btnCounterStop").addEventListener("click", ()=>{ ctrHalt = true; });
 fillCounterTypes();
