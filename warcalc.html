@@ -3657,10 +3657,7 @@ function counterColumn(run, mode, base){
       : "Nothing you can field settles this one."}</div>`;
   } else {
     const top = run.results.slice(0, 3), rest = run.results.slice(3);
-    body = (kill ? "" : `<div class="small muted" style="margin-bottom:10px">The smallest
-        wall that eats the whole hit and is still standing — it holds the line, it does
-        not kill them back.</div>`)
-      + top.map((r, i)=>counterCard(r, i, run.opts, mode)).join("")
+    body = top.map((r, i)=>counterCard(r, i, run.opts, mode)).join("")
       + (rest.length ? `
         <details class="cost-drop">
           <summary>Runners-up (${rest.length})</summary>
