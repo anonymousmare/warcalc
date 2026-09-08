@@ -475,8 +475,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
     <button class="btn btn-xs" id="expAll">Export everything</button>
     <button class="btn btn-xs btn-info" id="impBtn">Import JSON…</button>
     <input type="file" id="impFile" accept="application/json,.json" style="display:none">
-    <label class="hk-toggle" for="hkEnable"
-      title="When on, Q / W / E / R jump to the top of the page, the battle result, the survivors and the import box. The buttons in the bottom-right corner always work either way.">
+    <label class="hk-toggle" for="hkEnable">
       <input type="checkbox" id="hkEnable" checked> Jump hotkeys (Q W E R)</label>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:10px;
@@ -503,7 +502,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
         <button class="bp-btn" data-ap-upd="attacker" data-icon="update" title="Update this preset with the attackers on screen"></button>
         <button class="bp-btn" data-ap-mark="attacker" data-icon="mark" title="Pin this preset as a quick-swap button"></button>
         <button class="bp-btn" data-ap-ren="attacker" data-icon="rename" title="Rename this army preset"></button>
-        <button class="bp-btn" data-ap-copy="attacker" data-icon="copy" title="Copy the attackers to the clipboard, ready to paste into an import box"></button>
+        <button class="bp-btn" data-ap-copy="attacker" data-icon="copy" title="Copy for import"></button>
         <button class="bp-btn" data-ap-exp="attacker" data-icon="export" title="Export the attackers as a JSON file"></button>
         <button class="bp-btn" data-ap-del="attacker" data-icon="del" title="Delete this army preset"></button>
       </div>
@@ -534,7 +533,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
         <button class="bp-btn" data-ap-upd="defender" data-icon="update" title="Update this preset with the defenders on screen"></button>
         <button class="bp-btn" data-ap-mark="defender" data-icon="mark" title="Pin this preset as a quick-swap button"></button>
         <button class="bp-btn" data-ap-ren="defender" data-icon="rename" title="Rename this army preset"></button>
-        <button class="bp-btn" data-ap-copy="defender" data-icon="copy" title="Copy the defenders to the clipboard, ready to paste into an import box"></button>
+        <button class="bp-btn" data-ap-copy="defender" data-icon="copy" title="Copy for import"></button>
         <button class="bp-btn" data-ap-exp="defender" data-icon="export" title="Export the defenders as a JSON file"></button>
         <button class="bp-btn" data-ap-del="defender" data-icon="del" title="Delete this army preset"></button>
       </div>
@@ -1647,7 +1646,7 @@ function applySurvivors(){
     survSnapshot = null;
     btn.textContent = "Use survivors";
     btn.className = "btn btn-xs btn-warning";
-    btn.title = "Replace both force lists with what is left standing";
+    btn.title = "Replace both force lists";
     return;
   }
   if (!lastResult) return;
@@ -1658,7 +1657,7 @@ function applySurvivors(){
   scheduleSave();
   btn.textContent = "Undo";
   btn.className = "btn btn-xs";
-  btn.title = "Put the pre-battle forces back";
+  btn.title = "Put the old ones back";
 }
 
 /* ---- keep fighting: the survivors of one tick are the forces of the next ----
@@ -1922,7 +1921,7 @@ const LOG_FULL = new Set();          // remembers the choice across re-renders
 function logToggle(id){
   const open = LOG_FULL.has(id);
   return `<button class="btn btn-xs" data-log-toggle="${id}"
-    title="${open ? "Put it back in a scrolling box" : "Show the whole thing, no scrollbar"}"
+    title="${open ? "Scroll box" : "Show all"}"
     >${open ? "Collapse" : "Expand"}</button>`;
 }
 
@@ -1935,7 +1934,7 @@ document.addEventListener("click", e=>{
   const open = box.classList.toggle("log-full");
   if (open) LOG_FULL.add(id); else LOG_FULL.delete(id);
   btn.textContent = open ? "Collapse" : "Expand";
-  btn.title = open ? "Put it back in a scrolling box" : "Show the whole thing, no scrollbar";
+  btn.title = open ? "Scroll box" : "Show all";
 });
 
 /* ---- the pieces a battle result is built from -----------------------
@@ -2095,12 +2094,12 @@ function render(result, atkRaw, defRaw, bonus){
       <div class="panel-head"><h2>Survivors</h2>
         <span class="spacer"></span>
         <button class="btn btn-xs btn-warning" id="btnApplySurv"
-          title="Replace both force lists with what is left standing">Use survivors</button>
+          title="Replace both force lists">Use survivors</button>
       </div>
       ${survivorsGrid(all)}
       <div class="chain-foot">
         <button class="btn btn-xs btn-info" id="btnChain"
-          title="Fight the survivors again, tick after tick, without touching the force lists"
+          title="Fight the survivors again"
           >Check successive battles</button>
       </div>
       <div id="chainOut"></div>
@@ -3755,7 +3754,7 @@ function renderSolutions(out, opts, bonus, secs){
           <span class="bits" style="font-size:15px">${money(sol.metric)}</span>
           <span class="small muted">${esc(goalName)}</span>
           ${sol.verified ? `<span class="badge badge-info" title="Replayed through the full battle engine">verified</span>` : ""}
-          ${(sol.ticks || 1) > 1 ? `<span class="badge badge-warning" title="Exchanges before the goal is met — survivors carry from one tick to the next">${sol.ticks} ticks</span>` : ""}
+          ${(sol.ticks || 1) > 1 ? `<span class="badge badge-warning" title="Ticks fought">${sol.ticks} ticks</span>` : ""}
           <span class="spacer"></span>
           <span class="small muted">${sol.troops.toLocaleString("en-US")} troops ·
             ${sol.wipes ? `enemy wiped${(sol.ticks || 1) > 1 ? ` on tick ${sol.ticks}` : ""}`
@@ -4128,7 +4127,7 @@ function counterCard(r, i, o, mode){
           : `${money(headline / o.foe.size)} each`}</span>
         <span class="spacer"></span>
         <button class="btn btn-xs btn-warning" data-ctr-send="${mode}:${i}"
-          title="Put both forces on the battle tab, ready to resolve">Send to battle</button>
+          >Send to battle</button>
       </div>
       <div class="small muted" style="margin-bottom:9px">
         ${r.size.toLocaleString("en-US")} troops ·
