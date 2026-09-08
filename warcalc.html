@@ -268,6 +268,12 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .solve-bar{height:100%;width:0;transition:width .12s linear;
   background-image:linear-gradient(to bottom,var(--btn-warning-a),var(--btn-warning-b))}
 #solveOut .surv-grid{justify-content:flex-start}
+.tick-table{width:auto;min-width:340px}
+.tick-table th{font-size:10px;padding:2px 14px 4px 0}
+.tick-table td{padding:2px 14px 2px 0;font-family:"SFMono-Regular",Menlo,Consolas,monospace;font-size:12px}
+.tick-table th.n,.tick-table td.n{text-align:right}
+.tick-table tbody tr{border-bottom:none}
+.tick-wipe td{color:#78cc78}
 </style>
 </head>
 <body>
@@ -407,6 +413,16 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
           <option value="both">Up front + burned</option>
         </select>
       </div>
+      <div style="width:110px">
+        <label for="solveTicks">Ticks allowed</label>
+        <input type="number" id="solveTicks" min="1" max="20" value="1">
+      </div>
+    </div>
+    <div class="small muted" style="margin-top:8px">
+      One tick is one exchange. Allow more than one and whatever survives on both sides fights again
+      next tick, so the solver may send a force that cannot wipe the enemy in one go and whittles them
+      down instead &mdash; usually far cheaper up front, at the price of more troops burned and more
+      ticks of upkeep. Every extra tick is another exchange to work out, so the search takes longer.
     </div>
     <div class="solve-grid">
       <div style="width:96px">
@@ -1967,45 +1983,75 @@ function runAlloc(srcs, srcSizes, srcHits, dsts, dstSize, dstDam, MAT, buckets, 
 
 /* ---- context ----
    "own" is the side being solved for (its sizes vary), "foe" is fixed.
-   bonusOwn / bonusFoe say which side's damage the defender bonus scales down. */
-function makeContext(ownProfiles, foeProfiles, bonusOwn, bonusFoe, wantLosses){
+   bonusOwn / bonusFoe say which side's damage the defender bonus scales down.
+   ticks is how many exchanges the engagement may run for: after each one the
+   survivors on both sides carry into the next, so a force too small to wipe the
+   enemy in one tick can still grind them down over several. Tracking losses is
+   optional at one tick but mandatory beyond it — the next tick fires from
+   whatever is left. */
+function makeContext(ownProfiles, foeProfiles, bonusOwn, bonusFoe, wantLosses, ticks){
   const own = ownProfiles, foe = foeProfiles;
+  const T = Math.max(1, ticks || 1);
+  const losses = wantLosses || T > 1;
   return {
-    own, foe, wantLosses,
+    own, foe, wantLosses: losses, ticks: T,
     MO: own.map(o => foe.map(f => hitDamage(o, f, bonusOwn))),
-    MF: wantLosses ? foe.map(f => own.map(o => hitDamage(f, o, bonusFoe))) : null,
+    MF: losses ? foe.map(f => own.map(o => hitDamage(f, o, bonusFoe))) : null,
     foeSize: foe.map(f => f.size),
     ownBuckets: bucketPlan(own),
-    foePools: poolPlan(foe, null),      // foe armour and sizes never move
-    foeBuckets: wantLosses ? bucketPlan(foe) : null
+    foePools: poolPlan(foe, null),      // foe armour and sizes as they start tick 1
+    foeBuckets: losses ? bucketPlan(foe) : null
   };
 }
 
-function trySizes(sizes, ctx){
+/* Fight the engagement out: both sides fire from their pre-tick strength, then
+   the dead are removed, exactly the order simulate() uses. Every tick after the
+   first is that same arithmetic on the survivors, so the target pools have to be
+   rebuilt each time — stack sizes decide targeting order.
+   wantLog fills in the per-tick trace for the result card; the search itself
+   runs this millions of times and skips it. */
+function trySizes(sizes, ctx, wantLog){
   const K = ctx.own.length, M = ctx.foe.length;
-  const foeDam = new Float64Array(M);
-  runAlloc(ctx.own, sizes, sizes.slice(), ctx.foe, ctx.foeSize, foeDam,
-           ctx.MO, ctx.ownBuckets, ctx.foePools);
+  const ownSize = sizes.slice(), foeSize = ctx.foeSize.slice();
+  const ownLost = ctx.wantLosses ? new Array(K).fill(0) : null;
+  const perTick = wantLog ? [] : null;
+  let wipe = false, ticksUsed = 0, foeLeft = 0, ownLeft = 0;
 
-  let wipe = true, foeLeft = 0;
-  for (let j = 0; j < M; j++){
-    const dealt = Math.floor(round6(foeDam[j]));
-    if (dealt < ctx.foeSize[j]){ wipe = false; foeLeft += ctx.foeSize[j] - dealt; }
-  }
-  if (!ctx.wantLosses) return {wipe, foeLeft, ownLost: null, ownLeft: null};
+  for (let t = 1; t <= ctx.ticks; t++){
+    const foeDam = new Float64Array(M);
+    runAlloc(ctx.own, ownSize, ownSize.slice(), ctx.foe, foeSize, foeDam,
+             ctx.MO, ctx.ownBuckets, t === 1 ? ctx.foePools : poolPlan(ctx.foe, foeSize));
 
-  /* losses are needed even when the foe survives, so this is unconditional */
-  const ownDam = new Float64Array(K);
-  runAlloc(ctx.foe, ctx.foeSize, ctx.foeSize.slice(), ctx.own, sizes, ownDam,
-           ctx.MF, ctx.foeBuckets, poolPlan(ctx.own, sizes));
-  const ownLost = [];
-  let ownLeft = 0;
-  for (let i = 0; i < K; i++){
-    const lost = Math.min(sizes[i], Math.floor(round6(ownDam[i])));
-    ownLost.push(lost);
-    ownLeft += sizes[i] - lost;
+    let ownDam = null;
+    if (ctx.wantLosses){
+      ownDam = new Float64Array(K);
+      runAlloc(ctx.foe, foeSize, foeSize.slice(), ctx.own, ownSize, ownDam,
+               ctx.MF, ctx.foeBuckets, poolPlan(ctx.own, ownSize));
+    }
+
+    let foeKilled = 0, ownKilled = 0;
+    foeLeft = 0; ownLeft = 0;
+    for (let j = 0; j < M; j++){
+      const dead = Math.min(foeSize[j], Math.floor(round6(foeDam[j])));
+      foeSize[j] -= dead; foeKilled += dead; foeLeft += foeSize[j];
+    }
+    for (let i = 0; i < K; i++){
+      if (ownDam){
+        const dead = Math.min(ownSize[i], Math.floor(round6(ownDam[i])));
+        ownSize[i] -= dead; ownKilled += dead; ownLost[i] += dead;
+      }
+      ownLeft += ownSize[i];
+    }
+
+    ticksUsed = t;
+    if (perTick) perTick.push({tick:t, foeKilled, ownKilled, foeLeft, ownLeft});
+    if (!foeLeft){ wipe = true; break; }
+    if (!ownLeft) break;
+    if (!foeKilled && !ownKilled) break;   // deadlock: every later tick repeats it
   }
-  return {wipe, foeLeft, ownLost, ownLeft};
+
+  return {wipe, foeLeft, ownLost, ownLeft: ctx.wantLosses ? ownLeft : null,
+          ticksUsed, perTick};
 }
 
 /* ================= candidates ================= */
@@ -2056,7 +2102,8 @@ function pruneCands(cands, useIncoming, usePerHit, maxKeep){
 
 /* ================= size search ================= */
 function makeSolver(subset, foeProfiles, o){
-  const ctx = makeContext(subset.map(c => c.p), foeProfiles, o.bonusOwn, o.bonusFoe, o.wantLosses);
+  const ctx = makeContext(subset.map(c => c.p), foeProfiles, o.bonusOwn, o.bonusFoe,
+                          o.wantLosses, o.ticks);
   const bitsArr = subset.map(c => c.bits);
   const K = subset.length;
   let sims = 0;
@@ -2134,20 +2181,21 @@ function makeSolver(subset, foeProfiles, o){
   }
 
   return {ctx, bitsArr, K, feasible, cost, tighten, localMin, reach,
-          simCount: () => sims, result: sz => trySizes(sz, ctx)};
+          simCount: () => sims, result: sz => trySizes(sz, ctx, true)};
 }
 
 /* ---- seeds ---- */
 function seedSizes(subset, foeProfiles, o){
   const sizes = new Array(subset.length).fill(0);
 
+  const T = Math.max(1, o.ticks || 1);           // a troop that lives gets one hit per tick
   if (o.goal !== "survive"){                     // enough hits to kill each enemy stack
     for (let j = 0; j < foeProfiles.length; j++){
       let best = -1, bestCost = Infinity, bestHits = 0;
       for (let i = 0; i < subset.length; i++){
         const ph = subset[i].perHit[j];
         if (!(ph > 0)) continue;
-        const h = Math.ceil(foeProfiles[j].size / ph);
+        const h = Math.max(1, Math.ceil(foeProfiles[j].size / ph / T));
         if (h * subset[i].bits < bestCost){ bestCost = h * subset[i].bits; best = i; bestHits = h; }
       }
       if (best < 0) return null;
@@ -2228,10 +2276,12 @@ function* hardOptimize(subset, foeProfiles, o, solos, gridN){
 /* ================= driver ================= */
 function* solveGen(opts, foeRows, bonusOwn, bonusFoe){
   const foeProfiles = foeRows.map(solProfile);
+  const ticks = Math.max(1, opts.ticks || 1);
   const o = {
     goal: opts.goal, minSurvivors: Math.max(1, opts.minSurvivors || 1),
-    bonusOwn, bonusFoe,
-    wantLosses: opts.goal !== "wipe" || opts.objective !== "upfront"
+    bonusOwn, bonusFoe, ticks,
+    /* past one tick the losses drive the next tick, so they are never optional */
+    wantLosses: ticks > 1 || opts.goal !== "wipe" || opts.objective !== "upfront"
   };
   const needKill = o.goal !== "survive";
 
@@ -2259,7 +2309,10 @@ function* solveGen(opts, foeRows, bonusOwn, bonusFoe){
   };
   rec(0, []);
 
-  /* lower bounds — both are floors on any achievable cost for that subset */
+  /* lower bounds — both are floors on any achievable cost for that subset.
+     Over T ticks a troop lands at most T hits, so the kill floor divides by T;
+     the damage the enemy deals in tick 1 lands whatever happens after, so the
+     survival floor is unchanged. */
   const killRate = cands.map(c => foeProfiles.map((f, j) => c.perHit[j] > 0 ? c.bits / c.perHit[j] : Infinity));
   const lowerBound = idxs => {
     let lb = 0;
@@ -2268,7 +2321,7 @@ function* solveGen(opts, foeRows, bonusOwn, bonusFoe){
         let best = Infinity;
         for (const i of idxs) if (killRate[i][j] < best) best = killRate[i][j];
         if (best === Infinity) return Infinity;
-        lb += foeProfiles[j].size * best;
+        lb += foeProfiles[j].size * best / ticks;
       }
     }
     if (o.goal !== "wipe"){
@@ -2348,6 +2401,7 @@ function* solveGen(opts, foeRows, bonusOwn, bonusFoe){
     seen.add(key);
     out.push({live, upfront: f.met.up, burned: f.met.burn, metric: f.met.m,
               wipes: f.res.wipe, left: f.res.ownLeft,
+              ticks: f.res.ticksUsed || 1, tickLog: f.res.perTick || null,
               troops: live.reduce((s, l) => s + l.size, 0)});
   }
   yield {done:true, results: out.slice(0, 10), candCount: cands.length,
@@ -2391,25 +2445,54 @@ function solveCosts(rows, alicornPrice){
    The fast search sums a block of hits at once; simulate() adds them one at a
    time, and float drift makes those differ by a single hit now and then. So the
    forces the solver hands back get replayed through simulate() and nudged until
-   they really do the job. */
-function realCheck(ownRows, foeRows, side, bonus, goal, minSurv){
+   they really do the job.
+   With more than one tick allowed the replay keeps going: the survivors of each
+   tick are the forces of the next, wiped stacks drop out, and the losses are
+   totalled per starting stack. */
+function realCheck(ownRows, foeRows, side, bonus, goal, minSurv, ticks){
+  const T = Math.max(1, ticks || 1);
   const named = (rows, p) => rows.map((u, i) => ({type:u.type, weapon:u.weapon, armor:u.armor,
     size:u.size, training:u.training, name:p + i}));
-  const atk = named(side === "defender" ? foeRows : ownRows, "A");
-  const def = named(side === "defender" ? ownRows : foeRows, "D");
-  let r;
-  try { r = simulate(atk, def, bonus); } catch(e){ return null; }
-  const own = side === "defender" ? r.repellers : r.invaders;
-  const foe = side === "defender" ? r.invaders  : r.repellers;
-  const wipe = foe.every(u => u.remaining === 0);
-  const left = own.reduce((s, u) => s + u.remaining, 0);
-  return {wipe, left, lost: own.map(u => u.lost || 0),
+  let own = ownRows.map((u, i) => Object.assign({}, u, {at:i}));
+  let foe = foeRows.map(u => Object.assign({}, u));
+  const lost = ownRows.map(() => 0);
+  const log = [];
+  let wipe = false, left = own.reduce((s, u) => s + u.size, 0), used = 0;
+
+  for (let t = 1; t <= T; t++){
+    if (!own.length || !foe.length) break;
+    let r;
+    try {
+      r = simulate(side === "defender" ? named(foe, "A") : named(own, "A"),
+                   side === "defender" ? named(own, "D") : named(foe, "D"), bonus);
+    } catch(e){ return null; }
+    const ownUnits = side === "defender" ? r.repellers : r.invaders;
+    const foeUnits = side === "defender" ? r.invaders  : r.repellers;
+
+    let ownKilled = 0, foeKilled = 0, foeLeft = 0;
+    left = 0;
+    ownUnits.forEach((u, i) => { lost[own[i].at] += u.lost || 0; ownKilled += u.lost || 0;
+                                 left += u.remaining; });
+    foeUnits.forEach(u => { foeKilled += u.lost || 0; foeLeft += u.remaining; });
+
+    own = own.map((u, i) => Object.assign({}, u, {size: ownUnits[i].remaining})).filter(u => u.size > 0);
+    foe = foe.map((u, i) => Object.assign({}, u, {size: foeUnits[i].remaining})).filter(u => u.size > 0);
+
+    used = t;
+    log.push({tick:t, foeKilled, ownKilled, foeLeft, ownLeft:left});
+    if (!foeLeft){ wipe = true; break; }
+    if (!left) break;
+    if (!foeKilled && !ownKilled) break;   // deadlock: every later tick repeats it
+  }
+
+  return {wipe, left, lost, ticks: used || 1, log,
           ok: goal === "wipe" ? wipe : goal === "survive" ? left >= minSurv
                                                           : wipe && left >= minSurv};
 }
 
-function verifyAndRepair(rows, foeRows, side, bonus, goal, minSurv, ap, deadline){
-  let v = realCheck(rows, foeRows, side, bonus, goal, minSurv);
+function verifyAndRepair(rows, foeRows, side, bonus, goal, minSurv, ap, deadline, ticks){
+  const check = () => realCheck(rows, foeRows, side, bonus, goal, minSurv, ticks);
+  let v = check();
   if (!v) return null;
   let calls = 1, repaired = false;
 
@@ -2420,7 +2503,7 @@ function verifyAndRepair(rows, foeRows, side, bonus, goal, minSurv, ap, deadline
     repaired = true;
     while (calls < 26 && Date.now() < deadline){       // double until it passes
       rows[cheap].size = base + add;
-      v = realCheck(rows, foeRows, side, bonus, goal, minSurv);
+      v = check();
       calls++;
       if (v && v.ok){ hi = base + add; break; }
       add *= 2;
@@ -2431,12 +2514,12 @@ function verifyAndRepair(rows, foeRows, side, bonus, goal, minSurv, ap, deadline
     while (lo + 1 < hi && calls < 70 && Date.now() < deadline){
       const mid = (lo + hi) >> 1;                      // then walk it back down
       rows[cheap].size = mid;
-      const t = realCheck(rows, foeRows, side, bonus, goal, minSurv);
+      const t = check();
       calls++;
       if (t && t.ok){ hi = mid; v = t; } else lo = mid;
     }
     rows[cheap].size = hi;
-    v = realCheck(rows, foeRows, side, bonus, goal, minSurv);
+    v = check();
     calls++;
   }
 
@@ -2446,21 +2529,21 @@ function verifyAndRepair(rows, foeRows, side, bonus, goal, minSurv, ap, deadline
     if (!rows[i].size || calls > 120 || Date.now() > deadline) continue;
     const keep = rows[i].size;
     rows[i].size = 0;                       // can the stack go entirely?
-    let t = realCheck(rows, foeRows, side, bonus, goal, minSurv);
+    let t = check();
     calls++;
     if (t && t.ok){ v = t; repaired = true; continue; }
     let lo = 0, hi = keep;                  // lo fails, hi passes
     while (lo + 1 < hi && calls < 120 && Date.now() < deadline){
       const mid = (lo + hi) >> 1;
       rows[i].size = mid;
-      t = realCheck(rows, foeRows, side, bonus, goal, minSurv);
+      t = check();
       calls++;
       if (t && t.ok){ hi = mid; v = t; } else lo = mid;
     }
     rows[i].size = hi;
     if (hi < keep) repaired = true;
   }
-  v = realCheck(rows, foeRows, side, bonus, goal, minSurv) || v;
+  v = check() || v;
   calls++;
   return {rows: rows.filter(u => u.size > 0), v, calls, ok:true, repaired};
 }
@@ -2490,15 +2573,18 @@ function readSolveOpts(){
   const goal = document.getElementById("solveGoal").value;
   const objective = document.getElementById("solveMin").value;
   const eff = SOLVE_EFFORT[document.getElementById("solveEffort").value] || SOLVE_EFFORT.normal;
+  const ticks = clampInt(document.getElementById("solveTicks").value, 1, 20);
   return Object.assign({
-    side, goal, objective,
+    side, goal, objective, ticks,
     types: solveTypeBoxes().filter(c => c.checked && !c.disabled).map(c => c.value),
     training: clampInt(document.getElementById("solveTrain").value, 0, 20),
     maxStacks: clampInt(document.getElementById("solveStacks").value, 1, 4),
     minSurvivors: Math.max(1, clampInt(document.getElementById("solveSurv").value, 1, 1e9)),
     resValue: Math.max(0, parseFloat(document.getElementById("solveResVal").value) || 0),
     alicornPrice: Math.max(0, parseFloat(document.getElementById("solveAliPrice").value) || 0),
-    useArmor: goal !== "wipe" || objective !== "upfront"
+    /* over several ticks armour earns its keep even on a pure wipe: a troop
+       that lives through this tick fires again in the next one */
+    useArmor: ticks > 1 || goal !== "wipe" || objective !== "upfront"
   }, eff);
 }
 
@@ -2561,14 +2647,14 @@ async function runSolver(){
     document.getElementById("solveBar").style.width = "97%";
     document.getElementById("solveMsg").textContent = "Checking the answers against the full battle engine…";
     await new Promise(r => setTimeout(r, 0));
-    const deadline = Date.now() + 12000;
+    const deadline = Date.now() + (opts.ticks > 1 ? 20000 : 12000);
     const keep = [];
     for (const sol of last.results){
       if (Date.now() > deadline){ keep.push(sol); continue; }
       const rows = sol.live.map(l => ({type:l.c.type, weapon:l.c.weapon, armor:l.c.armor,
                                        size:l.size, training:opts.training}));
       const fix = verifyAndRepair(rows, foeRows, opts.side, bonus, opts.goal,
-                                  opts.minSurvivors, opts.alicornPrice, deadline);
+                                  opts.minSurvivors, opts.alicornPrice, deadline, opts.ticks);
       if (!fix || !fix.ok) continue;
       sol.live = fix.rows.map((u, i) => ({c:{type:u.type, weapon:u.weapon, armor:u.armor,
         bits: troopBits(u, opts.alicornPrice)}, size:u.size, lost: fix.v.lost[i] ?? 0}));
@@ -2578,6 +2664,7 @@ async function runSolver(){
       sol.metric = opts.objective === "upfront" ? sol.upfront
                  : opts.objective === "losses" ? sol.burned : sol.upfront + sol.burned;
       sol.wipes = fix.v.wipe; sol.left = fix.v.left; sol.verified = true;
+      sol.ticks = fix.v.ticks || 1; sol.tickLog = fix.v.log || null;
       verified++;
       keep.push(sol);
     }
@@ -2607,6 +2694,32 @@ async function runSolver(){
 function solRows(sol, training){
   return sol.live.map(l => ({type:l.c.type, weapon:l.c.weapon, armor:l.c.armor,
                              size:l.size, training}));
+}
+
+/* tick-by-tick trace of a plan that takes more than one exchange */
+function tickTable(sol){
+  const log = sol.tickLog;
+  if (!log || log.length < 2) return "";
+  const n = v => (v || 0).toLocaleString("en-US");
+  return `
+    <details class="cost-drop" style="margin-top:12px" open>
+      <summary>Tick by tick</summary>
+      <div class="cost-body">
+        <table class="tick-table">
+          <thead><tr><th>Tick</th><th class="n">Enemy killed</th><th class="n">Enemy left</th>
+            <th class="n">Your dead</th><th class="n">Yours left</th></tr></thead>
+          <tbody>${log.map(t => `
+            <tr${t.foeLeft === 0 ? ' class="tick-wipe"' : ""}>
+              <td>${t.tick}</td><td class="n">${n(t.foeKilled)}</td><td class="n">${n(t.foeLeft)}</td>
+              <td class="n">${n(t.ownKilled)}</td><td class="n">${n(t.ownLeft)}</td></tr>`).join("")}
+          </tbody>
+        </table>
+        <div class="small muted" style="margin-top:8px">
+          Loading this force and resolving plays tick 1 only &mdash; hit <b>Use survivors</b> on the
+          result and resolve again to walk through the rest.
+        </div>
+      </div>
+    </details>`;
 }
 
 function renderSolutions(out, opts, bonus, secs){
@@ -2643,14 +2756,17 @@ function renderSolutions(out, opts, bonus, secs){
           <span class="bits" style="font-size:15px">${money(sol.metric)}</span>
           <span class="small muted">${esc(goalName)}</span>
           ${sol.verified ? `<span class="badge badge-info" title="Replayed through the full battle engine">verified</span>` : ""}
+          ${(sol.ticks || 1) > 1 ? `<span class="badge badge-warning" title="Exchanges before the goal is met — survivors carry from one tick to the next">${sol.ticks} ticks</span>` : ""}
           <span class="spacer"></span>
           <span class="small muted">${sol.troops.toLocaleString("en-US")} troops ·
-            ${sol.wipes ? "enemy wiped" : "enemy survives"} ·
+            ${sol.wipes ? `enemy wiped${(sol.ticks || 1) > 1 ? ` on tick ${sol.ticks}` : ""}`
+                        : `enemy survives${(sol.ticks || 1) > 1 ? ` all ${sol.ticks} ticks` : ""}`} ·
             ${(sol.left || 0).toLocaleString("en-US")} of yours left</span>
           <button class="btn btn-xs btn-warning" data-sol-load="${i}">Load into ${esc(opts.side === "defender" ? "defenders" : "attackers")}</button>
           <button class="btn btn-xs" data-sol-run="${i}">Load &amp; resolve</button>
         </div>
         <div class="surv-grid">${stacks}</div>
+        ${tickTable(sol)}
         <div style="margin-top:10px">
           <div class="cost-row"><span class="cost-label">Raise army</span>
             <span class="cost-val bits">${money(c.hire)}</span></div>
@@ -2660,6 +2776,9 @@ function renderSolutions(out, opts, bonus, secs){
             <span class="cost-val">${resChips(c.rawRes)}</span></div>
           <div class="cost-row"><span class="cost-label">Upkeep / 12 h</span>
             <span class="cost-val">${resChips(c.upkeep)}</span></div>
+          ${(sol.ticks || 1) > 1 ? `<div class="cost-row"><span class="cost-label">Upkeep &times; ${sol.ticks} ticks</span>
+            <span class="cost-val">${resChips(addRes({}, c.upkeep, sol.ticks))}
+              <span class="muted small">if none of them died</span></span></div>` : ""}
           <div class="cost-row" style="margin-top:6px;padding-top:7px;border-top:1px solid rgba(0,0,0,.35)">
             <span class="cost-label" style="color:var(--text)">Total up front</span>
             <span class="cost-val bits" style="font-size:13px">${money(c.total)}</span></div>
@@ -2674,8 +2793,8 @@ function renderSolutions(out, opts, bonus, secs){
       Cheapest ${esc(sideWord)} found · ${out.candCount} loadouts survived pruning ·
       ${out.comboCount.toLocaleString("en-US")} combinations considered ·
       ${out.refined} of ${out.shortlisted} shortlisted forces deeply refined ·
-      ${secs.toFixed(1)}s${opts.goal === "wipe" && opts.objective === "upfront"
-        ? ` · armour adds cost without adding damage, so this goal fields scrounged armour — pick a goal that involves surviving to make armour earn its keep`
+      ${secs.toFixed(1)}s${opts.ticks > 1 ? ` · the fight may run up to ${opts.ticks} ticks` : ""}${opts.ticks === 1 && opts.goal === "wipe" && opts.objective === "upfront"
+        ? ` · armour adds cost without adding damage, so this goal fields scrounged armour — pick a goal that involves surviving, or allow more ticks, to make armour earn its keep`
         : ""}
     </div>
     ${card(out.results[0], 0)}
