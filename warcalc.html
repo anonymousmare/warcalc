@@ -1546,6 +1546,7 @@ function tipHTML(type, weapon, armor, size, training){
       <tbody>${rows}</tbody>
     </table>
     <div class="tip-cost">
+      <div class="muted">Equipment <span class="bits">${money((w.bits + a.bits) * n)}</span></div>
       <div>Total <span class="bits">${money(uc.hire * n + (w.bits + a.bits) * n)}</span></div>
       <div style="margin-top:4px">${resChips(gres)}</div>
     </div>`;
