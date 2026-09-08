@@ -176,9 +176,11 @@ tbody tr:last-child{border-bottom:none}
 .surv-atk{background:#241a1a;border-color:rgba(241,122,119,.22)}
 .surv-def{background:#1a2026;border-color:rgba(116,202,227,.18)}
 .surv-dead{opacity:.45}
+.surv-col{display:flex;flex-direction:column}
 .surv-col h3{margin-bottom:8px}
 .surv-grid{display:flex;gap:12px;flex-wrap:wrap}
-.surv-worth{margin-top:12px;padding:0}
+/* the two columns' standing values line up whatever the card counts are */
+.surv-worth{margin-top:auto;padding:0;background:#25282d}
 .surv-worth > summary{
   display:flex;align-items:center;gap:8px;list-style:none;
   padding:8px 10px;cursor:pointer;font-size:12px;
@@ -191,6 +193,8 @@ tbody tr:last-child{border-bottom:none}
 .surv-worth[open] > summary{border-bottom:1px solid var(--border-soft)}
 .surv-worth-body{padding:8px 10px}
 .surv-worth .cost-row{font-size:12px}
+.chain-tick .surv-worth{background:#15171a}
+.worth-plain{margin-top:12px;background:var(--sunken)}
 /* a unit card is a shortcut into the counter finder */
 .surv-card{cursor:pointer}
 .surv-card:hover{border-color:rgba(255,255,255,.45)}
@@ -209,21 +213,21 @@ tbody tr:last-child{border-bottom:none}
    before it */
 .chain-tick{
   border:1px solid var(--border-soft);border-radius:5px;
-  background:rgba(0,0,0,.14);padding:12px 13px;margin:0 0 22px;
+  background:rgba(0,0,0,.10);padding:12px 13px;margin:0 0 22px;
 }
 /* each replayed tick takes the next colour in the cycle, so two ticks never
    share a background and the eye can tell where one ends */
-.chain-tick.tone-a{background:rgba(226,199,96,.085);border-color:rgba(226,199,96,.30)}
-.chain-tick.tone-b{background:rgba(92,168,226,.085);border-color:rgba(92,168,226,.30)}
-.chain-tick.tone-c{background:rgba(162,116,226,.095);border-color:rgba(162,116,226,.32)}
+.chain-tick.tone-a{background:rgba(226,199,96,.042);border-color:rgba(226,199,96,.18)}
+.chain-tick.tone-b{background:rgba(92,168,226,.042);border-color:rgba(92,168,226,.18)}
+.chain-tick.tone-c{background:rgba(162,116,226,.048);border-color:rgba(162,116,226,.20)}
 /* a plain white rule with the words sitting in the gap */
 .tick-divider{
   display:flex;align-items:center;gap:14px;
-  margin:30px 0;color:#fff;
+  margin:30px 0;color:rgba(255,255,255,.7);
   font-size:10px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;
 }
 .tick-divider::before,.tick-divider::after{
-  content:"";flex:1 1 auto;height:1px;background:#fff;
+  content:"";flex:1 1 auto;height:1px;background:rgba(255,255,255,.35);
 }
 .chain-tick > summary{
   display:flex;align-items:center;gap:8px;flex-wrap:wrap;
@@ -232,7 +236,7 @@ tbody tr:last-child{border-bottom:none}
 .chain-tick > summary::-webkit-details-marker{display:none}
 .chain-tick > summary::before{content:"\25B8";color:var(--text-dim);font-size:11px;width:9px}
 .chain-tick[open] > summary::before{content:"\25BE"}
-.chain-tick[open] > summary{padding-bottom:12px;border-bottom:2px solid rgba(255,255,255,.11)}
+.chain-tick[open] > summary{padding-bottom:12px;border-bottom:2px solid rgba(255,255,255,.07)}
 .chain-body{margin-top:16px}
 .chain-body .log{max-height:220px}
 .chain-body .log.log-full{max-height:none}
@@ -1818,7 +1822,7 @@ function chainTotalsColumn(title, cls, t, ticks){
         <span class="cost-label" style="color:var(--text)">Total burned</span>
         <span class="cost-val bits" style="font-size:13px">${money(t.hire + t.gear + raw.craftBits)}</span></div>
     </div>
-    <details class="well surv-worth" style="margin-top:12px">
+    <details class="well surv-worth worth-plain" style="margin-top:12px">
       <summary><span class="cost-label">Total standing</span>
         <span class="spacer"></span>
         <span class="cost-val bits">${money(t.leftover.hire + t.leftover.gear)}</span></summary>
@@ -2039,7 +2043,7 @@ function survivorValue(units){
 
 function survivorWorth(units){
   const v = survivorValue(units);
-  return `<details class="well surv-worth">
+  return `<details class="well surv-worth" open>
     <summary><span class="cost-label">Total standing</span>
       <span class="spacer"></span>
       <span class="cost-val bits">${money(v.hire + v.gear)}</span></summary>
@@ -2115,16 +2119,6 @@ function render(result, atkRaw, defRaw, bonus){
       </div>
     </div>
 
-    <div class="panel">
-      <div class="panel-head">
-        <h2>Deaths</h2>
-        <span class="spacer"></span>
-        <span class="badge badge-danger">Attackers −${money(atkDead.hire + atkDead.gear + atkDead.craftBits)}</span>
-        <span class="badge badge-info">Defenders −${money(defDead.hire + defDead.gear + defDead.craftBits)}</span>
-      </div>
-      ${deathsGrid(atkDead, defDead, "death")}
-    </div>
-
     <div class="panel" id="panelSurvivors">
       <div class="panel-head"><h2>Survivors</h2>
         <span class="spacer"></span>
@@ -2132,6 +2126,15 @@ function render(result, atkRaw, defRaw, bonus){
           title="Replace both force lists">Use survivors</button>
       </div>
       ${survivorsGrid(all)}
+
+      <div class="log-head" style="margin-top:18px">
+        <h3>Deaths</h3>
+        <span class="spacer"></span>
+        <span class="badge badge-danger">Attackers −${money(atkDead.hire + atkDead.gear + atkDead.craftBits)}</span>
+        <span class="badge badge-info">Defenders −${money(defDead.hire + defDead.gear + defDead.craftBits)}</span>
+      </div>
+      ${deathsGrid(atkDead, defDead, "death")}
+
       <div class="chain-foot">
         <button class="btn btn-xs btn-info" id="btnChain"
           title="Fight the survivors again"
@@ -2729,6 +2732,7 @@ document.getElementById("btnClearResults").addEventListener("click", ()=>{
   clearTips("chain");
   lastResult = null;
   survSnapshot = null;
+  setChainJumpButtons(0);
   refreshJumpDock();
 });
 
