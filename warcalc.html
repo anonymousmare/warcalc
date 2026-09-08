@@ -3599,9 +3599,8 @@ function counterColumn(run, mode, base){
   const kill = mode === "kill";
   const head = kill ? "Best way to kill them" : "Best way to absorb them";
   const lede = kill
-    ? "You charge in. Cheapest force that wipes all "
-      + `${base.foe.size.toLocaleString("en-US")} of them.`
-    : "They charge you. Cheapest force that stands in the way and still wipes them, "
+    ? `Cheapest force that wipes all ${base.foe.size.toLocaleString("en-US")} of them.`
+    : "Cheapest force that stands in the way and still wipes them, "
       + "counting what it loses doing it.";
   const badge = kill
     ? `<span class="badge badge-danger">you attack</span>`
