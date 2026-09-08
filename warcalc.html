@@ -184,18 +184,25 @@ tbody tr:last-child{border-bottom:none}
   display:flex;align-items:center;gap:10px;flex-wrap:wrap;
   margin-top:14px;padding-top:12px;border-top:1px solid var(--border-soft);
 }
-.chain-wrap{overflow-x:auto;margin-top:12px}
-.chain-table{font-size:12px;min-width:700px}
-.chain-table th,.chain-table td{padding:5px 7px;white-space:nowrap;vertical-align:top}
-.chain-table th.n{text-align:right}
-.chain-table td.n{text-align:right;font-family:"SFMono-Regular",Menlo,Consolas,monospace}
-.chain-table td.n b{color:#fff}
-.chain-table tbody tr.chain-total{border-top:1px solid var(--border-soft)}
-.chain-table tr.chain-total td{color:#fff;font-weight:600;padding-top:8px}
-.chain-table th.atk,.chain-table td.atk{background:rgba(241,122,119,.05)}
-.chain-table th.def,.chain-table td.def{background:rgba(116,202,227,.05)}
-.chain-table th.atk{color:#f17a77}
-.chain-table th.def{color:#74cae3}
+.chain-tick{
+  border:1px solid var(--border-soft);border-radius:4px;
+  background:rgba(0,0,0,.14);padding:9px 11px;margin-bottom:10px;
+}
+.chain-tick > summary{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  list-style:none;padding:0;font-size:12px;
+}
+.chain-tick > summary::-webkit-details-marker{display:none}
+.chain-tick > summary::before{content:"\25B8";color:var(--text-dim);font-size:11px;width:9px}
+.chain-tick[open] > summary::before{content:"\25BE"}
+.chain-tick[open] > summary{padding-bottom:10px;border-bottom:1px solid var(--border-soft)}
+.chain-body{margin-top:12px}
+.chain-body .log{max-height:220px}
+.chain-body .log.log-full{max-height:none}
+.chain-upkeep{
+  display:flex;gap:16px;flex-wrap:wrap;align-items:center;
+  margin-top:14px;padding-top:10px;border-top:1px solid var(--border-soft);font-size:12px;
+}
 .chain-note{margin:12px 0 0}
 
 .note{
@@ -1481,7 +1488,8 @@ function deathCosts(units, isAtk){
 
 const lostCount = it => `${it.n} lost${it.dead ? " (wiped)" : " / " + it.of}`;
 
-function deathsColumn(title, cls, d){
+function deathsColumn(title, cls, d, ns){
+  ns = ns || "death";
   if (!d.troops) return `<div>
       <div class="small" style="margin-bottom:6px"><span class="badge ${cls}">${title}</span></div>
       <div class="well"><span class="muted small">Nothing lost.</span></div>
@@ -1490,16 +1498,16 @@ function deathsColumn(title, cls, d){
   const moneyKey = regTip(breakdownTip(title + " — money lost", d.items, it=>
     `<span class="bits">${money(it.hire + it.gear)}</span>
      <div class="small muted mono">raise ${money(it.hire)} · equipment ${money(it.gear)}</div>`,
-    lostCount) + `<div class="tip-cost">Total <span class="bits">${money(d.hire + d.gear)}</span></div>`, "death");
+    lostCount) + `<div class="tip-cost">Total <span class="bits">${money(d.hire + d.gear)}</span></div>`, ns);
 
   const resKey = regTip(breakdownTip(title + " — resources lost", d.items,
-    it=>resChips(it.res), lostCount), "death");
+    it=>resChips(it.res), lostCount), ns);
 
   const rawKey = regTip(breakdownTip(title + " — raw resources lost", d.items, it=>{
     const r = toRaw(it.res);
     return resChips(r.res) + (r.craftBits
       ? `<div class="small muted mono">+ ${money(r.craftBits)} crafting</div>` : "");
-  }, lostCount) + `<div class="tip-cost">Crafting fees <span class="bits">${money(d.craftBits)}</span></div>`, "death");
+  }, lostCount) + `<div class="tip-cost">Crafting fees <span class="bits">${money(d.craftBits)}</span></div>`, ns);
 
   return `<div>
     <div class="small" style="margin-bottom:6px">
@@ -1558,11 +1566,12 @@ function applySurvivors(){
 
 /* ---- keep fighting: the survivors of one tick are the forces of the next ----
    The battle on screen is tick 1. This replays up to CHAIN_MAX further
-   exchanges from whatever is left standing, exactly the way the solver's
-   multi-tick replay does it: both sides fire from their pre-tick strength, the
-   dead are removed, and the remainder starts the next tick. Upkeep is billed
-   per 12 h on everyone who starts a tick, so each further exchange adds another
-   round of maintenance whether or not the unit lives through it. */
+   exchanges from whatever is left standing, the way the solver's multi-tick
+   replay does it: both sides fire from their pre-tick strength, the dead are
+   removed, and the remainder starts the next tick. Every tick gets the same
+   write-up the battle above does — exchange log, casualties, survivors, deaths
+   — plus the upkeep it costs, since maintenance is billed per 12 h on everyone
+   who starts a tick whether or not they live through it. */
 const CHAIN_MAX = 10;
 let lastBonus = "No";        // the defender bonus the shown battle was fought under
 
@@ -1576,8 +1585,8 @@ function upkeepOf(rows){
 
 /* survivors as force rows simulate() will take */
 const chainRows = (units, isAtk) =>
-  survivorRows(units, isAtk).map((u, i) => Object.assign({}, u,
-    {name:`${u.type}_${u.weapon}_${u.armor}_size_${u.size}_train_${u.training}_${i}`}));
+  survivorRows(units, isAtk).map(u => Object.assign({}, u,
+    {name:`${u.type}_${u.weapon}_${u.armor}_size_${u.size}_train_${u.training}`}));
 
 function chainBattles(atkRows, defRows, bonus){
   let atk = atkRows.map(u => Object.assign({}, u));
@@ -1597,7 +1606,7 @@ function chainBattles(atkRows, defRows, bonus){
     const atkLeft = r.invaders.reduce((n, u) => n + u.remaining, 0);
     const defLeft = r.repellers.reduce((n, u) => n + u.remaining, 0);
 
-    ticks.push({tick:t, atkStart, defStart, atkLeft, defLeft, atkDead, defDead, upA, upD});
+    ticks.push({tick:t, res:r, atkStart, defStart, atkLeft, defLeft, atkDead, defDead, upA, upD});
 
     atk = atk.map((u, i) => Object.assign({}, u, {size:r.invaders[i].remaining})).filter(u => u.size > 0);
     def = def.map((u, i) => Object.assign({}, u, {size:r.repellers[i].remaining})).filter(u => u.size > 0);
@@ -1608,17 +1617,71 @@ function chainBattles(atkRows, defRows, bonus){
   return {ticks, stop, error};
 }
 
-/* one side's losses for a tick, with the usual per-stack hover breakdown */
-function chainLossCell(d, title, cls){
-  if (!d.troops) return `<td class="n ${cls} muted">—</td>`;
-  const burned = d.hire + d.gear + d.craftBits;
-  const key = regTip(breakdownTip(title, d.items, it =>
-      `<span class="bits">${money(it.hire + it.gear)}</span>
-       <div class="small muted mono">raise ${money(it.hire)} · equipment ${money(it.gear)}</div>`,
-      lostCount) + `<div class="tip-cost">Total burned <span class="bits">${money(burned)}</span></div>`,
-    "chain");
-  return `<td class="n ${cls}"><span class="dmg-ref" data-tip-key="${key}"><b>${d.troops}</b>
-      <div class="small muted">−${money(burned)}</div></span></td>`;
+const burnedIn = d => d.hire + d.gear + d.craftBits;
+
+/* one further tick, written up exactly like the battle above it */
+function chainTickBlock(k){
+  const n = k.tick + 1;                             // the shown battle is tick 1
+  const r = k.res;
+  const all = Object.values(r.units);
+  return `<details class="chain-tick" open>
+    <summary>
+      <span class="badge badge-warning">Tick ${n}</span>
+      <span class="badge badge-danger">Attackers <b>${k.atkLeft}</b> / ${k.atkStart}</span>
+      <span class="badge badge-info">Defenders <b>${k.defLeft}</b> / ${k.defStart}</span>
+      <span class="spacer"></span>
+      <span class="small">
+        <span class="ref-atk">−${k.atkDead.troops} troops · −${money(burnedIn(k.atkDead))}</span>
+        <span class="muted"> · </span>
+        <span class="ref-def">−${k.defDead.troops} troops · −${money(burnedIn(k.defDead))}</span></span>
+    </summary>
+    <div class="chain-body">
+      ${stallsNote(r.stalls)}
+      ${exchangeLogBlock(r.units, r.log, lastBonus, `logExchange_t${n}`, "chain")}
+      ${casualtiesBlock(r.units, r.casualties, `logCasualties_t${n}`)}
+
+      <div class="log-head" style="margin-top:16px">
+        <h3>Survivors</h3>
+        <span class="small muted">${all.filter(u => u.remaining > 0).length} stack(s) still standing</span>
+      </div>
+      ${survivorsGrid(all)}
+
+      <div class="log-head" style="margin-top:16px">
+        <h3>Deaths</h3>
+        <span class="spacer"></span>
+        <span class="badge badge-danger">Attackers −${money(burnedIn(k.atkDead))}</span>
+        <span class="badge badge-info">Defenders −${money(burnedIn(k.defDead))}</span>
+      </div>
+      ${deathsGrid(k.atkDead, k.defDead, "chain")}
+
+      <div class="chain-upkeep">
+        <span class="muted">Upkeep for this tick (12 h on everyone who started it)</span>
+        <span><span class="badge badge-danger">Attackers</span> ${resChips(k.upA)}</span>
+        <span><span class="badge badge-info">Defenders</span> ${resChips(k.upD)}</span>
+      </div>
+    </div>
+  </details>`;
+}
+
+/* the tally across the whole replay */
+function chainTotalsColumn(title, cls, t, ticks){
+  return `<div>
+    <div class="small" style="margin-bottom:6px">
+      <span class="badge ${cls}">${title}</span>
+      <span class="muted" style="margin-left:6px">over ${ticks} tick${ticks === 1 ? "" : "s"}</span>
+    </div>
+    <div class="well">
+      <div class="cost-row"><span class="cost-label">Troops lost</span>
+        <span class="cost-val mono">${t.troops}</span></div>
+      <div class="cost-row"><span class="cost-label">Value burned</span>
+        <span class="cost-val bits">${money(t.bits)}</span></div>
+      <div class="cost-row"><span class="cost-label">Upkeep paid</span>
+        <span class="cost-val">${resChips(t.up)}</span></div>
+      <div class="cost-row" style="margin-top:6px;padding-top:7px;border-top:1px solid rgba(0,0,0,.35)">
+        <span class="cost-label" style="color:var(--text)">Still standing</span>
+        <span class="cost-val mono" style="font-size:13px">${t.left}</span></div>
+    </div>
+  </div>`;
 }
 
 function chainOutcome(run){
@@ -1659,44 +1722,26 @@ function renderChain(){
       ${esc(run.error || "The next tick could not be resolved.")}</div>`;
 
   const last = run.ticks[run.ticks.length - 1];
-  const tot = {atk:0, atkBits:0, def:0, defBits:0, upA:{}, upD:{}};
-  const rows = run.ticks.map(k => {
-    tot.atk += k.atkDead.troops; tot.atkBits += k.atkDead.hire + k.atkDead.gear + k.atkDead.craftBits;
-    tot.def += k.defDead.troops; tot.defBits += k.defDead.hire + k.defDead.gear + k.defDead.craftBits;
-    addRes(tot.upA, k.upA); addRes(tot.upD, k.upD);
-    return `<tr>
-      <td><span class="badge">Tick ${k.tick + 1}</span></td>
-      ${chainLossCell(k.atkDead, `Tick ${k.tick + 1} — attacker losses`, "atk")}
-      <td class="n atk"><b>${k.atkLeft}</b> <span class="muted">/ ${k.atkStart}</span></td>
-      <td class="atk">${resChips(k.upA)}</td>
-      ${chainLossCell(k.defDead, `Tick ${k.tick + 1} — defender losses`, "def")}
-      <td class="n def"><b>${k.defLeft}</b> <span class="muted">/ ${k.defStart}</span></td>
-      <td class="def">${resChips(k.upD)}</td>
-    </tr>`;
+  const atkTot = {troops:0, bits:0, up:{}, left:last.atkLeft};
+  const defTot = {troops:0, bits:0, up:{}, left:last.defLeft};
+  const blocks = run.ticks.map(k=>{
+    atkTot.troops += k.atkDead.troops; atkTot.bits += burnedIn(k.atkDead); addRes(atkTot.up, k.upA);
+    defTot.troops += k.defDead.troops; defTot.bits += burnedIn(k.defDead); addRes(defTot.up, k.upD);
+    return chainTickBlock(k);
   }).join("");
 
-  return `<div class="chain-wrap">
-      <table class="chain-table">
-        <thead><tr>
-          <th></th>
-          <th class="atk n">Attackers lost</th><th class="atk n">left</th>
-          <th class="atk" title="12 h of upkeep on every attacker that starts the tick">Attacker upkeep</th>
-          <th class="def n">Defenders lost</th><th class="def n">left</th>
-          <th class="def" title="12 h of upkeep on every defender that starts the tick">Defender upkeep</th>
-        </tr></thead>
-        <tbody>
-          ${rows}
-          <tr class="chain-total">
-            <td>Cumulative</td>
-            <td class="n atk"><b>${tot.atk}</b>${tot.atkBits ? `<div class="small muted">−${money(tot.atkBits)}</div>` : ""}</td>
-            <td class="n atk"><b>${last.atkLeft}</b><div class="small muted">left</div></td>
-            <td class="atk">${resChips(tot.upA)}</td>
-            <td class="n def"><b>${tot.def}</b>${tot.defBits ? `<div class="small muted">−${money(tot.defBits)}</div>` : ""}</td>
-            <td class="n def"><b>${last.defLeft}</b><div class="small muted">left</div></td>
-            <td class="def">${resChips(tot.upD)}</td>
-          </tr>
-        </tbody>
-      </table>
+  return `<div class="log-head" style="margin-top:16px">
+      <h3>Successive ticks</h3>
+      <span class="small muted">${run.ticks.length} further exchange${run.ticks.length === 1 ? "" : "s"},
+        fought from the survivors above</span>
+      <span class="spacer"></span>
+      <button class="btn btn-xs" data-chain-fold="1" title="Fold every tick away">Collapse all</button>
+    </div>
+    ${blocks}
+    <div class="log-head" style="margin-top:16px"><h3>Across the replay</h3></div>
+    <div class="grid2">
+      ${chainTotalsColumn("Attackers", "badge-danger", atkTot, run.ticks.length)}
+      ${chainTotalsColumn("Defenders", "badge-info", defTot, run.ticks.length)}
     </div>
     ${chainOutcome(run)}`;
 }
@@ -1714,6 +1759,19 @@ function toggleChain(){
   out.innerHTML = renderChain();
   btn.textContent = "Hide successive battles";
 }
+
+/* fold every replayed tick at once */
+document.addEventListener("click", e=>{
+  const btn = e.target.closest?.("[data-chain-fold]");
+  if (!btn) return;
+  const ticks = [...document.querySelectorAll("details.chain-tick")];
+  if (!ticks.length) return;
+  const open = btn.dataset.chainFold === "1";     // 1 = they are open, so close them
+  ticks.forEach(d => { d.open = !open; });
+  btn.dataset.chainFold = open ? "0" : "1";
+  btn.textContent = open ? "Expand all" : "Collapse all";
+  btn.title = open ? "Open every tick again" : "Fold every tick away";
+});
 
 /* ---- expand a scrolling log to its full height ---- */
 const LOG_FULL = new Set();          // remembers the choice across re-renders
@@ -1736,6 +1794,81 @@ document.addEventListener("click", e=>{
   btn.textContent = open ? "Collapse" : "Expand";
   btn.title = open ? "Put it back in a scrolling box" : "Show the whole thing, no scrollbar";
 });
+
+/* ---- the pieces a battle result is built from -----------------------
+   render() lays these out for the battle you just fought; the successive-tick
+   replay below lays out the same four for every further tick. Each caller
+   passes its own log ids (so the Expand toggles stay independent) and its own
+   tooltip namespace (so it can drop its tips without touching anyone else's). */
+function stallsNote(stalls){
+  return stalls.length ? `<div class="note warn"><strong>${stalls.length} matchup(s) did nothing</strong> —
+    zero damage, skipped.</div>` : "";
+}
+
+function exchangeLogBlock(units, log, bonus, id, ns){
+  return `<div>
+    <div class="log-head">
+      <h3>Exchange log</h3>
+      <span class="small muted">${log.length} exchange${log.length === 1 ? "" : "s"}</span>
+      <span class="spacer"></span>
+      ${logToggle(id)}
+    </div>
+    <div class="well log${LOG_FULL.has(id) ? " log-full" : ""}" id="${id}">${
+      log.length ? log.map(l=>{
+        const A = units[l.aid], D = units[l.did];
+        const bonusApplied = !!A.attack_mission && bonus === "Yes";
+        const mk = regTip(dmgMathTip(A, D, l, bonusApplied), ns);
+        return `<div>${unitRef(A)} <span class="muted">(size <b>${A.size}</b>)</span> hit
+          ${unitRef(D)} <span class="muted">(size <b>${D.size}</b>)</span>
+          for <b class="dmg-ref" data-tip-key="${mk}">${fmt(l.damage)}</b> damage
+          <span class="muted">(<b>${l.hits}</b> hits)</span></div>`;
+      }).join("") : '<div class="muted">No hits were exchanged.</div>'}</div>
+  </div>`;
+}
+
+function casualtiesBlock(units, casualties, id){
+  return `<div style="margin-top:14px">
+    <div class="log-head">
+      <h3>Casualties</h3>
+      <span class="small muted">${casualties.length} entr${casualties.length === 1 ? "y" : "ies"}</span>
+      <span class="spacer"></span>
+      ${logToggle(id)}
+    </div>
+    <div class="well log${LOG_FULL.has(id) ? " log-full" : ""}" id="${id}">${
+      casualties.length ? casualties.map(c=>{
+        const u = units[c.uid];
+        return c.kind === "kill"
+          ? `<div>${unitRef(u)} <span class="kill">IS KILL</span></div>`
+          : `<div>${unitRef(u)} <span class="hurt">lost <b>${c.lost}</b> size!</span></div>`;
+      }).join("") : '<div class="muted">Everyone walked away.</div>'}</div>
+  </div>`;
+}
+
+function survivorsGrid(all){
+  return `<div class="grid2">
+    ${[["Attackers", true, "surv-atk"], ["Defenders", false, "surv-def"]].map(([hd, inv, cls])=>{
+      const side = all.filter(u=>!!u.attack_mission === inv);
+      return `<div class="surv-col">
+        <h3>${hd}</h3>
+        <div class="surv-grid">${
+          side.length ? side.map(u=>`<div class="surv-card ${cls}${u.dead ? " surv-dead" : ""}">
+              ${buildSprite(u.origType, u.weapon, u.armor, true, {size:u.size, training:u.training})}
+              <div class="small mono" style="margin-top:7px;word-break:break-all;color:var(--text-dim)">${esc(label(u.weapon))} / ${esc(label(u.armor))}</div>
+              <div class="mono" style="margin-top:4px;font-size:15px;${u.dead?'color:#f17a77':''}">
+                ${u.dead ? "DESTROYED" : `<b>${u.remaining}</b> <span class="muted small">/ ${u.size}</span>`}
+              </div>
+            </div>`).join("") : '<div class="muted small">None fielded.</div>'}</div>
+      </div>`;
+    }).join("")}
+  </div>`;
+}
+
+function deathsGrid(atkDead, defDead, ns){
+  return `<div class="grid2">
+    ${deathsColumn("Attackers", "badge-danger", atkDead, ns)}
+    ${deathsColumn("Defenders", "badge-info", defDead, ns)}
+  </div>`;
+}
 
 function render(result, atkRaw, defRaw, bonus){
   const {units, log, casualties, stalls} = result;
@@ -1763,43 +1896,11 @@ function render(result, atkRaw, defRaw, bonus){
         <span class="badge badge-info">Defenders <b>${defLeft}</b> / ${defTotal}</span>
       </div>
 
-      ${stalls.length ? `<div class="note warn"><strong>${stalls.length} matchup(s) did nothing</strong> —
-        zero damage, skipped.</div>` : ""}
+      ${stallsNote(stalls)}
 
       <div>
-        <div>
-          <div class="log-head">
-            <h3>Exchange log</h3>
-            <span class="small muted">${log.length} exchange${log.length === 1 ? "" : "s"}</span>
-            <span class="spacer"></span>
-            ${logToggle("logExchange")}
-          </div>
-          <div class="well log${LOG_FULL.has("logExchange") ? " log-full" : ""}" id="logExchange">${
-            log.length ? log.map(l=>{
-              const A = units[l.aid], D = units[l.did];
-              const bonusApplied = !!A.attack_mission && bonus === "Yes";
-              const mk = regTip(dmgMathTip(A, D, l, bonusApplied), "death");
-              return `<div>${unitRef(A)} <span class="muted">(size <b>${A.size}</b>)</span> hit
-                ${unitRef(D)} <span class="muted">(size <b>${D.size}</b>)</span>
-                for <b class="dmg-ref" data-tip-key="${mk}">${fmt(l.damage)}</b> damage
-                <span class="muted">(<b>${l.hits}</b> hits)</span></div>`;
-            }).join("") : '<div class="muted">No hits were exchanged.</div>'}</div>
-        </div>
-        <div style="margin-top:14px">
-          <div class="log-head">
-            <h3>Casualties</h3>
-            <span class="small muted">${casualties.length} entr${casualties.length === 1 ? "y" : "ies"}</span>
-            <span class="spacer"></span>
-            ${logToggle("logCasualties")}
-          </div>
-          <div class="well log${LOG_FULL.has("logCasualties") ? " log-full" : ""}" id="logCasualties">${
-            casualties.length ? casualties.map(c=>{
-              const u = units[c.uid];
-              return c.kind === "kill"
-                ? `<div>${unitRef(u)} <span class="kill">IS KILL</span></div>`
-                : `<div>${unitRef(u)} <span class="hurt">lost <b>${c.lost}</b> size!</span></div>`;
-            }).join("") : '<div class="muted">Everyone walked away.</div>'}</div>
-        </div>
+        ${exchangeLogBlock(units, log, bonus, "logExchange", "death")}
+        ${casualtiesBlock(units, casualties, "logCasualties")}
       </div>
     </div>
 
@@ -1810,28 +1911,13 @@ function render(result, atkRaw, defRaw, bonus){
         <button class="btn btn-xs btn-warning" id="btnApplySurv"
           title="Replace both force lists with what is left standing">Use survivors</button>
       </div>
-      <div class="grid2">
-        ${[["Attackers", true, "surv-atk"], ["Defenders", false, "surv-def"]].map(([hd, inv, cls])=>{
-          const side = all.filter(u=>!!u.attack_mission === inv);
-          return `<div class="surv-col">
-            <h3>${hd}</h3>
-            <div class="surv-grid">${
-              side.length ? side.map(u=>`<div class="surv-card ${cls}${u.dead ? " surv-dead" : ""}">
-                  ${buildSprite(u.origType, u.weapon, u.armor, true, {size:u.size, training:u.training})}
-                  <div class="small mono" style="margin-top:7px;word-break:break-all;color:var(--text-dim)">${esc(label(u.weapon))} / ${esc(label(u.armor))}</div>
-                  <div class="mono" style="margin-top:4px;font-size:15px;${u.dead?'color:#f17a77':''}">
-                    ${u.dead ? "DESTROYED" : `<b>${u.remaining}</b> <span class="muted small">/ ${u.size}</span>`}
-                  </div>
-                </div>`).join("") : '<div class="muted small">None fielded.</div>'}</div>
-          </div>`;
-        }).join("")}
-      </div>
+      ${survivorsGrid(all)}
       <div class="chain-foot">
         <button class="btn btn-xs btn-info" id="btnChain"
           title="Fight the survivors again, tick after tick, without touching the force lists"
           >Check successive battles</button>
-        <span class="small muted">Replays up to ${CHAIN_MAX} further ticks from what is left standing —
-          losses per tick, and 12 h of upkeep on everyone who starts one.</span>
+        <span class="small muted">Fights the survivors again for up to ${CHAIN_MAX} more ticks —
+          the full write-up of each, plus what the upkeep runs to.</span>
       </div>
       <div id="chainOut"></div>
     </div>
@@ -1843,10 +1929,7 @@ function render(result, atkRaw, defRaw, bonus){
         <span class="badge badge-danger">Attackers −${money(atkDead.hire + atkDead.gear + atkDead.craftBits)}</span>
         <span class="badge badge-info">Defenders −${money(defDead.hire + defDead.gear + defDead.craftBits)}</span>
       </div>
-      <div class="grid2">
-        ${deathsColumn("Attackers", "badge-danger", atkDead)}
-        ${deathsColumn("Defenders", "badge-info", defDead)}
-      </div>
+      ${deathsGrid(atkDead, defDead, "death")}
     </div>`;
   document.getElementById("btnApplySurv")?.addEventListener("click", applySurvivors);
   document.getElementById("btnChain")?.addEventListener("click", toggleChain);
