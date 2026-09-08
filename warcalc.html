@@ -184,9 +184,16 @@ tbody tr:last-child{border-bottom:none}
   display:flex;align-items:center;gap:10px;flex-wrap:wrap;
   margin-top:14px;padding-top:12px;border-top:1px solid var(--border-soft);
 }
+/* every further tick is its own battle, so it gets its own breathing room:
+   a heavy rule above it and a real gap, rather than blurring into the one
+   before it */
 .chain-tick{
-  border:1px solid var(--border-soft);border-radius:4px;
-  background:rgba(0,0,0,.14);padding:9px 11px;margin-bottom:10px;
+  border:1px solid var(--border-soft);border-radius:5px;
+  background:rgba(0,0,0,.14);padding:12px 13px;margin:0 0 22px;
+}
+.chain-tick + .chain-tick{
+  margin-top:22px;padding-top:20px;
+  border-top:3px solid rgba(255,255,255,.14);
 }
 .chain-tick > summary{
   display:flex;align-items:center;gap:8px;flex-wrap:wrap;
@@ -195,15 +202,58 @@ tbody tr:last-child{border-bottom:none}
 .chain-tick > summary::-webkit-details-marker{display:none}
 .chain-tick > summary::before{content:"\25B8";color:var(--text-dim);font-size:11px;width:9px}
 .chain-tick[open] > summary::before{content:"\25BE"}
-.chain-tick[open] > summary{padding-bottom:10px;border-bottom:1px solid var(--border-soft)}
-.chain-body{margin-top:12px}
+.chain-tick[open] > summary{padding-bottom:12px;border-bottom:2px solid rgba(255,255,255,.11)}
+.chain-body{margin-top:16px}
 .chain-body .log{max-height:220px}
 .chain-body .log.log-full{max-height:none}
 .chain-upkeep{
   display:flex;gap:16px;flex-wrap:wrap;align-items:center;
-  margin-top:14px;padding-top:10px;border-top:1px solid var(--border-soft);font-size:12px;
+  margin-top:16px;padding-top:12px;border-top:1px solid var(--border-soft);font-size:12px;
 }
 .chain-note{margin:12px 0 0}
+
+/* ---------- jump dock (bottom right) ---------- */
+.hk-dock{
+  position:fixed;right:2px;bottom:2px;z-index:900;
+  display:flex;flex-direction:column;gap:6px;align-items:flex-end;
+}
+.hk-btn{
+  width:44px;height:44px;padding:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  border:1px solid var(--border);border-radius:5px;
+  background-image:linear-gradient(to bottom,var(--btn-default-a),var(--btn-default-b));
+  color:var(--text);cursor:pointer;opacity:.5;
+  box-shadow:0 2px 7px rgba(0,0,0,.55);
+  transition:opacity .15s,filter .12s;
+}
+.hk-dock:hover .hk-btn{opacity:1}
+.hk-btn:hover{filter:brightness(1.18);color:#fff}
+.hk-btn:focus-visible{opacity:1;outline:2px solid var(--btn-info-b);outline-offset:1px}
+.hk-btn:active{transform:translateY(1px)}
+.hk-btn.hk-off{opacity:.28;cursor:default}
+.hk-dock:hover .hk-btn.hk-off{opacity:.35}
+.hk-btn.hk-off:hover{filter:none;color:var(--text)}
+.hk-ic{
+  width:22px;height:22px;display:block;
+  fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;
+}
+.hk-ic .f{fill:currentColor;stroke:none}
+.hk-key{
+  font-size:9px;line-height:1;font-weight:700;letter-spacing:.08em;
+  color:rgba(255,255,255,.72);text-shadow:0 -1px 0 rgba(0,0,0,.4);
+}
+.hk-dock.keys-off .hk-key{visibility:hidden}
+.hk-btn.hk-miss{animation:hk-shake .3s}
+@keyframes hk-shake{
+  0%,100%{transform:translateX(0)} 25%{transform:translateX(-3px)} 75%{transform:translateX(3px)}
+}
+.hk-toggle{
+  display:inline-flex;align-items:center;gap:5px;margin:0;
+  font-size:12px;color:var(--text-dim);cursor:pointer;white-space:nowrap;
+}
+.hk-toggle:hover{color:var(--text)}
+.hk-toggle input{width:auto;margin:0}
+@media (max-width:700px){.hk-dock{display:none}}
 
 .note{
   border-left:3px solid #4ab9db;background:rgba(74,202,227,.07);
@@ -403,6 +453,9 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
     <button class="btn btn-xs" id="expAll">Export everything</button>
     <button class="btn btn-xs btn-info" id="impBtn">Import JSON…</button>
     <input type="file" id="impFile" accept="application/json,.json" style="display:none">
+    <label class="hk-toggle" for="hkEnable"
+      title="When on, Q / W / E / R jump to the top of the page, the battle result, the survivors and the import box. The buttons in the bottom-right corner always work either way.">
+      <input type="checkbox" id="hkEnable" checked> Jump hotkeys (Q W E R)</label>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:10px;
               border-top:1px solid var(--border-soft)">
@@ -495,7 +548,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 <div id="results"></div>
 
 <!-- ============ IMPORT ============ -->
-<div class="panel">
+<div class="panel" id="panelImport">
   <div class="panel-head"><h2>Import units</h2></div>
   <textarea id="txtImport" spellcheck="false" placeholder="4_ACFU_Nope&#10;Cavalry&#10;ACFU&#10;Nope&#10;Size: 200&#10;Training: 20"></textarea>
   <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
@@ -658,6 +711,28 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 </div>
 
 <div id="tip"></div>
+
+<!-- ============ JUMP DOCK ============ -->
+<div class="hk-dock" id="hkDock" role="group" aria-label="Jump to a section of the page">
+  <button class="hk-btn" data-jump="top" data-key="q" title="Top of the page  (Q)">
+    <svg class="hk-ic" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 20V6"/><path d="M6 12l6-6 6 6"/><path d="M5 3.5h14"/></svg>
+    <span class="hk-key">Q</span></button>
+  <button class="hk-btn" data-jump="panelResult" data-key="w" title="Battle result  (W)">
+    <svg class="hk-ic" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 4 16.5 16.5"/><path d="M14.8 18.2 18.2 14.8"/><path d="M17 17 20 20"/>
+      <path d="M20 4 7.5 16.5"/><path d="M9.2 18.2 5.8 14.8"/><path d="M7 17 4 20"/></svg>
+    <span class="hk-key">W</span></button>
+  <button class="hk-btn" data-jump="panelSurvivors" data-key="e" title="Survivors  (E)">
+    <svg class="hk-ic" viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="6.5" r="3"/><path d="M5 20.5v-2a7 7 0 0 1 14 0v2"/>
+      <path d="M8.5 20.5h7"/></svg>
+    <span class="hk-key">E</span></button>
+  <button class="hk-btn" data-jump="panelImport" data-key="r" title="Import units  (R)">
+    <svg class="hk-ic" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 3.5v10"/><path d="M8 9.5l4 4 4-4"/><path d="M4 16v4.5h16V16"/></svg>
+    <span class="hk-key">R</span></button>
+</div>
 
 <script>
 "use strict";
@@ -1887,7 +1962,7 @@ function render(result, atkRaw, defRaw, bonus){
 
   const el = document.getElementById("results");
   el.innerHTML = `
-    <div class="panel">
+    <div class="panel" id="panelResult">
       <div class="panel-head">
         <h2>Battle result</h2>
         <span class="badge">Defender bonus: ${bonus}</span>
@@ -1904,7 +1979,7 @@ function render(result, atkRaw, defRaw, bonus){
       </div>
     </div>
 
-    <div class="panel">
+    <div class="panel" id="panelSurvivors">
       <div class="panel-head"><h2>Survivors</h2>
         <span class="spacer"></span>
         <span class="small muted">${survStacks} stack${survStacks === 1 ? "" : "s"} still standing</span>
@@ -1933,6 +2008,7 @@ function render(result, atkRaw, defRaw, bonus){
     </div>`;
   document.getElementById("btnApplySurv")?.addEventListener("click", applySurvivors);
   document.getElementById("btnChain")?.addEventListener("click", toggleChain);
+  refreshJumpDock();
   el.scrollIntoView({behavior:"smooth", block:"start"});
 }
 
@@ -2518,6 +2594,7 @@ document.getElementById("btnClearResults").addEventListener("click", ()=>{
   clearTips("chain");
   lastResult = null;
   survSnapshot = null;
+  refreshJumpDock();
 });
 
 document.getElementById("defBonus").addEventListener("change", scheduleSave);
@@ -2534,6 +2611,7 @@ document.getElementById("btnRun").addEventListener("click", ()=>{
   } catch(e){
     document.getElementById("results").innerHTML =
       `<div class="panel"><div class="note warn"><strong>Resolution stopped.</strong> ${esc(e.message)}</div></div>`;
+    refreshJumpDock();
   }
 });
 
@@ -3673,6 +3751,61 @@ document.querySelectorAll(".tab").forEach(b=>
 
 
 /* ===================================================================
+   9a. JUMP DOCK — the four buttons in the bottom-right corner, and the
+       Q / W / E / R shortcuts that do the same thing from the keyboard
+   =================================================================== */
+
+const LS_HOTKEYS = "warcalc.jumpHotkeys";
+const hkDock = document.getElementById("hkDock");
+const hkBox  = document.getElementById("hkEnable");
+const hkBtns = [...hkDock.querySelectorAll(".hk-btn")];
+
+const hkTarget = t => t === "top" ? document.body : document.getElementById(t);
+
+/* a button whose section is not on the page yet sits dimmed rather than gone,
+   so the row never shifts under the cursor */
+function refreshJumpDock(){
+  hkBtns.forEach(b => b.classList.toggle("hk-off", !hkTarget(b.dataset.jump)));
+}
+
+function jumpTo(target, btn){
+  if (target !== "top") showTab("battle");   // every section lives on the battle tab
+  const el = hkTarget(target);
+  if (!el){                                   // nothing to jump to — say so and stay put
+    if (btn){ btn.classList.remove("hk-miss"); void btn.offsetWidth; btn.classList.add("hk-miss"); }
+    return;
+  }
+  if (target === "top") window.scrollTo({top:0, behavior:"smooth"});
+  else el.scrollIntoView({behavior:"smooth", block:"start"});
+}
+
+hkBtns.forEach(b => b.addEventListener("click", ()=>jumpTo(b.dataset.jump, b)));
+
+const hotkeysOn = () => hkBox.checked;
+
+function syncHotkeys(){
+  hkDock.classList.toggle("keys-off", !hotkeysOn());
+  store.set(LS_HOTKEYS, hotkeysOn());
+}
+hkBox.checked = store.get(LS_HOTKEYS, true) !== false;
+hkDock.classList.toggle("keys-off", !hotkeysOn());
+hkBox.addEventListener("change", syncHotkeys);
+
+/* typing into a field always wins — the shortcuts only fire on a bare key */
+const typingIn = el => !!el && (el.isContentEditable ||
+  /^(INPUT|TEXTAREA|SELECT|OPTION)$/.test(el.tagName));
+
+document.addEventListener("keydown", e=>{
+  if (!hotkeysOn() || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+  if (typingIn(e.target) || typingIn(document.activeElement)) return;
+  const btn = hkBtns.find(b => b.dataset.key === String(e.key).toLowerCase());
+  if (!btn) return;
+  e.preventDefault();
+  jumpTo(btn.dataset.jump, btn);
+});
+
+
+/* ===================================================================
    10. COUNTER FINDER — the two answers to one enemy unit:
        the cheapest way to kill it, and the cheapest way to eat its punch
    =================================================================== */
@@ -4009,6 +4142,7 @@ restoreAutosave();
 refreshPresetSelects();
 refreshCounts();
 showTab(store.get(LS_TAB, "battle"));
+refreshJumpDock();
 autosaveArmed = true;
 </script>
 </body>
