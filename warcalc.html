@@ -1817,8 +1817,7 @@ function chainOutcome(run){
   if (run.stop === "error")                       // the failing tick never made the list
     return `<div class="note warn chain-note"><strong>Replay stopped on tick ${at + 1}.</strong> ${esc(run.error)}</div>`;
   if (run.stop === "stall")
-    return `<div class="note warn chain-note"><strong>Deadlock on tick ${at}</strong> — neither side
-      could land a casualty, so every later tick repeats it.</div>`;
+    return `<div class="note warn chain-note"><strong>Deadlock on tick ${at}.</strong></div>`;
   return "";
 }
 
@@ -1827,13 +1826,8 @@ function renderChain(){
   const atk0 = chainRows(lastResult.units, true);
   const def0 = chainRows(lastResult.units, false);
 
-  if (!atk0.length || !def0.length){
-    const why = !atk0.length && !def0.length ? "neither side has anyone left"
-              : !atk0.length ? "no attackers are left standing"
-                             : "no defenders are left standing";
-    return `<div class="note chain-note">The engagement is already settled — ${why},
-      so there is no next tick to fight.</div>`;
-  }
+  if (!atk0.length || !def0.length)
+    return `<div class="note chain-note">Nothing left to fight.</div>`;
 
   const run = chainBattles(atk0, def0, lastBonus);
   if (!run.ticks.length)
@@ -1950,8 +1944,7 @@ document.addEventListener("click", e=>{
    passes its own log ids (so the Expand toggles stay independent) and its own
    tooltip namespace (so it can drop its tips without touching anyone else's). */
 function stallsNote(stalls){
-  return stalls.length ? `<div class="note warn"><strong>${stalls.length} matchup(s) did nothing</strong> —
-    zero damage, skipped.</div>` : "";
+  return stalls.length ? `<div class="note warn"><strong>${stalls.length} matchup(s) did nothing.</strong></div>` : "";
 }
 
 function exchangeLogBlock(units, log, bonus, id, ns){
@@ -3646,7 +3639,7 @@ async function runSolver(){
   } catch(e){
     console.error(e);
     document.getElementById("solveOut").innerHTML =
-      `<div class="note warn"><strong>The search stopped.</strong> ${esc(e.message)}</div>`;
+      `<div class="note warn"><strong>Search stopped.</strong> ${esc(e.message)}</div>`;
   }
 
   /* replay the answers through the real engine */
@@ -3731,7 +3724,7 @@ function tickTable(sol){
 function renderSolutions(out, opts, bonus, secs){
   const el = document.getElementById("solveOut");
   if (!out.results || !out.results.length){
-    el.innerHTML = `<div class="note warn">Nothing found. Try more stacks, more unit types, or a softer goal.</div>`;
+    el.innerHTML = `<div class="note warn">Nothing found.</div>`;
     return;
   }
   solveLast = {results: out.results, training: opts.training, side: opts.side};
@@ -4112,7 +4105,7 @@ async function runCounter(){
   const anything = Object.keys(runs).some(k => runs[k].results.length);
   if (!anything){
     ctrEl("ctrOut").innerHTML = `<div class="panel"><div class="note warn">${ctrHalt
-      ? "Search stopped." : "Nothing you can field settles this one."}</div></div>`;
+      ? "Search stopped." : "Nothing found."}</div></div>`;
     return;
   }
   ctrLast = {runs, base};
@@ -4179,13 +4172,11 @@ function counterColumn(run, mode, base){
 
   let body;
   if (!run && !kill && ctrAbsorbImpossible(base)){
-    body = `<div class="note">Alicorns only ever fight as defenders — they never
-      charge you, so there is nothing of theirs to absorb.</div>`;
+    body = `<div class="note">Alicorns never attack.</div>`;
   } else if (!run){
-    body = `<div class="note warn">Search stopped before this half ran.</div>`;
+    body = `<div class="note warn">Search stopped.</div>`;
   } else if (!run.results.length){
-    body = `<div class="note warn">${ctrHalt ? "Search stopped."
-      : "Nothing you can field settles this one."}</div>`;
+    body = `<div class="note warn">${ctrHalt ? "Search stopped." : "Nothing found."}</div>`;
   } else {
     const top = run.results.slice(0, 3), rest = run.results.slice(3);
     body = top.map((r, i)=>counterCard(r, i, run.opts, mode)).join("")
