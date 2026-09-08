@@ -361,6 +361,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
     <select id="bpSel" class="bp-sel"><option value="">—</option></select>
     <button class="bp-btn" id="bpLoad" data-icon="load" title="Load this battle"></button>
     <button class="bp-btn" id="bpSave" data-icon="save" title="Save both sides as a battle"></button>
+    <button class="bp-btn" id="bpUpd" data-icon="update" title="Update this battle preset with what is on screen"></button>
     <button class="bp-btn" id="bpRen" data-icon="rename" title="Rename this battle preset"></button>
     <button class="bp-btn" id="bpExp" data-icon="export" title="Export the current battle as a JSON file"></button>
     <button class="bp-btn" id="bpDel" data-icon="del" title="Delete this battle"></button>
@@ -398,6 +399,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
         <select class="ap-sel" data-ap-sel="attacker"><option value="">preset…</option></select>
         <button class="bp-btn" data-ap-load="attacker" data-icon="load" title="Load this preset into the attackers"></button>
         <button class="bp-btn" data-ap-save="attacker" data-icon="save" title="Save the attackers as an army preset"></button>
+        <button class="bp-btn" data-ap-upd="attacker" data-icon="update" title="Update this preset with the attackers on screen"></button>
         <button class="bp-btn" data-ap-mark="attacker" data-icon="mark" title="Pin this preset as a quick-swap button"></button>
         <button class="bp-btn" data-ap-ren="attacker" data-icon="rename" title="Rename this army preset"></button>
         <button class="bp-btn" data-ap-copy="attacker" data-icon="copy" title="Copy the attackers to the clipboard, ready to paste into an import box"></button>
@@ -428,6 +430,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
         <select class="ap-sel" data-ap-sel="defender"><option value="">preset…</option></select>
         <button class="bp-btn" data-ap-load="defender" data-icon="load" title="Load this preset into the defenders"></button>
         <button class="bp-btn" data-ap-save="defender" data-icon="save" title="Save the defenders as an army preset"></button>
+        <button class="bp-btn" data-ap-upd="defender" data-icon="update" title="Update this preset with the defenders on screen"></button>
         <button class="bp-btn" data-ap-mark="defender" data-icon="mark" title="Pin this preset as a quick-swap button"></button>
         <button class="bp-btn" data-ap-ren="defender" data-icon="rename" title="Rename this army preset"></button>
         <button class="bp-btn" data-ap-copy="defender" data-icon="copy" title="Copy the defenders to the clipboard, ready to paste into an import box"></button>
@@ -1709,6 +1712,7 @@ const ICONS = {
   save:   '<path d="M3 2.5h7.5L13 5v8.5H3z"/><path d="M5.5 2.5v3.5h5V2.5"/><path d="M5 9.5h6v4"/>',
   mark:   '<path d="M8 2.6l1.65 3.35 3.7.54-2.67 2.6.63 3.68L8 11.03l-3.31 1.74.63-3.68-2.67-2.6 3.7-.54z"/>',
   markOn: '<path class="f" d="M8 2.6l1.65 3.35 3.7.54-2.67 2.6.63 3.68L8 11.03l-3.31 1.74.63-3.68-2.67-2.6 3.7-.54z"/>',
+  update: '<path d="M11.5 4.5A5 5 0 1 0 13 8"/><path d="M11.9 9.2 13 8l1.1 1.2"/>',
   rename: '<path d="M2.5 13.5l.7-2.8 7.4-7.4 2.1 2.1-7.4 7.4z"/><path d="M9.8 4.2l2.1 2.1"/>',
   copy:   '<rect x="5.5" y="5.5" width="8" height="8" rx="1.2"/><path d="M10.5 3.3V2.5h-8v8h.9"/>',
   export: '<path d="M8 9.5V2.8"/><path d="M5.5 5.3 8 2.8l2.5 2.5"/><path d="M3 10.5v3h10v-3"/>',
@@ -1890,6 +1894,22 @@ function loadArmyPreset(side){
   setSide(side, units);
 }
 
+/* update: keep the name, replace what is behind it with what is on screen */
+function updateArmyPreset(side, btn){
+  const sel = document.querySelector(`[data-ap-sel="${side}"]`);
+  const name = sel.value;
+  if (!name){ alert("Pick a preset first."); return; }
+  const all = getArmies();
+  if (!all[name]) return;
+  const units = packSide(side);
+  if (!units.length){ alert("Nothing to save \u2014 that side is empty."); return; }
+  const sideWord = side === "attacker" ? "attackers" : "defenders";
+  if (!confirm(`Update army preset "${name}" with the current ${sideWord}? The saved version is replaced.`)) return;
+  all[name] = units;
+  if (!store.set(LS_ARMY, all)){ alert("Could not save \u2014 this browser is blocking local storage."); return; }
+  flashOk(btn, "Updated");
+}
+
 function deleteArmyPreset(side){
   const sel = document.querySelector(`[data-ap-sel="${side || "attacker"}"]`)
            || document.querySelector("[data-ap-sel]");
@@ -1945,6 +1965,18 @@ function loadBattlePreset(){
   setSide("defender", b.defender);
   if (b.bonus) document.getElementById("defBonus").value = b.bonus;
   scheduleSave();
+}
+
+function updateBattlePreset(btn){
+  const name = document.getElementById("bpSel").value;
+  if (!name){ alert("Pick a battle first."); return; }
+  const all = getBattles();
+  if (!all[name]) return;
+  if (!confirm(`Update battle preset "${name}" with the current battle? The saved version is replaced.`)) return;
+  all[name] = {attacker: packSide("attacker"), defender: packSide("defender"),
+               bonus: document.getElementById("defBonus").value};
+  if (!store.set(LS_BATL, all)){ alert("Could not save \u2014 this browser is blocking local storage."); return; }
+  flashOk(btn, "Updated");
 }
 
 function renameBattlePreset(){
@@ -2122,6 +2154,8 @@ document.querySelectorAll("[data-ap-save]").forEach(b=>
   b.addEventListener("click", ()=>saveArmyPreset(b.dataset.apSave)));
 document.querySelectorAll("[data-ap-load]").forEach(b=>
   b.addEventListener("click", ()=>loadArmyPreset(b.dataset.apLoad)));
+document.querySelectorAll("[data-ap-upd]").forEach(b=>
+  b.addEventListener("click", ()=>updateArmyPreset(b.dataset.apUpd, b)));
 document.querySelectorAll("[data-ap-del]").forEach(b=>
   b.addEventListener("click", ()=>deleteArmyPreset(b.dataset.apDel)));
 document.querySelectorAll("[data-ap-ren]").forEach(b=>
@@ -2154,6 +2188,7 @@ document.querySelectorAll("[data-ap-sel]").forEach(sel=>
 /* --- battle presets --- */
 document.getElementById("bpSave").addEventListener("click", saveBattlePreset);
 document.getElementById("bpLoad").addEventListener("click", loadBattlePreset);
+document.getElementById("bpUpd").addEventListener("click", e=>updateBattlePreset(e.currentTarget));
 document.getElementById("bpRen").addEventListener("click", renameBattlePreset);
 document.getElementById("bpExp").addEventListener("click", exportBattle);
 document.getElementById("bpDel").addEventListener("click", deleteBattlePreset);
