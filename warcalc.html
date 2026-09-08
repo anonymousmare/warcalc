@@ -180,20 +180,21 @@ tbody tr:last-child{border-bottom:none}
 .surv-col h3{margin-bottom:8px}
 .surv-grid{display:flex;gap:12px;flex-wrap:wrap}
 /* the two columns' standing values line up whatever the card counts are */
-.surv-worth{margin-top:auto;padding:0;background:#25282d}
-.surv-worth > summary{
-  display:flex;align-items:center;gap:8px;list-style:none;
-  padding:8px 10px;cursor:pointer;font-size:12px;
+.surv-col .surv-grid{margin-bottom:16px}      /* never flush against the value block */
+.surv-worth{margin-top:auto;padding:0;background:#22252a}
+.worth-head{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 10px;font-size:12px;border-bottom:1px solid var(--border-soft);
 }
-.surv-worth > summary::-webkit-details-marker{display:none}
-.surv-worth > summary::before{content:"\25B8";color:var(--text-dim);font-size:11px;width:9px}
-.surv-worth[open] > summary::before{content:"\25BE"}
-.surv-worth > summary:hover{color:#fff}
-.surv-worth > summary .cost-label{color:var(--text)}
-.surv-worth[open] > summary{border-bottom:1px solid var(--border-soft)}
+.worth-head .cost-label{color:var(--text)}
 .surv-worth-body{padding:8px 10px}
 .surv-worth .cost-row{font-size:12px}
-.chain-tick .surv-worth{background:#15171a}
+/* inside a replayed tick the value block takes that tick's own hue, a shade
+   up from the tick behind it so it sits in the panel rather than on it */
+.chain-tick .surv-worth{background:rgba(255,255,255,.022)}
+.chain-tick.tone-a .surv-worth{background-image:linear-gradient(rgba(226,199,96,.05),rgba(226,199,96,.05))}
+.chain-tick.tone-b .surv-worth{background-image:linear-gradient(rgba(92,168,226,.05),rgba(92,168,226,.05))}
+.chain-tick.tone-c .surv-worth{background-image:linear-gradient(rgba(162,116,226,.055),rgba(162,116,226,.055))}
 .worth-plain{margin-top:12px;background:var(--sunken)}
 /* a unit card is a shortcut into the counter finder */
 .surv-card{cursor:pointer}
@@ -213,13 +214,13 @@ tbody tr:last-child{border-bottom:none}
    before it */
 .chain-tick{
   border:1px solid var(--border-soft);border-radius:5px;
-  background:rgba(0,0,0,.10);padding:12px 13px;margin:0 0 22px;
+  background:rgba(0,0,0,.22);padding:12px 13px;margin:0 0 22px;
 }
 /* each replayed tick takes the next colour in the cycle, so two ticks never
    share a background and the eye can tell where one ends */
-.chain-tick.tone-a{background:rgba(226,199,96,.042);border-color:rgba(226,199,96,.18)}
-.chain-tick.tone-b{background:rgba(92,168,226,.042);border-color:rgba(92,168,226,.18)}
-.chain-tick.tone-c{background:rgba(162,116,226,.048);border-color:rgba(162,116,226,.20)}
+.chain-tick.tone-a{background-image:linear-gradient(rgba(226,199,96,.030),rgba(226,199,96,.030));border-color:rgba(226,199,96,.13)}
+.chain-tick.tone-b{background-image:linear-gradient(rgba(92,168,226,.030),rgba(92,168,226,.030));border-color:rgba(92,168,226,.13)}
+.chain-tick.tone-c{background-image:linear-gradient(rgba(162,116,226,.034),rgba(162,116,226,.034));border-color:rgba(162,116,226,.15)}
 /* a plain white rule with the words sitting in the gap */
 .tick-divider{
   display:flex;align-items:center;gap:14px;
@@ -1822,10 +1823,10 @@ function chainTotalsColumn(title, cls, t, ticks){
         <span class="cost-label" style="color:var(--text)">Total burned</span>
         <span class="cost-val bits" style="font-size:13px">${money(t.hire + t.gear + raw.craftBits)}</span></div>
     </div>
-    <details class="well surv-worth worth-plain" style="margin-top:12px">
-      <summary><span class="cost-label">Total standing</span>
+    <div class="well surv-worth worth-plain" style="margin-top:12px">
+      <div class="worth-head"><span class="cost-label">Total standing</span>
         <span class="spacer"></span>
-        <span class="cost-val bits">${money(t.leftover.hire + t.leftover.gear)}</span></summary>
+        <span class="cost-val bits">${money(t.leftover.hire + t.leftover.gear)}</span></div>
       <div class="surv-worth-body">
         <div class="cost-row"><span class="cost-label">Raise value</span>
           <span class="cost-val bits">${money(t.leftover.hire)}</span></div>
@@ -1840,7 +1841,7 @@ function chainTotalsColumn(title, cls, t, ticks){
                <span class="cost-val">${resChips(t.leftover.res)}</span></div>`
           : `<div class="small muted" style="margin-top:6px">Nothing left standing.</div>`}
       </div>
-    </details>
+    </div>
   </div>`;
 }
 
@@ -2043,10 +2044,10 @@ function survivorValue(units){
 
 function survivorWorth(units){
   const v = survivorValue(units);
-  return `<details class="well surv-worth" open>
-    <summary><span class="cost-label">Total standing</span>
+  return `<div class="well surv-worth">
+    <div class="worth-head"><span class="cost-label">Total standing</span>
       <span class="spacer"></span>
-      <span class="cost-val bits">${money(v.hire + v.gear)}</span></summary>
+      <span class="cost-val bits">${money(v.hire + v.gear)}</span></div>
     <div class="surv-worth-body">
       <div class="cost-row"><span class="cost-label">Raise value</span>
         <span class="cost-val bits">${money(v.hire)}</span></div>
@@ -2055,7 +2056,7 @@ function survivorWorth(units){
       <div class="cost-row"><span class="cost-label">Upkeep / 12 h</span>
         <span class="cost-val">${resChips(v.upkeep)}</span></div>
     </div>
-  </details>`;
+  </div>`;
 }
 
 function survivorsGrid(all){
