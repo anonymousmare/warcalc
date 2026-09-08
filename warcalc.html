@@ -1152,9 +1152,13 @@ function readSide(side){
    =================================================================== */
 
 function buildUnit(raw, forceId, isInvader){
+  const fullName = (isInvader ? "A_" : "D_") + raw.name;
   const u = {
     force_id: forceId,
-    name: (isInvader ? "A_" : "D_") + raw.name,
+    name: fullName,
+    // forces_calc.name is varchar(50) and the CLOP database runs non-strict,
+    // so the backend silently stores (and echoes) a 50-character cut of it.
+    dbName: fullName.slice(0, 50),
     size: raw.size,
     training: raw.training,
     type: FORCE_TYPES[raw.type],
@@ -1267,7 +1271,11 @@ function simulate(attackers, defenders, defenderBonus){
   const hitinfo = {}, damageinfo = {};
   // PHP arrays keep insertion order; JS objects with numeric keys re-sort
   // ascending, which would scramble the exchange log. Track order separately.
-  const hitOrder = [];
+  // $damageinfo is nested [attacker][defender], so the PHP prints every row for
+  // one attacker together, in the order that attacker first landed on each
+  // target -- not in flat chronological order. Mirror that shape.
+  const atkOrder = [];            // attacker ids, first-hit order
+  const defOrder = {};            // per attacker: defender ids, first-hit order
   const stalls = [];
   let budget = 4_000_000;   // guard: PHP would hang here on a 0-damage matchup
 
@@ -1302,8 +1310,9 @@ function simulate(attackers, defenders, defenderBonus){
               while (D.size > D.damage){
                 fought = true;
                 D.damage += dmg;
-                hitinfo[A.force_id] ??= {}; damageinfo[A.force_id] ??= {};
-                if (!(D.force_id in hitinfo[A.force_id])) hitOrder.push([A.force_id, D.force_id]);
+                if (!(A.force_id in hitinfo)){ hitinfo[A.force_id] = {}; damageinfo[A.force_id] = {};
+                  defOrder[A.force_id] = []; atkOrder.push(A.force_id); }
+                if (!(D.force_id in hitinfo[A.force_id])) defOrder[A.force_id].push(D.force_id);
                 hitinfo[A.force_id][D.force_id] = (hitinfo[A.force_id][D.force_id]||0) + 1;
                 damageinfo[A.force_id][D.force_id] = (damageinfo[A.force_id][D.force_id]||0) + dmg;
                 A.hits--;
@@ -1328,8 +1337,10 @@ function simulate(attackers, defenders, defenderBonus){
 
   // --- apply casualties
   const log = [];
-  for (const [aid, did] of hitOrder){
-    log.push({aid, did, damage: round6(damageinfo[aid][did]), hits: hitinfo[aid][did]});
+  for (const aid of atkOrder){
+    for (const did of defOrder[aid]){
+      log.push({aid, did, damage: round6(damageinfo[aid][did]), hits: hitinfo[aid][did]});
+    }
   }
 
   const casualties = [];
@@ -1423,9 +1434,14 @@ function tipAttrs(type, weapon, armor, size, training){
          (size != null ? ` data-tip-size="${esc(size)}" data-tip-train="${esc(training)}"` : "");
 }
 
+/* Prints the name exactly as huge-ovipositor-backend.php echoes it, i.e. cut to
+   the varchar(50) the row was stored in. The untruncated name stays on the
+   title attribute so a clipped label is still identifiable. */
 function unitRef(u){
+  const shown = u.dbName ?? u.name;
   return `<span class="unit-ref ${u.attack_mission ? "ref-atk" : "ref-def"}"
-    ${tipAttrs(u.origType, u.weapon, u.armor, u.size, u.training)}>${esc(u.name)}</span>`;
+    ${shown === u.name ? "" : `title="${esc(u.name)}"`}
+    ${tipAttrs(u.origType, u.weapon, u.armor, u.size, u.training)}>${esc(shown)}</span>`;
 }
 
 /* ---- hover math for a single exchange-log damage figure ---- */
