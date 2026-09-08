@@ -1015,7 +1015,7 @@ function buildSprite(type, weapon, armor, big, meta){
 function pickAttrs(type, weapon, armor, size, training){
   return `data-ctr-pick="1" data-pick-type="${esc(type)}" data-pick-weapon="${esc(weapon)}"
     data-pick-armor="${esc(armor)}" data-pick-size="${Math.max(1, Math.round(size) || 1)}"
-    data-pick-train="${clampInt(training, 0, 20)}" title="Load into Counters"`;
+    data-pick-train="${clampInt(training, 0, 20)}"`;
 }
 
 function spriteMissing(img){
