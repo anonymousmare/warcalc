@@ -441,6 +441,8 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .res-drop .raw-body .cost-label{flex:0 0 126px}
 .gear-line{display:flex;gap:9px;align-items:baseline;padding:2px 0;font-size:12px;color:var(--text-dim)}
 .gear-line .n{flex:0 0 52px;text-align:right;color:var(--text)}
+.units-drop .u-copy{display:none;margin-left:7px;vertical-align:middle}
+.units-drop[open] .u-copy{display:inline-flex}
 
 .tip-cost{border-top:1px solid var(--border-soft);margin-top:8px;padding-top:6px;font-size:12px}
 .tip-upkeep{width:80px;display:flex;flex-wrap:wrap;justify-content:center;gap:3px;margin-top:4px}
@@ -1290,20 +1292,48 @@ function gearTally(rows){
     .sort((a,b)=> b[1] - a[1] || plural(a[0]).localeCompare(plural(b[0])));
 }
 
+/* one line a stack, stacks of a type kept together, ready to paste */
+function rosterText(rows){
+  const order = [], byType = new Map();
+  rows.forEach(u=>{
+    const n = Math.max(0, u.size);
+    if (!n) return;
+    if (!byType.has(u.type)){ byType.set(u.type, []); order.push(u.type); }
+    byType.get(u.type).push(
+      `${n.toLocaleString("en-US")} ${u.type} \`${label(u.weapon)}\` + \`${label(u.armor)}\``);
+  });
+  return order.map(t => byType.get(t).join("\n")).join("\n\n");
+}
+
 /* the Units row doubles as the gear-tally dropdown */
 function unitsBlock(rows, open){
   const gear = gearTally(rows);
   const body = gear.length
     ? gear.map(([k,n])=>`<div class="gear-line"><span class="n mono">${n.toLocaleString("en-US")}</span>${esc(plural(k))}</div>`).join("")
     : `<div class="gear-line"><span class="res-none">none</span></div>`;
+  const roster = rosterText(rows);
+  const copy = roster
+    ? `<button class="bp-btn u-copy" title="Copy the roster"
+         data-units-copy="${esc(roster).replace(/\n/g, "&#10;")}">${iconSvg("copy")}</button>`
+    : "";
   return `<details class="units-drop"${open ? " open" : ""}>
       <summary class="cost-row">
         <span class="cost-label">Units <span class="caret">▸</span></span>
-        <span class="cost-val mono">${troopTotal(rows).toLocaleString("en-US")}</span>
+        <span class="cost-val mono">${troopTotal(rows).toLocaleString("en-US")}${copy}</span>
       </summary>
       <div class="raw-body">${body}</div>
     </details>`;
 }
+
+/* one delegated handler, so every Units drop gets it wherever it renders */
+document.addEventListener("click", async e=>{
+  const b = e.target.closest("[data-units-copy]");
+  if (!b) return;
+  e.preventDefault();                    // keep the click off the summary toggle
+  e.stopPropagation();
+  if (await copyText(b.dataset.unitsCopy)) flashOk(b, "Copied");
+  else alert("This browser would not let the page reach the clipboard.");
+});
 
 function satRow(troops){
   return `<div class="cost-row"><span class="cost-label">Sat Cost</span>
