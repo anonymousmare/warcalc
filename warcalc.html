@@ -399,10 +399,12 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 
 /* ---------- resources ---------- */
 .res-icon{
-  width:16px;height:16px;display:block;flex:0 0 16px;
+  width:16px;height:16px;display:inline-block;vertical-align:-4px;   /* centres a 16px icon on a 16px line */
   image-rendering:pixelated;image-rendering:crisp-edges;
 }
-.res-chip{display:inline-flex;align-items:center;gap:4px;margin:0 9px 0 0;font-size:12px;white-space:nowrap;vertical-align:middle;line-height:16px}
+/* inline flow rather than flex: the spaces between the icon, the number and
+   the next chip are real text, so selecting a row copies them too */
+.res-chip{display:inline-block;margin:0 7px 0 0;font-size:12px;white-space:nowrap;vertical-align:middle;line-height:16px}
 .res-chip .mono{font-size:12px}
 .res-none{color:var(--text-dim);font-size:12px;font-style:italic}
 .bits{font-family:"SFMono-Regular",Menlo,Consolas,monospace;color:#fff}
@@ -439,8 +441,8 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .units-drop > summary:hover .cost-label{color:#fff}
 .res-drop .raw-body,.units-drop .raw-body{padding:2px 0 2px 12px}
 .res-drop .raw-body .cost-label{flex:0 0 126px}
-.gear-line{display:flex;gap:9px;align-items:baseline;padding:2px 0;font-size:12px;color:var(--text-dim)}
-.gear-line .n{flex:0 0 52px;text-align:right;color:var(--text)}
+.gear-line{padding:2px 0;font-size:12px;color:var(--text-dim)}
+.gear-line .n{display:inline-block;width:52px;margin-right:6px;text-align:right;color:var(--text)}
 .units-drop .u-copy{display:none;margin-left:7px;vertical-align:middle}
 .units-drop[open] .u-copy{display:inline-flex}
 
@@ -992,7 +994,7 @@ function resChips(res){
   const extra = Object.keys(res).filter(k=>!RESOURCES[k] && res[k]);
   if (!keys.length && !extra.length) return `<span class="res-none">none</span>`;
   return keys.concat(extra).map(k=>
-    `<span class="res-chip">${resIcon(k)}<span class="mono">${res[k]}</span></span>`).join("");
+    `<span class="res-chip">${resIcon(k)} <span class="mono">${res[k]}</span></span>`).join(" ");
 }
 
 /* ===================================================================
@@ -1273,7 +1275,7 @@ function resourceBlock(o){
 
 /* 1 satisfaction a turn for every 2 troops past 20 */
 const troopTotal = rows => rows.reduce((s,u)=>s + Math.max(0, u.size), 0);
-const satCost = troops => Math.max(0, Math.floor((troops - 20) / 2));
+const satCost = troops => Math.max(0, Math.ceil((troops - 20) / 2));
 
 const SCROUNGED = {ScroungedWeapons:1, ScroungedArmor:1};
 const plural = k => { const s = label(k); return s.endsWith("s") ? s : s + "s"; };
@@ -1309,7 +1311,7 @@ function rosterText(rows){
 function unitsBlock(rows, open){
   const gear = gearTally(rows);
   const body = gear.length
-    ? gear.map(([k,n])=>`<div class="gear-line"><span class="n mono">${n.toLocaleString("en-US")}</span>${esc(plural(k))}</div>`).join("")
+    ? gear.map(([k,n])=>`<div class="gear-line"><span class="n mono">${n.toLocaleString("en-US")}</span> ${esc(plural(k))}</div>`).join("")
     : `<div class="gear-line"><span class="res-none">none</span></div>`;
   const roster = rosterText(rows);
   const copy = roster
