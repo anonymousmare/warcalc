@@ -427,14 +427,20 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .cost-row .cost-val{flex:1 1 auto;text-align:left}
 .has-tip > .cost-label{border-bottom:1px dotted var(--text-dim);cursor:help;display:inline-block;flex:0 0 138px}
 
-/* Resources row doubles as the raw dropdown */
-.res-drop > summary{list-style:none;cursor:pointer}
-.res-drop > summary::-webkit-details-marker{display:none}
-.res-drop > summary .caret{display:inline-block;transition:transform .12s;color:var(--text-dim)}
-.res-drop[open] > summary .caret{transform:rotate(90deg)}
-.res-drop > summary:hover .cost-label{color:#fff}
-.res-drop .raw-body{padding:2px 0 2px 12px}
+/* Resources and Units rows double as their own dropdowns */
+.res-drop > summary,.units-drop > summary{list-style:none;cursor:pointer}
+.res-drop > summary::-webkit-details-marker,
+.units-drop > summary::-webkit-details-marker{display:none}
+.res-drop > summary .caret,
+.units-drop > summary .caret{display:inline-block;transition:transform .12s;color:var(--text-dim)}
+.res-drop[open] > summary .caret,
+.units-drop[open] > summary .caret{transform:rotate(90deg)}
+.res-drop > summary:hover .cost-label,
+.units-drop > summary:hover .cost-label{color:#fff}
+.res-drop .raw-body,.units-drop .raw-body{padding:2px 0 2px 12px}
 .res-drop .raw-body .cost-label{flex:0 0 126px}
+.gear-line{display:flex;gap:9px;align-items:baseline;padding:2px 0;font-size:12px;color:var(--text-dim)}
+.gear-line .n{flex:0 0 52px;text-align:right;color:var(--text)}
 
 .tip-cost{border-top:1px solid var(--border-soft);margin-top:8px;padding-top:6px;font-size:12px}
 .tip-upkeep{width:80px;display:flex;flex-wrap:wrap;justify-content:center;gap:3px;margin-top:4px}
@@ -1202,10 +1208,12 @@ function renderCosts(side){
 
   const hasUnits = c.rows.length > 0;
   const tip = k => hasUnits ? ` class="cost-row has-tip" data-tip-key="${k}"` : ` class="cost-row"`;
-  const prevMain = el.querySelector("details.cost-drop");
-  const prevRaw  = el.querySelector("details.res-drop");
-  const openMain = prevMain ? prevMain.open : false;
-  const openRaw  = prevRaw  ? prevRaw.open  : false;
+  const prevMain  = el.querySelector("details.cost-drop");
+  const prevRaw   = el.querySelector("details.res-drop");
+  const prevUnits = el.querySelector("details.units-drop");
+  const openMain  = prevMain  ? prevMain.open  : false;
+  const openRaw   = prevRaw   ? prevRaw.open   : false;
+  const openUnits = prevUnits ? prevUnits.open : false;
 
   el.innerHTML = `
     <details class="cost-drop"${openMain ? " open" : ""}>
@@ -1230,10 +1238,12 @@ function renderCosts(side){
           extra: `<div class="cost-row"><span class="cost-label">equipment all-in</span>
                     <span class="cost-val bits">${money(c.gearBits + c.craftBits)}</span></div>`
         })}
+        ${unitsBlock(c.rows, openUnits)}
         <div class="cost-row" style="margin-top:6px;padding-top:7px;border-top:1px solid rgba(0,0,0,.35)">
           <span class="cost-label" style="color:var(--text)">Total up front</span>
           <span class="cost-val bits" style="font-size:13px">${money(c.hire + c.gearBits + c.craftBits)}</span>
         </div>
+        ${satRow(troopTotal(c.rows))}
       </div>
     </details>`;
 }
@@ -1257,6 +1267,47 @@ function resourceBlock(o){
         ${o.extra || ""}
       </div>
     </details>`;
+}
+
+/* 1 satisfaction a turn for every 2 troops past 20 */
+const troopTotal = rows => rows.reduce((s,u)=>s + Math.max(0, u.size), 0);
+const satCost = troops => Math.max(0, Math.floor((troops - 20) / 2));
+
+const SCROUNGED = {ScroungedWeapons:1, ScroungedArmor:1};
+const plural = k => { const s = label(k); return s.endsWith("s") ? s : s + "s"; };
+
+/* every piece of gear the whole force needs, biggest pile first */
+function gearTally(rows){
+  const tally = {};
+  rows.forEach(u=>{
+    const n = Math.max(0, u.size);
+    [u.weapon, u.armor].forEach(k=>{
+      if (!k || SCROUNGED[k]) return;
+      tally[k] = (tally[k] || 0) + n;
+    });
+  });
+  return Object.entries(tally)
+    .sort((a,b)=> b[1] - a[1] || plural(a[0]).localeCompare(plural(b[0])));
+}
+
+/* the Units row doubles as the gear-tally dropdown */
+function unitsBlock(rows, open){
+  const gear = gearTally(rows);
+  const body = gear.length
+    ? gear.map(([k,n])=>`<div class="gear-line"><span class="n mono">${n.toLocaleString("en-US")}</span>${esc(plural(k))}</div>`).join("")
+    : `<div class="gear-line"><span class="res-none">none</span></div>`;
+  return `<details class="units-drop"${open ? " open" : ""}>
+      <summary class="cost-row">
+        <span class="cost-label">Units <span class="caret">▸</span></span>
+        <span class="cost-val mono">${troopTotal(rows).toLocaleString("en-US")}</span>
+      </summary>
+      <div class="raw-body">${body}</div>
+    </details>`;
+}
+
+function satRow(troops){
+  return `<div class="cost-row"><span class="cost-label">Sat Cost</span>
+        <span class="cost-val mono">${satCost(troops).toLocaleString("en-US")}</span></div>`;
 }
 
 function refreshCosts(){
@@ -3819,9 +3870,11 @@ function renderSolutions(out, opts, bonus, secs){
           ${(sol.ticks || 1) > 1 ? `<div class="cost-row"><span class="cost-label">Upkeep &times; ${sol.ticks} ticks</span>
             <span class="cost-val">${resChips(addRes({}, c.upkeep, sol.ticks))}
               <span class="muted small">if none of them died</span></span></div>` : ""}
+          ${unitsBlock(rows)}
           <div class="cost-row" style="margin-top:6px;padding-top:7px;border-top:1px solid rgba(0,0,0,.35)">
             <span class="cost-label" style="color:var(--text)">Total up front</span>
             <span class="cost-val bits" style="font-size:13px">${money(c.total)}</span></div>
+          ${satRow(troopTotal(rows))}
           <div class="cost-row"><span class="cost-label">Value burned</span>
             <span class="cost-val bits">${money(sol.burned)} <span class="muted small">${lostTroops.toLocaleString("en-US")} troops</span></span></div>
         </div>
@@ -4197,6 +4250,7 @@ function counterCard(r, i, o, mode){
           <div class="cost-row" style="margin-top:6px;padding-top:7px;border-top:1px solid rgba(0,0,0,.35)">
             <span class="cost-label" style="color:var(--text)">Total up front</span>
             <span class="cost-val bits" style="font-size:13px">${money(r.costs.total)}</span></div>
+          ${satRow(r.size)}
           <div class="cost-row"><span class="cost-label">Value burned</span>
             <span class="cost-val bits">${money(r.burned)}
               <span class="muted small">${r.lost.toLocaleString("en-US")} troops</span></span></div>
