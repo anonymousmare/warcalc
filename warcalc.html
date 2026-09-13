@@ -3180,7 +3180,23 @@ function hitDamage(src, dst, bonus){
   return bonus ? d * 0.75 : d;
 }
 
-/* buckets: sorted by raw weapon value desc, exactly like damageBuckets() */
+/* Stable insertion sort of `base` into `out`, biggest stack first. Both the
+   bucket lists and the tied stretches of a target pool are a handful of entries
+   at most, so this beats handing Array#sort a fresh closure a few million
+   times, and it allocates nothing. Strict < keeps equal sizes in base order,
+   which is the order the comparator it replaces settled them in. */
+function orderBySize(base, sizes, out){
+  for (let i = 0, n = base.length; i < n; i++){
+    const v = base[i], sz = sizes[v];
+    let j = i;
+    while (j > 0 && sizes[out[j - 1]] < sz){ out[j] = out[j - 1]; j--; }
+    out[j] = v;
+  }
+  return out;
+}
+
+/* buckets: sorted by raw weapon value desc, exactly like damageBuckets().
+   Each list gets a scratch array beside it for the per-call size ordering. */
 function bucketPlan(srcs){
   const map = new Map();
   srcs.forEach((u, i) => {
@@ -3191,41 +3207,86 @@ function bucketPlan(srcs){
       (b[n] ??= []).push(i);
     }
   });
-  return [...map.keys()].sort((a, b) => b - a).map(key => ({key, byType: map.get(key)}));
+  return [...map.keys()].sort((a, b) => b - a).map(key => {
+    const byType = map.get(key), scratch = {};
+    for (let n = 1; n <= 5; n++) if (byType[n] && byType[n].length > 1) scratch[n] = byType[n].slice();
+    return {key, byType, scratch};
+  });
 }
 
-/* pools: [dstTypeNum][srcTypeNum] = [dstIdx], armour ascending then size desc */
-function poolPlan(dsts, sizes){
+/* Target pools: which enemy stack a firing type works down first — armour
+   ascending, then biggest stack first — as a flat [dstType * 6 + srcType]
+   table of stack indices.
+   Armour is a property of the loadout and never moves; only the sizes do. So
+   the ordering is built once here and, on each call, only the stretches that
+   tie on armour are re-sorted. Where every armour value is distinct that is no
+   work at all, and the search used to rebuild this whole structure — object
+   allocation, grouping and five sorts — for every single size it tried. */
+function poolCache(dsts){
   const byType = {};
   dsts.forEach((u, i) => { (byType[u.typeNum] ??= []).push(i); });
-  const out = {};
+  const pools = new Array(36).fill(null), plan = [];
   for (const dt in byType){
-    out[dt] = {};
     for (let n = 1; n <= 5; n++){
-      out[dt][n] = byType[dt].slice().sort((x, y) =>
-        (dsts[x].arm[TYPES[n]] - dsts[y].arm[TYPES[n]]) ||
-        ((sizes ? sizes[y] : dsts[y].size) - (sizes ? sizes[x] : dsts[x].size)));
+      const t = TYPES[n];
+      const base = byType[dt].slice().sort((x, y) => dsts[x].arm[t] - dsts[y].arm[t]);
+      const runs = [];
+      for (let a = 0; a < base.length; ){
+        let b = a + 1;
+        while (b < base.length && dsts[base[b]].arm[t] === dsts[base[a]].arm[t]) b++;
+        if (b - a > 1) runs.push(a, b);
+        a = b;
+      }
+      const out = base.slice();
+      pools[+dt * 6 + n] = out;
+      if (runs.length) plan.push({base, out, runs});
     }
   }
-  return out;
+  return {pools, plan};
 }
 
-/* one side's attack run, hit blocks resolved arithmetically */
-function runAlloc(srcs, srcSizes, srcHits, dsts, dstSize, dstDam, MAT, buckets, pools){
-  for (const bucket of buckets){
+/* the cached pools with their tied stretches settled for these sizes. The
+   arrays are reused, so the answer only stands until the next call. */
+function poolsFor(cache, sizes){
+  const plan = cache.plan;
+  for (let p = 0; p < plan.length; p++){
+    const {base, out, runs} = plan[p];
+    for (let r = 0; r < runs.length; r += 2){
+      const a = runs[r], b = runs[r + 1];
+      /* back to the armour order first: sorting last call's answer again
+         would settle equal sizes by where they drifted to, not by index */
+      for (let i = a; i < b; i++) out[i] = base[i];
+      for (let i = a + 1; i < b; i++){
+        const v = out[i], sz = sizes[v];
+        let j = i;
+        while (j > a && sizes[out[j - 1]] < sz){ out[j] = out[j - 1]; j--; }
+        out[j] = v;
+      }
+    }
+  }
+  return cache.pools;
+}
+
+/* one side's attack run, hit blocks resolved arithmetically.
+   MAT is the flat src-by-dst damage table, one row of `stride` per source. */
+function runAlloc(srcTypes, srcSizes, srcHits, dstSize, dstDam, MAT, stride, buckets, pools){
+  for (let bi = 0; bi < buckets.length; bi++){
+    const bucket = buckets[bi];
     for (let tn = 1; tn <= 5; tn++){
       const list = bucket.byType[tn];
       if (!list) continue;
-      const ordered = list.length > 1
-        ? list.slice().sort((a, b) => srcSizes[b] - srcSizes[a]) : list;
+      const ordered = list.length > 1 ? orderBySize(list, srcSizes, bucket.scratch[tn]) : list;
       let breakType = false;
-      for (const si of ordered){
+      for (let oi = 0; oi < ordered.length; oi++){
+        const si = ordered[oi];
+        const row = si * stride;
         while (srcHits[si] > 0){
           let fought = false, spent = false;
-          const pool = pools[tn] && pools[tn][srcs[si].typeNum];
+          const pool = pools[tn * 6 + srcTypes[si]];
           if (!pool || !pool.length) break;
-          for (const di of pool){
-            const dmg = MAT[si][di];
+          for (let pi = 0; pi < pool.length; pi++){
+            const di = pool[pi];
+            const dmg = MAT[row + di];
             if (!(dmg > 0)) continue;
             if (dstSize[di] > dstDam[di]){
               const need = Math.max(1, Math.ceil((dstSize[di] - dstDam[di]) / dmg - 1e-9));
@@ -3259,14 +3320,36 @@ function makeContext(ownProfiles, foeProfiles, bonusOwn, bonusFoe, wantLosses, t
   const own = ownProfiles, foe = foeProfiles;
   const T = Math.max(1, ticks || 1);
   const losses = wantLosses || T > 1;
+  const K = own.length, M = foe.length;
+
+  /* the damage tables flat, one row per source, so the inner loop indexes
+     a single typed array instead of walking an array of arrays */
+  const MO = new Float64Array(K * M);
+  for (let i = 0; i < K; i++)
+    for (let j = 0; j < M; j++) MO[i * M + j] = hitDamage(own[i], foe[j], bonusOwn);
+  let MF = null;
+  if (losses){
+    MF = new Float64Array(M * K);
+    for (let j = 0; j < M; j++)
+      for (let i = 0; i < K; i++) MF[j * K + i] = hitDamage(foe[j], own[i], bonusFoe);
+  }
+
   return {
-    own, foe, wantLosses: losses, ticks: T,
-    MO: own.map(o => foe.map(f => hitDamage(o, f, bonusOwn))),
-    MF: losses ? foe.map(f => own.map(o => hitDamage(f, o, bonusFoe))) : null,
-    foeSize: foe.map(f => f.size),
+    own, foe, K, M, wantLosses: losses, ticks: T,
+    MO, MF,
+    ownTypes: Int32Array.from(own, u => u.typeNum),
+    foeTypes: Int32Array.from(foe, u => u.typeNum),
+    foeSize: Float64Array.from(foe, f => f.size),
     ownBuckets: bucketPlan(own),
-    foePools: poolPlan(foe, null),      // foe armour and sizes as they start tick 1
-    foeBuckets: losses ? bucketPlan(foe) : null
+    ownPoolCache: losses ? poolCache(own) : null,
+    foePoolCache: poolCache(foe),
+    foeBuckets: losses ? bucketPlan(foe) : null,
+    /* scratch the search reuses: trySizes runs millions of times and every
+       one of these used to be a fresh allocation */
+    sOwnSize: new Float64Array(K), sFoeSize: new Float64Array(M),
+    sOwnHits: new Float64Array(K), sFoeHits: new Float64Array(M),
+    sFoeDam:  new Float64Array(M), sOwnDam:  new Float64Array(K),
+    sOwnLost: new Float64Array(K)
   };
 }
 
@@ -3277,22 +3360,30 @@ function makeContext(ownProfiles, foeProfiles, bonusOwn, bonusFoe, wantLosses, t
    wantLog fills in the per-tick trace for the result card; the search itself
    runs this millions of times and skips it. */
 function trySizes(sizes, ctx, wantLog){
-  const K = ctx.own.length, M = ctx.foe.length;
-  const ownSize = sizes.slice(), foeSize = ctx.foeSize.slice();
-  const ownLost = ctx.wantLosses ? new Array(K).fill(0) : null;
+  const K = ctx.K, M = ctx.M;
+  /* the scratch buffers are the search's; a call that hands its answer back to
+     be kept — the ones that end up on screen — gets arrays of its own */
+  const ownSize = ctx.sOwnSize, foeSize = ctx.sFoeSize;
+  const ownHits = ctx.sOwnHits, foeHits = ctx.sFoeHits;
+  const foeDam = ctx.sFoeDam, ownDamBuf = ctx.sOwnDam;
+  for (let i = 0; i < K; i++) ownSize[i] = sizes[i];
+  foeSize.set(ctx.foeSize);
+  const ownLost = ctx.wantLosses ? (wantLog ? new Array(K).fill(0) : ctx.sOwnLost.fill(0)) : null;
   const perTick = wantLog ? [] : null;
   let wipe = false, ticksUsed = 0, foeLeft = 0, ownLeft = 0;
 
   for (let t = 1; t <= ctx.ticks; t++){
-    const foeDam = new Float64Array(M);
-    runAlloc(ctx.own, ownSize, ownSize.slice(), ctx.foe, foeSize, foeDam,
-             ctx.MO, ctx.ownBuckets, t === 1 ? ctx.foePools : poolPlan(ctx.foe, foeSize));
+    foeDam.fill(0);
+    for (let i = 0; i < K; i++) ownHits[i] = ownSize[i];
+    runAlloc(ctx.ownTypes, ownSize, ownHits, foeSize, foeDam,
+             ctx.MO, M, ctx.ownBuckets, poolsFor(ctx.foePoolCache, foeSize));
 
     let ownDam = null;
     if (ctx.wantLosses){
-      ownDam = new Float64Array(K);
-      runAlloc(ctx.foe, foeSize, foeSize.slice(), ctx.own, ownSize, ownDam,
-               ctx.MF, ctx.foeBuckets, poolPlan(ctx.own, ownSize));
+      ownDam = ownDamBuf; ownDam.fill(0);
+      for (let j = 0; j < M; j++) foeHits[j] = foeSize[j];
+      runAlloc(ctx.foeTypes, foeSize, foeHits, ownSize, ownDam,
+               ctx.MF, K, ctx.foeBuckets, poolsFor(ctx.ownPoolCache, ownSize));
     }
 
     let foeKilled = 0, ownKilled = 0;
@@ -3370,7 +3461,29 @@ function pruneCands(cands, useIncoming, usePerHit, maxKeep){
   return keep.sort((a, b) => score.get(a) - score.get(b) || a.wbits - b.wbits).slice(0, maxKeep);
 }
 
-/* ================= size search ================= */
+/* ================= size search =================
+   A third of the size vectors a local search probes are ones it has already
+   fought out: the tightening passes revisit, and the trade loop keeps coming
+   back to the same trial. trySizes depends on nothing but the sizes and the
+   context, so the verdicts are worth keeping.
+   This is a cache, not a ledger — one direct-mapped table, fixed size, and a
+   clash simply evicts the older entry. Every hit compares the whole vector
+   before it is believed, so a hash collision can never hand back the wrong
+   answer. One table serves every solver in turn: whoever claimed it last owns
+   it, and a solver that has lost it falls back to simulating. */
+const MEMO = {token:null, K:0, cap:0, mask:0, keys:null, val:null};
+
+function claimMemo(K, token){
+  const cap = K <= 8 ? 1 << 16 : 1 << 14;
+  if (MEMO.K !== K || MEMO.cap !== cap){
+    MEMO.K = K; MEMO.cap = cap; MEMO.mask = cap - 1;
+    MEMO.keys = new Float64Array(cap * K);
+    MEMO.val = new Uint8Array(cap);          // 0 unseen, 1 passes, 2 fails
+  } else MEMO.val.fill(0);
+  MEMO.token = token;
+  return MEMO;
+}
+
 function makeSolver(subset, foeProfiles, o){
   const ctx = makeContext(subset.map(c => c.p), foeProfiles, o.bonusOwn, o.bonusFoe,
                           o.wantLosses, o.ticks);
@@ -3383,7 +3496,25 @@ function makeSolver(subset, foeProfiles, o){
     o.goal === "survive" ? res.ownLeft >= o.minSurvivors :
                            res.wipe && res.ownLeft >= o.minSurvivors;
 
-  const feasible = sz => { sims++; return meets(trySizes(sz, ctx)); };
+  const token = {};
+  const memo = claimMemo(K, token);
+
+  const feasible = sz => {
+    if (memo.token !== token){ sims++; return meets(trySizes(sz, ctx)); }
+    let h = 2166136261;
+    for (let i = 0; i < K; i++) h = Math.imul(h ^ (sz[i] | 0), 16777619);
+    const slot = (h >>> 0) & memo.mask, base = slot * K;
+    if (memo.val[slot]){
+      let same = true;
+      for (let i = 0; i < K; i++) if (memo.keys[base + i] !== sz[i]){ same = false; break; }
+      if (same) return memo.val[slot] === 1;
+    }
+    sims++;
+    const ok = meets(trySizes(sz, ctx));
+    for (let i = 0; i < K; i++) memo.keys[base + i] = sz[i];
+    memo.val[slot] = ok ? 1 : 2;
+    return ok;
+  };
   const cost = sz => { let c = 0; for (let i = 0; i < K; i++) c += sz[i] * bitsArr[i]; return c; };
 
   function tighten(sizes, i){
@@ -3513,10 +3644,13 @@ function soloSize(cand, foeProfiles, o){
   return sv.tighten(reached, 0)[0];
 }
 
-function* hardOptimize(subset, foeProfiles, o, solos, gridN){
+function* hardOptimize(subset, foeProfiles, o, solos, gridN, startSizes){
   const sv = makeSolver(subset, foeProfiles, o);
   const K = subset.length;
-  const q = quickOptimize(subset, foeProfiles, o);
+  /* the scan already sized this subset, so start from what it found rather
+     than paying for the whole local search a second time */
+  const q = (startSizes && sv.feasible(startSizes)) ? {sizes: startSizes.slice()}
+                                                    : quickOptimize(subset, foeProfiles, o);
   if (!q) return null;
   let bestSizes = q.sizes, bestCost = sv.cost(bestSizes);
 
@@ -3734,7 +3868,7 @@ function* solveGen(opts, foeRows, bonusOwn, bonusFoe){
   for (let n = 0; n < shortlist.length; n++){
     const s = shortlist[n];
     const h = Date.now() < deadline
-      ? (refined++, yield* hardOptimize(s.subset, foeProfiles, o, s.idxs.map(i => solos[i]), gridN))
+      ? (refined++, yield* hardOptimize(s.subset, foeProfiles, o, s.idxs.map(i => solos[i]), gridN, s.sizes))
       : null;
     const use = h && h.cost <= s.met.wup ? h : null;
     const sizes = use ? use.sizes : s.sizes;
