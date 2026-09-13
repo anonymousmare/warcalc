@@ -529,26 +529,26 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 }
 .ovl-x:hover{color:#fff}
 .ovl-body{overflow:auto;padding:12px;max-height:72vh;overscroll-behavior:contain}
-.ovl-note{font-size:11.5px;color:var(--text-dim);margin-bottom:10px}
-.ovl-note b{color:#fff;font-weight:600}
-.ovl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:18px}
-.ref-group{margin-bottom:16px}
-.ref-group:last-child{margin-bottom:0}
-.ref-group > h4{
-  margin:0 0 7px;font-size:11px;font-weight:600;color:#fff;
-  text-transform:uppercase;letter-spacing:.08em;
-  padding-bottom:4px;border-bottom:1px solid var(--border-soft);
-}
-.ref-sub{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;margin:0 0 3px}
 .ref-table{width:100%}
+.ref-table + .ref-table{margin-top:16px}
 .ref-table th,.ref-table td{padding:2px 6px;font-size:11.5px;white-space:nowrap}
 .ref-table thead th{font-size:10px;padding-bottom:4px}
+/* the five type names are the thing you scan for, so they get the room */
+.ref-table th.ref-th-type{font-size:18px;letter-spacing:0;padding-bottom:5px}
 .ref-table tbody tr{border-bottom:1px solid rgba(0,0,0,.28)}
+.ref-table tr.grp-start td{border-top:1px solid rgba(255,255,255,.13)}
 .ref-table td.num,.ref-table th.num{text-align:right;font-family:"SFMono-Regular",Menlo,Consolas,monospace}
 .ref-table td.res{white-space:normal;min-width:120px}
-.ref-table .gear-cell{display:flex;align-items:center;gap:7px;color:var(--text)}
+.ref-table .gear-cell{display:flex;align-items:center;gap:7px}
 .ref-table .gear-cell .g-name{flex:1 1 auto;text-align:right}
 .ref-best{color:#78cc78;font-weight:600}
+
+/* one colour a unit type, on the column heads and on the gear each type carries */
+.t-cavalry {color:#FF0000}
+.t-tanks   {color:#0094FF}
+.t-pegasi  {color:#FF6EC7}
+.t-unicorns{color:#00FF21}
+.t-naval   {color:#00FFFF}
 </style>
 </head>
 <body>
@@ -4220,67 +4220,49 @@ function bestCols(def, kind){
   return out;
 }
 
-/* name pushed right against its portrait, so a column of them lines up */
-const gearCell = key =>
-  `<span class="gear-cell"><span class="g-name">${esc(label(key))}</span>${gearImg(key)}</span>`;
+/* name pushed right against its portrait, so a column of them lines up.
+   The name carries its owner's colour, which is what tells the runs of
+   cavalry / tanks / pegasi gear apart now that the headings are gone. */
+const gearCell = (key, type) =>
+  `<span class="gear-cell t-${type.toLowerCase()}"><span class="g-name">${esc(label(key))}</span>${gearImg(key)}</span>`;
 
-function statTable(type, kind){
+/* every category's gear in one run, a rule drawn where one type hands over
+   to the next */
+function refRows(kind, row){
+  return REF_GROUPS.map((type, g) => realGear(type, kind).map((k, i)=>
+    `<tr${g && !i ? ' class="grp-start"' : ""}><td>${gearCell(k, type)}</td>${row(k)}</tr>`
+  ).join("")).join("");
+}
+
+const typeHead = () => `<thead><tr><th></th>${REF_COLS.map(c=>
+  `<th class="num ref-th-type t-${c}">${TYPE_LABEL[c]}</th>`).join("")}</tr></thead>`;
+
+function statTable(kind){
   const defs = kind === "weapon" ? WEAPON_DEFS : ARMOR_DEFS;
-  const rows = realGear(type, kind).map(k=>{
+  return `<table class="ref-table">${typeHead()}<tbody>${refRows(kind, k=>{
     const d = defs[k] || {};
     const best = bestCols(d, kind);
-    return `<tr><td>${gearCell(k)}</td>` + REF_COLS.map(c=>
-      `<td class="num${best[c] ? " ref-best" : ""}">${Number(d[c]).toFixed(2)}</td>`).join("") + "</tr>";
-  }).join("");
-  return `<div>
-      <p class="ref-sub">${kind === "weapon" ? "Weapons — damage dealt" : "Armor — damage taken"}</p>
-      <table class="ref-table"><thead><tr><th>vs</th>${
-        REF_COLS.map(c=>`<th class="num">${TYPE_LABEL[c]}</th>`).join("")}</tr></thead>
-        <tbody>${rows}</tbody></table>
-    </div>`;
+    return REF_COLS.map(c=>
+      `<td class="num${best[c] ? " ref-best" : ""}">${Number(d[c]).toFixed(2)}</td>`).join("");
+  })}</tbody></table>`;
 }
 
-function buildStatsRef(){
-  return `<p class="ovl-note">Columns are the <b>target</b> for weapons and the <b>attacker</b> for armor,
-      so weapons want the high number and armor wants the low one.
-      <b class="ref-best">Green</b> marks what each piece is best against.
-      Scrounged gear is a flat <b>0.25</b> damage and <b>1.00</b> armor, and Alicorns ignore the
-      table entirely — <b>10</b> damage and <b>0.10</b> armor against everything.</p>
-    ${REF_GROUPS.map(t=>`<div class="ref-group"><h4>${t}</h4>
-        <div class="ovl-grid">${statTable(t, "weapon")}${statTable(t, "armor")}</div></div>`).join("")}`;
-}
+/* damage dealt on top, damage taken below */
+const buildStatsRef = () => statTable("weapon") + statTable("armor");
 
-function costTable(type, kind){
-  const rows = realGear(type, kind).map(k=>{
-    const c = gearCost(kind, k);
-    const r = toRaw(c.res);
-    return `<tr>
-      <td>${gearCell(k)}</td>
-      <td class="num">${bits(c.bits)}</td>
-      <td class="res">${resChips(c.res)}</td>
-      <td class="res">${resChips(r.res)}</td>
-      <td class="num">${bits(c.bits + r.craftBits)}</td>
-    </tr>`;
-  }).join("");
-  return `<div class="ref-group"><h4>${type}</h4>
-      <table class="ref-table"><thead><tr>
-        <th></th><th class="num">Build ${BIT}</th><th>Resources</th>
-        <th>Raw</th><th class="num">All-in ${BIT}</th>
-      </tr></thead><tbody>${rows}</tbody></table></div>`;
-}
-
-function buildCostRef(kind){
-  return `<p class="ovl-note">The cost of one ${kind === "weapon" ? "weapon" : "suit"}.
-      <b>Raw</b> unpacks crafted parts into what they are made of, and
-      <b>all-in ${BIT}</b> adds the crafting fees that unpacking runs up.
-      Scrounged gear costs nothing.</p>
-    ${REF_GROUPS.map(t=>costTable(t, kind)).join("")}`;
-}
+const buildCostRef = kind =>
+  `<table class="ref-table"><thead><tr>
+      <th></th><th class="num">Build ${BIT}</th><th>Resources</th><th class="num">All-in ${BIT}</th>
+    </tr></thead><tbody>${refRows(kind, k=>{
+      const c = gearCost(kind, k);
+      return `<td class="num">${bits(c.bits)}</td><td class="res">${resChips(c.res)}</td>` +
+             `<td class="num">${bits(c.bits + toRaw(c.res).craftBits)}</td>`;
+    })}</tbody></table>`;
 
 const REFS = {
-  stats: {title:"Weapon & armor stats", width:900, build:()=>buildStatsRef()},
-  wcost: {title:"Weapon build costs",   width:700, build:()=>buildCostRef("weapon")},
-  acost: {title:"Armor build costs",    width:700, build:()=>buildCostRef("armor")}
+  stats: {title:"Weapon & armor stats", width:700, build:()=>buildStatsRef()},
+  wcost: {title:"Weapon build costs",   width:560, build:()=>buildCostRef("weapon")},
+  acost: {title:"Armor build costs",    width:560, build:()=>buildCostRef("armor")}
 };
 
 const refEls = {};
