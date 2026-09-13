@@ -473,10 +473,21 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 /* ---------- solver ---------- */
 .solve-grid{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;
   margin-top:12px;padding-top:12px;border-top:1px solid var(--border-soft)}
-.solve-types{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
-.solve-types label{display:inline-flex;align-items:center;gap:5px;margin:0;
+.solve-types{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch}
+.solve-type{display:flex;flex-direction:column;gap:5px;min-width:106px;
+  background:var(--sunken);border:1px solid var(--border-soft);border-radius:4px;padding:7px 8px}
+.solve-type label{display:inline-flex;align-items:center;gap:5px;margin:0;
   font-size:12px;color:var(--text);cursor:pointer}
-.solve-types input{width:auto;margin:0}
+.solve-type label input{width:auto;margin:0}
+.solve-type input.lean{width:100%;margin:0;padding:2px 4px;font-size:12px;text-align:center;
+  font-family:"SFMono-Regular",Menlo,Consolas,monospace}
+.solve-type.lean-plenty{border-color:rgba(120,204,120,.6)}
+.solve-type.lean-plenty input.lean{color:#78cc78}
+.solve-type.lean-scarce{border-color:rgba(241,122,119,.55)}
+.solve-type.lean-scarce input.lean{color:#f17a77}
+.solve-type.lean-off{opacity:.4}
+.solve-nation{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.solve-nation .note-lean{flex:1 1 260px;min-width:200px}
 .solve-bar-outer{height:6px;background:var(--sunken);border:1px solid var(--border-soft);
   border-radius:3px;overflow:hidden;margin-top:10px}
 .solve-bar{height:100%;width:0;transition:width .12s linear;
@@ -770,14 +781,52 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
     </div>
     <div class="solve-grid">
       <div style="min-width:100%">
-        <label>Unit types the solver may hire</label>
+        <label for="solveNation">Nation</label>
+        <div class="solve-nation">
+          <select id="solveNation" style="width:190px"></select>
+          <button class="btn btn-xs" type="button" id="btnLeanEven">Even it out</button>
+          <span class="small muted note-lean" id="solveNationNote"></span>
+        </div>
+      </div>
+    </div>
+    <div class="solve-grid">
+      <div style="min-width:100%">
+        <label>Unit types the solver may hire &mdash; and what each one costs it to reach for</label>
         <div class="solve-types">
-          <label><input type="checkbox" data-solve-type="1" value="Cavalry" checked> Cavalry</label>
-          <label><input type="checkbox" data-solve-type="1" value="Tanks" checked> Tanks</label>
-          <label><input type="checkbox" data-solve-type="1" value="Pegasi" checked> Pegasi</label>
-          <label><input type="checkbox" data-solve-type="1" value="Unicorns" checked> Unicorns</label>
-          <label><input type="checkbox" data-solve-type="1" value="Naval" checked> Naval</label>
-          <label><input type="checkbox" data-solve-type="1" value="Alicorns"> Alicorns</label>
+          <div class="solve-type" data-lean-cell="Cavalry">
+            <label><input type="checkbox" data-solve-type="1" value="Cavalry" checked> Cavalry</label>
+            <input class="lean" type="number" data-solve-lean="Cavalry" min="0.1" max="10" step="0.05"
+              value="1" title="Cost multiplier the search optimises against — under 1 you field plenty of these, over 1 every one is a stretch">
+          </div>
+          <div class="solve-type" data-lean-cell="Tanks">
+            <label><input type="checkbox" data-solve-type="1" value="Tanks" checked> Tanks</label>
+            <input class="lean" type="number" data-solve-lean="Tanks" min="0.1" max="10" step="0.05"
+              value="1" title="Cost multiplier the search optimises against — under 1 you field plenty of these, over 1 every one is a stretch">
+          </div>
+          <div class="solve-type" data-lean-cell="Pegasi">
+            <label><input type="checkbox" data-solve-type="1" value="Pegasi" checked> Pegasi</label>
+            <input class="lean" type="number" data-solve-lean="Pegasi" min="0.1" max="10" step="0.05"
+              value="1" title="Cost multiplier the search optimises against — under 1 you field plenty of these, over 1 every one is a stretch">
+          </div>
+          <div class="solve-type" data-lean-cell="Unicorns">
+            <label><input type="checkbox" data-solve-type="1" value="Unicorns" checked> Unicorns</label>
+            <input class="lean" type="number" data-solve-lean="Unicorns" min="0.1" max="10" step="0.05"
+              value="1" title="Cost multiplier the search optimises against — under 1 you field plenty of these, over 1 every one is a stretch">
+          </div>
+          <div class="solve-type" data-lean-cell="Naval">
+            <label><input type="checkbox" data-solve-type="1" value="Naval" checked> Naval</label>
+            <input class="lean" type="number" data-solve-lean="Naval" min="0.1" max="10" step="0.05"
+              value="1" title="Cost multiplier the search optimises against — under 1 you field plenty of these, over 1 every one is a stretch">
+          </div>
+          <div class="solve-type" data-lean-cell="Alicorns">
+            <label><input type="checkbox" data-solve-type="1" value="Alicorns"> Alicorns</label>
+            <input class="lean" type="number" data-solve-lean="Alicorns" min="0.1" max="10" step="0.05"
+              value="1" title="Cost multiplier the search optimises against — under 1 you field plenty of these, over 1 every one is a stretch">
+          </div>
+        </div>
+        <div class="small muted" style="margin-top:7px">
+          A multiplier on the price the search optimises against, not on the &#3647; you are quoted.
+          Under 1 the solver reaches for that type sooner, over 1 it has to be worth the trouble.
         </div>
       </div>
     </div>
@@ -3040,6 +3089,62 @@ const SOLVE_STACK_CAP = 5000000;
 const MAX_SOLVE_STACKS = 20;
 const EXHAUSTIVE_COMBO_CAP = 250000;
 
+/* ---- nation leanings ----------------------------------------------
+   Straight bits are the default and nothing below changes them. A nation
+   that digs its own gems and smelts its own copper is not paying the same
+   price for a unicorn as one that has to buy every horn in, so each type
+   carries a multiplier the *search* optimises against. Under 1 the solver
+   reaches for that type sooner; over 1 it has to earn its place. The bits
+   quoted on the answer are always the real ones. */
+const SOLVE_TYPES = ["Cavalry","Tanks","Pegasi","Unicorns","Naval","Alicorns"];
+const LEAN_MIN = 0.1, LEAN_MAX = 10;
+const PLENTY = 0.7, SCARCE = 1.4;   /* what the stock nations lean by */
+
+const NATIONS = {
+  even: {name:"No lean — straight ฿", note:""},
+  zebrica: {
+    name:"Zebrica",
+    note:"Gems and copper out of its own ground, so unicorns and tanks are cheap to reach for. Wings, hooves and hulls all have to be bought in.",
+    lean:{Tanks:PLENTY, Unicorns:PLENTY, Cavalry:SCARCE, Pegasi:SCARCE, Naval:SCARCE}
+  },
+  saddlearabia: {
+    name:"Saddle Arabia",
+    note:"Armour and hulls in quantity — tanks and ships come easy, everything else is a stretch.",
+    lean:{Tanks:PLENTY, Naval:PLENTY, Cavalry:SCARCE, Pegasi:SCARCE, Unicorns:SCARCE}
+  },
+  burrozil: {
+    name:"Burrozil",
+    note:"Riders and fliers in quantity — cavalry and pegasi come easy, everything else is a stretch.",
+    lean:{Cavalry:PLENTY, Pegasi:PLENTY, Tanks:SCARCE, Unicorns:SCARCE, Naval:SCARCE}
+  },
+  custom: {name:"Custom", note:"Your own numbers."}
+};
+
+/* the lean a nation puts on every type, gaps filled in with 1 */
+function nationLean(key){
+  const spec = (NATIONS[key] || {}).lean || {};
+  const out = {};
+  SOLVE_TYPES.forEach(t => { out[t] = spec[t] || 1; });
+  return out;
+}
+
+/* missing, zero or nonsense reads as "no opinion" */
+const leanOf = (lean, type) => {
+  const v = lean && +lean[type];
+  return v > 0 ? Math.min(LEAN_MAX, Math.max(LEAN_MIN, v)) : 1;
+};
+const leanActive = lean => SOLVE_TYPES.some(t => leanOf(lean, t) !== 1);
+
+/* the stock nation these numbers match, if any */
+function matchNation(lean){
+  for (const key of Object.keys(NATIONS)){
+    if (key === "custom") continue;
+    const want = nationLean(key);
+    if (SOLVE_TYPES.every(t => Math.abs(leanOf(lean, t) - want[t]) < 1e-9)) return key;
+  }
+  return "custom";
+}
+
 /* ---- cost of one troop of a given loadout ---- */
 function loadoutBits(type, weapon, armor, resValue){
   const uc = UNIT_COST[type] || {hire:0, upkeep:{}};
@@ -3221,6 +3326,9 @@ function buildCandidates(opts, foeProfiles, bonusOwn, bonusFoe){
   opts.types.forEach(type => {
     const set = LOADOUTS[type];
     if (!set) return;
+    /* bits is what the troop really costs; wbits is what it costs *this*
+       nation to reach for, and that is the number the search minimises */
+    const lean = leanOf(opts.lean, type);
     set.weapons.forEach(w => set.armor.forEach(a => {
       if (!opts.useArmor && a !== "ScroungedArmor") return;
       const cost = loadoutBits(type, w, a, opts.resValue);
@@ -3228,7 +3336,8 @@ function buildCandidates(opts, foeProfiles, bonusOwn, bonusFoe){
       const perHit = foeProfiles.map(f => hitDamage(p, f, bonusOwn));
       const incoming = foeProfiles.map(f => hitDamage(f, p, bonusFoe));
       if (opts.goal !== "survive" && !perHit.some(v => v > 0)) return;
-      out.push({type, weapon:w, armor:a, bits:cost.bits, cost, perHit, incoming, p});
+      out.push({type, weapon:w, armor:a, bits:cost.bits, wbits:cost.bits * lean, lean,
+                cost, perHit, incoming, p});
     }));
   });
   return out;
@@ -3237,10 +3346,10 @@ function buildCandidates(opts, foeProfiles, bonusOwn, bonusFoe){
 /* drop loadouts another beats on every axis at no extra cost */
 function pruneCands(cands, useIncoming, usePerHit, maxKeep){
   const keep = [];
-  for (const c of cands.slice().sort((a, b) => a.bits - b.bits)){
+  for (const c of cands.slice().sort((a, b) => a.wbits - b.wbits)){
     let dominated = false;
     for (const k of keep){
-      if (k.bits > c.bits) continue;
+      if (k.wbits > c.wbits) continue;
       let ok = true;
       if (usePerHit)
         for (let j = 0; j < c.perHit.length && ok; j++) if (k.perHit[j] < c.perHit[j]) ok = false;
@@ -3255,17 +3364,17 @@ function pruneCands(cands, useIncoming, usePerHit, maxKeep){
   const rank = fn => keep.slice().sort((a, b) => fn(a) - fn(b))
     .forEach((c, r) => score.set(c, Math.min(score.get(c), r)));
   for (let j = 0; j < keep[0].perHit.length; j++){
-    if (usePerHit) rank(c => c.bits / (c.perHit[j] || 1e-9));
-    if (useIncoming) rank(c => c.bits * (c.incoming[j] || 1e-9));
+    if (usePerHit) rank(c => c.wbits / (c.perHit[j] || 1e-9));
+    if (useIncoming) rank(c => c.wbits * (c.incoming[j] || 1e-9));
   }
-  return keep.sort((a, b) => score.get(a) - score.get(b) || a.bits - b.bits).slice(0, maxKeep);
+  return keep.sort((a, b) => score.get(a) - score.get(b) || a.wbits - b.wbits).slice(0, maxKeep);
 }
 
 /* ================= size search ================= */
 function makeSolver(subset, foeProfiles, o){
   const ctx = makeContext(subset.map(c => c.p), foeProfiles, o.bonusOwn, o.bonusFoe,
                           o.wantLosses, o.ticks);
-  const bitsArr = subset.map(c => c.bits);
+  const bitsArr = subset.map(c => c.wbits);
   const K = subset.length;
   let sims = 0;
 
@@ -3363,7 +3472,7 @@ function seedSizes(subset, foeProfiles, o){
         const ph = subset[i].perHit[j];
         if (!(ph > 0)) continue;
         const h = Math.max(1, Math.ceil(foeProfiles[j].size / ph / T));
-        if (h * subset[i].bits < bestCost){ bestCost = h * subset[i].bits; best = i; bestHits = h; }
+        if (h * subset[i].wbits < bestCost){ bestCost = h * subset[i].wbits; best = i; bestHits = h; }
       }
       if (best < 0) return null;
       sizes[best] += bestHits;
@@ -3376,7 +3485,7 @@ function seedSizes(subset, foeProfiles, o){
       let dmg = 0;
       for (let j = 0; j < foeProfiles.length; j++) dmg += foeProfiles[j].size * subset[i].incoming[j];
       const need = Math.floor(dmg) + o.minSurvivors;
-      if (need * subset[i].bits < bestCost){ bestCost = need * subset[i].bits; best = i; bestNeed = need; }
+      if (need * subset[i].wbits < bestCost){ bestCost = need * subset[i].wbits; best = i; bestNeed = need; }
     }
     if (best < 0) return null;
     sizes[best] = Math.max(sizes[best], bestNeed);
@@ -3489,7 +3598,7 @@ function* solveGen(opts, foeRows, bonusOwn, bonusFoe){
      Over T ticks a troop lands at most T hits, so the kill floor divides by T;
      the damage the enemy deals in tick 1 lands whatever happens after, so the
      survival floor is unchanged. */
-  const killRate = cands.map(c => foeProfiles.map((f, j) => c.perHit[j] > 0 ? c.bits / c.perHit[j] : Infinity));
+  const killRate = cands.map(c => foeProfiles.map((f, j) => c.perHit[j] > 0 ? c.wbits / c.perHit[j] : Infinity));
   const lowerBound = idxs => {
     let lb = 0;
     if (needKill){
@@ -3508,21 +3617,27 @@ function* solveGen(opts, foeRows, bonusOwn, bonusFoe){
         dmg += foeProfiles[j].size * least;
       }
       let cheapest = Infinity;
-      for (const i of idxs) if (cands[i].bits < cheapest) cheapest = cands[i].bits;
+      for (const i of idxs) if (cands[i].wbits < cheapest) cheapest = cands[i].wbits;
       const need = Math.max(1, Math.floor(dmg) - idxs.length + o.minSurvivors);
       lb = Math.max(lb, need * cheapest);
     }
     return lb;
   };
 
+  const pick = (a, b) => opts.objective === "upfront" ? a
+                       : opts.objective === "losses" ? b : a + b;
   const metricOf = (sizes, subset, res) => {
-    let up = 0, burn = 0;
+    let up = 0, burn = 0, wup = 0, wburn = 0;
     for (let i = 0; i < sizes.length; i++){
-      up += sizes[i] * subset[i].bits;
-      if (res && res.ownLost) burn += res.ownLost[i] * subset[i].bits;
+      up  += sizes[i] * subset[i].bits;
+      wup += sizes[i] * subset[i].wbits;
+      if (res && res.ownLost){
+        burn  += res.ownLost[i] * subset[i].bits;
+        wburn += res.ownLost[i] * subset[i].wbits;
+      }
     }
-    return {up, burn, m: opts.objective === "upfront" ? up
-                     : opts.objective === "losses" ? burn : up + burn};
+    /* m is what the force is quoted at, score is what it is ranked on */
+    return {up, burn, wup, m: pick(up, burn), score: pick(wup, wburn)};
   };
 
   const scored = [];
@@ -3546,9 +3661,9 @@ function* solveGen(opts, foeRows, bonusOwn, bonusFoe){
     const q = quickOptimize(subset, foeProfiles, o);
     if (!q) return null;
     const met = metricOf(q.sizes, subset, q.sv.result(q.sizes));
-    if (met.up < bestSeen) bestSeen = met.up;
-    if (met.m < bestMetric) bestMetric = met.m;
-    const entry = {idxs, subset, sizes: q.sizes, met, rank: met.m};
+    if (met.wup < bestSeen) bestSeen = met.wup;
+    if (met.score < bestMetric) bestMetric = met.score;
+    const entry = {idxs, subset, sizes: q.sizes, met, rank: met.score};
     scored.push(entry);
     return entry;
   };
@@ -3608,7 +3723,7 @@ function* solveGen(opts, foeRows, bonusOwn, bonusFoe){
   }
   if (!scored.length){ yield {done:true, error:"No workable force was found — try more stacks, more unit types, or a softer goal."}; return; }
 
-  scored.sort((a, b) => a.met.m - b.met.m);
+  scored.sort((a, b) => a.met.score - b.met.score);
   const shortlist = scored.slice(0, opts.refine || 60);
 
   const finals = [];
@@ -3621,7 +3736,7 @@ function* solveGen(opts, foeRows, bonusOwn, bonusFoe){
     const h = Date.now() < deadline
       ? (refined++, yield* hardOptimize(s.subset, foeProfiles, o, s.idxs.map(i => solos[i]), gridN))
       : null;
-    const use = h && h.cost <= s.met.up ? h : null;
+    const use = h && h.cost <= s.met.wup ? h : null;
     const sizes = use ? use.sizes : s.sizes;
     const sv = use ? use.sv : makeSolver(s.subset, foeProfiles, o);
     const res = sv.result(sizes);
@@ -3630,7 +3745,7 @@ function* solveGen(opts, foeRows, bonusOwn, bonusFoe){
   }
 
   const liveCount = f => f.sizes.filter(s => s > 0).length;
-  finals.sort((a, b) => a.met.m - b.met.m || liveCount(a) - liveCount(b) || a.met.up - b.met.up);
+  finals.sort((a, b) => a.met.score - b.met.score || liveCount(a) - liveCount(b) || a.met.wup - b.met.wup);
 
   const seen = new Set(), out = [];
   for (const f of finals){
@@ -3641,7 +3756,7 @@ function* solveGen(opts, foeRows, bonusOwn, bonusFoe){
     const key = live.map(l => `${l.c.type}|${l.c.weapon}|${l.c.armor}|${l.size}`).sort().join(";");
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push({live, upfront: f.met.up, burned: f.met.burn, metric: f.met.m,
+    out.push({live, upfront: f.met.up, burned: f.met.burn, metric: f.met.m, score: f.met.score,
               wipes: f.res.wipe, left: f.res.ownLeft,
               ticks: f.res.ticksUsed || 1, tickLog: f.res.perTick || null,
               troops: live.reduce((s, l) => s + l.size, 0)});
@@ -3732,14 +3847,17 @@ function realCheck(ownRows, foeRows, side, bonus, goal, minSurv, ticks){
                                                           : wipe && left >= minSurv};
 }
 
-function verifyAndRepair(rows, foeRows, side, bonus, goal, minSurv, deadline, ticks){
+function verifyAndRepair(rows, foeRows, side, bonus, goal, minSurv, deadline, ticks, lean){
   const check = () => realCheck(rows, foeRows, side, bonus, goal, minSurv, ticks);
+  /* which stack to top up, and which to shave first, is a question about
+     what this nation can spare — so it is asked in leaned bits */
+  const leaned = u => troopBits(u) * leanOf(lean, u.type);
   let v = check();
   if (!v) return null;
   let calls = 1, repaired = false;
 
   if (!v.ok){                                   // short by a hair — buy the cheapest fix
-    const cheap = rows.map((u, i) => i).sort((a, b) => troopBits(rows[a]) - troopBits(rows[b]))[0];
+    const cheap = rows.map((u, i) => i).sort((a, b) => leaned(rows[a]) - leaned(rows[b]))[0];
     const base = rows[cheap].size;
     let add = 1, hi = -1;
     repaired = true;
@@ -3766,7 +3884,7 @@ function verifyAndRepair(rows, foeRows, side, bonus, goal, minSurv, deadline, ti
   }
 
   /* shave any slack back off, priciest stack first, by bisection */
-  const order = rows.map((u, i) => i).sort((a, b) => troopBits(rows[b]) - troopBits(rows[a]));
+  const order = rows.map((u, i) => i).sort((a, b) => leaned(rows[b]) - leaned(rows[a]));
   for (const i of order){
     if (!rows[i].size || calls > 120 || Date.now() > deadline) continue;
     const keep = rows[i].size;
@@ -3824,15 +3942,77 @@ document.addEventListener("visibilitychange", () => {
 function solveTypeBoxes(){
   return [...document.querySelectorAll("[data-solve-type]")];
 }
+function solveLeanBoxes(){
+  return [...document.querySelectorAll("[data-solve-lean]")];
+}
 
 function syncSolveSide(){
   const side = document.getElementById("solveSide").value;
   const ali = document.querySelector('[data-solve-type][value="Alicorns"]');
+  const aliLean = document.querySelector('[data-solve-lean="Alicorns"]');
   if (ali){
     ali.disabled = side !== "defender";
     if (side !== "defender") ali.checked = false;
     ali.parentElement.style.opacity = side === "defender" ? "1" : ".4";
   }
+  if (aliLean) aliLean.disabled = side !== "defender";
+}
+
+/* ---- nation lean ---------------------------------------------------
+   Six numbers and the preset that most recently filled them in. They
+   outlive the tab: which nation you play for is not something to retype
+   every time you open the calculator. */
+const LS_LEAN = "warcalc.solverLean";
+
+function readLean(){
+  const lean = {};
+  solveLeanBoxes().forEach(b => { lean[b.dataset.solveLean] = leanOf({x: b.value}, "x"); });
+  SOLVE_TYPES.forEach(t => { if (!(t in lean)) lean[t] = 1; });
+  return lean;
+}
+
+/* paint the cells, name whichever nation the numbers add up to, and save */
+function paintLean(save){
+  const lean = readLean();
+  const key = matchNation(lean);
+  const sel = document.getElementById("solveNation");
+  if (sel) sel.value = key;
+  const note = document.getElementById("solveNationNote");
+  if (note) note.textContent = (NATIONS[key] || {}).note || "";
+  solveLeanBoxes().forEach(b => {
+    const cell = b.closest(".solve-type");
+    if (!cell) return;
+    const v = lean[b.dataset.solveLean];
+    cell.classList.toggle("lean-plenty", v < 1);
+    cell.classList.toggle("lean-scarce", v > 1);
+  });
+  if (save !== false) store.set(LS_LEAN, {nation: key, lean});
+  return lean;
+}
+
+function applyNation(key, save){
+  if (key === "custom") return paintLean(save);
+  const lean = nationLean(key);
+  solveLeanBoxes().forEach(b => { b.value = String(lean[b.dataset.solveLean]); });
+  return paintLean(save);
+}
+
+function setupLean(){
+  const sel = document.getElementById("solveNation");
+  sel.innerHTML = Object.entries(NATIONS)
+    .map(([k, n]) => `<option value="${esc(k)}">${esc(n.name)}</option>`).join("");
+  sel.addEventListener("change", () => applyNation(sel.value));
+  solveLeanBoxes().forEach(b => {
+    b.addEventListener("change", () => { b.value = String(leanOf({x: b.value}, "x")); paintLean(); });
+    b.addEventListener("input", () => paintLean());
+  });
+  document.getElementById("btnLeanEven").addEventListener("click", () => applyNation("even"));
+
+  const saved = store.get(LS_LEAN, null);
+  if (saved && saved.lean){
+    solveLeanBoxes().forEach(b => { b.value = String(leanOf(saved.lean, b.dataset.solveLean)); });
+  }
+  paintLean(false);
 }
 
 function readSolveOpts(){
@@ -3844,6 +4024,7 @@ function readSolveOpts(){
   return Object.assign({
     side, goal, objective, ticks,
     types: solveTypeBoxes().filter(c => c.checked && !c.disabled).map(c => c.value),
+    lean: readLean(),
     training: clampInt(document.getElementById("solveTrain").value, 0, 20),
     maxStacks: clampInt(document.getElementById("solveStacks").value, 1, MAX_SOLVE_STACKS),
     minSurvivors: Math.max(1, clampInt(document.getElementById("solveSurv").value, 1, 1e9)),
@@ -3922,7 +4103,7 @@ async function runSolver(){
       const rows = sol.live.map(l => ({type:l.c.type, weapon:l.c.weapon, armor:l.c.armor,
                                        size:l.size, training:opts.training}));
       const fix = verifyAndRepair(rows, foeRows, opts.side, bonus, opts.goal,
-                                  opts.minSurvivors, deadline, opts.ticks);
+                                  opts.minSurvivors, deadline, opts.ticks, opts.lean);
       if (!fix || !fix.ok) continue;
       sol.live = fix.rows.map((u, i) => ({c:{type:u.type, weapon:u.weapon, armor:u.armor,
         bits: troopBits(u)}, size:u.size, lost: fix.v.lost[i] ?? 0}));
@@ -3931,12 +4112,20 @@ async function runSolver(){
       sol.burned = fix.rows.reduce((s, u, i) => s + (fix.v.lost[i] || 0) * troopBits(u), 0);
       sol.metric = opts.objective === "upfront" ? sol.upfront
                  : opts.objective === "losses" ? sol.burned : sol.upfront + sol.burned;
+      /* the same two sums again, each stack weighed by what its type costs
+         this nation — the answers are ranked on these, quoted on the ones above */
+      const wUp = fix.rows.reduce((t, u) => t + solveCosts([u]).total * leanOf(opts.lean, u.type), 0);
+      const wBurn = fix.rows.reduce((t, u, i) =>
+        t + (fix.v.lost[i] || 0) * troopBits(u) * leanOf(opts.lean, u.type), 0);
+      sol.score = opts.objective === "upfront" ? wUp
+                : opts.objective === "losses" ? wBurn : wUp + wBurn;
       sol.wipes = fix.v.wipe; sol.left = fix.v.left; sol.verified = true;
       sol.ticks = fix.v.ticks || 1; sol.tickLog = fix.v.log || null;
       verified++;
       keep.push(sol);
     }
-    keep.sort((a, b) => a.metric - b.metric || a.live.length - b.live.length);
+    keep.sort((a, b) => (a.score ?? a.metric) - (b.score ?? b.metric)
+                     || a.metric - b.metric || a.live.length - b.live.length);
     last.results = keep;
     last.verified = verified;
   }
@@ -3998,6 +4187,18 @@ function renderSolutions(out, opts, bonus, secs){
   const goalName = {upfront:"up-front ฿", losses:"฿ burned", both:"up front + burned ฿"}[opts.objective];
   const sideWord = opts.side === "defender" ? "defence" : "attack";
 
+  /* with a lean on, the order is not the order of the prices on screen,
+     so the number the ranking actually used is shown beside them */
+  const leaning = leanActive(opts.lean);
+  const nation = matchNation(opts.lean);
+  const leanNote = !leaning ? "" : `
+    <div class="small muted" style="margin:0 0 8px">
+      Ranked for <b>${esc((NATIONS[nation] || {}).name || "a custom lean")}</b> —
+      ${SOLVE_TYPES.filter(t => leanOf(opts.lean, t) !== 1)
+        .map(t => `${esc(t)} &times;${leanOf(opts.lean, t)}`).join(" · ")}.
+      Every ฿ below is the real price; the lean only decided which force won.
+    </div>`;
+
   const card = (sol, i) => {
     const rows = solRows(sol, opts.training);
     const c = solveCosts(rows);
@@ -4021,6 +4222,8 @@ function renderSolutions(out, opts, bonus, secs){
           <span class="badge ${i === 0 ? "badge-success" : ""}">${i === 0 ? "Cheapest" : "#" + (i + 1)}</span>
           <span class="bits" style="font-size:15px">${money(sol.metric)}</span>
           <span class="small muted">${esc(goalName)}</span>
+          ${leaning && sol.score != null
+            ? `<span class="small muted" title="What this force cost the search once the nation's lean was applied">leaned ${money(sol.score)}</span>` : ""}
           ${sol.verified ? `<span class="badge badge-info" title="Replayed through the full battle engine">verified</span>` : ""}
           ${(sol.ticks || 1) > 1 ? `<span class="badge badge-warning" title="Ticks fought">${sol.ticks} ticks</span>` : ""}
           <span class="spacer"></span>
@@ -4063,6 +4266,7 @@ function renderSolutions(out, opts, bonus, secs){
       ${out.refined} of ${out.shortlisted} shortlisted forces deeply refined ·
       ${secs.toFixed(1)}s${opts.ticks > 1 ? ` · up to ${opts.ticks} ticks` : ""}
     </div>
+    ${leanNote}
     ${card(out.results[0], 0)}
     ${out.results.length > 1 ? `
       <details class="cost-drop" style="margin-top:4px">
@@ -4093,6 +4297,7 @@ document.getElementById("btnSolveOpts").addEventListener("click", () => {
   document.getElementById("btnSolveOpts").setAttribute("aria-expanded", open ? "true" : "false");
 });
 document.getElementById("solveSide").addEventListener("change", syncSolveSide);
+setupLean();
 syncSolveSide();
 
 
