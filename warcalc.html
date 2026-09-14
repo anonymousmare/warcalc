@@ -3196,7 +3196,11 @@ function orderBySize(base, sizes, out){
 }
 
 /* buckets: sorted by raw weapon value desc, exactly like damageBuckets().
-   Each list gets a scratch array beside it for the per-call size ordering. */
+   Each list gets a scratch array beside it for the per-call size ordering.
+   The (bucket, target type) pairs that actually hold sources are flattened into
+   one list of jobs in the order the run walks them, so the inner loop never
+   asks a bucket for a type it hasn't got — that lookup and its miss used to be
+   a tenth of the whole search. */
 function bucketPlan(srcs){
   const map = new Map();
   srcs.forEach((u, i) => {
@@ -3207,12 +3211,20 @@ function bucketPlan(srcs){
       (b[n] ??= []).push(i);
     }
   });
-  return [...map.keys()].sort((a, b) => b - a).map(key => {
-    const byType = map.get(key), scratch = {};
-    for (let n = 1; n <= 5; n++) if (byType[n] && byType[n].length > 1) scratch[n] = byType[n].slice();
-    return {key, byType, scratch};
-  });
+  const jobs = [];
+  for (const key of [...map.keys()].sort((a, b) => b - a)){
+    const byType = map.get(key);
+    for (let n = 1; n <= 5; n++){
+      const list = byType[n];
+      if (!list) continue;
+      jobs.push({tn: n, list: Int32Array.from(list),
+                 scratch: list.length > 1 ? new Int32Array(list.length) : null});
+    }
+  }
+  return jobs;
 }
+
+const NO_POOL = new Int32Array(0);
 
 /* Target pools: which enemy stack a firing type works down first — armour
    ascending, then biggest stack first — as a flat [dstType * 6 + srcType]
@@ -3225,21 +3237,24 @@ function bucketPlan(srcs){
 function poolCache(dsts){
   const byType = {};
   dsts.forEach((u, i) => { (byType[u.typeNum] ??= []).push(i); });
-  const pools = new Array(36).fill(null), plan = [];
+  /* every slot holds a list, empty where that pairing has no targets: the
+     lookup in the firing loop is then one shape of array and needs no null
+     check, and it is the single hottest line in the search */
+  const pools = new Array(36).fill(NO_POOL), plan = [];
   for (const dt in byType){
     for (let n = 1; n <= 5; n++){
       const t = TYPES[n];
-      const base = byType[dt].slice().sort((x, y) => dsts[x].arm[t] - dsts[y].arm[t]);
+      const order = byType[dt].slice().sort((x, y) => dsts[x].arm[t] - dsts[y].arm[t]);
       const runs = [];
-      for (let a = 0; a < base.length; ){
+      for (let a = 0; a < order.length; ){
         let b = a + 1;
-        while (b < base.length && dsts[base[b]].arm[t] === dsts[base[a]].arm[t]) b++;
+        while (b < order.length && dsts[order[b]].arm[t] === dsts[order[a]].arm[t]) b++;
         if (b - a > 1) runs.push(a, b);
         a = b;
       }
-      const out = base.slice();
+      const base = Int32Array.from(order), out = Int32Array.from(order);
       pools[+dt * 6 + n] = out;
-      if (runs.length) plan.push({base, out, runs});
+      if (runs.length) plan.push({base, out, runs: Int32Array.from(runs)});
     }
   }
   return {pools, plan};
@@ -3267,43 +3282,65 @@ function poolsFor(cache, sizes){
   return cache.pools;
 }
 
+/* Which stacks the other side actually fields never changes during a fight, so
+   a firing job aimed at a type nobody brought is dead weight — and with two or
+   three enemy types against five it was most of them. Those pairings are struck
+   off here, once, instead of being looked up and stepped over on every pass.
+   Dropping them changes nothing: a source with no pool to work down never
+   fought and never stopped the ones behind it. */
+function prunePlan(jobs, srcTypes, pools){
+  const out = [];
+  for (const job of jobs){
+    const keep = [];
+    for (let k = 0; k < job.list.length; k++){
+      const si = job.list[k];
+      if (pools[job.tn * 6 + srcTypes[si]].length) keep.push(si);
+    }
+    if (!keep.length) continue;
+    out.push({tn: job.tn, list: Int32Array.from(keep),
+              scratch: keep.length > 1 ? new Int32Array(keep.length) : null});
+  }
+  return out;
+}
+
 /* one side's attack run, hit blocks resolved arithmetically.
    MAT is the flat src-by-dst damage table, one row of `stride` per source. */
-function runAlloc(srcTypes, srcSizes, srcHits, dstSize, dstDam, MAT, stride, buckets, pools){
-  for (let bi = 0; bi < buckets.length; bi++){
-    const bucket = buckets[bi];
-    for (let tn = 1; tn <= 5; tn++){
-      const list = bucket.byType[tn];
-      if (!list) continue;
-      const ordered = list.length > 1 ? orderBySize(list, srcSizes, bucket.scratch[tn]) : list;
-      let breakType = false;
-      for (let oi = 0; oi < ordered.length; oi++){
-        const si = ordered[oi];
-        const row = si * stride;
-        while (srcHits[si] > 0){
-          let fought = false, spent = false;
-          const pool = pools[tn * 6 + srcTypes[si]];
-          if (!pool || !pool.length) break;
-          for (let pi = 0; pi < pool.length; pi++){
-            const di = pool[pi];
-            const dmg = MAT[row + di];
-            if (!(dmg > 0)) continue;
-            if (dstSize[di] > dstDam[di]){
-              const need = Math.max(1, Math.ceil((dstSize[di] - dstDam[di]) / dmg - 1e-9));
-              const n = Math.min(need, srcHits[si]);
-              if (n > 0){
-                fought = true;
-                dstDam[di] += n * dmg;
-                srcHits[si] -= n;
-                if (srcHits[si] === 0){ spent = true; break; }
-              }
+function runAlloc(srcTypes, srcSizes, srcHits, dstSize, dstDam, MAT, stride, jobs, pools){
+  for (let bi = 0; bi < jobs.length; bi++){
+    const job = jobs[bi], tn = job.tn, list = job.list;
+    const ordered = job.scratch ? orderBySize(list, srcSizes, job.scratch) : list;
+    for (let oi = 0, on = ordered.length; oi < on; oi++){
+      const si = ordered[oi];
+      /* the pool a source works down never changes mid-source, so it is
+         looked up once rather than on every pass */
+      const pool = pools[tn * 6 + srcTypes[si]];
+      const pn = pool.length;
+      if (!pn) continue;
+      const row = si * stride;
+      let hits = srcHits[si], breakType = false;
+      while (hits > 0){
+        let fought = false;
+        for (let pi = 0; pi < pn; pi++){
+          const di = pool[pi];
+          const dmg = MAT[row + di];
+          if (!(dmg > 0)) continue;
+          const left = dstSize[di] - dstDam[di];
+          if (left > 0){
+            const need = Math.max(1, Math.ceil(left / dmg - 1e-9));
+            const n = need < hits ? need : hits;
+            if (n > 0){
+              fought = true;
+              dstDam[di] += n * dmg;
+              hits -= n;
+              if (hits === 0) break;
             }
           }
-          if (spent) break;
-          if (!fought){ breakType = true; break; }
         }
-        if (breakType) break;
+        if (hits === 0) break;
+        if (!fought){ breakType = true; break; }
       }
+      srcHits[si] = hits;
+      if (breakType) break;
     }
   }
 }
@@ -3334,23 +3371,49 @@ function makeContext(ownProfiles, foeProfiles, bonusOwn, bonusFoe, wantLosses, t
       for (let i = 0; i < K; i++) MF[j * K + i] = hitDamage(foe[j], own[i], bonusFoe);
   }
 
+  const ownTypes = Int32Array.from(own, u => u.typeNum);
+  const foeTypes = Int32Array.from(foe, u => u.typeNum);
+  const foePools = poolCache(foe), ownPools = losses ? poolCache(own) : null;
+
   return {
     own, foe, K, M, wantLosses: losses, ticks: T,
-    MO, MF,
-    ownTypes: Int32Array.from(own, u => u.typeNum),
-    foeTypes: Int32Array.from(foe, u => u.typeNum),
+    MO, MF, ownTypes, foeTypes,
     foeSize: Float64Array.from(foe, f => f.size),
-    ownBuckets: bucketPlan(own),
-    ownPoolCache: losses ? poolCache(own) : null,
-    foePoolCache: poolCache(foe),
-    foeBuckets: losses ? bucketPlan(foe) : null,
+    ownBuckets: prunePlan(bucketPlan(own), ownTypes, foePools.pools),
+    ownPoolCache: ownPools,
+    foePoolCache: foePools,
+    foeBuckets: losses ? prunePlan(bucketPlan(foe), foeTypes, ownPools.pools) : null,
     /* scratch the search reuses: trySizes runs millions of times and every
        one of these used to be a fresh allocation */
     sOwnSize: new Float64Array(K), sFoeSize: new Float64Array(M),
     sOwnHits: new Float64Array(K), sFoeHits: new Float64Array(M),
     sFoeDam:  new Float64Array(M), sOwnDam:  new Float64Array(K),
-    sOwnLost: new Float64Array(K)
+    sOwnLost: new Float64Array(K),
+    sRes: {wipe:false, foeLeft:0, ownLost:null, ownLeft:null, ticksUsed:0, perTick:null}
   };
+}
+
+/* The verdict the search asks for is often settled by half the exchange. Over a
+   single tick both sides fire from full strength, so whether the enemy is wiped
+   turns on our volley alone, and whether enough of ours are left standing turns
+   on theirs. This hands back a view of the context with the half that cannot
+   change the answer left unfought — the scratch buffers and tables are shared,
+   so it costs nothing to make. Past one tick each side's losses feed the next,
+   and nothing can be skipped. */
+function feasContext(ctx, goal){
+  if (ctx.ticks > 1) return ctx;
+  if (goal === "wipe"){
+    if (!ctx.wantLosses) return ctx;
+    const lean = Object.assign({}, ctx);
+    lean.wantLosses = false; lean.MF = null; lean.foeBuckets = null;
+    return lean;
+  }
+  if (goal === "survive"){
+    const lean = Object.assign({}, ctx);
+    lean.skipOwnRun = true;
+    return lean;
+  }
+  return ctx;
 }
 
 /* Fight the engagement out: both sides fire from their pre-tick strength, then
@@ -3372,11 +3435,15 @@ function trySizes(sizes, ctx, wantLog){
   const perTick = wantLog ? [] : null;
   let wipe = false, ticksUsed = 0, foeLeft = 0, ownLeft = 0;
 
+  const skipOwnRun = !!ctx.skipOwnRun;
+
   for (let t = 1; t <= ctx.ticks; t++){
-    foeDam.fill(0);
-    for (let i = 0; i < K; i++) ownHits[i] = ownSize[i];
-    runAlloc(ctx.ownTypes, ownSize, ownHits, foeSize, foeDam,
-             ctx.MO, M, ctx.ownBuckets, poolsFor(ctx.foePoolCache, foeSize));
+    if (!skipOwnRun){
+      foeDam.fill(0);
+      for (let i = 0; i < K; i++) ownHits[i] = ownSize[i];
+      runAlloc(ctx.ownTypes, ownSize, ownHits, foeSize, foeDam,
+               ctx.MO, M, ctx.ownBuckets, poolsFor(ctx.foePoolCache, foeSize));
+    }
 
     let ownDam = null;
     if (ctx.wantLosses){
@@ -3386,19 +3453,26 @@ function trySizes(sizes, ctx, wantLog){
                ctx.MF, K, ctx.foeBuckets, poolsFor(ctx.ownPoolCache, ownSize));
     }
 
+    /* round6 inlined and the loss branch lifted out of the loop: this runs
+       twice per stack per tick, millions of times over a search */
     let foeKilled = 0, ownKilled = 0;
     foeLeft = 0; ownLeft = 0;
-    for (let j = 0; j < M; j++){
-      const dead = Math.min(foeSize[j], Math.floor(round6(foeDam[j])));
+    if (skipOwnRun) for (let j = 0; j < M; j++) foeLeft += foeSize[j];
+    else for (let j = 0; j < M; j++){
+      const d = foeDam[j];
+      let dead = d > 0 ? Math.floor(Math.round((d + Number.EPSILON) * 1e6) / 1e6) : 0;
+      if (dead > foeSize[j]) dead = foeSize[j];
       foeSize[j] -= dead; foeKilled += dead; foeLeft += foeSize[j];
     }
-    for (let i = 0; i < K; i++){
-      if (ownDam){
-        const dead = Math.min(ownSize[i], Math.floor(round6(ownDam[i])));
+    if (ownDam){
+      for (let i = 0; i < K; i++){
+        const d = ownDam[i];
+        let dead = d > 0 ? Math.floor(Math.round((d + Number.EPSILON) * 1e6) / 1e6) : 0;
+        if (dead > ownSize[i]) dead = ownSize[i];
         ownSize[i] -= dead; ownKilled += dead; ownLost[i] += dead;
+        ownLeft += ownSize[i];
       }
-      ownLeft += ownSize[i];
-    }
+    } else for (let i = 0; i < K; i++) ownLeft += ownSize[i];
 
     ticksUsed = t;
     if (perTick) perTick.push({tick:t, foeKilled, ownKilled, foeLeft, ownLeft});
@@ -3407,8 +3481,16 @@ function trySizes(sizes, ctx, wantLog){
     if (!foeKilled && !ownKilled) break;   // deadlock: every later tick repeats it
   }
 
-  return {wipe, foeLeft, ownLost, ownLeft: ctx.wantLosses ? ownLeft : null,
-          ticksUsed, perTick};
+  if (wantLog)
+    return {wipe, foeLeft, ownLost, ownLeft: ctx.wantLosses ? ownLeft : null,
+            ticksUsed, perTick};
+  /* the search only ever reads the verdict straight back out, so it is handed
+     the same object every time rather than a fresh one a few million over */
+  const r = ctx.sRes;
+  r.wipe = wipe; r.foeLeft = foeLeft; r.ownLost = ownLost;
+  r.ownLeft = ctx.wantLosses ? ownLeft : null;
+  r.ticksUsed = ticksUsed; r.perTick = null;
+  return r;
 }
 
 /* ================= candidates ================= */
@@ -3469,24 +3551,35 @@ function pruneCands(cands, useIncoming, usePerHit, maxKeep){
    This is a cache, not a ledger — one direct-mapped table, fixed size, and a
    clash simply evicts the older entry. Every hit compares the whole vector
    before it is believed, so a hash collision can never hand back the wrong
-   answer. One table serves every solver in turn: whoever claimed it last owns
-   it, and a solver that has lost it falls back to simulating. */
-const MEMO = {token:null, K:0, cap:0, mask:0, keys:null, val:null};
+   answer. One table serves every solver: each is handed a stamp of its own and
+   believes only the slots carrying it, so solvers alive at the same time evict
+   one another's entries but can never read them. */
+const MEMO = {stride:0, cap:0, mask:0, keys:null, val:null, gen:null, epoch:0};
 
-function claimMemo(K, token){
-  const cap = K <= 8 ? 1 << 16 : 1 << 14;
-  if (MEMO.K !== K || MEMO.cap !== cap){
-    MEMO.K = K; MEMO.cap = cap; MEMO.mask = cap - 1;
-    MEMO.keys = new Float64Array(cap * K);
-    MEMO.val = new Uint8Array(cap);          // 0 unseen, 1 passes, 2 fails
-  } else MEMO.val.fill(0);
-  MEMO.token = token;
+/* Claiming the table is on the hot path — the scan hands it to a new solver for
+   every subset it sizes — so it neither clears the table nor rebuilds it: a
+   fresh stamp retires every entry that came before, all at once. The rows are
+   cut for the widest subset seen so far, so subsets of different sizes share
+   the same allocation instead of throwing megabytes at the collector each time
+   the stack count changes. */
+function claimMemo(K){
+  if (K > MEMO.stride){
+    const stride = K, cap = stride <= 8 ? 1 << 16 : 1 << 14;
+    MEMO.stride = stride; MEMO.cap = cap; MEMO.mask = cap - 1;
+    MEMO.keys = new Float64Array(cap * stride);
+    MEMO.val = new Uint8Array(cap);          // 1 passes, 2 fails, stale if the stamp is old
+    MEMO.gen = new Uint32Array(cap);
+    MEMO.epoch = 0;
+  }
+  if (MEMO.epoch >= 0xfffffffe){ MEMO.gen.fill(0); MEMO.epoch = 0; }
+  MEMO.epoch++;
   return MEMO;
 }
 
 function makeSolver(subset, foeProfiles, o){
   const ctx = makeContext(subset.map(c => c.p), foeProfiles, o.bonusOwn, o.bonusFoe,
                           o.wantLosses, o.ticks);
+  const fctx = feasContext(ctx, o.goal);
   const bitsArr = subset.map(c => c.wbits);
   const K = subset.length;
   let sims = 0;
@@ -3496,31 +3589,70 @@ function makeSolver(subset, foeProfiles, o){
     o.goal === "survive" ? res.ownLeft >= o.minSurvivors :
                            res.wipe && res.ownLeft >= o.minSurvivors;
 
-  const token = {};
-  const memo = claimMemo(K, token);
+  const memo = claimMemo(K);
+  const epoch = memo.epoch, mask = memo.mask, stride = memo.stride;
+  const keys = memo.keys, val = memo.val, gen = memo.gen;
+
+  /* Two floors that need no battle to check. Every troop lands at most one hit
+     a tick, and no hit takes more off an enemy stack than the best loadout in
+     this subset does — so a force with fewer hits in it than the enemy has
+     bodies to soak cannot wipe them however it is arranged. And only the troops
+     brought can be the ones left standing. Both are a sum over the sizes, and
+     they throw out most of what the bisections probe on the low side without
+     fighting anything out. */
+  const T = ctx.ticks;
+  const needBodies = o.goal === "wipe" ? 0 : o.minSurvivors;
+  let needHits = 0;
+  if (o.goal !== "survive"){
+    for (let j = 0; j < foeProfiles.length; j++){
+      let best = 0;
+      for (let i = 0; i < K; i++){ const v = subset[i].perHit[j]; if (v > best) best = v; }
+      if (!(best > 0)){ needHits = Infinity; break; }
+      needHits += Math.ceil((foeProfiles[j].size - 1e-6) / best);
+    }
+  }
 
   const feasible = sz => {
-    if (memo.token !== token){ sims++; return meets(trySizes(sz, ctx)); }
+    let tot = 0;
+    for (let i = 0; i < K; i++) tot += sz[i];
+    if (tot < needBodies || tot * T < needHits) return false;
     let h = 2166136261;
     for (let i = 0; i < K; i++) h = Math.imul(h ^ (sz[i] | 0), 16777619);
-    const slot = (h >>> 0) & memo.mask, base = slot * K;
-    if (memo.val[slot]){
+    const slot = (h >>> 0) & mask, base = slot * stride;
+    if (gen[slot] === epoch){
       let same = true;
-      for (let i = 0; i < K; i++) if (memo.keys[base + i] !== sz[i]){ same = false; break; }
-      if (same) return memo.val[slot] === 1;
+      for (let i = 0; i < K; i++) if (keys[base + i] !== sz[i]){ same = false; break; }
+      if (same) return val[slot] === 1;
     }
     sims++;
-    const ok = meets(trySizes(sz, ctx));
-    for (let i = 0; i < K; i++) memo.keys[base + i] = sz[i];
-    memo.val[slot] = ok ? 1 : 2;
+    const ok = meets(trySizes(sz, fctx));
+    for (let i = 0; i < K; i++) keys[base + i] = sz[i];
+    val[slot] = ok ? 1 : 2;
+    gen[slot] = epoch;
     return ok;
   };
   const cost = sz => { let c = 0; for (let i = 0; i < K; i++) c += sz[i] * bitsArr[i]; return c; };
 
+  /* Shave one stack down to the least that still does the job. The answer is
+     usually just below where the stack already stands — the later passes mostly
+     confirm that it cannot shrink at all — so this walks down in doubling steps
+     and bisects only the gap that finds, rather than bisecting the whole range
+     from zero and paying twenty battles to be told nothing moved. */
   function tighten(sizes, i){
     const start = sizes[i];
     if (!start) return sizes;
     let lo = 0, hi = start;
+    for (let step = 1; ; step *= 2){
+      const probe = start - step;
+      if (probe <= 0){
+        sizes[i] = 0;
+        if (feasible(sizes)) hi = 0; else lo = 1;
+        break;
+      }
+      sizes[i] = probe;
+      if (feasible(sizes)) hi = probe;
+      else { lo = probe + 1; break; }
+    }
     while (lo < hi){
       const mid = (lo + hi) >> 1;
       sizes[i] = mid;
@@ -3551,20 +3683,34 @@ function makeSolver(subset, foeProfiles, o){
                       : K <= 12 ? [0, .05, .2, .5, 1, 2]
                                 : [0, .1, .5, 1.5];
         const partners = K <= 8 ? free : order.slice(0, 8);
+        const trial = sizes.slice();
         for (const i of free) for (const j of partners){
           if (i === j || !sizes[j]) continue;
+          const bi = bitsArr[i], bj = bitsArr[j];
           for (const f of factors){
             const step = f === 0 ? 1 : Math.max(1, Math.round((sizes[i] || sizes[j]) * f));
-            const trial = sizes.slice();
+            /* what stack j has to give back before the trade is worth making.
+               Anything above that is a cheaper answer than the one we hold, so
+               the bisection starts there instead of at j's present size — and
+               where even emptying j would not pay for the step, there is
+               nothing to fight out at all. */
+            const room = (sizes[j] * bj - step * bi - 1e-9) / bj;
+            if (!(room > 0)) continue;
+            let hi = Math.min(sizes[j], Math.ceil(room) - 1);
+            if (hi < 0) continue;
+            for (let k = 0; k < K; k++) trial[k] = sizes[k];
             trial[i] += step;
-            let lo = 0, hi = sizes[j];
+            trial[j] = hi;
+            if (!feasible(trial)) continue;
+            let lo = 0;
             while (lo < hi){
               const mid = (lo + hi) >> 1;
               trial[j] = mid;
               if (feasible(trial)) hi = mid; else lo = mid + 1;
             }
             trial[j] = lo;
-            if (cost(trial) < cost(sizes) - 1e-9 && feasible(trial)){ sizes = trial; moved = true; }
+            sizes = trial.slice();
+            moved = true;
           }
         }
       }
@@ -3776,7 +3922,7 @@ function* solveGen(opts, foeRows, bonusOwn, bonusFoe){
 
   const scored = [];
   const seenSub = new Set();
-  let bestSeen = Infinity, bestMetric = Infinity, skipped = 0, considered = 0;
+  let bestMetric = Infinity, skipped = 0, considered = 0;
 
   /* Size one subset. A subset whose floor already beats the best answer is
      never sized, but the beam still keeps it as a node to grow from — its
@@ -3787,7 +3933,11 @@ function* solveGen(opts, foeRows, bonusOwn, bonusFoe){
     seenSub.add(key);
     considered++;
     const lb = lowerBound(idxs);
-    if (opts.objective === "upfront" && lb >= bestSeen * (opts.slack || 1)){
+    /* the floor is on what the force costs to field. Ranking on that alone, or
+       on it plus what burns, can never come out under the floor — so a subset
+       whose floor is already past the best answer is not worth sizing. Ranking
+       on losses alone is the exception: nothing here bounds those. */
+    if (opts.objective !== "losses" && lb >= bestMetric * (opts.slack || 1)){
       skipped++;
       return {idxs, rank: lb};
     }
@@ -3795,7 +3945,6 @@ function* solveGen(opts, foeRows, bonusOwn, bonusFoe){
     const q = quickOptimize(subset, foeProfiles, o);
     if (!q) return null;
     const met = metricOf(q.sizes, subset, q.sv.result(q.sizes));
-    if (met.wup < bestSeen) bestSeen = met.wup;
     if (met.score < bestMetric) bestMetric = met.score;
     const entry = {idxs, subset, sizes: q.sizes, met, rank: met.score};
     scored.push(entry);
