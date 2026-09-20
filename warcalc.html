@@ -556,7 +556,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .ref-best{color:#78cc78;font-weight:600}
 
 /* ---------- playground ---------- */
-.pg-layout{display:grid;grid-template-columns:minmax(310px,460px) 1fr;gap:16px;align-items:start}
+.pg-layout{display:grid;grid-template-columns:minmax(560px,680px) minmax(280px,1fr);gap:16px;align-items:start}
 .pg-form{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .pg-form .wide{grid-column:1/-1}
 .pg-stats input{width:82px}
@@ -568,9 +568,12 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .pg-card-head{display:flex;align-items:center;gap:8px;margin-bottom:7px}
 .pg-preview{display:flex;gap:10px;flex-wrap:wrap;margin-top:7px}
 .pg-preview > div{text-align:center}
+.pg-range-head{display:flex;align-items:center;gap:6px;margin-bottom:3px}
+.pg-range-head label{margin:0}
+.pg-range-head .btn{margin-left:auto}
 .custom-tag{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#74cae3}
 input[type=range]{padding:0;width:100%}
-@media (max-width:850px){.pg-layout{grid-template-columns:1fr}.pg-res{grid-template-columns:1fr 1fr}}
+@media (max-width:1000px){.pg-layout{grid-template-columns:1fr}.pg-res{grid-template-columns:1fr 1fr}}
 
 /* one colour a unit type, on the column heads and on the gear each type carries */
 .t-cavalry {color:#FF0000}
@@ -921,16 +924,17 @@ input[type=range]{padding:0;width:100%}
   <div class="note">Create experimental gear here. It is saved in this browser and becomes available in battles, counters, the solver, and the three cheat sheets.</div>
   <div class="pg-layout">
     <div class="panel">
-      <div class="panel-head"><h2 id="pgTitle">New custom gear</h2><span class="spacer"></span><button class="btn btn-xs" id="pgReset">New</button></div>
+      <div class="panel-head"><h2 id="pgTitle">New custom gear</h2><span class="spacer"></span><button class="btn btn-xs" type="button" id="pgReset">New</button></div>
       <form id="pgForm" class="pg-form">
         <div><label for="pgKind">Kind</label><select id="pgKind"><option value="weapon">Weapon</option><option value="armor">Armor</option></select></div>
         <div><label for="pgName">Name</label><input id="pgName" maxlength="50" required style="width:100%" placeholder="Experimental gear"></div>
         <div><label for="pgBits">Build cost (bits)</label><input id="pgBits" type="number" min="0" step="1" value="0"></div>
-        <div><label>Available to</label><div class="small" id="pgTypes"></div></div>
+        <div><label for="pgType">Available to</label><select id="pgType"></select></div>
+        <div class="wide"><label for="pgAppearance">Appearance</label><select id="pgAppearance"></select></div>
         <div class="wide"><label>Values against unit types</label><table class="stat-table pg-stats"><thead><tr><th></th><th>Cavalry</th><th>Tanks</th><th>Pegasi</th><th>Unicorns</th><th>Naval</th></tr></thead><tbody><tr><th id="pgValueLabel">Damage</th><td data-pg-stat="cavalry"></td><td data-pg-stat="tanks"></td><td data-pg-stat="pegasi"></td><td data-pg-stat="unicorns"></td><td data-pg-stat="naval"></td></tr></tbody></table></div>
         <div class="wide"><label>Resource build cost</label><div class="pg-res" id="pgResources"></div></div>
-        <div><label for="pgHue">Sprite hue <span id="pgHueOut">0°</span></label><input id="pgHue" type="range" min="-180" max="180" value="0"></div>
-        <div><label for="pgSat">Sprite saturation <span id="pgSatOut">100%</span></label><input id="pgSat" type="range" min="0" max="250" value="100"></div>
+        <div><div class="pg-range-head"><label for="pgHue">Sprite hue <span id="pgHueOut">0°</span></label><button class="btn btn-xs" type="button" id="pgHueReset">Reset</button></div><input id="pgHue" type="range" min="-180" max="180" value="0"></div>
+        <div><div class="pg-range-head"><label for="pgSat">Sprite saturation <span id="pgSatOut">100%</span></label><button class="btn btn-xs" type="button" id="pgSatReset">Reset</button></div><input id="pgSat" type="range" min="0" max="250" value="100"></div>
         <div class="wide"><label>Preview</label><div class="pg-preview" id="pgPreview"></div></div>
         <div class="wide" style="display:flex;gap:8px"><button class="btn btn-info" type="submit" id="pgSave">Add gear</button><button class="btn btn-danger" type="button" id="pgDelete" style="display:none">Delete</button></div>
       </form>
@@ -1131,6 +1135,7 @@ const RESOURCES = {
   composites:{name:"Composites",      icon:"https://i.imgur.com/lFE7mIe.png"}
 };
 const RES_ORDER = Object.keys(RESOURCES);
+const PG_RES_ORDER = RES_ORDER.filter(k=>!["gems","apples","energy","coffee","oil","gasoline"].includes(k));
 
 /* crafted parts -> raw components + the bits the crafting step costs */
 const CRAFT = {
@@ -1242,8 +1247,10 @@ const IMG_BASE = "https://4clop.org/images/";
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 
 function spritePath(type, weapon, armor){
-  const aid = CUSTOM_VISUALS[armor] ? 0 : (Number.isInteger(ARMOR_IDS[armor]) ? ARMOR_IDS[armor] : 0);
-  const wid = CUSTOM_VISUALS[weapon] ? 0 : (Number.isInteger(WEAPON_IDS[weapon]) ? WEAPON_IDS[weapon] : 0);
+  const armorKey = CUSTOM_VISUALS[armor]?.appearance || armor;
+  const weaponKey = CUSTOM_VISUALS[weapon]?.appearance || weapon;
+  const aid = Number.isInteger(ARMOR_IDS[armorKey]) ? ARMOR_IDS[armorKey] : 0;
+  const wid = Number.isInteger(WEAPON_IDS[weaponKey]) ? WEAPON_IDS[weaponKey] : 0;
   return `${IMG_BASE}${type.toLowerCase()}/w-${aid}-${wid}.png`;
 }
 
@@ -2585,7 +2592,7 @@ const store = {
    rather than maintained as a parallel special case. */
 let customGear = [];
 const CUSTOM_VISUALS = {};
-const PG_TYPES = ["Cavalry","Tanks","Pegasi","Unicorns","Naval","Alicorns"];
+const PG_TYPES = ["Cavalry","Tanks","Pegasi","Unicorns","Naval"];
 
 function validCustomRecord(raw){
   if (!raw || !["weapon","armor"].includes(raw.kind) || !String(raw.name || "").trim()) return null;
@@ -2595,10 +2602,16 @@ function validCustomRecord(raw){
     const n=Number(raw.stats?.[c]); stats[c]=Math.max(0,Number.isFinite(n)?n:(kind === "weapon" ? .25 : 1));
   });
   const res = {};
-  RES_ORDER.forEach(k=>{ const n = Math.max(0, Math.floor(Number(raw.res?.[k]) || 0)); if (n) res[k] = n; });
+  PG_RES_ORDER.forEach(k=>{ const n = Math.max(0, Math.floor(Number(raw.res?.[k]) || 0)); if (n) res[k] = n; });
+  const legacyTypes = (Array.isArray(raw.types) ? raw.types : [raw.type]).filter(t=>PG_TYPES.includes(t));
+  const type = PG_TYPES.includes(raw.type) ? raw.type : (legacyTypes[0] || "Cavalry");
+  const appearances = LOADOUTS[type][kind === "weapon" ? "weapons" : "armor"];
+  const fallbackAppearance = kind === "weapon" ? "ScroungedWeapons" : "ScroungedArmor";
+  const appearance = appearances.includes(raw.appearance) && !String(raw.appearance).startsWith("custom:")
+    ? raw.appearance : fallbackAppearance;
   return {id:String(raw.id || `custom:${kind[0]}:${Date.now().toString(36)}`), kind,
     name:String(raw.name).trim().slice(0,50), bits:Math.max(0,Math.floor(Number(raw.bits)||0)), res, stats,
-    types:(Array.isArray(raw.types) ? raw.types : PG_TYPES).filter(t=>PG_TYPES.includes(t)),
+    type, types:[type], appearance,
     hue:Math.max(-180,Math.min(180,Number(raw.hue)||0)),
     sat:Math.max(0,Math.min(250,Number.isFinite(Number(raw.sat)) ? Number(raw.sat) : 100))};
 }
@@ -2606,7 +2619,7 @@ function validCustomRecord(raw){
 function installCustomGear(){
   customGear.forEach((g,i)=>{
     LABELS[g.id] = g.name;
-    CUSTOM_VISUALS[g.id] = {hue:g.hue,sat:g.sat};
+    CUSTOM_VISUALS[g.id] = {hue:g.hue,sat:g.sat,appearance:g.appearance};
     if (g.kind === "weapon"){
       WEAPON_IDS[g.id] = 1000 + i;
       WEAPON_DEFS[g.id] = g.stats;
@@ -2662,41 +2675,52 @@ function saveCustomGear(){ store.set(LS_CUSTOM, customGear); }
 
 function setupPlayground(){
   const form=document.getElementById("pgForm"), kind=document.getElementById("pgKind");
+  const type=document.getElementById("pgType"), appearance=document.getElementById("pgAppearance");
   REF_COLS.forEach(c=>document.querySelector(`[data-pg-stat="${c}"]`).innerHTML=
     `<input type="number" data-pg-value="${c}" min="0" step="0.01" value="0.25" required>`);
-  document.getElementById("pgTypes").innerHTML=PG_TYPES.map(t=>
-    `<label style="display:inline-flex;margin:0 7px 3px 0;color:var(--text)"><input type="checkbox" data-pg-type="${t}" checked style="width:auto;margin-right:3px">${t}</label>`).join("");
-  document.getElementById("pgResources").innerHTML=RES_ORDER.map(k=>
+  type.innerHTML=PG_TYPES.map(t=>`<option value="${t}">${t}</option>`).join("");
+  document.getElementById("pgResources").innerHTML=PG_RES_ORDER.map(k=>
     `<label title="${esc(RESOURCES[k].name)}">${resIcon(k)}<input type="number" data-pg-res="${k}" min="0" step="1" value="0" aria-label="${esc(RESOURCES[k].name)}"></label>`).join("");
   let editing="";
   const visual=()=>({hue:+document.getElementById("pgHue").value,sat:+document.getElementById("pgSat").value});
+  function syncAppearance(selected){
+    const key=kind.value === "weapon" ? "weapons" : "armor";
+    const choices=LOADOUTS[type.value][key].filter(id=>!String(id).startsWith("custom:"));
+    appearance.innerHTML=choices.map(id=>`<option value="${esc(id)}">${esc(label(id))}</option>`).join("");
+    if(selected && choices.includes(selected)) appearance.value=selected;
+  }
   function preview(){
     const v=visual(); document.getElementById("pgHueOut").textContent=v.hue+"°"; document.getElementById("pgSatOut").textContent=v.sat+"%";
-    document.getElementById("pgPreview").innerHTML=PG_TYPES.map(t=>`<div><img class="sprite" src="${esc(spritePath(t,"ScroungedWeapons","ScroungedArmor"))}" style="filter:hue-rotate(${v.hue}deg) saturate(${v.sat}%)"><span class="small muted">${t}</span></div>`).join("");
+    const weapon=kind.value === "weapon" ? appearance.value : "ScroungedWeapons";
+    const armor=kind.value === "armor" ? appearance.value : "ScroungedArmor";
+    document.getElementById("pgPreview").innerHTML=`<div><img class="sprite" src="${esc(spritePath(type.value,weapon,armor))}" style="filter:hue-rotate(${v.hue}deg) saturate(${v.sat}%)" alt="${esc(type.value)} ${esc(kind.value)} preview"><span class="small muted">${esc(type.value)}</span></div>`;
   }
   function reset(){
-    editing=""; form.reset(); kind.value="weapon"; document.querySelectorAll("[data-pg-type]").forEach(x=>x.checked=true);
+    editing=""; form.reset(); kind.value="weapon"; type.value="Cavalry";
     document.querySelectorAll("[data-pg-value]").forEach(x=>x.value="0.25");
     document.getElementById("pgTitle").textContent="New custom gear"; document.getElementById("pgSave").textContent="Add gear";
-    document.getElementById("pgDelete").style.display="none"; syncKind(); preview();
+    document.getElementById("pgDelete").style.display="none"; syncKind();
   }
-  function syncKind(){ const armor=kind.value==="armor"; document.getElementById("pgValueLabel").textContent=armor?"Armor":"Damage"; if(!editing) document.querySelectorAll("[data-pg-value]").forEach(x=>x.value=armor?"1":"0.25"); }
+  function syncKind(selected){ const armor=kind.value==="armor"; document.getElementById("pgValueLabel").textContent=armor?"Armor":"Damage"; if(!editing) document.querySelectorAll("[data-pg-value]").forEach(x=>x.value=armor?"1":"0.25"); syncAppearance(selected); preview(); }
   function render(){
     const list=document.getElementById("pgList"); document.getElementById("pgCount").textContent=customGear.length;
-    list.innerHTML=customGear.length ? customGear.map(g=>`<div class="pg-card"><div class="pg-card-head"><b>${esc(g.name)}</b><span class="badge">${g.kind}</span><span class="spacer"></span><button class="btn btn-xs" data-pg-edit="${esc(g.id)}">Edit</button></div><div class="small muted">${bits(g.bits)} ${BIT} · ${resChips(g.res)}</div><div class="small muted">${g.types.map(esc).join(", ") || "No unit types"}</div><div class="custom-tag" style="margin-top:6px">hue ${g.hue}° · saturation ${g.sat}%</div></div>`).join("") : `<div class="muted">No custom gear yet.</div>`;
+    list.innerHTML=customGear.length ? customGear.map(g=>`<div class="pg-card"><div class="pg-card-head"><b>${esc(g.name)}</b><span class="badge">${g.kind}</span><span class="spacer"></span><button class="btn btn-xs" type="button" data-pg-edit="${esc(g.id)}">Edit</button></div><div class="small muted">${bits(g.bits)} ${BIT} · ${resChips(g.res)}</div><div class="small muted">${esc(g.type)} · ${esc(label(g.appearance))} appearance</div><div class="custom-tag" style="margin-top:6px">hue ${g.hue}° · saturation ${g.sat}%</div></div>`).join("") : `<div class="muted">No custom gear yet.</div>`;
     list.querySelectorAll("[data-pg-edit]").forEach(b=>b.onclick=()=>edit(b.dataset.pgEdit));
   }
   function edit(id){
     const g=customGear.find(x=>x.id===id); if(!g)return; editing=id; kind.value=g.kind; document.getElementById("pgName").value=g.name; document.getElementById("pgBits").value=g.bits;
     document.querySelectorAll("[data-pg-value]").forEach(x=>x.value=g.stats[x.dataset.pgValue]); document.querySelectorAll("[data-pg-res]").forEach(x=>x.value=g.res[x.dataset.pgRes]||0);
-    document.querySelectorAll("[data-pg-type]").forEach(x=>x.checked=g.types.includes(x.dataset.pgType)); document.getElementById("pgHue").value=g.hue; document.getElementById("pgSat").value=g.sat;
-    document.getElementById("pgTitle").textContent="Edit "+g.name; document.getElementById("pgSave").textContent="Save changes"; document.getElementById("pgDelete").style.display=""; syncKind(); preview(); window.scrollTo({top:0,behavior:"smooth"});
+    type.value=g.type; document.getElementById("pgHue").value=g.hue; document.getElementById("pgSat").value=g.sat;
+    document.getElementById("pgTitle").textContent="Edit "+g.name; document.getElementById("pgSave").textContent="Save changes"; document.getElementById("pgDelete").style.display=""; syncKind(g.appearance); window.scrollTo({top:0,behavior:"smooth"});
   }
   form.onsubmit=e=>{ e.preventDefault(); const old=customGear.find(x=>x.id===editing); const stats={},res={}; document.querySelectorAll("[data-pg-value]").forEach(x=>stats[x.dataset.pgValue]=+x.value); document.querySelectorAll("[data-pg-res]").forEach(x=>{if(+x.value)res[x.dataset.pgRes]=+x.value});
-    const rec=validCustomRecord({id:old?.id||`custom:${kind.value[0]}:${Date.now().toString(36)}`,kind:kind.value,name:document.getElementById("pgName").value,bits:+document.getElementById("pgBits").value,res,stats,types:[...document.querySelectorAll("[data-pg-type]:checked")].map(x=>x.dataset.pgType),...visual()});
+    const rec=validCustomRecord({id:old?.id||`custom:${kind.value[0]}:${Date.now().toString(36)}`,kind:kind.value,name:document.getElementById("pgName").value,bits:+document.getElementById("pgBits").value,res,stats,type:type.value,appearance:appearance.value,...visual()});
     if(!rec)return; uninstallCustomGear(); if(old) customGear[customGear.indexOf(old)]=rec; else customGear.push(rec); installCustomGear(); saveCustomGear(); refreshGearConsumers(); render(); reset(); };
   document.getElementById("pgDelete").onclick=()=>{ const g=customGear.find(x=>x.id===editing); if(!g||!confirm(`Delete ${g.name}? Units using it will fall back to scrounged gear.`))return; uninstallCustomGear(); customGear=customGear.filter(x=>x.id!==editing); installCustomGear(); saveCustomGear(); refreshGearConsumers(); render(); reset(); };
-  document.getElementById("pgReset").onclick=reset; kind.onchange=syncKind; ["pgHue","pgSat"].forEach(id=>document.getElementById(id).oninput=preview);
+  document.getElementById("pgReset").onclick=reset; kind.onchange=()=>syncKind(); type.onchange=()=>syncKind(); appearance.onchange=preview;
+  document.getElementById("pgHueReset").onclick=()=>{ document.getElementById("pgHue").value=0; preview(); };
+  document.getElementById("pgSatReset").onclick=()=>{ document.getElementById("pgSat").value=100; preview(); };
+  ["pgHue","pgSat"].forEach(id=>document.getElementById(id).oninput=preview);
   render(); reset();
 }
 
