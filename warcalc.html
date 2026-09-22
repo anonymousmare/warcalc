@@ -304,6 +304,36 @@ tbody tr:last-child{border-bottom:none}
   padding:8px 11px;border-radius:0 3px 3px 0;font-size:12.5px;margin-bottom:14px;
 }
 .note.warn{border-left-color:#faa123;background:rgba(250,161,35,.07)}
+
+/* the crunch report — a link can carry the spreadsheet's own totals, and a
+   mismatch has to be impossible to click past */
+.modal-wrap{
+  position:fixed;inset:0;z-index:950;background:rgba(0,0,0,.62);
+  display:flex;align-items:flex-start;justify-content:center;padding:56px 16px;overflow:auto;
+}
+.modal{
+  background:var(--raised);border:1px solid var(--border);border-radius:4px;
+  width:100%;max-width:580px;box-shadow:0 14px 44px rgba(0,0,0,.55);
+}
+.modal-head{display:flex;align-items:center;gap:9px;padding:10px 14px;
+  border-bottom:1px solid var(--border-soft)}
+.modal-head h2{margin:0;font-size:14px;color:#fff}
+.modal-body{padding:12px 14px;font-size:12.5px;max-height:62vh;overflow:auto}
+.modal-foot{padding:9px 14px;border-top:1px solid var(--border-soft);
+  display:flex;gap:8px;align-items:center}
+.crunch-side{font-size:11px;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--text-dim);margin:12px 0 2px}
+.crunch-side:first-child{margin-top:0}
+.crunch-table{width:100%;border-collapse:collapse;font-size:12px}
+.crunch-table th,.crunch-table td{padding:3px 6px;text-align:right;
+  border-bottom:1px solid var(--border-soft);white-space:nowrap}
+.crunch-table th{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--text-dim);font-weight:500}
+.crunch-table th:first-child,.crunch-table td:first-child{text-align:left;width:100%}
+.crunch-table td.n{font-family:"SFMono-Regular",Menlo,Consolas,monospace}
+.crunch-row{color:var(--text-dim);font-size:11px}
+.crunch-short{color:#f17a77}
+.crunch-over{color:#faa123}
 details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .stat-table input{width:62px;text-align:right;font-family:"SFMono-Regular",Menlo,Consolas,monospace;font-size:12px}
 .stat-table td,.stat-table th{padding:3px 5px;font-size:12px}
@@ -603,6 +633,8 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
   <div class="battle-presets">
     <button class="bp-btn" id="btlCopy" data-icon="copy"
       title="Copy the whole battle as a code  (shift-click for the long form)"></button>
+    <button class="bp-btn" id="btlLink" data-icon="link"
+      title="Copy a link that loads this battle"></button>
   </div>
   <span class="spacer"></span>
   <div class="battle-presets">
@@ -2630,6 +2662,182 @@ function decodeBattle(code){
   }catch(e){ return null; }
 }
 
+
+/* ---- the crunch: the roster spreadsheet's 43 counts, in one cell ----
+   The sheet tracks stock, not pairings — how many cavalry, how many ACFU,
+   how many Barding — so it cannot say which weapon sits next to which
+   armour. What it can do is total up, and those totals are exactly what a
+   stale army code gets wrong. A crunch is those 43 numbers; warcalc adds
+   the same 43 totals up from the code it was handed and says where the two
+   disagree.
+
+   Slot i is written as its letter followed by the count in plain decimal —
+   letters and digits never collide, so no separator is needed and no
+   spreadsheet needs anything cleverer than MID() and "&". Three unicorns
+   carrying long weights behind librarians is "b3d3g3". Zero slots are left
+   out entirely, which is most of them. */
+
+const CRUNCH_ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq";   // 43
+
+/* the sheet's row order, which is NOT warcalc's own — cavalry list APFU
+   ahead of ATFU there — so this table is the one that must not drift */
+const CRUNCH_SLOTS = [
+  ["type","Cavalry","Cavalry Amount"],
+  ["weapon","PRC-E6","PRC-E6"], ["weapon","PRC-E7","PRC-E7"], ["weapon","PRC-E8","PRC-E8"],
+  ["weapon","ACFU","ACFU"], ["weapon","APFU","APFU"], ["weapon","ATFU","ATFU"],
+  ["weapon","AUFU","AUFU"],
+  ["armor","Barding","Barding"], ["armor","Bigdog","Bigdog"], ["armor","Nope","Nope"],
+  ["type","Tanks","Tanks Amount"],
+  ["weapon","K9P","K9P"], ["weapon","ELBO-GRS","ELBO-GRS"],
+  ["weapon","Chem-LightBattery","Chem-Light Battery"],
+  ["armor","Trundle","Trundle"], ["armor","Shepherd","Shepherd"],
+  ["armor","Ohno","Ohno"], ["armor","Titan","Titan"],
+  ["type","Pegasi","Pegasi Amount"],
+  ["weapon","PropWash","Prop Wash"], ["weapon","SteamBucket","Steam Bucket"],
+  ["weapon","CanopyLights","Canopy Lights"],
+  ["armor","Cooler","Cooler"], ["armor","Wonder","Wonder"],
+  ["armor","Griffin","Griffin"], ["armor","Dragon","Dragon"],
+  ["type","Unicorns","Unicorns Amount"],
+  ["weapon","LongStand","Long Stand"], ["weapon","LongWeight","Long Weight"],
+  ["weapon","GridSquares","Grid Squares"],
+  ["armor","Hornshield","Hornshield"], ["armor","Librarian","Librarian"],
+  ["armor","Shining","Shining"], ["armor","D2A","D2A"],
+  ["type","Naval","Naval Amount"],
+  ["weapon","Shoreline","Shoreline"], ["weapon","WaterHammer","Water Hammer"],
+  ["weapon","WaterlineEraser","Waterline Eraser"],
+  ["armor","C-PON3","C-Pon3"], ["armor","Esohes","Esohes"], ["armor","Shubidu","Shubidu"],
+  ["type","Alicorns","Alicorns Amount"]
+].map(([kind, key, name], i) => ({kind, key, name, row: i + 1}));
+
+/* scrounged gear has no row in the sheet, so it lands in the type total
+   and nowhere else — which is what the sheet does too */
+function crunchFromUnits(units){
+  const n = CRUNCH_SLOTS.map(()=>0);
+  (units || []).forEach(u=>{
+    const size = Math.max(0, parseInt(u.size, 10) || 0);
+    CRUNCH_SLOTS.forEach((s, i)=>{
+      if (u[s.kind] === s.key) n[i] += size;
+    });
+  });
+  return n;
+}
+
+const encodeCrunch = nums => CRUNCH_SLOTS.reduce((s, _, i)=>{
+  const v = Math.max(0, Math.round(Number(nums[i]) || 0));
+  return v > 0 ? s + CRUNCH_ALPHA[i] + v : s;
+}, "");
+
+/* null for "no crunch here", which is not the same as a crunch of zeroes */
+function decodeCrunch(code){
+  if (!code || !/^(?:[A-Za-z]\d+)+$/.test(code)) return null;
+  const nums = CRUNCH_SLOTS.map(()=>0);
+  for (const [, ch, num] of code.matchAll(/([A-Za-z])(\d+)/g)){
+    const i = CRUNCH_ALPHA.indexOf(ch);
+    if (i < 0) return null;
+    nums[i] += Number(num);
+  }
+  return nums;
+}
+
+const crunchDiff = (want, got) => CRUNCH_SLOTS
+  .map((s, i)=>({...s, want: want[i], got: got[i]}))
+  .filter(d => d.want !== d.got);
+
+/* ---- shareable links ----
+   "#" + battle code, then the crunches after a "*" each: attacker first,
+   defender second, either may be left empty. The fragment rather than a
+   query string so the "+" that opens the attackers stays a "+". */
+
+const battleFragment = () => encodeBattle(packSide("attacker"), packSide("defender"),
+                                          document.getElementById("defBonus").value);
+const battleLink = () => location.href.split("#")[0] + "#" + battleFragment();
+
+/* takes a whole url, a bare fragment, or a bare battle code */
+function parseShareable(text){
+  let frag = String(text || "").trim();
+  const hash = frag.indexOf("#");
+  if (hash >= 0) frag = frag.slice(hash + 1);
+  try{ frag = decodeURIComponent(frag); }catch(e){}
+  frag = frag.trim();
+  if (!frag) return null;
+  const parts = frag.split("*");
+  const battle = decodeBattle(parts[0]);
+  if (!battle) return null;
+  return {battle, crunch: {attacker: decodeCrunch((parts[1] || "").trim()),
+                           defender: decodeCrunch((parts[2] || "").trim())}};
+}
+
+/* ---- the mismatch report ---- */
+function closeModal(){ document.getElementById("modalWrap")?.remove(); }
+
+function showCrunchReport(sides){
+  closeModal();
+  const bad = ["attacker","defender"].map(side=>{
+    const want = sides[side];
+    return want ? {side, diff: crunchDiff(want, crunchFromUnits(packSide(side)))} : null;
+  }).filter(r => r && r.diff.length);
+
+  if (!bad.length) return false;
+
+  const body = bad.map(({side, diff})=>`
+    <div class="crunch-side">${side === "attacker" ? "Attackers" : "Defenders"}
+      — ${diff.length} row${diff.length === 1 ? "" : "s"} off</div>
+    <table class="crunch-table">
+      <thead><tr><th>Row</th><th>Sheet</th><th>Code</th><th>Off by</th></tr></thead>
+      <tbody>${diff.map(d=>{
+        const by = d.got - d.want;
+        return `<tr><td>${esc(d.name)} <span class="crunch-row">#${d.row}</span></td>
+          <td class="n">${d.want.toLocaleString("en-US")}</td>
+          <td class="n">${d.got.toLocaleString("en-US")}</td>
+          <td class="n ${by < 0 ? "crunch-short" : "crunch-over"}">${by > 0 ? "+" : ""}${by.toLocaleString("en-US")}</td>
+        </tr>`;
+      }).join("")}</tbody>
+    </table>`).join("");
+
+  const wrap = document.createElement("div");
+  wrap.className = "modal-wrap";
+  wrap.id = "modalWrap";
+  wrap.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-label="Roster mismatch">
+    <div class="modal-head"><h2>⚠ The codes do not match the roster</h2></div>
+    <div class="modal-body">
+      <div class="note warn" style="margin-bottom:12px">The link carries the roster's own
+        totals, and the army codes in it disagree. Whoever built the link almost certainly
+        edited the sheet and forgot to refresh the codes. <strong>Sheet</strong> is what the
+        roster counts, <strong>Code</strong> is what actually loaded.</div>
+      ${body}
+    </div>
+    <div class="modal-foot">
+      <span class="small muted">The battle loaded anyway — check it before you trust it.</span>
+      <span class="spacer"></span>
+      <button class="btn btn-xs" id="crunchClose">Got it</button>
+    </div>
+  </div>`;
+  document.body.appendChild(wrap);
+  wrap.addEventListener("click", e=>{ if (e.target === wrap) closeModal(); });
+  document.getElementById("crunchClose").addEventListener("click", closeModal);
+  return true;
+}
+
+/* ---- loading a link ---- */
+function applyShareable(sh){
+  setSide("attacker", sh.battle.attacker);
+  setSide("defender", sh.battle.defender);
+  document.getElementById("defBonus").value = sh.battle.bonus;
+  scheduleSave();
+  showCrunchReport(sh.crunch);
+}
+
+/* a link loads once and then gets out of the way, so a later reload keeps
+   whatever the player has since changed rather than snapping back */
+function loadFromHash(){
+  const sh = parseShareable(location.hash);
+  if (!sh) return false;
+  showTab("battle");
+  applyShareable(sh);
+  try{ history.replaceState(null, "", location.href.split("#")[0]); }catch(e){}
+  return true;
+}
+
 /* ===================================================================
    6. IMPORT (same parser as the original page)
    =================================================================== */
@@ -2706,17 +2914,14 @@ function importRows(side){
    adding to them — the same thing loading a battle preset does */
 function importBattle(){
   const ta = document.getElementById("txtImport");
-  const b = decodeBattle(ta.value.trim());
-  if (!b){
-    alert('That is not a battle code. A battle code opens with "+" and '
-        + 'carries both sides, like +3F3F-9kQw2.');
+  const sh = parseShareable(ta.value);
+  if (!sh){
+    alert('That is not a battle code. A battle code opens with "+" and carries '
+        + 'both sides, like +3F3F-9kQw2 — a whole warcalc link works too.');
     return;
   }
-  setSide("attacker", b.attacker);
-  setSide("defender", b.defender);
-  document.getElementById("defBonus").value = b.bonus;
-  scheduleSave();
   ta.value = "";
+  applyShareable(sh);
 }
 
 /* ===================================================================
@@ -2733,7 +2938,9 @@ const ICONS = {
   copy:   '<rect x="5.5" y="5.5" width="8" height="8" rx="1.2"/><path d="M10.5 3.3V2.5h-8v8h.9"/>',
   export: '<path d="M8 9.5V2.8"/><path d="M5.5 5.3 8 2.8l2.5 2.5"/><path d="M3 10.5v3h10v-3"/>',
   del:    '<path d="M2.8 4.3h10.4"/><path d="M6.3 4.3V2.6h3.4v1.7"/><path d="M4.2 4.3l.6 9.1h6.4l.6-9.1"/>',
-  ok:     '<path d="M3 8.4l3.2 3.2L13 4.8"/>'
+  ok:     '<path d="M3 8.4l3.2 3.2L13 4.8"/>',
+  link:   '<path d="M6.8 9.2a2.7 2.7 0 0 0 3.8 0l2-2a2.7 2.7 0 0 0-3.8-3.8l-.9.9"/>'
+        + '<path d="M9.2 6.8a2.7 2.7 0 0 0-3.8 0l-2 2a2.7 2.7 0 0 0 3.8 3.8l.9-.9"/>'
 };
 
 const iconSvg = name => `<svg class="ic" viewBox="0 0 16 16" aria-hidden="true">${ICONS[name] || ""}</svg>`;
@@ -3232,6 +3439,14 @@ document.getElementById("bpRen").addEventListener("click", renameBattlePreset);
 document.getElementById("bpExp").addEventListener("click", exportBattle);
 document.getElementById("btlCopy").addEventListener("click",
   e=>copyBattleCode(e.currentTarget, e.shiftKey));
+document.getElementById("btlLink").addEventListener("click", async e=>{
+  const btn = e.currentTarget;
+  if (!packSide("attacker").length && !packSide("defender").length){
+    alert("Nothing to link to — both sides are empty."); return;
+  }
+  if (await copyText(battleLink())) flashOk(btn, "Link copied");
+  else alert("This browser would not let the page reach the clipboard.");
+});
 document.getElementById("bpDel").addEventListener("click", deleteBattlePreset);
 
 /* --- tools drawer --- */
@@ -5496,6 +5711,9 @@ refreshCounts();
 showTab(store.get(LS_TAB, "battle"));
 refreshJumpDock();
 autosaveArmed = true;
+loadFromHash();
+addEventListener("hashchange", loadFromHash);
+addEventListener("keydown", e=>{ if (e.key === "Escape") closeModal(); });
 </script>
 </body>
 </html>
