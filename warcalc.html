@@ -451,7 +451,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
    the other way round — count first, the way "248 Cavalry" is read — and
    spend the same width, so the two kinds of line still share a right edge. */
 .gear-line{display:flex;align-items:center;padding:1px 0;font-size:12px;color:var(--text-dim)}
-.gear-line .n{flex:0 0 52px;text-align:right;color:var(--text)}
+.gear-line .n{flex:0 0 var(--gear-n-w,52px);text-align:right;color:var(--text)}
 .gear-line .g-name{flex:0 0 138px;text-align:right;padding:0 8px 0 6px}
 .gear-line.gear-head .g-name{flex:0 0 138px;text-align:left}
 /* the count runs right up to the portrait without this — the counters view
@@ -1548,18 +1548,28 @@ function rosterText(rows){
 function unitsBlock(rows, open){
   const {head, gear} = unitTally(rows);
   const lines = [];
+  let widest = 1;
+  const count = n => {
+    const t = n.toLocaleString("en-US");
+    widest = Math.max(widest, t.length);
+    return t;
+  };
   UNIT_ORDER.forEach(g=>{
     const n = head[g.type] || 0;
     const kept = g.gear.filter(k => (gear[k] || 0) > 0);
     if (!n && !kept.length) return;                  // a type nobody fielded
-    lines.push(`<div class="gear-line gear-head"><span class="n mono">${n.toLocaleString("en-US")}</span>` +
+    lines.push(`<div class="gear-line gear-head"><span class="n mono">${count(n)}</span>` +
       `<span class="g-name">${esc(g.type)}</span><span class="gear-img gear-img-none"></span></div>`);
     kept.forEach(k=> lines.push(
       `<div class="gear-line"><span class="g-name">${esc(label(k))}</span>` +
-      `<span class="n mono">${gear[k].toLocaleString("en-US")}</span>${gearImg(k)}</div>`));
+      `<span class="n mono">${count(gear[k])}</span>${gearImg(k)}</div>`));
   });
   const body = lines.length ? lines.join("")
     : `<div class="gear-line"><span class="res-none">none</span></div>`;
+  /* the counts are monospace, so the column can be cut to the widest one
+     actually on show — a small force keeps its numbers next to the names,
+     a big one still gets room for every digit */
+  const nWidth = `--gear-n-w:${widest}ch`;
   const roster = rosterText(rows);
   const copy = roster
     ? `<button class="bp-btn txt-btn u-copy" title="Copy the roster the way a person reads it"
@@ -1572,7 +1582,7 @@ function unitsBlock(rows, open){
         <span class="cost-label">Units <span class="caret">▸</span></span>
         <span class="cost-val mono">${troopTotal(rows).toLocaleString("en-US")}${copy}</span>
       </summary>
-      <div class="raw-body">${body}</div>
+      <div class="raw-body" style="${nWidth}">${body}</div>
     </details>`;
 }
 
