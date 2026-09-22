@@ -40,40 +40,37 @@ b3d3g3
 
 ### The formula
 
-Counts live in **C1:C43**, in the roster's own row order (the table at the
-bottom). Adjust the range if your block starts somewhere else — the letter is
-worked out from the row's offset within the range, not from its absolute row.
+Counts live in **C10:C52** — Cavalry Amount in C10, Alicorns Amount in C52 —
+in the roster's own row order (the table at the bottom). The letter comes from
+the row's offset within the range, not its absolute row, so if you move the
+block just change both references to match its new first cell.
 
 **Google Sheets**
 
 ```
-=TEXTJOIN("",TRUE,ARRAYFORMULA(IF(ROUND(C1:C43,0)>0,
-  MID("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq",ROW(C1:C43)-ROW(C$1)+1,1)
-  &ROUND(C1:C43,0),"")))
+=TEXTJOIN("",TRUE,ARRAYFORMULA(IF(ROUND(C10:C52,0)>0,MID("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq",ROW(C10:C52)-ROW(C$10)+1,1)&ROUND(C10:C52,0),"")))
 ```
 
 **Excel 365**
 
 ```
-=TEXTJOIN("",TRUE,IF(ROUND(C1:C43,0)>0,
-  MID("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq",SEQUENCE(43),1)
-  &ROUND(C1:C43,0),""))
+=TEXTJOIN("",TRUE,IF(ROUND(C10:C52,0)>0,MID("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq",SEQUENCE(43),1)&ROUND(C10:C52,0),""))
 ```
 
 **Excel 2016 / 2019** — no `SEQUENCE`, and `IF` over a range needs a helper
-column. Put this in **D1** and fill down to **D43**:
+column. Put this in **D10** and fill down to **D52**:
 
 ```
-=IF(ROUND(C1,0)>0,MID("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq",ROW()-ROW(C$1)+1,1)&ROUND(C1,0),"")
+=IF(ROUND(C10,0)>0,MID("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq",ROW()-ROW(C$10)+1,1)&ROUND(C10,0),"")
 ```
 
 then collapse it:
 
 ```
-=TEXTJOIN("",TRUE,D1:D43)
+=TEXTJOIN("",TRUE,D10:D52)
 ```
 
-(`=CONCAT(D1:D43)` works too. On anything older than 2016, `=D1&D2&D3&…`.)
+(`=CONCAT(D10:D52)` works too. On anything older than 2016, `=D10&D11&D12&…`.)
 
 ---
 
@@ -89,10 +86,11 @@ about the references:
 |---|---|
 | `$B$1` | `https://cloppenmanager.neocities.org/warcalc` |
 | `C53` | defender bonus — `Yes` or `No` |
+| `C54` | spare |
 | `C55` | attacker army code, pasted from Warcalc |
 | `C56` | defender army code, pasted from Warcalc |
-| `C58` | attacker crunch — the formula from part 1 |
-| `C59` | defender crunch — the same formula over the defenders' block |
+| `C58` | attacker crunch — the formula from part 1 over the attackers' block |
+| `C59` | defender crunch — the same formula over the defenders' block, or left empty |
 
 **C60 — the battle code, on its own.** For anyone running their own copy of
 the page who just wants to paste something into **Import battle**:
