@@ -600,6 +600,10 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 <div id="viewBattle">
 
 <div class="topbar">
+  <div class="battle-presets">
+    <button class="bp-btn" id="btlCopy" data-icon="copy"
+      title="Copy the whole battle as a code  (shift-click for the long form)"></button>
+  </div>
   <span class="spacer"></span>
   <div class="battle-presets">
     <span class="bp-lab">battle</span>
@@ -649,7 +653,8 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
         <button class="bp-btn" data-ap-upd="attacker" data-icon="update" title="Update this preset with the attackers on screen"></button>
         <button class="bp-btn" data-ap-mark="attacker" data-icon="mark" title="Pin this preset as a quick-swap button"></button>
         <button class="bp-btn" data-ap-ren="attacker" data-icon="rename" title="Rename this army preset"></button>
-        <button class="bp-btn" data-ap-copy="attacker" data-icon="copy" title="Copy for import"></button>
+        <button class="bp-btn" data-ap-copy="attacker" data-icon="copy"
+                title="Copy the attackers as a code  (shift-click for the long form)"></button>
         <button class="bp-btn" data-ap-exp="attacker" data-icon="export" title="Export the attackers as a JSON file"></button>
         <button class="bp-btn" data-ap-del="attacker" data-icon="del" title="Delete this army preset"></button>
       </div>
@@ -680,7 +685,8 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
         <button class="bp-btn" data-ap-upd="defender" data-icon="update" title="Update this preset with the defenders on screen"></button>
         <button class="bp-btn" data-ap-mark="defender" data-icon="mark" title="Pin this preset as a quick-swap button"></button>
         <button class="bp-btn" data-ap-ren="defender" data-icon="rename" title="Rename this army preset"></button>
-        <button class="bp-btn" data-ap-copy="defender" data-icon="copy" title="Copy for import"></button>
+        <button class="bp-btn" data-ap-copy="defender" data-icon="copy"
+                title="Copy the defenders as a code  (shift-click for the long form)"></button>
         <button class="bp-btn" data-ap-exp="defender" data-icon="export" title="Export the defenders as a JSON file"></button>
         <button class="bp-btn" data-ap-del="defender" data-icon="del" title="Delete this army preset"></button>
       </div>
@@ -718,10 +724,12 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 <!-- ============ IMPORT ============ -->
 <div class="panel" id="panelImport">
   <div class="panel-head"><h2>Import units</h2></div>
-  <textarea id="txtImport" spellcheck="false" placeholder="4_ACFU_Nope&#10;Cavalry&#10;ACFU&#10;Nope&#10;Size: 200&#10;Training: 20"></textarea>
+  <textarea id="txtImport" spellcheck="false" placeholder="an army code &#8212; 3F3F&#10;a battle code &#8212; +3F3F-9kQw2&#10;&#10;or the long form:&#10;4_ACFU_Nope&#10;Cavalry&#10;ACFU&#10;Nope&#10;Size: 200&#10;Training: 20"></textarea>
   <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
     <button class="btn btn-xs" id="btnImportAtk">Import to attackers</button>
     <button class="btn btn-xs" id="btnImportDef">Import to defenders</button>
+    <span class="v-div">|</span>
+    <button class="btn btn-xs btn-info" id="btnImportBattle">Import battle</button>
   </div>
 </div>
 
@@ -2494,12 +2502,174 @@ function render(result, atkRaw, defRaw, bonus){
 }
 
 /* ===================================================================
+   5b. ARMY CODES — the short form
+   ===================================================================
+   A unit is only ever three facts: which of the 109 legal
+   type/weapon/armour loadouts it wears, how trained it is (0-20), and how
+   many of it there are. Those three numbers are poured one after another
+   into a single mixed-radix integer, and that integer is written out in
+   base 62. Nothing in the string is a name, a label, a padding digit or a
+   separator, so a unit costs about four characters and an army of ten
+   fits in a word and a half.
+
+   A battle code is the two sides' integers with a sigil in front of each:
+   "+" opens the attackers, "-" the defenders with the defender bonus on,
+   "=" the defenders with it off. The sigil carries the bonus, so the flag
+   costs nothing.
+
+   Base 62 rather than 64 on purpose: letters and digits survive markdown,
+   URLs, chat clients and a double-click, and the eight-thousandths of a
+   bit per character it gives up is cheaper than one mangled paste. */
+
+const CODE_ALPHA = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+const CODE_DIGIT = new Map([...CODE_ALPHA].map((c, i) => [c, BigInt(i)]));
+
+/* every legal loadout, in an order that must never be reshuffled — the
+   index into this list IS the type, the weapon and the armour */
+const KIT_TYPES = ["Cavalry","Tanks","Pegasi","Unicorns","Naval","Alicorns"];
+const KITS = [];
+KIT_TYPES.forEach(t => LOADOUTS[t].weapons.forEach(w =>
+  LOADOUTS[t].armor.forEach(a => KITS.push([t, w, a]))));
+const KIT_AT  = new Map(KITS.map((k, i) => [k.join("|"), i]));
+const R_KIT   = BigInt(KITS.length);      // 109 loadouts
+const R_TRAIN = 21n;                      // training 0 … 20
+const R_CLASS = 4n;                       // which size bracket
+
+/* four size brackets, cheapest first, because most units are small */
+const SIZE_CLASS = [
+  {base: 1,        radix: 256n},            //          1 … 256
+  {base: 257,      radix: 65536n},          //        257 … 65,792
+  {base: 65793,    radix: 16777216n},       //     65,793 … 16,843,008
+  {base: 16843009, radix: 1099511627776n}   // 16,843,009 … about 1.1e12
+];
+const SIZE_MAX = SIZE_CLASS[3].base + Number(SIZE_CLASS[3].radix) - 1;
+
+const b62 = v => {
+  if (v <= 0n) return "0";
+  let s = "";
+  while (v > 0n){ s = CODE_ALPHA[Number(v % 62n)] + s; v /= 62n; }
+  return s;
+};
+
+function unb62(s){
+  let v = 0n;
+  for (const ch of s){
+    const d = CODE_DIGIT.get(ch);
+    if (d === undefined) throw new Error("not a code");
+    v = v * 62n + d;
+  }
+  return v;
+}
+
+/* gear that does not belong to the type falls back to that type's first
+   loadout rather than poisoning the whole code */
+function kitIndex(u){
+  let i = KIT_AT.get([u.type, u.weapon, u.armor].join("|"));
+  if (i !== undefined) return i;
+  const set = LOADOUTS[u.type];
+  if (set) i = KIT_AT.get([u.type, set.weapons[0], set.armor[0]].join("|"));
+  return i === undefined ? 0 : i;
+}
+
+function sizeParts(n){
+  const size = Math.max(1, Math.min(SIZE_MAX, Math.floor(Number(n)) || 1));
+  for (let c = 0; c < SIZE_CLASS.length; c++){
+    const off = size - SIZE_CLASS[c].base;
+    if (off >= 0 && off < Number(SIZE_CLASS[c].radix)) return {cls: c, off};
+  }
+  return {cls: 0, off: 0};
+}
+
+/* built back to front: the last unit goes in first, so the first unit is
+   the first one to come back out */
+function encodeArmy(units){
+  let v = 0n;
+  for (let i = (units || []).length - 1; i >= 0; i--){
+    const u = units[i];
+    const {cls, off} = sizeParts(u.size);
+    const tr = Math.max(0, Math.min(20, parseInt(u.training, 10) || 0));
+    v = v * SIZE_CLASS[cls].radix + BigInt(off);
+    v = v * R_CLASS + BigInt(cls);
+    v = v * R_TRAIN + BigInt(tr);
+    v = v * R_KIT   + BigInt(kitIndex(u));
+    v = v * 2n + 1n;          // "there is a unit here" — without it an army
+  }                           // of one all-zero unit would encode as nothing
+  return b62(v);
+}
+
+function decodeArmy(code){
+  let v = unb62(code);
+  const pop = r => { const d = Number(v % r); v /= r; return d; };
+  const out = [];
+  while (v > 0n){
+    if (!pop(2n)) break;                       // malformed tail, stop there
+    const [type, weapon, armor] = KITS[pop(R_KIT)];
+    const training = pop(R_TRAIN);
+    const cls = pop(R_CLASS);
+    out.push({type, weapon, armor, training,
+              size: SIZE_CLASS[cls].base + pop(SIZE_CLASS[cls].radix)});
+    if (out.length > 4000) throw new Error("not a code");
+  }
+  return out;
+}
+
+const encodeBattle = (atk, def, bonus) =>
+  "+" + encodeArmy(atk) + (bonus === "No" ? "=" : "-") + encodeArmy(def);
+
+const RE_ARMY_CODE   = /^[0-9A-Za-z]+$/;
+const RE_BATTLE_CODE = /^\+([0-9A-Za-z]*)([-=])([0-9A-Za-z]*)$/;
+
+/* null when the text is not a battle code at all */
+function decodeBattle(code){
+  const m = RE_BATTLE_CODE.exec(code);
+  if (!m) return null;
+  try{
+    return {attacker: decodeArmy(m[1] || "0"),
+            defender: decodeArmy(m[3] || "0"),
+            bonus: m[2] === "=" ? "No" : "Yes"};
+  }catch(e){ return null; }
+}
+
+/* ===================================================================
    6. IMPORT (same parser as the original page)
    =================================================================== */
+
+/* drop a decoded list onto a side, minding who may field alicorns */
+function addUnits(side, units){
+  let skipped = 0;
+  (units || []).forEach(u=>{
+    if (side === "attacker" && u.type === "Alicorns"){ skipped++; return; }
+    makeRow(side, u);
+  });
+  refreshCounts();
+  if (skipped) alert(`Alicorns can only be fielded as defenders — skipped ${skipped}.`);
+  return (units || []).length - skipped;
+}
 
 function importRows(side){
   const ta = document.getElementById("txtImport");
   const text = ta.value;
+  const code = text.trim();
+
+  /* a battle code hands each button its own half */
+  const battle = decodeBattle(code);
+  if (battle){
+    if (!addUnits(side, battle[side])) alert("That code has nothing on that side.");
+    ta.value = "";
+    return;
+  }
+
+  /* a bare army code */
+  if (RE_ARMY_CODE.test(code)){
+    let units;
+    try{ units = decodeArmy(code); }
+    catch(e){ alert("That is not an army code."); return; }
+    if (!units.length){ alert("That code holds no units."); return; }
+    addUnits(side, units);
+    ta.value = "";
+    return;
+  }
+
   if (!text.trim()) return;
   const clean = s => String(s).trim().split(" ").join("");
   try{
@@ -2530,6 +2700,23 @@ function importRows(side){
     console.error(e);
     alert("The import data was in an unexpected format.");
   }
+}
+
+/* a battle code is the whole board, so it replaces both sides rather than
+   adding to them — the same thing loading a battle preset does */
+function importBattle(){
+  const ta = document.getElementById("txtImport");
+  const b = decodeBattle(ta.value.trim());
+  if (!b){
+    alert('That is not a battle code. A battle code opens with "+" and '
+        + 'carries both sides, like +3F3F-9kQw2.');
+    return;
+  }
+  setSide("attacker", b.attacker);
+  setSide("defender", b.defender);
+  document.getElementById("defBonus").value = b.bonus;
+  scheduleSave();
+  ta.value = "";
 }
 
 /* ===================================================================
@@ -2864,10 +3051,24 @@ async function copyText(text){
   }catch(e){ return false; }
 }
 
-async function copyComposition(side, btn){
+/* a plain click gives the short code, shift gives the long readable block
+   the original page used */
+async function copyComposition(side, btn, longForm){
   const units = packSide(side);
   if (!units.length){ alert("Nothing to copy — that side is empty."); return; }
-  if (await copyText(compText(units))) flashOk(btn, "Copied");
+  const text = longForm ? compText(units) : encodeArmy(units);
+  if (await copyText(text)) flashOk(btn, "Copied");
+  else alert("This browser would not let the page reach the clipboard.");
+}
+
+async function copyBattleCode(btn, longForm){
+  const atk = packSide("attacker"), def = packSide("defender");
+  if (!atk.length && !def.length){ alert("Nothing to copy — both sides are empty."); return; }
+  const bonus = document.getElementById("defBonus").value;
+  const text = longForm
+    ? `=== ATTACKERS ===\n\n${compText(atk)}\n\n=== DEFENDERS ===\n\n${compText(def)}`
+    : encodeBattle(atk, def, bonus);
+  if (await copyText(text)) flashOk(btn, "Copied");
   else alert("This browser would not let the page reach the clipboard.");
 }
 
@@ -2985,6 +3186,7 @@ document.querySelectorAll("[data-clear]").forEach(b=>
 
 document.getElementById("btnImportAtk").addEventListener("click", ()=>importRows("attacker"));
 document.getElementById("btnImportDef").addEventListener("click", ()=>importRows("defender"));
+document.getElementById("btnImportBattle").addEventListener("click", importBattle);
 
 /* --- army presets --- */
 document.querySelectorAll("[data-ap-save]").forEach(b=>
@@ -3002,7 +3204,7 @@ document.querySelectorAll("[data-ap-exp]").forEach(b=>
 document.querySelectorAll("[data-ap-mark]").forEach(b=>
   b.addEventListener("click", ()=>toggleArmyMark(b.dataset.apMark)));
 document.querySelectorAll("[data-ap-copy]").forEach(b=>
-  b.addEventListener("click", ()=>copyComposition(b.dataset.apCopy, b)));
+  b.addEventListener("click", e=>copyComposition(b.dataset.apCopy, b, e.shiftKey)));
 
 /* marked presets: the chip loads it, the × unpins it */
 document.addEventListener("click", e=>{
@@ -3028,6 +3230,8 @@ document.getElementById("bpLoad").addEventListener("click", loadBattlePreset);
 document.getElementById("bpUpd").addEventListener("click", e=>updateBattlePreset(e.currentTarget));
 document.getElementById("bpRen").addEventListener("click", renameBattlePreset);
 document.getElementById("bpExp").addEventListener("click", exportBattle);
+document.getElementById("btlCopy").addEventListener("click",
+  e=>copyBattleCode(e.currentTarget, e.shiftKey));
 document.getElementById("bpDel").addEventListener("click", deleteBattlePreset);
 
 /* --- tools drawer --- */
