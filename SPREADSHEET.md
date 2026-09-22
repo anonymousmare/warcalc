@@ -6,12 +6,12 @@ Four codes travel between the sheet and the calculator.
 |---|---|---|
 | **army code** | one side's units — type, weapon, armour, size, training for every stack | Warcalc's copy button, pasted into the sheet by hand |
 | **crunch** | the 43 roster counts, and nothing else | a formula in the sheet, always live |
-| **battle code** | both army codes, the defender bonus, and optionally both crunches | a formula in the sheet |
+| **battle code** | both army codes, the defender bonus and the crunch, in one string | a formula in the sheet |
 | **link** | the battle code with the site in front of it | a formula in the sheet |
 
 The last two are the same string; the link just prefixes it. Hand out whichever
 suits the reader — the link for anyone on the site, the battle code for anyone
-running their own copy of the page.
+running their own copy of the page. Both carry the crunch, so both get checked.
 
 The army code is the only thing a human has to keep up to date, and it is the
 only thing that can go stale. That is what the crunch is for: it is computed
@@ -76,79 +76,75 @@ then collapse it:
 
 ## 2. The battle code, and the link
 
-Everything composes out of one cell. Build the battle code first, hang the
-roster check off it, and the link is just the site in front of both.
+Two things come out of the sheet, and they carry the same battle:
 
-A suggested layout — move the cells wherever you like, the formulas only care
-about the references:
+- **the battle code** — paste it into Warcalc's **Import battle** box
+- **the link** — the same code with the site in front of it, so clicking loads it
+
+The crunch rides along inside both. It is not a separate thing to hand out; it
+is just how the roster's numbers reach Warcalc so that Warcalc can do the
+comparison. Whoever opens the battle gets the mismatch report either way.
+
+Fill in three cells by hand:
 
 | Cell | Holds |
 |---|---|
-| `$B$1` | `https://cloppenmanager.neocities.org/warcalc` |
 | `C53` | defender bonus — `Yes` or `No` |
-| `C54` | spare |
 | `C55` | attacker army code, pasted from Warcalc |
 | `C56` | defender army code, pasted from Warcalc |
-| `C58` | attacker crunch — the formula from part 1 over the attackers' block |
-| `C59` | defender crunch — the same formula over the defenders' block, or left empty |
 
-**C60 — the battle code, on its own.** For anyone running their own copy of
-the page who just wants to paste something into **Import battle**:
+Then three formulas:
 
-```
-=IF(AND(C55="",C56=""),"","+"&C55&IF(C53="No","=","-")&C56)
-```
+**C58 — the crunch.** Plumbing; nobody reads this cell.
 
 ```
-+AFd-0
+=TEXTJOIN("",TRUE,ARRAYFORMULA(IF(ROUND(C10:C52,0)>0,MID("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq",ROW(C10:C52)-ROW(C$10)+1,1)&ROUND(C10:C52,0),"")))
 ```
 
-**C61 — the battle code with the roster check on the end.** Same thing, plus
-whichever crunches exist. This is the one worth handing out: **Import battle**
-takes it exactly like the plain code, and it still catches a stale roster:
+**C60 — the battle code.**
 
 ```
-=IF(C60="","",C60&IF(AND(C58="",C59=""),"","*"&C58&IF(C59="","","*"&C59)))
+=IF(AND(C55="",C56=""),"","+"&C55&IF(C53="No","=","-")&C56&IF(C58="","","*"&C58))
 ```
 
 ```
 +AFd-0*b3d3g3
 ```
 
-**C57 — the clickable link.** Same formula in Excel and Sheets:
+**C57 — the link.**
 
 ```
-=IF(C61="","",HYPERLINK($B$1&"#"&C61,"Open in Warcalc"))
+=IF(C60="","",HYPERLINK("https://cloppenmanager.neocities.org/warcalc#"&C60,"Open in Warcalc"))
 ```
 
-If you want the URL as plain text you can copy rather than a live link, drop
-the `HYPERLINK` wrapper:
+For the URL as plain text instead of a live link:
 
 ```
-=IF(C61="","",$B$1&"#"&C61)
+=IF(C60="","","https://cloppenmanager.neocities.org/warcalc#"&C60)
 ```
 
 ```
 https://cloppenmanager.neocities.org/warcalc#+AFd-0*b3d3g3
 ```
 
-So there are three things to hand out, and all three carry the same battle:
+### What Warcalc does with it
 
-| Cell | Give it to | Loads by |
-|---|---|---|
-| `C57` | anyone on the site | clicking it |
-| `C61` | anyone on a local copy | pasting into **Import battle** |
-| `C60` | anyone who does not want the roster check | pasting into **Import battle** |
+Opening the link, or pasting the battle code into **Import battle**, loads both
+sides and the defender bonus. Warcalc then adds up its own 43 totals from the
+army codes it just loaded and compares them against the crunch that came in
+with them. If they disagree it puts a report over the board naming every row
+that is off, which side it is on, what the sheet said and what the code
+actually carried. If they agree it says nothing.
 
-Clicking the link loads both sides and the defender bonus. If a crunch
-disagrees with the army code it came in with, Warcalc loads the battle anyway
-and puts a report on top of it naming every row that is off, which side it is
-on, what the sheet said and what the code actually carried. A crunch that
-agrees is silent. Pasting `C61` into **Import battle** does the same thing,
-report and all.
+The battle loads either way — the point is to catch the drift, not to refuse
+the fight. And the link is read once and then dropped from the address bar, so
+reloading keeps whatever the player has since changed.
 
-The link is read once and then dropped from the address bar, so reloading keeps
-whatever the player has since changed instead of snapping back to the link.
+### If your roster block is the defenders
+
+`C58` is treated as the **attackers'** roster. If the block at C10:C52 is
+really your defenders, change the tail of `C60` from `"*"&C58` to `"**"&C58`
+and it will be checked against that side instead.
 
 ### Grammar
 
@@ -157,9 +153,8 @@ whatever the player has since changed instead of snapping back to the link.
 ```
 
 `+` opens the attackers. `-` opens the defenders with the defender bonus on,
-`=` with it off. Either crunch may be left empty — `*` `*` `<def>` sends only
-the defenders' one. Everything from the battle code rightward is what
-**Import battle** accepts; it will also take the whole URL, `#` and all, so it
+`=` with it off. Either crunch may be left empty. **Import battle** accepts any
+of it — the bare battle code, the code with crunches, or the whole URL — so it
 does not matter which cell someone copied.
 
 ## 3. Roster rows and their letters
