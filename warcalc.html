@@ -446,11 +446,14 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .units-drop > summary:hover .cost-label{color:#fff}
 .res-drop .raw-body,.units-drop .raw-body{padding:2px 0 2px 12px}
 .res-drop .raw-body .cost-label{flex:0 0 126px}
-/* number column, then a right-aligned name column, so every portrait
-   starts at the same x no matter how long the gear is called */
+/* a right-aligned name column, then the count, so every portrait starts at
+   the same x no matter how long the gear is called. The headcount lines run
+   the other way round — count first, the way "248 Cavalry" is read — and
+   spend the same width, so the two kinds of line still share a right edge. */
 .gear-line{display:flex;align-items:center;padding:1px 0;font-size:12px;color:var(--text-dim)}
 .gear-line .n{flex:0 0 52px;text-align:right;color:var(--text)}
 .gear-line .g-name{flex:0 0 138px;text-align:right;padding:0 8px 0 6px}
+.gear-line.gear-head .g-name{flex:0 0 138px;text-align:left}
 /* the sprites are 16 tall and 16-32 wide, so a fixed 32-wide box holds the
    widest of them at native size and starts every one at the same x */
 .gear-img{
@@ -1549,8 +1552,8 @@ function unitsBlock(rows, open){
     lines.push(`<div class="gear-line gear-head"><span class="n mono">${n.toLocaleString("en-US")}</span>` +
       `<span class="g-name">${esc(g.type)}</span><span class="gear-img gear-img-none"></span></div>`);
     kept.forEach(k=> lines.push(
-      `<div class="gear-line"><span class="n mono">${gear[k].toLocaleString("en-US")}</span>` +
-      `<span class="g-name">${esc(label(k))}</span>${gearImg(k)}</div>`));
+      `<div class="gear-line"><span class="g-name">${esc(label(k))}</span>` +
+      `<span class="n mono">${gear[k].toLocaleString("en-US")}</span>${gearImg(k)}</div>`));
   });
   const body = lines.length ? lines.join("")
     : `<div class="gear-line"><span class="res-none">none</span></div>`;
