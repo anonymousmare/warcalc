@@ -101,34 +101,46 @@ Fill in three cells by hand:
 
 The defender bonus is always on, so nothing in the sheet sets it.
 
+The rest of the column, for reference — every formula below refers to these,
+so if you move one, move its references too:
+
+| Cell | Holds |
+|---|---|
+| `C9` | training |
+| `C10:C52` | the 43 roster counts |
+| `C54`–`C56` | the three above |
+| `C57` | the battle code — a formula |
+| `C58` | the link — a formula |
+| `C59` | the crunch — a formula |
+
 Then three formulas:
 
-**C58 — the crunch.** Plumbing; nobody reads this cell.
+**C59 — the crunch.** Plumbing; nobody reads this cell.
 
 ```
 =TEXTJOIN("",TRUE,ARRAYFORMULA(IF(ROUND(C10:C52,0)>0,MID("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq",ROW(C10:C52)-ROW(C$10)+1,1)&ROUND(C10:C52,0),"")))&IF(C9="","","r"&(ROUND(C9,0)+1))
 ```
 
-**C60 — the battle code.**
+**C57 — the battle code.**
 
 ```
-=IF(AND(C55="",C56=""),"","+"&C55&"-"&C56&IF(C58="","",IF(C54="DEF","**","*")&C58))
+=IF(AND(C55="",C56=""),"","+"&C55&"-"&C56&IF(C59="","",IF(C54="DEF","**","*")&C59))
 ```
 
 ```
 +AFd-0*b3d3g3r18
 ```
 
-**C57 — the link.**
+**C58 — the link.**
 
 ```
-=IF(C60="","",HYPERLINK("https://cloppenmanager.neocities.org/warcalc#"&C60,"Open in Warcalc"))
+=IF(C57="","",HYPERLINK("https://cloppenmanager.neocities.org/warcalc#"&C57,"Open in Warcalc"))
 ```
 
 For the URL as plain text instead of a live link:
 
 ```
-=IF(C60="","","https://cloppenmanager.neocities.org/warcalc#"&C60)
+=IF(C57="","","https://cloppenmanager.neocities.org/warcalc#"&C57)
 ```
 
 ```
