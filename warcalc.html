@@ -331,7 +331,9 @@ tbody tr:last-child{border-bottom:none}
   color:var(--text-dim);font-weight:500}
 .crunch-table th:first-child,.crunch-table td:first-child{text-align:left;width:100%}
 .crunch-table td.n{font-family:"SFMono-Regular",Menlo,Consolas,monospace}
-.crunch-row{color:var(--text-dim);font-size:11px}
+.crunch-cell{display:flex;align-items:center;gap:7px}
+.crunch-cell .g-name{flex:1 1 auto;text-align:right}
+.crunch-table tr.crunch-head td{font-weight:700}
 .crunch-short{color:#f17a77}
 .crunch-over{color:#faa123}
 details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
@@ -2712,7 +2714,11 @@ const CRUNCH_SLOTS = [
   ["weapon","WaterlineEraser","Waterline Eraser"],
   ["armor","C-PON3","C-Pon3"], ["armor","Esohes","Esohes"], ["armor","Shubidu","Shubidu"],
   ["type","Alicorns","Alicorns Amount"]
-].map(([kind, key, name], i) => ({kind, key, name, row: i + 1}));
+].map(([kind, key, name], i, all) => ({
+  kind, key, name, row: i + 1,
+  /* the last type head at or above this row owns it */
+  group: all.slice(0, i + 1).reverse().find(e => e[0] === "type")[1]
+}));
 
 /* scrounged gear has no row in the sheet, so it lands in the type total
    and nowhere else — which is what the sheet does too */
@@ -2818,7 +2824,11 @@ function showCrunchReport(sides){
       <tbody>${diff.map(d=>{
         const num = typeof d.got === "number";
         const by = num ? d.got - d.want : null;
-        return `<tr><td>${esc(d.name)}${d.row ? ` <span class="crunch-row">#${d.row}</span>` : ""}</td>
+        const tone = d.group ? ` t-${d.group.toLowerCase()}` : "";
+        return `<tr class="${d.kind === "type" ? "crunch-head" : ""}">
+          <td><span class="crunch-cell${tone}"><span class="g-name">${esc(d.name)}</span>${
+            d.kind === "type" || !d.key ? '<span class="gear-img gear-img-none"></span>' : gearImg(d.key)
+          }</span></td>
           <td class="n">${d.want.toLocaleString("en-US")}</td>
           <td class="n">${num ? d.got.toLocaleString("en-US") : esc(String(d.got))}</td>
           <td class="n ${by === null || by < 0 ? "crunch-short" : "crunch-over"}">${
@@ -2833,14 +2843,12 @@ function showCrunchReport(sides){
   wrap.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-label="Roster mismatch">
     <div class="modal-head"><h2>⚠ The codes do not match the roster</h2></div>
     <div class="modal-body">
-      <div class="note warn" style="margin-bottom:12px">The link carries the roster's own
-        totals, and the army codes in it disagree. Whoever built the link almost certainly
-        edited the sheet and forgot to refresh the codes. <strong>Sheet</strong> is what the
-        roster counts, <strong>Code</strong> is what actually loaded.</div>
+      <div class="note warn" style="margin-bottom:12px">Composition Code and Sheet Tally
+        mismatch. Update!</div>
       ${body}
     </div>
     <div class="modal-foot">
-      <span class="small muted">The battle loaded anyway — check it before you trust it.</span>
+      <span class="small muted">Battle loaded anyway --&gt;</span>
       <span class="spacer"></span>
       <button class="btn btn-xs" id="crunchClose">Got it</button>
     </div>
