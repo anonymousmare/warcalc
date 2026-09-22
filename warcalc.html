@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Warcalc 1.2 — CLOP</title>
+<title>Warcalc 1.3 — CLOP</title>
 <style>
 :root{
   --bg:#272b30;
@@ -461,6 +461,17 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .gear-img-none{background:none}
 .units-drop .u-copy{display:none;margin-left:7px;vertical-align:middle}
 .units-drop[open] .u-copy{display:inline-flex}
+/* a bp-btn that carries a word instead of a glyph still needs an edge to
+   read as a button */
+.bp-btn.txt-btn{
+  border:1px solid var(--border-soft);border-radius:3px;padding:1px 6px;
+  background:var(--sunken);white-space:nowrap;
+}
+.bp-btn.txt-btn:hover{border-color:var(--text-dim)}
+/* the headcount that opens each type's block in the Units list */
+.gear-line.gear-head{color:var(--text);font-weight:700;margin-top:5px}
+.gear-line.gear-head:first-child{margin-top:0}
+.gear-line.gear-head .g-name{color:var(--text)}
 
 .tip-cost{border-top:1px solid var(--border-soft);margin-top:8px;padding-top:6px;font-size:12px}
 .tip-upkeep{width:80px;display:flex;flex-wrap:wrap;justify-content:center;gap:3px;margin-top:4px}
@@ -566,7 +577,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 <body>
 
 <div class="tabstrip">
-  <span class="tab-brand">Warcalc 1.2<button class="caret-btn" id="btnTools"
+  <span class="tab-brand">Warcalc 1.3<button class="caret-btn" id="btnTools"
     title="Import / export presets" aria-expanded="false">›</button></span>
   <button class="tab active" data-tab="battle">Battle</button>
   <button class="tab" data-tab="counter">Counters</button>
@@ -1469,20 +1480,49 @@ const troopTotal = rows => rows.reduce((s,u)=>s + Math.max(0, u.size), 0);
 const satCost = troops => Math.max(0, Math.ceil((troops - 20) / 2));
 
 const SCROUNGED = {ScroungedWeapons:1, ScroungedArmor:1};
-const plural = k => { const s = label(k); return s.endsWith("s") ? s : s + "s"; };
 
-/* every piece of gear the whole force needs, biggest pile first */
-function gearTally(rows){
-  const tally = {};
+/* The running order the Units list and the spreadsheet column both follow:
+   a type's headcount, then that type's weapons, then its armor. Every entry
+   is one line of the spreadsheet copy, zeroes included, so the column is
+   always the same length and each pile lands in the same row. */
+const UNIT_ORDER = [
+  {type:"Cavalry",  gear:["PRC-E6","PRC-E7","PRC-E8","ACFU","APFU","ATFU","AUFU",
+                          "Barding","Bigdog","Nope"]},
+  {type:"Tanks",    gear:["K9P","ELBO-GRS","Chem-LightBattery",
+                          "Trundle","Shepherd","Ohno","Titan"]},
+  {type:"Pegasi",   gear:["PropWash","SteamBucket","CanopyLights",
+                          "Cooler","Wonder","Griffin","Dragon"]},
+  {type:"Unicorns", gear:["LongStand","LongWeight","GridSquares",
+                          "Hornshield","Librarian","Shining","D2A"]},
+  {type:"Naval",    gear:["Shoreline","WaterHammer","WaterlineEraser",
+                          "C-PON3","Esohes","Shubidu"]},
+  {type:"Alicorns", gear:[]}
+];
+
+/* heads a type, and every piece of gear the whole force needs */
+function unitTally(rows){
+  const head = {}, gear = {};
   rows.forEach(u=>{
     const n = Math.max(0, u.size);
+    head[u.type] = (head[u.type] || 0) + n;
     [u.weapon, u.armor].forEach(k=>{
       if (!k || SCROUNGED[k]) return;
-      tally[k] = (tally[k] || 0) + n;
+      gear[k] = (gear[k] || 0) + n;
     });
   });
-  return Object.entries(tally)
-    .sort((a,b)=> b[1] - a[1] || plural(a[0]).localeCompare(plural(b[0])));
+  return {head, gear};
+}
+
+/* the same running order, one count a line and nothing else, so the whole
+   column can be pasted straight down a sheet */
+function sheetText(rows){
+  const {head, gear} = unitTally(rows);
+  const out = [];
+  UNIT_ORDER.forEach(g=>{
+    out.push(head[g.type] || 0);
+    g.gear.forEach(k => out.push(gear[k] || 0));
+  });
+  return out.join("\n");
 }
 
 /* one line a stack, stacks of a type kept together, ready to paste */
@@ -1500,15 +1540,26 @@ function rosterText(rows){
 
 /* the Units row doubles as the gear-tally dropdown */
 function unitsBlock(rows, open){
-  const gear = gearTally(rows);
-  const body = gear.length
-    ? gear.map(([k,n])=>`<div class="gear-line"><span class="n mono">${n.toLocaleString("en-US")}</span>` +
-        `<span class="g-name">${esc(plural(k))}</span>${gearImg(k)}</div>`).join("")
+  const {head, gear} = unitTally(rows);
+  const lines = [];
+  UNIT_ORDER.forEach(g=>{
+    const n = head[g.type] || 0;
+    const kept = g.gear.filter(k => (gear[k] || 0) > 0);
+    if (!n && !kept.length) return;                  // a type nobody fielded
+    lines.push(`<div class="gear-line gear-head"><span class="n mono">${n.toLocaleString("en-US")}</span>` +
+      `<span class="g-name">${esc(g.type)}</span><span class="gear-img gear-img-none"></span></div>`);
+    kept.forEach(k=> lines.push(
+      `<div class="gear-line"><span class="n mono">${gear[k].toLocaleString("en-US")}</span>` +
+      `<span class="g-name">${esc(label(k))}</span>${gearImg(k)}</div>`));
+  });
+  const body = lines.length ? lines.join("")
     : `<div class="gear-line"><span class="res-none">none</span></div>`;
   const roster = rosterText(rows);
   const copy = roster
-    ? `<button class="bp-btn u-copy" title="Copy the roster"
-         data-units-copy="${esc(roster).replace(/\n/g, "&#10;")}">${iconSvg("copy")}</button>`
+    ? `<button class="bp-btn txt-btn u-copy" title="Copy the roster the way a person reads it"
+         data-units-copy="${esc(roster).replace(/\n/g, "&#10;")}">Human Copy</button>` +
+      `<button class="bp-btn txt-btn u-copy" title="Copy one count a line, ready for a spreadsheet column"
+         data-units-copy="${sheetText(rows).replace(/\n/g, "&#10;")}">Spreadsheet Copy</button>`
     : "";
   return `<details class="units-drop"${open ? " open" : ""}>
       <summary class="cost-row">
@@ -2496,7 +2547,8 @@ paintIcons();
 function flashOk(btn, word){
   if (!btn) return;
   const html = btn.innerHTML, title = btn.title;
-  btn.innerHTML = iconSvg("ok");
+  btn.innerHTML = btn.classList.contains("txt-btn")
+    ? esc(word || "Done") : iconSvg("ok");
   btn.classList.add("ok");
   btn.title = word || "Done";
   setTimeout(()=>{ btn.innerHTML = html; btn.classList.remove("ok"); btn.title = title; }, 1200);
