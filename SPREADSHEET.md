@@ -5,7 +5,7 @@ Four codes travel between the sheet and the calculator.
 | Code | What it is | Who writes it |
 |---|---|---|
 | **army code** | one side's units — type, weapon, armour, size, training for every stack | Warcalc's copy button, pasted into the sheet by hand |
-| **crunch** | the 43 roster counts, and nothing else | a formula in the sheet, always live |
+| **crunch** | the 43 roster counts plus training | a formula in the sheet, always live |
 | **battle code** | both army codes, the defender bonus and the crunch, in one string | a formula in the sheet |
 | **link** | the battle code with the site in front of it | a formula in the sheet |
 
@@ -31,17 +31,22 @@ Warcalc; the crunch just makes sure nobody forgets to.
 
 Slot `i` is written as its letter followed by the count in plain decimal.
 Letters and digits never collide, so nothing needs a separator, and zero rows
-are left out entirely. Three unicorns carrying Long Weights behind Librarians
-is:
+are left out entirely. Three unicorns carrying Long Weights behind Librarians,
+trained to 17, is:
 
 ```
-b3d3g3
+b3d3g3r18
 ```
+
+`r` is training, and it is the one slot that rides a step high — it is a level
+rather than a tally, training 0 is a real answer, and a slot worth nothing gets
+left out. So `r1` means nought, `r18` means 17, and no `r` at all means the
+sheet did not say and Warcalc should not check it.
 
 ### The formula
 
 Counts live in **C10:C52** — Cavalry Amount in C10, Alicorns Amount in C52,
-with training sitting just above the block in C9 and staying out of it —
+with training just above the block in C9 —
 in the roster's own row order (the table at the bottom). The letter comes from
 the row's offset within the range, not its absolute row, so if you move the
 block just change both references to match its new first cell.
@@ -49,13 +54,13 @@ block just change both references to match its new first cell.
 **Google Sheets**
 
 ```
-=TEXTJOIN("",TRUE,ARRAYFORMULA(IF(ROUND(C10:C52,0)>0,MID("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq",ROW(C10:C52)-ROW(C$10)+1,1)&ROUND(C10:C52,0),"")))
+=TEXTJOIN("",TRUE,ARRAYFORMULA(IF(ROUND(C10:C52,0)>0,MID("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq",ROW(C10:C52)-ROW(C$10)+1,1)&ROUND(C10:C52,0),"")))&IF(C9="","","r"&(ROUND(C9,0)+1))
 ```
 
 **Excel 365**
 
 ```
-=TEXTJOIN("",TRUE,IF(ROUND(C10:C52,0)>0,MID("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq",SEQUENCE(43),1)&ROUND(C10:C52,0),""))
+=TEXTJOIN("",TRUE,IF(ROUND(C10:C52,0)>0,MID("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq",SEQUENCE(43),1)&ROUND(C10:C52,0),""))&IF(C9="","","r"&(ROUND(C9,0)+1))
 ```
 
 **Excel 2016 / 2019** — no `SEQUENCE`, and `IF` over a range needs a helper
@@ -68,7 +73,7 @@ column. Put this in **D10** and fill down to **D52**:
 then collapse it:
 
 ```
-=TEXTJOIN("",TRUE,D10:D52)
+=TEXTJOIN("",TRUE,D10:D52)&IF(C9="","","r"&(ROUND(C9,0)+1))
 ```
 
 (`=CONCAT(D10:D52)` works too. On anything older than 2016, `=D10&D11&D12&…`.)
@@ -101,7 +106,7 @@ Then three formulas:
 **C58 — the crunch.** Plumbing; nobody reads this cell.
 
 ```
-=TEXTJOIN("",TRUE,ARRAYFORMULA(IF(ROUND(C10:C52,0)>0,MID("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq",ROW(C10:C52)-ROW(C$10)+1,1)&ROUND(C10:C52,0),"")))
+=TEXTJOIN("",TRUE,ARRAYFORMULA(IF(ROUND(C10:C52,0)>0,MID("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq",ROW(C10:C52)-ROW(C$10)+1,1)&ROUND(C10:C52,0),"")))&IF(C9="","","r"&(ROUND(C9,0)+1))
 ```
 
 **C60 — the battle code.**
@@ -111,7 +116,7 @@ Then three formulas:
 ```
 
 ```
-+AFd-0*b3d3g3
++AFd-0*b3d3g3r18
 ```
 
 **C57 — the link.**
@@ -127,15 +132,15 @@ For the URL as plain text instead of a live link:
 ```
 
 ```
-https://cloppenmanager.neocities.org/warcalc#+AFd-0*b3d3g3
+https://cloppenmanager.neocities.org/warcalc#+AFd-0*b3d3g3r18
 ```
 
 ### What Warcalc does with it
 
 Opening the link, or pasting the battle code into **Import battle**, loads both
 sides and the defender bonus. Warcalc then adds up its own 43 totals from the
-army codes it just loaded and compares them against the crunch that came in
-with them. If they disagree it puts a report over the board naming every row
+army codes it just loaded, reads off their training, and compares both against
+the crunch that came in with them. If they disagree it puts a report over the board naming every row
 that is off, which side it is on, what the sheet said and what the code
 actually carried. If they agree it says nothing.
 
@@ -200,6 +205,10 @@ does not matter which cell someone copied.
 | 41 | Esohes | `o` |
 | 42 | Shubidu | `p` |
 | 43 | Alicorns Amount | `q` |
+| C9 | Training (one higher — see above) | `r` |
+
+Training is the one entry that is not part of the 43-row block; it sits in C9
+and is appended by the tail of the crunch formula.
 
 Rows the sheet does not track — Scrounged Weapons and Scrounged Armor — have no
 letter. A scrounged unit still counts toward its type's **Amount** row and

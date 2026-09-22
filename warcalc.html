@@ -2677,7 +2677,12 @@ function decodeBattle(code){
    carrying long weights behind librarians is "b3d3g3". Zero slots are left
    out entirely, which is most of them. */
 
-const CRUNCH_ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq";   // 43
+/* 43 roster rows, then "r" for training — which is a level, not a tally, so
+   it rides one higher than it reads. Nothing is written for a zero, and
+   training 0 is a real answer, so "r1" means nought and a missing "r" means
+   the sheet did not say. */
+const CRUNCH_ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqr";   // 43 + training
+const CRUNCH_TRAIN = 43;
 
 /* the sheet's row order, which is NOT warcalc's own — cavalry list APFU
    ahead of ATFU there — so this table is the one that must not drift */
@@ -2722,26 +2727,52 @@ function crunchFromUnits(units){
   return n;
 }
 
-const encodeCrunch = nums => CRUNCH_SLOTS.reduce((s, _, i)=>{
-  const v = Math.max(0, Math.round(Number(nums[i]) || 0));
-  return v > 0 ? s + CRUNCH_ALPHA[i] + v : s;
-}, "");
+function encodeCrunch(nums, training){
+  let s = CRUNCH_SLOTS.reduce((acc, _, i)=>{
+    const v = Math.max(0, Math.round(Number(nums[i]) || 0));
+    return v > 0 ? acc + CRUNCH_ALPHA[i] + v : acc;
+  }, "");
+  if (training !== null && training !== undefined && training !== "")
+    s += CRUNCH_ALPHA[CRUNCH_TRAIN] + (Math.max(0, Math.round(Number(training) || 0)) + 1);
+  return s;
+}
 
-/* null for "no crunch here", which is not the same as a crunch of zeroes */
+/* null for "no crunch here", which is not the same as a crunch of zeroes.
+   .training is null when the sheet left it out. */
 function decodeCrunch(code){
   if (!code || !/^(?:[A-Za-z]\d+)+$/.test(code)) return null;
-  const nums = CRUNCH_SLOTS.map(()=>0);
+  const counts = CRUNCH_SLOTS.map(()=>0);
+  let training = null;
   for (const [, ch, num] of code.matchAll(/([A-Za-z])(\d+)/g)){
     const i = CRUNCH_ALPHA.indexOf(ch);
     if (i < 0) return null;
-    nums[i] += Number(num);
+    if (i === CRUNCH_TRAIN) training = Math.max(0, Number(num) - 1);
+    else counts[i] += Number(num);
   }
-  return nums;
+  return {counts, training};
 }
 
-const crunchDiff = (want, got) => CRUNCH_SLOTS
-  .map((s, i)=>({...s, want: want[i], got: got[i]}))
-  .filter(d => d.want !== d.got);
+/* what the side actually trained to: one number, or null when the stacks
+   disagree and there is no single answer to compare against */
+function trainingOf(units){
+  const seen = [...new Set((units || []).map(u => Math.max(0, parseInt(u.training, 10) || 0)))];
+  return {levels: seen.sort((a, b)=>a - b), one: seen.length === 1 ? seen[0] : null};
+}
+
+function crunchDiff(want, units){
+  const got = crunchFromUnits(units);
+  const rows = CRUNCH_SLOTS
+    .map((s, i)=>({...s, want: want.counts[i], got: got[i]}))
+    .filter(d => d.want !== d.got);
+  if (want.training !== null){
+    const t = trainingOf(units);
+    if (t.one !== want.training)
+      rows.push({name:"Training", row:null, want:want.training,
+                 got: t.levels.length ? t.levels.join(" / ") : "\u2014",
+                 mixed: t.one === null});
+  }
+  return rows;
+}
 
 /* ---- shareable links ----
    "#" + battle code, then the crunches after a "*" each: attacker first,
@@ -2774,7 +2805,7 @@ function showCrunchReport(sides){
   closeModal();
   const bad = ["attacker","defender"].map(side=>{
     const want = sides[side];
-    return want ? {side, diff: crunchDiff(want, crunchFromUnits(packSide(side)))} : null;
+    return want ? {side, diff: crunchDiff(want, packSide(side))} : null;
   }).filter(r => r && r.diff.length);
 
   if (!bad.length) return false;
@@ -2785,11 +2816,13 @@ function showCrunchReport(sides){
     <table class="crunch-table">
       <thead><tr><th>Row</th><th>Sheet</th><th>Code</th><th>Off by</th></tr></thead>
       <tbody>${diff.map(d=>{
-        const by = d.got - d.want;
-        return `<tr><td>${esc(d.name)} <span class="crunch-row">#${d.row}</span></td>
+        const num = typeof d.got === "number";
+        const by = num ? d.got - d.want : null;
+        return `<tr><td>${esc(d.name)}${d.row ? ` <span class="crunch-row">#${d.row}</span>` : ""}</td>
           <td class="n">${d.want.toLocaleString("en-US")}</td>
-          <td class="n">${d.got.toLocaleString("en-US")}</td>
-          <td class="n ${by < 0 ? "crunch-short" : "crunch-over"}">${by > 0 ? "+" : ""}${by.toLocaleString("en-US")}</td>
+          <td class="n">${num ? d.got.toLocaleString("en-US") : esc(String(d.got))}</td>
+          <td class="n ${by === null || by < 0 ? "crunch-short" : "crunch-over"}">${
+            by === null ? (d.mixed ? "mixed" : "off") : (by > 0 ? "+" : "") + by.toLocaleString("en-US")}</td>
         </tr>`;
       }).join("")}</tbody>
     </table>`).join("");
