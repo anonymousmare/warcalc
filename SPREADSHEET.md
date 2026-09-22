@@ -40,7 +40,8 @@ b3d3g3
 
 ### The formula
 
-Counts live in **C10:C52** — Cavalry Amount in C10, Alicorns Amount in C52 —
+Counts live in **C10:C52** — Cavalry Amount in C10, Alicorns Amount in C52,
+with training sitting just above the block in C9 and staying out of it —
 in the roster's own row order (the table at the bottom). The letter comes from
 the row's offset within the range, not its absolute row, so if you move the
 block just change both references to match its new first cell.
@@ -89,9 +90,11 @@ Fill in three cells by hand:
 
 | Cell | Holds |
 |---|---|
-| `C53` | defender bonus — `Yes` or `No` |
+| `C54` | which side the roster block is — `ATK` or `DEF` |
 | `C55` | attacker army code, pasted from Warcalc |
 | `C56` | defender army code, pasted from Warcalc |
+
+The defender bonus is always on, so nothing in the sheet sets it.
 
 Then three formulas:
 
@@ -104,7 +107,7 @@ Then three formulas:
 **C60 — the battle code.**
 
 ```
-=IF(AND(C55="",C56=""),"","+"&C55&IF(C53="No","=","-")&C56&IF(C58="","","*"&C58))
+=IF(AND(C55="",C56=""),"","+"&C55&"-"&C56&IF(C58="","",IF(C54="DEF","**","*")&C58))
 ```
 
 ```
@@ -140,12 +143,6 @@ The battle loads either way — the point is to catch the drift, not to refuse
 the fight. And the link is read once and then dropped from the address bar, so
 reloading keeps whatever the player has since changed.
 
-### If your roster block is the defenders
-
-`C58` is treated as the **attackers'** roster. If the block at C10:C52 is
-really your defenders, change the tail of `C60` from `"*"&C58` to `"**"&C58`
-and it will be checked against that side instead.
-
 ### Grammar
 
 ```
@@ -153,7 +150,8 @@ and it will be checked against that side instead.
 ```
 
 `+` opens the attackers. `-` opens the defenders with the defender bonus on,
-`=` with it off. Either crunch may be left empty. **Import battle** accepts any
+`=` with it off — the sheet always writes `-`. Either crunch may be left empty,
+which is how `C54` aims the roster's one crunch at one side or the other. **Import battle** accepts any
 of it — the bare battle code, the code with crunches, or the whole URL — so it
 does not matter which cell someone copied.
 
