@@ -758,7 +758,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 <!-- ============ IMPORT ============ -->
 <div class="panel" id="panelImport">
   <div class="panel-head"><h2>Import units</h2></div>
-  <textarea id="txtImport" spellcheck="false" placeholder="an army code &#8212; 3F3F&#10;a battle code &#8212; +3F3F-9kQw2&#10;&#10;or the long form:&#10;4_ACFU_Nope&#10;Cavalry&#10;ACFU&#10;Nope&#10;Size: 200&#10;Training: 20"></textarea>
+  <textarea id="txtImport" spellcheck="false" placeholder="an army code &#8212; 3F3F&#10;a battle code &#8212; +3F3F-9kQw2&#10;&#10;or the long form:&#10;4_ACFU_Nope&#10;Cavalry&#10;ACFU&#10;Nope&#10;Size: 200&#10;Training: 20&#10;&#10;or preset JSON, as the Export buttons write it"></textarea>
   <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
     <button class="btn btn-xs" id="btnImportAtk">Import to attackers</button>
     <button class="btn btn-xs" id="btnImportDef">Import to defenders</button>
@@ -2895,10 +2895,71 @@ function addUnits(side, units){
   return (units || []).length - skipped;
 }
 
+/* pasted preset JSON — the same shape the export buttons write:
+   {kind:"armyPresets", armyPresets:{name:[units]}}, battlePresets likewise,
+   or just a bare [units] list. Returns null when the text isn't JSON at all. */
+function parsePresetJSON(text){
+  const t = String(text || "").trim();
+  if (!/^[{[]/.test(t)) return null;
+  let data;
+  try{ data = JSON.parse(t); }catch(e){ return {error: "That looks like JSON but does not parse."}; }
+  const unit = u => ({
+    type: String(u.type || "Cavalry").trim(),
+    weapon: String(u.weapon || "").trim(),
+    armor: String(u.armor || "").trim(),
+    size: Math.max(1, parseInt(u.size, 10) || 1),
+    training: Math.min(20, Math.max(0, parseInt(u.training, 10) || 0))
+  });
+  const units = a => (Array.isArray(a) ? a : []).filter(u => u && typeof u === "object").map(unit);
+  if (Array.isArray(data)) return {armies: {"pasted": units(data)}, battles: {}};
+  const armies  = data.armyPresets   || (data.kind === "armyPresets"   ? data.presets : null) || {};
+  const battles = data.battlePresets || (data.kind === "battlePresets" ? data.presets : null) || {};
+  const out = {armies: {}, battles: {}};
+  Object.entries(armies).forEach(([n, v]) => { out.armies[n] = units(v); });
+  Object.entries(battles).forEach(([n, b]) => {
+    if (b && typeof b === "object")
+      out.battles[n] = {attacker: units(b.attacker), defender: units(b.defender), bonus: b.bonus};
+  });
+  if (!Object.keys(out.armies).length && !Object.keys(out.battles).length)
+    return {error: "No army or battle presets found in that JSON."};
+  return out;
+}
+
+/* one name out of several: the only one, or ask */
+function pickPresetName(names, what){
+  if (names.length <= 1) return names[0] || null;
+  const ans = prompt(`That JSON holds ${names.length} ${what}. Which one?\n\n`
+    + names.map((n, i) => `${i + 1}. ${n}`).join("\n"), "1");
+  if (ans == null) return null;
+  const i = parseInt(ans, 10);
+  if (i >= 1 && i <= names.length) return names[i - 1];
+  return names.includes(ans.trim()) ? ans.trim() : null;
+}
+
 function importRows(side){
   const ta = document.getElementById("txtImport");
   const text = ta.value;
   const code = text.trim();
+
+  /* preset JSON: an army goes whole onto this side, a battle gives its half */
+  const json = parsePresetJSON(code);
+  if (json){
+    if (json.error){ alert(json.error); return; }
+    const armyNames = Object.keys(json.armies);
+    let units;
+    if (armyNames.length){
+      const name = pickPresetName(armyNames, "armies");
+      if (!name) return;
+      units = json.armies[name];
+    } else {
+      const name = pickPresetName(Object.keys(json.battles), "battles");
+      if (!name) return;
+      units = json.battles[name][side];
+    }
+    if (!units.length){ alert("That preset has no units for this side."); return; }
+    if (addUnits(side, units)) ta.value = "";
+    return;
+  }
 
   /* a battle code hands each button its own half */
   const battle = decodeBattle(code);
@@ -2955,6 +3016,24 @@ function importRows(side){
    adding to them — the same thing loading a battle preset does */
 function importBattle(){
   const ta = document.getElementById("txtImport");
+  const json = parsePresetJSON(ta.value);
+  if (json){
+    if (json.error){ alert(json.error); return; }
+    const names = Object.keys(json.battles);
+    if (!names.length){
+      alert("That JSON holds army presets, not a battle — use Import to attackers / defenders.");
+      return;
+    }
+    const name = pickPresetName(names, "battles");
+    if (!name) return;
+    const b = json.battles[name];
+    ta.value = "";
+    setSide("attacker", b.attacker);
+    setSide("defender", b.defender);
+    if (b.bonus) document.getElementById("defBonus").value = b.bonus;
+    scheduleSave();
+    return;
+  }
   const sh = parseShareable(ta.value);
   if (!sh){
     alert('That is not a battle code. A battle code opens with "+" and carries '
