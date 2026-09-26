@@ -1337,8 +1337,8 @@ function makeRow(side, data){
   tr.innerHTML = `
     <td class="col-sprite"><span class="spriteSlot"></span></td>
     <td class="col-type"><span class="reinf-sw">
-      <button type="button" data-reinf="0" title="Front line: fights from tick 1">−</button>
-      <button type="button" data-reinf="1" title="Reinforcement: sits out this battle, joins on the next tick">+</button>
+      <button type="button" data-reinf="0" title="Front line">−</button>
+      <button type="button" data-reinf="1" title="Reinforcement">+</button>
     </span><select class="type">
       ${typeOpts.map(t=>`<option value="${t}">${t}</option>`).join("")}
     </select></td>
@@ -1391,8 +1391,7 @@ function setReserve(tr, on){
    upkeep no longer match the lists — say so rather than quietly mislead */
 function flagReinfStale(){
   const el = document.getElementById("reinfStale");
-  if (el) el.innerHTML = `<div class="note warn"><strong>Reinforcements changed since this battle was run.</strong>
-    Run it again so tick 1 leaves them out and their upkeep starts on tick 2.</div>`;
+  if (el) el.innerHTML = `<div class="note warn"><strong>Reinforcements changed — run again.</strong></div>`;
 }
 
 function fillLoadout(type, wSel, aSel){
@@ -2588,7 +2587,7 @@ function render(result, atkRaw, defRaw, bonus){
       <div class="panel-head">
         <h2>Battle result</h2>
         <span class="badge">Defender bonus: ${bonus}</span>
-        ${reserveCount() ? `<span class="badge" title="Held back from this battle; they join on tick 2 of the successive battles">${reserveCount()} reinforcement${reserveCount() === 1 ? "" : "s"} waiting</span>` : ""}
+        ${reserveCount() ? `<span class="badge">${reserveCount()} reinforcement${reserveCount() === 1 ? "" : "s"} waiting</span>` : ""}
         <span class="spacer"></span>
         <span class="badge badge-danger">Attackers <b>${atkLeft}</b> / ${atkTotal}</span>
         <span class="badge badge-info">Defenders <b>${defLeft}</b> / ${defTotal}</span>
