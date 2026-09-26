@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Warcalc 1.4 — CLOP</title>
+<title>Warcalc 1.41 — CLOP</title>
 <style>
 :root{
   --bg:#272b30;
@@ -484,6 +484,15 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .cost-drop[open] > summary:before{transform:rotate(90deg)}
 .cost-drop > summary:hover{color:#fff}
 .cost-body{padding-top:8px}
+/* with reinforcements on the list the costs split by when they are paid */
+.cost-tabs{display:flex;gap:2px;margin:2px 0 6px;border-bottom:1px solid var(--border-soft)}
+.cost-tab{
+  background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;
+  color:var(--text-dim);font:500 11px/1 inherit;padding:5px 9px;cursor:pointer;
+}
+.cost-tab:hover{color:#fff}
+.cost-tab.active{color:#fff;border-bottom-color:#4ab9db}
+.cost-tab-note{font-size:11px;color:var(--text-dim);margin-bottom:4px}
 .cost-row{
   display:flex;gap:10px;align-items:center;padding:3px 0;font-size:12px;
 }
@@ -640,7 +649,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 <body>
 
 <div class="tabstrip">
-  <span class="tab-brand">Warcalc 1.4<button class="caret-btn" id="btnTools"
+  <span class="tab-brand">Warcalc 1.41<button class="caret-btn" id="btnTools"
     title="Import / export presets" aria-expanded="false">›</button></span>
   <button class="tab active" data-tab="battle">Battle</button>
   <button class="tab" data-tab="counter">Counters</button>
@@ -1351,7 +1360,9 @@ function makeRow(side, data){
   tr.querySelector(".size").addEventListener("input", ()=>paintRow(tr));
   tr.querySelector(".del").addEventListener("click", ()=>{ tr.remove(); refreshCounts(); });
   tr.querySelectorAll("[data-reinf]").forEach(b=>b.addEventListener("click", ()=>{
+    const was = tr.classList.contains("reserve");
     setReserve(tr, b.dataset.reinf === "1");
+    if (was !== tr.classList.contains("reserve")) flagReinfStale();
     refreshCosts();
   }));
   setReserve(tr, !!data?.reserve);
@@ -1375,6 +1386,14 @@ function setReserve(tr, on){
   tr.classList.toggle("reserve", on);
   tr.querySelector('[data-reinf="1"]').classList.toggle("on", on);
   tr.querySelector('[data-reinf="0"]').classList.toggle("on", !on);
+}
+
+/* the battle on screen was fought with the old front line, so its ticks and
+   upkeep no longer match the lists — say so rather than quietly mislead */
+function flagReinfStale(){
+  const el = document.getElementById("reinfStale");
+  if (el) el.innerHTML = `<div class="note warn"><strong>Reinforcements changed since this battle was run.</strong>
+    Run it again so tick 1 leaves them out and their upkeep starts on tick 2.</div>`;
 }
 
 function fillLoadout(type, wSel, aSel){
@@ -1435,8 +1454,7 @@ function clearTips(ns){
   [...TIPS.keys()].forEach(k=>{ if (k.startsWith(ns)) TIPS.delete(k); });
 }
 
-function sideCosts(side){
-  const rows = readSide(side);
+function costsOf(rows){
   let hire = 0, gearBits = 0;
   const upkeep = {}, gearRes = {};
   const items = [];
@@ -1476,16 +1494,42 @@ function breakdownTip(title, items, cell, countFmt){
     <table class="tip-break" style="margin-top:6px">${rows}</table>`;
 }
 
+/* which slice of the force each costs tab bills: `build` is what gets raised
+   and equipped, `field` is who is standing there paying upkeep and sat */
+const COST_TABS = [
+  {id:"total", name:"Total",
+   pick:(f, r)=>({build:f.concat(r), field:f.concat(r)})},
+  {id:"t1", name:"Tick 1", note:"The front line: raised for the first battle.",
+   pick:(f, r)=>({build:f, field:f})},
+  {id:"t2", name:"Tick 2",
+   note:"The reinforcements raised for tick 2; upkeep and sat for everyone on the field then, before tick 1's losses.",
+   pick:(f, r)=>({build:r, field:f.concat(r)})},
+  {id:"reinf", name:"Reinforcements Only", note:"The reinforcements on their own.",
+   pick:(f, r)=>({build:r, field:r})}
+];
+const costTab = {attacker:"total", defender:"total"};
+
 function renderCosts(side){
   const el = document.getElementById(side === "attacker" ? "costAttacker" : "costDefender");
   if (!el) return;
-  const c = sideCosts(side);
+  const all = readSide(side);
+  const front = all.filter(u=>!u.reserve), reinf = all.filter(u=>u.reserve);
+  const tabs = reinf.length > 0;
+  const tab = (tabs && COST_TABS.find(t=>t.id === costTab[side])) || COST_TABS[0];
+  const pick = tab.pick(front, reinf);
+  const c = costsOf(pick.build), f = costsOf(pick.field);
+  const tabBar = tabs ? `<div class="cost-tabs">${COST_TABS.map(t=>
+      `<button type="button" class="cost-tab${t === tab ? " active" : ""}"
+         data-cost-tab="${t.id}" data-cost-side="${side}">${t.name}</button>`).join("")}</div>
+      ${tab.note ? `<div class="cost-tab-note">${tab.note}</div>` : ""}` : "";
+  /* the Total tab's human copy splits the roster by the tick it is built for */
+  const roster = tabs && tab.id === "total" ? {front, reinf} : null;
 
   const hireTipKey = regTip(breakdownTip("Raise army — money cost", c.items, it=>
     `<span class="bits">${money(it.hire)}</span>`
   ) + `<div class="tip-cost">Total <span class="bits">${money(c.hire)}</span></div>`, "cost");
 
-  const upkeepTipKey = regTip(breakdownTip("Upkeep — per 12 hours", c.items,
+  const upkeepTipKey = regTip(breakdownTip("Upkeep — per 12 hours", f.items,
     it=>resChips(it.upkeep)), "cost");
 
   const gearTipKey = regTip(breakdownTip("Equipment — money cost", c.items, it=>
@@ -1514,13 +1558,14 @@ function renderCosts(side){
     <details class="cost-drop"${openMain ? " open" : ""}>
       <summary>Costs</summary>
       <div class="cost-body">
+        ${tabBar}
         <div${tip(hireTipKey)}>
           <span class="cost-label">Raise army</span>
           <span class="cost-val bits">${money(c.hire)}</span>
         </div>
         <div${tip(upkeepTipKey)}>
           <span class="cost-label">Upkeep / 12 h</span>
-          <span class="cost-val">${resChips(c.upkeep)}</span>
+          <span class="cost-val">${resChips(f.upkeep)}</span>
         </div>
         <div${tip(gearTipKey)}>
           <span class="cost-label">Equipment ${BIT}</span>
@@ -1533,15 +1578,22 @@ function renderCosts(side){
           extra: `<div class="cost-row"><span class="cost-label">equipment all-in</span>
                     <span class="cost-val bits">${money(c.gearBits + c.craftBits)}</span></div>`
         })}
-        ${unitsBlock(c.rows, openUnits)}
+        ${unitsBlock(c.rows, openUnits, roster)}
         <div class="cost-row" style="margin-top:6px;padding-top:7px;border-top:1px solid rgba(0,0,0,.35)">
           <span class="cost-label" style="color:var(--text)">Total up front</span>
           <span class="cost-val bits" style="font-size:13px">${money(c.hire + c.gearBits + c.craftBits)}</span>
         </div>
-        ${satRow(troopTotal(c.rows))}
+        ${satRow(troopTotal(f.rows))}
       </div>
     </details>`;
 }
+
+document.addEventListener("click", e=>{
+  const b = e.target.closest?.("[data-cost-tab]");
+  if (!b) return;
+  costTab[b.dataset.costSide] = b.dataset.costTab;
+  refreshCosts();          // both sides share the cost tooltips, so redraw both
+});
 
 /* the Resources row is itself the toggle for the raw breakdown */
 function resourceBlock(o){
@@ -1628,7 +1680,7 @@ function rosterText(rows){
 }
 
 /* the Units row doubles as the gear-tally dropdown */
-function unitsBlock(rows, open){
+function unitsBlock(rows, open, byTick){
   const {head, gear} = unitTally(rows);
   const lines = [];
   let widest = 1;
@@ -1653,7 +1705,13 @@ function unitsBlock(rows, open){
      actually on show — a small force keeps its numbers next to the names,
      a big one still gets room for every digit */
   const nWidth = `--gear-n-w:${widest}ch`;
-  const roster = rosterText(rows);
+  /* with reinforcements, the human copy is split into what is built for
+     each tick */
+  const roster = byTick
+    ? [["Tick 1", byTick.front], ["Tick 2", byTick.reinf]]
+        .map(([h, r]) => [h, rosterText(r)]).filter(([, t]) => t)
+        .map(([h, t]) => `# ${h}\n\n${t}`).join("\n\n")
+    : rosterText(rows);
   const copy = roster
     ? `<button class="bp-btn txt-btn u-copy" title="Copy the roster the way a person reads it"
          data-units-copy="${esc(roster).replace(/\n/g, "&#10;")}">Human Copy</button>` +
@@ -2545,6 +2603,7 @@ function render(result, atkRaw, defRaw, bonus){
         <span class="badge badge-info">Defenders <b>${defLeft}</b> / ${defTotal}</span>
       </div>
 
+      <div id="reinfStale"></div>
       ${stallsNote(stalls)}
 
       <div>
