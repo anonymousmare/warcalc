@@ -1337,8 +1337,8 @@ function makeRow(side, data){
   tr.innerHTML = `
     <td class="col-sprite"><span class="spriteSlot"></span></td>
     <td class="col-type"><span class="reinf-sw">
-      <button type="button" data-reinf="0" title="Front line: fights from tick 1">−</button>
-      <button type="button" data-reinf="1" title="Reinforcement: sits out this battle, joins on the next tick">+</button>
+      <button type="button" data-reinf="0" title="Front line">−</button>
+      <button type="button" data-reinf="1" title="Reinforcement">+</button>
     </span><select class="type">
       ${typeOpts.map(t=>`<option value="${t}">${t}</option>`).join("")}
     </select></td>
@@ -1391,8 +1391,7 @@ function setReserve(tr, on){
    upkeep no longer match the lists — say so rather than quietly mislead */
 function flagReinfStale(){
   const el = document.getElementById("reinfStale");
-  if (el) el.innerHTML = `<div class="note warn"><strong>Reinforcements changed since this battle was run.</strong>
-    Run it again so tick 1 leaves them out and their upkeep starts on tick 2.</div>`;
+  if (el) el.innerHTML = `<div class="note warn"><strong>Reinforcements changed — run again.</strong></div>`;
 }
 
 function fillLoadout(type, wSel, aSel){
@@ -2588,7 +2587,7 @@ function render(result, atkRaw, defRaw, bonus){
       <div class="panel-head">
         <h2>Battle result</h2>
         <span class="badge">Defender bonus: ${bonus}</span>
-        ${reserveCount() ? `<span class="badge" title="Held back from this battle; they join on tick 2 of the successive battles">${reserveCount()} reinforcement${reserveCount() === 1 ? "" : "s"} waiting</span>` : ""}
+        ${reserveCount() ? `<span class="badge">${reserveCount()} reinforcement${reserveCount() === 1 ? "" : "s"} waiting</span>` : ""}
         <span class="spacer"></span>
         <span class="badge badge-danger">Attackers <b>${atkLeft}</b> / ${atkTotal}</span>
         <span class="badge badge-info">Defenders <b>${defLeft}</b> / ${defTotal}</span>
@@ -2648,6 +2647,10 @@ function render(result, atkRaw, defRaw, bonus){
    "+" opens the attackers, "-" the defenders with the defender bonus on,
    "=" the defenders with it off. The sigil carries the bonus, so the flag
    costs nothing.
+
+   Reinforcements ride behind a "_" as a second army in the same form, so
+   "front_reinforcements"; a code without one is all front line, exactly as
+   codes read before reinforcements existed.
 
    Base 62 rather than 64 on purpose: letters and digits survive markdown,
    URLs, chat clients and a double-click, and the eight-thousandths of a
@@ -2715,6 +2718,12 @@ function sizeParts(n){
 /* built back to front: the last unit goes in first, so the first unit is
    the first one to come back out */
 function encodeArmy(units){
+  const front = (units || []).filter(u => !u.reserve);
+  const reinf = (units || []).filter(u =>  u.reserve);
+  return encodeStacks(front) + (reinf.length ? "_" + encodeStacks(reinf) : "");
+}
+
+function encodeStacks(units){
   let v = 0n;
   for (let i = (units || []).length - 1; i >= 0; i--){
     const u = units[i];
@@ -2730,6 +2739,13 @@ function encodeArmy(units){
 }
 
 function decodeArmy(code){
+  const [front, reinf, extra] = String(code).split("_");
+  if (extra !== undefined) throw new Error("not a code");
+  return decodeStacks(front || "0").concat(
+    reinf ? decodeStacks(reinf).map(u => Object.assign(u, {reserve:true})) : []);
+}
+
+function decodeStacks(code){
   let v = unb62(code);
   const pop = r => { const d = Number(v % r); v /= r; return d; };
   const out = [];
@@ -2748,8 +2764,8 @@ function decodeArmy(code){
 const encodeBattle = (atk, def, bonus) =>
   "+" + encodeArmy(atk) + (bonus === "No" ? "=" : "-") + encodeArmy(def);
 
-const RE_ARMY_CODE   = /^[0-9A-Za-z]+$/;
-const RE_BATTLE_CODE = /^\+([0-9A-Za-z]*)([-=])([0-9A-Za-z]*)$/;
+const RE_ARMY_CODE   = /^(?=.)[0-9A-Za-z]*(_[0-9A-Za-z]+)?$/;
+const RE_BATTLE_CODE = /^\+([0-9A-Za-z]*(?:_[0-9A-Za-z]+)?)([-=])([0-9A-Za-z]*(?:_[0-9A-Za-z]+)?)$/;
 
 /* null when the text is not a battle code at all */
 function decodeBattle(code){
@@ -3001,13 +3017,13 @@ function parsePresetJSON(text){
   if (!/^[{[]/.test(t)) return null;
   let data;
   try{ data = JSON.parse(t); }catch(e){ return {error: "That looks like JSON but does not parse."}; }
-  const unit = u => ({
+  const unit = u => Object.assign({
     type: String(u.type || "Cavalry").trim(),
     weapon: String(u.weapon || "").trim(),
     armor: String(u.armor || "").trim(),
     size: Math.max(1, parseInt(u.size, 10) || 1),
     training: Math.min(20, Math.max(0, parseInt(u.training, 10) || 0))
-  });
+  }, u.reserve === true ? {reserve:true} : {});
   const units = a => (Array.isArray(a) ? a : []).filter(u => u && typeof u === "object").map(unit);
   if (Array.isArray(data)) return {armies: {"pasted": units(data)}, battles: {}};
   const armies  = data.armyPresets   || (data.kind === "armyPresets"   ? data.presets : null) || {};
@@ -3095,6 +3111,7 @@ function importRows(side){
                   size: parseInt(lines[i-1].split(":")[1].trim(),10),
                   training: parseInt(lines[i].split(":")[1].trim(),10)};
         }
+        if (/^\s*Reinforcement:\s*yes/i.test(lines[i+1] || "")) unit.reserve = true;
         if (side === "attacker" && unit.type === "Alicorns"){
           alert("Alicorns can only be fielded as defenders — skipping that entry.");
           continue;
@@ -3455,7 +3472,7 @@ const compText = units => units.map(u=>[
     `${u.type}_${u.weapon}_${u.armor}`,
     u.type, label(u.weapon), label(u.armor),
     `Size: ${u.size}`, `Training: ${u.training}`
-  ].join("\n")).join("\n\n");
+  ].concat(u.reserve ? ["Reinforcement: yes"] : []).join("\n")).join("\n\n");
 
 async function copyText(text){
   try{
