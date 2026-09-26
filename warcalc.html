@@ -138,10 +138,12 @@ tbody tr:last-child{border-bottom:none}
    type selector, shown while the sprite or type cell is hovered, taking no
    room so the row never grows */
 .force-table td.col-sprite,.force-table td.col-type{position:relative}
-.reinf-sw{position:absolute;left:5px;top:1px;display:none;gap:5px;line-height:1}
+.reinf-sw{position:absolute;left:5px;top:8px;display:none;gap:3px;line-height:1}
 .force-table tr:has(td.col-sprite:hover, td.col-type:hover) .reinf-sw{display:flex}
 .reinf-sw button{
   all:unset;cursor:pointer;font:700 10px/1 "SFMono-Regular",Menlo,Consolas,monospace;opacity:.45;
+  width:12px;height:12px;display:flex;align-items:center;justify-content:center;
+  border-radius:50%;background:rgba(120,126,134,.14);
 }
 .reinf-sw button[data-reinf="0"]{color:#f17a77}
 .reinf-sw button[data-reinf="1"]{color:#78cc78}
