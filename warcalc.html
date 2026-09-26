@@ -134,20 +134,18 @@ tbody tr:last-child{border-bottom:none}
 }
 .sprite-missing.sprite-lg{font-size:20px}
 
-/* the front-line / reinforcement switch tucks into the bottom edge of the
-   sprite cell and only shows on hover, so it never makes the row taller */
-.force-table td.col-sprite{position:relative}
-.reinf-sw{
-  position:absolute;left:0;right:0;bottom:0;display:none;justify-content:center;gap:2px;
-  line-height:1;pointer-events:none;
-}
-.force-table td.col-sprite:hover .reinf-sw{display:flex}
+/* the front-line / reinforcement switch: a bare - and + tucked above the
+   type selector, shown while the sprite or type cell is hovered, taking no
+   room so the row never grows */
+.force-table td.col-sprite,.force-table td.col-type{position:relative}
+.reinf-sw{position:absolute;left:5px;top:1px;display:none;gap:5px;line-height:1}
+.force-table tr:has(td.col-sprite:hover, td.col-type:hover) .reinf-sw{display:flex}
 .reinf-sw button{
-  pointer-events:auto;font:600 9px/1 inherit;padding:1px 6px;cursor:pointer;
-  color:#d4d8dd;background:rgba(0,0,0,.72);border:1px solid rgba(255,255,255,.18);border-radius:3px;
+  all:unset;cursor:pointer;font:700 10px/1 "SFMono-Regular",Menlo,Consolas,monospace;opacity:.45;
 }
-.reinf-sw button:hover{color:#fff;border-color:rgba(255,255,255,.4)}
-.reinf-sw button.on{color:#e2c760;border-color:rgba(226,199,96,.45)}
+.reinf-sw button[data-reinf="0"]{color:#f17a77}
+.reinf-sw button[data-reinf="1"]{color:#78cc78}
+.reinf-sw button:hover,.reinf-sw button.on{opacity:1}
 /* a reinforcement sits out tick 1: drained of colour and tabbed in a touch */
 tr.reserve .spriteSlot{display:block;transform:translateX(4px)}
 tr.reserve .spriteSlot .sprite{filter:grayscale(1);opacity:.8}
@@ -1324,11 +1322,11 @@ function makeRow(side, data){
     : ["Cavalry","Tanks","Pegasi","Unicorns","Naval"]);
 
   tr.innerHTML = `
-    <td class="col-sprite"><span class="spriteSlot"></span><span class="reinf-sw">
+    <td class="col-sprite"><span class="spriteSlot"></span></td>
+    <td class="col-type"><span class="reinf-sw">
       <button type="button" data-reinf="0" title="Front line: fights from tick 1">−</button>
       <button type="button" data-reinf="1" title="Reinforcement: sits out this battle, joins on the next tick">+</button>
-    </span></td>
-    <td class="col-type"><select class="type">
+    </span><select class="type">
       ${typeOpts.map(t=>`<option value="${t}">${t}</option>`).join("")}
     </select></td>
     <td class="col-weapon"><select class="weapon"><option value="">—</option></select></td>
