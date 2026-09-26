@@ -141,12 +141,15 @@ tbody tr:last-child{border-bottom:none}
 .reinf-sw{position:absolute;left:5px;top:3px;display:none;gap:3px;line-height:1}
 .force-table tr:has(td.col-sprite:hover, td.col-type:hover) .reinf-sw{display:flex}
 .reinf-sw button{
-  all:unset;cursor:pointer;font:700 10px/1 "SFMono-Regular",Menlo,Consolas,monospace;opacity:.45;
-  width:12px;height:12px;display:flex;align-items:center;justify-content:center;
-  border-radius:50%;background:rgba(120,126,134,.14);
+  all:unset;cursor:pointer;position:relative;width:12px;height:12px;opacity:.45;
+  border-radius:50%;background:rgba(120,126,134,.14);font-size:0;color:#d4d8dd;
 }
-.reinf-sw button[data-reinf="0"]{color:#f17a77}
-.reinf-sw button[data-reinf="1"]{color:#78cc78}
+/* the - and + are drawn as bars so they sit dead centre in the circle */
+.reinf-sw button::before,.reinf-sw button[data-reinf="1"]::after{
+  content:"";position:absolute;left:50%;top:50%;background:currentColor;
+  width:6px;height:1.5px;transform:translate(-50%,-50%);
+}
+.reinf-sw button[data-reinf="1"]::after{width:1.5px;height:6px}
 .reinf-sw button:hover,.reinf-sw button.on{opacity:1}
 /* a reinforcement sits out tick 1: drained of colour and tabbed in a touch */
 tr.reserve .spriteSlot{display:block;transform:translateX(4px)}
