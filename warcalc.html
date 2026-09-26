@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Warcalc 1.3 — CLOP</title>
+<title>Warcalc 1.4 — CLOP</title>
 <style>
 :root{
   --bg:#272b30;
@@ -133,6 +133,28 @@ tbody tr:last-child{border-bottom:none}
   color:var(--text-dim);font-size:20px;font-weight:600;
 }
 .sprite-missing.sprite-lg{font-size:20px}
+
+/* the front-line / reinforcement switch tucks into the bottom edge of the
+   sprite cell and only shows on hover, so it never makes the row taller */
+.force-table td.col-sprite{position:relative}
+.reinf-sw{
+  position:absolute;left:0;right:0;bottom:0;display:none;justify-content:center;gap:2px;
+  line-height:1;pointer-events:none;
+}
+.force-table td.col-sprite:hover .reinf-sw{display:flex}
+.reinf-sw button{
+  pointer-events:auto;font:600 9px/1 inherit;padding:1px 6px;cursor:pointer;
+  color:var(--text-dim);background:rgba(0,0,0,.72);border:1px solid var(--border-soft);border-radius:3px;
+}
+.reinf-sw button:hover{color:var(--text)}
+.reinf-sw button.on{color:#e2c760;border-color:rgba(226,199,96,.45)}
+/* a reinforcement sits out tick 1: drained of colour and tabbed in a touch */
+tr.reserve .spriteSlot{display:block;transform:translateX(4px)}
+tr.reserve .spriteSlot .sprite{filter:grayscale(1);opacity:.8}
+tr.reserve td.col-sprite::before{
+  content:"";position:absolute;left:2px;top:8px;bottom:8px;width:2px;border-radius:1px;
+  background:rgba(226,199,96,.55);
+}
 
 /* ---------- log ---------- */
 .log{
@@ -615,7 +637,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 <body>
 
 <div class="tabstrip">
-  <span class="tab-brand">Warcalc 1.3<button class="caret-btn" id="btnTools"
+  <span class="tab-brand">Warcalc 1.4<button class="caret-btn" id="btnTools"
     title="Import / export presets" aria-expanded="false">›</button></span>
   <button class="tab active" data-tab="battle">Battle</button>
   <button class="tab" data-tab="counter">Counters</button>
@@ -1302,7 +1324,10 @@ function makeRow(side, data){
     : ["Cavalry","Tanks","Pegasi","Unicorns","Naval"]);
 
   tr.innerHTML = `
-    <td class="col-sprite"><span class="spriteSlot"></span></td>
+    <td class="col-sprite"><span class="spriteSlot"></span><span class="reinf-sw">
+      <button type="button" data-reinf="0" title="Front line: fights from tick 1">−</button>
+      <button type="button" data-reinf="1" title="Reinforcement: sits out this battle, joins on the next tick">+</button>
+    </span></td>
     <td class="col-type"><select class="type">
       ${typeOpts.map(t=>`<option value="${t}">${t}</option>`).join("")}
     </select></td>
@@ -1322,6 +1347,11 @@ function makeRow(side, data){
   tr.querySelector(".training").addEventListener("input", ()=>paintRow(tr));
   tr.querySelector(".size").addEventListener("input", ()=>paintRow(tr));
   tr.querySelector(".del").addEventListener("click", ()=>{ tr.remove(); refreshCounts(); });
+  tr.querySelectorAll("[data-reinf]").forEach(b=>b.addEventListener("click", ()=>{
+    setReserve(tr, b.dataset.reinf === "1");
+    refreshCosts();
+  }));
+  setReserve(tr, !!data?.reserve);
 
   document.getElementById(side === "attacker" ? "tbodyAttacker" : "tbodyDefender").appendChild(tr);
 
@@ -1334,6 +1364,14 @@ function makeRow(side, data){
   paintRow(tr);
   refreshCounts();
   return tr;
+}
+
+/* a reinforcement stays out of the battle on screen and arrives with the
+   survivors at the start of the next tick */
+function setReserve(tr, on){
+  tr.classList.toggle("reserve", on);
+  tr.querySelector('[data-reinf="1"]').classList.toggle("on", on);
+  tr.querySelector('[data-reinf="0"]').classList.toggle("on", !on);
 }
 
 function fillLoadout(type, wSel, aSel){
@@ -1660,7 +1698,7 @@ function readSide(side){
     const armor = tr.querySelector(".armor").value || "ScroungedArmor";
     const size = parseInt(tr.querySelector(".size").value,10) || 0;
     const training = parseInt(tr.querySelector(".training").value,10) || 0;
-    out.push({type, weapon, armor, size, training,
+    out.push({type, weapon, armor, size, training, reserve: tr.classList.contains("reserve"),
       name:`${type}_${weapon}_${armor}_size_${size}_train_${training}`});
   });
   return out;
@@ -2068,8 +2106,10 @@ function applySurvivors(){
   if (!lastResult) return;
 
   survSnapshot = {attacker: packSide("attacker"), defender: packSide("defender")};
-  setSide("attacker", survivorRows(lastResult.units, true));
-  setSide("defender", survivorRows(lastResult.units, false));
+  const fwd = rows => rows.map(u=>({type:u.type, weapon:u.weapon, armor:u.armor,
+                                     size:u.size, training:u.training}));
+  setSide("attacker", survivorRows(lastResult.units, true).concat(fwd(lastReserves.attacker)));
+  setSide("defender", survivorRows(lastResult.units, false).concat(fwd(lastReserves.defender)));
   scheduleSave();
   btn.textContent = "Undo";
   btn.className = "btn btn-xs";
@@ -2086,6 +2126,9 @@ function applySurvivors(){
    who starts a tick whether or not they live through it. */
 const CHAIN_MAX = 10;
 let lastBonus = "No";        // the defender bonus the shown battle was fought under
+/* the units held back from the shown battle; they join the survivors on tick 2 */
+let lastReserves = {attacker:[], defender:[]};
+const reserveCount = () => lastReserves.attacker.length + lastReserves.defender.length;
 
 const troopsOf = rows => rows.reduce((n, u) => n + Math.max(0, u.size), 0);
 
@@ -2143,6 +2186,7 @@ function chainTickBlock(k, cum){
       id="chainTick${n}" open>
     <summary>
       <span class="badge badge-warning">Tick ${n}</span>
+      ${n === 2 && reserveCount() ? `<span class="badge">+${reserveCount()} reinforcement${reserveCount() === 1 ? "" : "s"}</span>` : ""}
       <span class="badge badge-danger">Attackers <b>${k.atkLeft}</b> / ${k.atkStart}</span>
       <span class="badge badge-info">Defenders <b>${k.defLeft}</b> / ${k.defStart}</span>
       <span class="spacer"></span>
@@ -2244,8 +2288,8 @@ function chainOutcome(run){
 
 function renderChain(){
   if (!lastResult) return "";
-  const atk0 = chainRows(lastResult.units, true);
-  const def0 = chainRows(lastResult.units, false);
+  const atk0 = chainRows(lastResult.units, true).concat(lastReserves.attacker);
+  const def0 = chainRows(lastResult.units, false).concat(lastReserves.defender);
 
   if (!atk0.length || !def0.length)
     return `<div class="note chain-note">Nothing left to fight.</div>`;
@@ -2492,6 +2536,7 @@ function render(result, atkRaw, defRaw, bonus){
       <div class="panel-head">
         <h2>Battle result</h2>
         <span class="badge">Defender bonus: ${bonus}</span>
+        ${reserveCount() ? `<span class="badge" title="Held back from this battle; they join on tick 2 of the successive battles">${reserveCount()} reinforcement${reserveCount() === 1 ? "" : "s"} waiting</span>` : ""}
         <span class="spacer"></span>
         <span class="badge badge-danger">Attackers <b>${atkLeft}</b> / ${atkTotal}</span>
         <span class="badge badge-info">Defenders <b>${defLeft}</b> / ${defTotal}</span>
@@ -3110,8 +3155,9 @@ const store = {
 };
 
 /* a unit stripped down to what is worth saving */
-const packSide = side => readSide(side).map(u=>({
-  type:u.type, weapon:u.weapon, armor:u.armor, size:u.size, training:u.training}));
+const packSide = side => readSide(side).map(u=>Object.assign({
+  type:u.type, weapon:u.weapon, armor:u.armor, size:u.size, training:u.training},
+  u.reserve ? {reserve:true} : {}));
 
 function setSide(side, units){
   document.getElementById(side === "attacker" ? "tbodyAttacker" : "tbodyDefender").innerHTML = "";
@@ -3615,6 +3661,7 @@ document.getElementById("btnClearResults").addEventListener("click", ()=>{
   clearTips("death");
   clearTips("chain");
   lastResult = null;
+  lastReserves = {attacker:[], defender:[]};
   survSnapshot = null;
   setChainJumpButtons(0);
   refreshJumpDock();
@@ -3623,11 +3670,18 @@ document.getElementById("btnClearResults").addEventListener("click", ()=>{
 document.getElementById("defBonus").addEventListener("change", scheduleSave);
 
 document.getElementById("btnRun").addEventListener("click", ()=>{
-  const atk = readSide("attacker");
-  const def = readSide("defender");
-  if (!atk.length && !def.length){ alert("Add at least one unit to either side."); return; }
-  const bad = [...atk, ...def].find(u=>u.size < 1);
+  const atkAll = readSide("attacker");
+  const defAll = readSide("defender");
+  const bad = [...atkAll, ...defAll].find(u=>u.size < 1);
+  const atk = atkAll.filter(u=>!u.reserve), def = defAll.filter(u=>!u.reserve);
+  if (!atk.length && !def.length){
+    alert(atkAll.length || defAll.length
+      ? "Every unit is a reinforcement — put at least one on the front line."
+      : "Add at least one unit to either side.");
+    return;
+  }
   if (bad){ alert("Every unit needs a size of at least 1."); return; }
+  lastReserves = {attacker: atkAll.filter(u=>u.reserve), defender: defAll.filter(u=>u.reserve)};
   try{
     render(simulate(atk, def, document.getElementById("defBonus").value), atk, def,
            document.getElementById("defBonus").value);
@@ -4940,7 +4994,7 @@ async function runSolver(){
   if (solveBusy) return;
   const opts = readSolveOpts();
   const foeSide = opts.side === "defender" ? "attacker" : "defender";
-  const foeRows = readSide(foeSide);
+  const foeRows = readSide(foeSide).filter(u=>!u.reserve);   // reinforcements miss the first tick
   if (!foeRows.length){
     alert(`Add some ${foeSide}s first — the solver needs something to solve against.`);
     return;
