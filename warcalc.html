@@ -695,6 +695,8 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
     <input type="file" id="impFile" accept="application/json,.json" style="display:none">
     <label class="hk-toggle" for="hkEnable">
       <input type="checkbox" id="hkEnable" checked> Jump hotkeys (Q W E R)</label>
+    <label class="hk-toggle" for="bcNoGroup">
+      <input type="checkbox" id="bcNoGroup"> Don't group Builder Copy</label>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:10px;
               border-top:1px solid var(--border-soft)">
@@ -1669,6 +1671,27 @@ function rosterText(rows){
   return order.map(t => byType.get(t).join("\n")).join("\n\n");
 }
 
+/* create, equip and group lines for the army-builder plugin; the gear is
+   taken as already delivered, so nothing is built */
+const bq = t => /\s/.test(t) ? `"${t}"` : t;
+const bSuffix = i => { let s = ""; i++; while (i > 0){ i--; s = String.fromCharCode(97 + i % 26) + s; i = Math.floor(i / 26); } return s; };
+function builderText(rows){
+  const lines = [], names = [], seen = {};
+  rows.forEach(u=>{
+    const n = Math.max(0, u.size);
+    if (!n) return;
+    const base = u.type.toLowerCase();
+    const name = `${base}_${bSuffix(seen[base] = (seen[base] ?? -1) + 1)}`;
+    names.push(name);
+    lines.push(`create ${u.type} national ${n} ${name}`);
+    const gear = [u.weapon, u.armor].filter(k => k && !SCROUNGED[k]).map(k => bq(label(k)));
+    if (gear.length) lines.push(`equip ${name} ${gear.join(" ")}`);
+  });
+  if (!document.getElementById("bcNoGroup")?.checked)
+    names.slice(1).forEach(n => lines.push(`group ${n} ${names[0]}`));
+  return lines.join("\n");
+}
+
 /* the Units row doubles as the gear-tally dropdown */
 function unitsBlock(rows, open, byTick){
   const {head, gear} = unitTally(rows);
@@ -1706,7 +1729,9 @@ function unitsBlock(rows, open, byTick){
     ? `<button class="bp-btn txt-btn u-copy" title="Copy the roster the way a person reads it"
          data-units-copy="${esc(roster).replace(/\n/g, "&#10;")}">Human Copy</button>` +
       `<button class="bp-btn txt-btn u-copy" title="Copy one count a line, ready for a spreadsheet column"
-         data-units-copy="${sheetText(rows).replace(/\n/g, "&#10;")}">Spreadsheet Copy</button>`
+         data-units-copy="${sheetText(rows).replace(/\n/g, "&#10;")}">Spreadsheet Copy</button>` +
+      `<button class="bp-btn txt-btn u-copy" title="Copy as army-builder commands"
+         data-units-copy="${esc(builderText(rows)).replace(/\n/g, "&#10;")}">Builder Copy</button>`
     : "";
   return `<details class="units-drop"${open ? " open" : ""}>
       <summary class="cost-row">
@@ -5396,6 +5421,12 @@ function syncHotkeys(){
 hkBox.checked = store.get(LS_HOTKEYS, true) !== false;
 hkDock.classList.toggle("keys-off", !hotkeysOn());
 hkBox.addEventListener("change", syncHotkeys);
+
+const LS_BC_NOGROUP = "warcalc.builderNoGroup";
+const bcBox = document.getElementById("bcNoGroup");
+bcBox.checked = store.get(LS_BC_NOGROUP, false) === true;
+bcBox.addEventListener("change", ()=>{ store.set(LS_BC_NOGROUP, bcBox.checked); refreshCosts(); });
+if (bcBox.checked) refreshCosts();
 
 /* typing into a field always wins — the shortcuts only fire on a bare key */
 const typingIn = el => !!el && (el.isContentEditable ||
