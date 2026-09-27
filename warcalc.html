@@ -1731,7 +1731,7 @@ function unitsBlock(rows, open, byTick){
       `<button class="bp-btn txt-btn u-copy" title="Copy one count a line, ready for a spreadsheet column"
          data-units-copy="${sheetText(rows).replace(/\n/g, "&#10;")}">Spreadsheet Copy</button>` +
       `<button class="bp-btn txt-btn u-copy" title="Copy as army-builder commands"
-         data-units-copy="${esc(builderText(rows)).replace(/\n/g, "&#10;")}">Builder Copy</button>`
+         data-units-copy="${esc(builderText(byTick ? byTick.front : rows)).replace(/\n/g, "&#10;")}">Builder Copy</button>`
     : "";
   return `<details class="units-drop"${open ? " open" : ""}>
       <summary class="cost-row">
