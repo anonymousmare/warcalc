@@ -643,6 +643,127 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .t-pegasi  {color:#FF6EC7}
 .t-unicorns{color:#00FF21}
 .t-naval   {color:#00FFFF}
+
+/* ---------- grand strategy ---------- */
+.gs-top{display:flex;gap:6px 22px;flex-wrap:wrap;align-items:flex-start}
+.gs-h{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);
+  font-weight:600;margin-bottom:6px}
+.gs-inputs{display:flex;gap:5px;flex-wrap:wrap}
+.gs-in{
+  display:inline-flex;align-items:center;gap:5px;margin:0;
+  background:var(--sunken);border:1px solid var(--border-soft);border-radius:4px;padding:3px 4px 3px 6px;
+}
+.gs-in input,.gs-ritem input{
+  width:86px;padding:2px 4px;font-size:12px;text-align:right;
+  font-family:"SFMono-Regular",Menlo,Consolas,monospace;
+}
+.gs-bit{display:inline-block;width:16px;text-align:center;color:#fff;font-weight:600;font-size:13px;line-height:16px}
+.gs-strip{
+  display:inline-flex;gap:2px;align-items:center;margin-top:6px;padding:3px 8px;
+  background:rgba(0,0,0,.22);border:1px solid var(--border-soft);border-radius:4px;
+}
+.gs-strip .gs-x{font:700 12px/1 "SFMono-Regular",Menlo,Consolas,monospace;color:#faa123;margin-right:6px}
+
+.gs-res > summary{
+  font-size:12px;color:var(--text-dim);list-style:none;display:inline-flex;gap:5px;align-items:center;
+  text-transform:uppercase;letter-spacing:.06em;font-weight:600;
+}
+.gs-res > summary::-webkit-details-marker{display:none}
+.gs-res > summary:before{content:"▸";display:inline-block;transition:transform .12s}
+.gs-res[open] > summary:before{transform:rotate(90deg)}
+.gs-res > summary:hover{color:#fff}
+.gs-res-cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:10px}
+.gs-res-cols > div + div{border-left:2px solid rgba(255,255,255,.22);padding-left:18px}
+@media (max-width:1100px){.gs-res-cols{grid-template-columns:1fr}
+  .gs-res-cols > div + div{border-left:none;padding-left:0;border-top:2px solid rgba(255,255,255,.22);padding-top:12px}}
+.gs-rgrp{display:flex;gap:8px;align-items:flex-start;padding:4px 0;border-top:1px solid rgba(0,0,0,.35)}
+.gs-rgrp:first-child{border-top:none}
+.gs-rgrp > .gs-rtype{flex:0 0 66px;font-size:12px;font-weight:600;padding-top:3px}
+.gs-ritems{display:flex;flex-wrap:wrap;gap:4px 12px;flex:1 1 auto}
+.gs-ritem{display:inline-flex;align-items:center;gap:5px;margin:0;font-size:12px;color:var(--text)}
+.gs-ritem .gear-img{flex:0 0 32px}
+.gs-ritem .g-name{width:112px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gs-ritem input{width:62px}
+
+.gs-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding-bottom:10px;margin-bottom:12px;
+  border-bottom:1px solid var(--border-soft)}
+.gs-comps{display:flex;gap:4px;flex-wrap:wrap}
+.gs-slips{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;padding-bottom:10px}
+.slip{
+  --paper:#25282c;--ink:#d6d3cc;
+  position:relative;width:272px;padding:12px 14px 14px;margin-bottom:8px;
+  background:var(--paper);color:var(--ink);border-radius:3px 3px 0 0;
+  border:1px solid rgba(255,255,255,.05);border-bottom:none;
+  background-image:linear-gradient(rgba(255,255,255,.025),rgba(0,0,0,.06));
+  font:12px/1.5 "SFMono-Regular",Menlo,Consolas,monospace;
+  box-shadow:0 8px 18px rgba(0,0,0,.5);
+}
+/* the torn edge a till leaves on the bottom of a slip */
+.slip::after{
+  content:"";position:absolute;left:0;right:0;bottom:-8px;height:8px;
+  background:conic-gradient(from 135deg at 50% 0,var(--paper) 90deg,transparent 0) 0 0/12px 8px repeat-x;
+}
+.gs-slips.wide .slip{width:380px}
+/* one swatch in the corner; it opens the rest */
+.slip-color{
+  position:absolute;top:9px;right:9px;width:14px;height:14px;padding:0;border-radius:50%;cursor:pointer;
+  border:1px solid rgba(255,255,255,.35);box-shadow:0 0 0 2px rgba(0,0,0,.25);
+}
+.slip-color:hover,.slip-color.open{border-color:#fff}
+.slip-pop{
+  position:absolute;top:28px;right:6px;z-index:5;display:flex;gap:5px;padding:6px 7px;
+  background:var(--sunken);border:1px solid var(--border-soft);border-radius:4px;
+  box-shadow:0 6px 16px rgba(0,0,0,.55);
+}
+.slip-dot{width:11px;height:11px;padding:0;border-radius:50%;cursor:pointer;
+  border:1px solid rgba(255,255,255,.28)}
+.slip-dot.on{outline:1.5px solid var(--ink);outline-offset:1px}
+.slip-name{text-align:center;font-weight:700;font-size:14px;letter-spacing:.12em;text-transform:uppercase;
+  overflow-wrap:anywhere}
+.slip-meta{text-align:center;font-size:11px;opacity:.6}
+.slip-name{padding:0 18px}
+.slip-cut{border-top:1.5px dashed color-mix(in srgb,var(--ink) 30%,transparent);margin:9px 0}
+.slip-cut.double{border-top:3px double color-mix(in srgb,var(--ink) 35%,transparent);margin:11px 0 8px}
+.slip-u{padding:2px 0 3px}
+.slip-u + .slip-u{border-top:1px dotted color-mix(in srgb,var(--ink) 16%,transparent)}
+.slip-u[data-tip-t]{cursor:help}
+.slip-u1{display:flex;align-items:baseline;gap:6px}
+.slip-u1 .q{flex:0 0 auto;font-weight:700}
+.slip-u1 .nm{flex:1 1 auto;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-weight:600}
+.slip-u1 .tr{flex:0 0 auto;opacity:.65}
+.slip-u2{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px}
+.slip-u2 .g{display:flex;align-items:center;gap:4px;min-width:0}
+.slip-u2 .g.none{opacity:.45}
+.slip-u2 .gn{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slip-u2 .gear-img{flex:0 0 32px}
+.slip-u2 .g.none .gear-img{display:none}
+.slip-l{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:1px 0}
+.slip-l > span:first-child{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;display:inline-flex;align-items:center;gap:5px;
+  min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slip-l .v{text-align:right;white-space:nowrap}
+.slip-l .gear-img{flex:0 0 32px}
+.slip-tot{font-weight:700;font-size:13px;margin:2px 0 3px;padding:3px 0;color:#fff;
+  border-top:1px solid color-mix(in srgb,var(--ink) 22%,transparent);
+  border-bottom:1px solid color-mix(in srgb,var(--ink) 22%,transparent)}
+.slip .gs-bit{color:var(--ink)}
+.slip-sub{font:700 10px/1.3 "Helvetica Neue",Helvetica,Arial,sans-serif;letter-spacing:.1em;text-transform:uppercase;
+  opacity:.55;margin:8px 0 3px;display:flex;align-items:center;gap:6px}
+.slip-sub:first-child{margin-top:0}
+.slip-l .pc{opacity:.5;font-size:11px}
+.slip-l .t{font-size:10px;opacity:.6;font-family:"SFMono-Regular",Menlo,Consolas,monospace}
+.slip .bad{color:#f17a77}
+.slip .warn{color:#faa123}
+.slip-x{background:none;border:1px solid color-mix(in srgb,var(--ink) 35%,transparent);border-radius:3px;
+  color:var(--ink);font:700 10px/1 "SFMono-Regular",Menlo,Consolas,monospace;padding:1px 4px;cursor:pointer}
+.slip-x:hover{background:color-mix(in srgb,var(--ink) 12%,transparent)}
+/* the totals ticket spreads its sections across the width */
+.gs-total:empty{display:none}
+.gs-total{margin-bottom:24px}
+.slip.slip-wide{width:100%;padding:12px 18px 16px}
+.slip-wide-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.slip-wide .slip-name{padding:0}
+.slip-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px 28px}
+.slip-cols > div:empty{display:none}
 </style>
 </head>
 <body>
@@ -652,6 +773,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
     title="Import / export presets" aria-expanded="false">›</button></span>
   <button class="tab active" data-tab="battle">Battle</button>
   <button class="tab" data-tab="counter">Counters</button>
+  <button class="tab" data-tab="grand">Grand Strategy</button>
   <span class="ref-btns">
     <button class="ref-btn" data-ref="stats" title="Weapon &amp; armor stat table  (F)">
       <span class="ref-lab">Stats</span><kbd>F</kbd></button>
@@ -989,6 +1111,40 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
   </div>
 
   <div id="ctrOut"></div>
+</div>
+
+<!-- ============ GRAND STRATEGY ============ -->
+<div id="viewGrand" style="display:none">
+  <div class="panel gs-top">
+    <div>
+      <div class="gs-h">Stockpile</div>
+      <div class="gs-inputs" id="gsStock"></div>
+    </div>
+    <div>
+      <div class="gs-h">Production / turn</div>
+      <div class="gs-inputs" id="gsProd"></div>
+      <div class="gs-strip" id="gsStrip"></div>
+    </div>
+  </div>
+
+  <details class="panel gs-res" id="gsReserves">
+    <summary>Reserves</summary>
+    <div class="gs-res-cols">
+      <div><div class="gs-h">Weapons</div><div id="gsResW"></div></div>
+      <div><div class="gs-h">Armor</div><div id="gsResA"></div></div>
+    </div>
+  </details>
+
+  <div class="panel">
+    <div class="gs-bar">
+      <div class="gs-comps" id="gsComps"></div>
+      <span class="spacer"></span>
+      <label class="hk-toggle" for="gsWide"><input type="checkbox" id="gsWide"> Full width</label>
+    </div>
+    <div id="gsOut"></div>
+  </div>
+
+  <div class="gs-total" id="gsTotal"></div>
 </div>
 
 <div id="tip"></div>
@@ -3312,6 +3468,7 @@ function refreshPresetSelects(){
   if (tc) tc.textContent = `${armies.length} army · ${battles.length} battle` +
     (storageOK ? "" : " · storage unavailable");
   renderMarks();
+  document.dispatchEvent(new Event("warcalc:presets"));   // the Grand Strategy list follows
 }
 
 /* ---- marked armies: the presets you swap between, one click away ---- */
@@ -5344,7 +5501,7 @@ syncSolveSide();
    9. TABS
    =================================================================== */
 
-const VIEWS = {battle:"viewBattle", counter:"viewCounter"};
+const VIEWS = {battle:"viewBattle", counter:"viewCounter", grand:"viewGrand"};
 
 function showTab(name){
   if (!VIEWS[name]) name = "battle";
@@ -5978,6 +6135,314 @@ ctrEl("ctrType").addEventListener("change", ()=>{
 ctrEl("btnCounter").addEventListener("click", runCounter);
 ctrEl("btnCounterStop").addEventListener("click", ()=>{ ctrHalt = true; });
 fillCounterTypes();
+
+
+/* ===================================================================
+   10. GRAND STRATEGY — what a set of saved armies costs against the
+       stockpile, and what their upkeep eats of a war-tick's production
+   =================================================================== */
+
+const LS_GRAND = "warcalc.grand";
+const GS_TICKS = 6;                                   // turns produced per war tick
+const GS_STOCK = ["apples","coffee","gems","copper","composites","machinery",
+                  "vehicle","precision","plastics","tungsten","bits"];
+const GS_PROD  = ["apples","coffee","gems","gasoline","bits","copper"];
+const GS_STRIP = ["apples","coffee","gems","gasoline"];
+const GS_COST  = ["bits","copper","tungsten","plastics","machinery","vehicle","precision","composites"];
+const GS_UPKEEP = ["apples","coffee","gems","gasoline"];
+const GS_GEAR  = UNIT_ORDER.flatMap(g => g.gear);
+
+const gs = (()=>{
+  const s = store.get(LS_GRAND, null);
+  const o = s && typeof s === "object" ? s : {};
+  const obj = v => v && typeof v === "object" && !Array.isArray(v) ? v : {};
+  return {stock: obj(o.stock), prod: obj(o.prod), resv: obj(o.resv),
+          comps: Array.isArray(o.comps) ? o.comps : [], colors: obj(o.colors), wide: o.wide === true, upx: GS_TICKS};    // every visit opens on the x6 view
+})();
+const gsSave = () => store.set(LS_GRAND, gs);
+const gsNum  = v => Math.max(0, Number(v) || 0);
+const gsEl   = id => document.getElementById(id);
+
+const gsIcon = k => k === "bits"
+  ? `<span class="gs-bit" title="Bits">${BIT}</span>` : resIcon(k);
+const gsName = k => k === "bits" ? "Bits" : (RESOURCES[k]?.name || k);
+const gsFmt  = n => (Math.round(n * 100) / 100).toLocaleString("en-US");
+
+function gsInputs(boxId, bucket, keys){
+  gsEl(boxId).innerHTML = keys.map(k=>`<label class="gs-in" title="${esc(gsName(k))}">${gsIcon(k)}
+      <input type="number" min="0" step="any" data-gs-bucket="${bucket}" data-gs-key="${k}"
+        value="${gs[bucket][k] ? esc(gs[bucket][k]) : ""}" placeholder="0"></label>`).join("");
+}
+
+function gsStrip(){
+  gsEl("gsStrip").innerHTML = `<span class="gs-x">×${GS_TICKS}</span>` + GS_STRIP.map(k=>
+    `<span class="res-chip">${gsIcon(k)} <span class="mono">${gsFmt(gsNum(gs.prod[k]) * GS_TICKS)}</span></span>`).join("");
+}
+
+function gsReserves(){
+  const col = kind => UNIT_ORDER.filter(g => g.gear.length).map(g=>{
+    const items = g.gear.filter(k => kind === "weapon" ? k in WEAPON_COST : k in ARMOR_COST);
+    return `<div class="gs-rgrp"><span class="gs-rtype t-${g.type.toLowerCase()}">${esc(g.type)}</span>
+      <div class="gs-ritems">${items.map(k=>`<label class="gs-ritem">${gearImg(k)}
+        <span class="g-name">${esc(label(k))}</span>
+        <input type="number" min="0" step="1" data-gs-bucket="resv" data-gs-key="${esc(k)}"
+          value="${gs.resv[k] ? esc(gs.resv[k]) : ""}" placeholder="0"></label>`).join("")}</div></div>`;
+  }).join("");
+  gsEl("gsResW").innerHTML = col("weapon");
+  gsEl("gsResA").innerHTML = col("armor");
+}
+
+/* stock the slips are printed on — all dark, each with a faint cast */
+const GS_PAPER = {
+  coal:  {paper:"#25282c", ink:"#d6d3cc"},
+  ember: {paper:"#30251f", ink:"#e0cfbd"},
+  wine:  {paper:"#321f27", ink:"#e3ccd4"},
+  moss:  {paper:"#1f2b24", ink:"#cddfd2"},
+  navy:  {paper:"#1c2531", ink:"#cbd9e7"},
+  plum:  {paper:"#292233", ink:"#dbd0eb"},
+  ash:   {paper:"#33373c", ink:"#e2e2e2"}
+};
+const GS_PAPER_DEFAULT = "coal";
+const GS_TOTAL = "__total__";                          // colour key for the totals ticket
+
+/* the long names squeezed to fit half a slip */
+const GS_SHORT = {ScroungedWeapons:"Scrounged", ScroungedArmor:"Scrounged",
+  "Chem-LightBattery":"Chem-Light", WaterlineEraser:"W. Eraser", CanopyLights:"Canopy Lts"};
+const gsShort = k => (!gs.wide && GS_SHORT[k]) || label(k);
+
+function gsComps(){
+  const armies = getArmies();
+  const names = Object.keys(armies).sort();
+  gs.comps = gs.comps.filter(n => armies[n]);
+  gsEl("gsComps").innerHTML = names.map(n=>`<span class="mark-chip${gs.comps.includes(n) ? " on" : ""}"
+      data-gs-comp="${esc(n)}"><span class="n">${esc(n)}</span></span>`).join("");
+  /* slips come out in the order they were picked, and take reserves in that order */
+  return gs.comps.map(n => ({name: n, units: armies[n]}));
+}
+
+/* one army's bill; reserves it draws on are taken out of resvLeft */
+function gsBill(units, resvLeft){
+  let hire = 0, gearBits = 0, troops = 0;
+  const upkeep = {}, need = {}, res = {}, used = {};
+  units.forEach(u=>{
+    const n = gsNum(u.size);
+    troops += n;
+    const uc = UNIT_COST[u.type] || {hire:0, upkeep:{}};
+    hire += uc.hire * n;
+    addRes(upkeep, uc.upkeep, n);
+    [u.weapon, u.armor].forEach(k=>{ if (k && !SCROUNGED[k]) need[k] = (need[k] || 0) + n; });
+  });
+  GS_GEAR.filter(k => need[k] > 0).forEach(k=>{
+    const from = Math.min(need[k], resvLeft[k] || 0);
+    if (from){ used[k] = from; resvLeft[k] -= from; }
+    const c = gearCost(k in WEAPON_COST ? "weapon" : "armor", k);
+    gearBits += c.bits * (need[k] - from);
+    addRes(res, c.res, need[k] - from);
+  });
+  res.bits = hire + gearBits;
+  return {hire, gearBits, troops, upkeep, res, used};
+}
+
+function gsMerge(bills){
+  const t = {hire:0, gearBits:0, troops:0, upkeep:{}, res:{}, used:{}};
+  bills.forEach(b=>{
+    t.hire += b.hire; t.gearBits += b.gearBits; t.troops += b.troops;
+    addRes(t.upkeep, b.upkeep); addRes(t.res, b.res); addRes(t.used, b.used);
+  });
+  return t;
+}
+
+/* the amount, then what share it is, faded, in brackets */
+function gsAmtPct(need, have){
+  if (!(have > 0)) return `<span class="bad">${money(need)}</span> <span class="pc">(∞)</span>`;
+  const p = need / have * 100;
+  const t = p < 1 ? "<1%" : Math.round(p).toLocaleString("en-US") + "%";
+  const cls = p > 100 ? "bad" : p >= 80 ? "warn" : "";
+  return `<span class="${cls}">${money(need)}</span> <span class="pc">(${t})</span>`;
+}
+
+const gsRow = (l, v, cls) =>
+  `<div class="slip-l${cls ? " " + cls : ""}"><span>${l}</span><span class="v">${v}</span></div>`;
+
+let gsPicker = null;                                   // which ticket has its colours open
+function gsDots(key){
+  const cur = GS_PAPER[gs.colors[key]] ? gs.colors[key] : GS_PAPER_DEFAULT;
+  const pop = gsPicker === key ? `<div class="slip-pop">${Object.entries(GS_PAPER).map(([id, c])=>
+    `<button type="button" class="slip-dot${cur === id ? " on" : ""}" title="${id}"
+       style="background:${c.paper}" data-gs-color="${id}" data-gs-slip="${esc(key)}"></button>`).join("")}</div>` : "";
+  return `<button type="button" class="slip-color${pop ? " open" : ""}" title="Colour"
+      data-gs-pick="${esc(key)}" style="background:${GS_PAPER[cur].paper}"></button>${pop}`;
+}
+
+function gsPaper(key){
+  const pc = GS_PAPER[gs.colors[key]] || GS_PAPER[GS_PAPER_DEFAULT];
+  return `--paper:${pc.paper};--ink:${pc.ink}`;
+}
+
+/* the pieces a slip is made of; the totals ticket lays the same ones out wide */
+function gsBillHTML(b){
+  return gsRow("Hire", money(b.hire)) + gsRow("Gear", money(b.gearBits)) +
+    gsRow(`${gsIcon("bits")} Total`, money(b.res.bits), "slip-tot") +
+    GS_COST.filter(k => k !== "bits" && b.res[k] > 0)
+      .map(k => gsRow(`${gsIcon(k)} ${esc(gsName(k))}`, money(b.res[k]))).join("");
+}
+
+/* gear taken off the reserves rather than built */
+function gsWriteoffHTML(b){
+  const used = Object.entries(b.used);
+  return used.length ? `<div class="slip-sub">Writeoffs</div>` + used.map(([k, n]) =>
+    gsRow(`${gearImg(k)} ${esc(gsShort(k))}`, n.toLocaleString("en-US"))).join("") : "";
+}
+
+function gsStockHTML(b){
+  const rows = GS_COST.filter(k => b.res[k] > 0).map(k=>{
+    const have = gsNum(gs.stock[k]), prod = gsNum(gs.prod[k]);
+    const turns = b.res[k] > have && prod > 0 ? Math.ceil((b.res[k] - have) / prod) : null;
+    return gsRow(`${gsIcon(k)} ${esc(gsName(k))}${turns == null ? ""
+      : ` <span class="t">+${turns.toLocaleString("en-US")} turns</span>`}`, gsAmtPct(b.res[k], have));
+  }).join("");
+  return `<div class="slip-sub">Stockpile</div>${rows || gsRow("—", "")}`;
+}
+
+/* upkeep, and the share of production it eats; past 100% the stockpile
+   makes up the gap, and the row says how many ticks of the chosen view it lasts */
+function gsUpkeepHTML(b){
+  const rows = GS_UPKEEP.filter(k => b.upkeep[k] > 0).map(k=>{
+    const prod = gsNum(gs.prod[k]) * gs.upx;
+    const gap = b.upkeep[k] - prod;
+    let left = "";
+    if (gap > 0){
+      const n = Math.floor(gsNum(gs.stock[k]) / gap);
+      left = ` <span class="t">${n.toLocaleString("en-US")} tick${n === 1 ? "" : "s"}</span>`;
+    }
+    return gsRow(`${gsIcon(k)} ${esc(gsName(k))}${left}`, gsAmtPct(b.upkeep[k], prod));
+  }).join("");
+  return rows ? `<div class="slip-sub">Upkeep <button type="button" class="slip-x" data-gs-upx>×${gs.upx}</button></div>${rows}` : "";
+}
+
+function gsUnitHTML(raw){
+  const u = Object.assign({}, raw, {weapon: raw.weapon || "ScroungedWeapons", armor: raw.armor || "ScroungedArmor"});
+  const n = gsNum(u.size);
+  const gear = k => `<span class="g${SCROUNGED[k] ? " none" : ""}" title="${esc(label(k))}">${gearImg(k)}<span class="gn">${esc(gsShort(k))}</span></span>`;
+  return `<div class="slip-u" ${tipAttrs(u.type, u.weapon, u.armor, n, u.training ?? 0)}>
+      <div class="slip-u1"><span class="q">${n.toLocaleString("en-US")}</span><span class="nm">${esc(u.type)}</span>
+        <span class="tr">T${clampInt(u.training ?? 0, 0, 20)}</span></div>
+      <div class="slip-u2">${gear(u.weapon)}${gear(u.armor)}</div></div>`;
+}
+
+function gsSlip(c, b){
+  const wo = gsWriteoffHTML(b);
+  return `<div class="slip" style="${gsPaper(c.name)}">
+      ${gsDots(c.name)}
+      <div class="slip-name">${esc(c.name)}</div>
+      <div class="slip-meta">${b.troops.toLocaleString("en-US")} troops · sat ${satCost(b.troops).toLocaleString("en-US")}</div>
+      <div class="slip-cut"></div>
+      ${c.units.map(gsUnitHTML).join("")}
+      <div class="slip-cut"></div>
+      ${gsBillHTML(b)}
+      ${wo ? `<div class="slip-cut"></div>${wo}` : ""}
+      <div class="slip-cut double"></div>
+      ${gsStockHTML(b)}
+      ${gsUpkeepHTML(b)}
+    </div>`;
+}
+
+/* every army at once, on one wide ticket */
+function gsTotal(comps, bills, t){
+  const armies = comps.map((c, i)=>gsRow(esc(c.name), bills[i].troops.toLocaleString("en-US"))).join("");
+  return `<div class="slip slip-wide" style="${gsPaper(GS_TOTAL)}">
+      <div class="slip-wide-head">
+        <div class="slip-name">Total</div>
+        <div class="slip-meta">${t.troops.toLocaleString("en-US")} troops · sat ${satCost(t.troops).toLocaleString("en-US")}</div>
+        ${gsDots(GS_TOTAL)}
+      </div>
+      <div class="slip-cut"></div>
+      <div class="slip-cols">
+        <div><div class="slip-sub">Armies</div>${armies}</div>
+        <div><div class="slip-sub">Bill</div>${gsBillHTML(t)}</div>
+        <div>${gsWriteoffHTML(t)}</div>
+        <div>${gsStockHTML(t)}</div>
+        <div>${gsUpkeepHTML(t)}</div>
+      </div>
+    </div>`;
+}
+
+function renderGrand(){
+  clearTips("gs");
+  const comps = gsComps();
+  const resvLeft = {};
+  GS_GEAR.forEach(k=>{ resvLeft[k] = Math.floor(gsNum(gs.resv[k])); });
+  const bills = comps.map(c => gsBill(c.units, resvLeft));
+  gsEl("gsWide").checked = gs.wide;
+  gsEl("gsOut").innerHTML = comps.length
+    ? `<div class="gs-slips${gs.wide ? " wide" : ""}">${comps.map((c, i) => gsSlip(c, bills[i])).join("")}</div>` : "";
+  gsEl("gsTotal").innerHTML = comps.length ? gsTotal(comps, bills, gsMerge(bills)) : "";
+}
+
+/* ---- grand strategy wiring ---- */
+gsInputs("gsStock", "stock", GS_STOCK);
+gsInputs("gsProd", "prod", GS_PROD);
+gsReserves();
+gsStrip();
+gsEl("gsReserves").open = store.get(LS_GRAND + ".resOpen", false) === true;
+gsEl("gsReserves").addEventListener("toggle", ()=>
+  store.set(LS_GRAND + ".resOpen", gsEl("gsReserves").open));
+
+gsEl("viewGrand").addEventListener("input", e=>{
+  const i = e.target.closest("[data-gs-bucket]");
+  if (!i) return;
+  const v = gsNum(i.value);
+  if (v) gs[i.dataset.gsBucket][i.dataset.gsKey] = v;
+  else delete gs[i.dataset.gsBucket][i.dataset.gsKey];
+  gsSave();
+  if (i.dataset.gsBucket === "prod") gsStrip();
+  renderGrand();
+});
+
+gsEl("viewGrand").addEventListener("click", e=>{
+  const chip = e.target.closest("[data-gs-comp]");
+  if (chip){
+    const n = chip.dataset.gsComp, i = gs.comps.indexOf(n);
+    if (i >= 0) gs.comps.splice(i, 1); else gs.comps.push(n);
+    gsSave();
+    renderGrand();
+    return;
+  }
+  const pick = e.target.closest("[data-gs-pick]");
+  if (pick){
+    gsPicker = gsPicker === pick.dataset.gsPick ? null : pick.dataset.gsPick;
+    renderGrand();
+    return;
+  }
+  const dot = e.target.closest("[data-gs-color]");
+  if (dot){
+    gs.colors[dot.dataset.gsSlip] = dot.dataset.gsColor;
+    gsPicker = null;
+    gsSave();
+    renderGrand();
+    return;
+  }
+  if (e.target.closest("[data-gs-upx]")){
+    gs.upx = gs.upx === 1 ? GS_TICKS : 1;
+    gsSave();
+    renderGrand();
+  }
+});
+
+document.addEventListener("warcalc:presets", renderGrand);
+
+/* a click anywhere else puts an open colour picker away */
+document.addEventListener("click", e=>{
+  if (gsPicker == null || e.target.closest(".slip-pop,[data-gs-pick]")) return;
+  gsPicker = null;
+  renderGrand();
+});
+
+gsEl("gsWide").addEventListener("change", ()=>{
+  gs.wide = gsEl("gsWide").checked;
+  gsSave();
+  renderGrand();
+});
 
 
 restoreAutosave();
