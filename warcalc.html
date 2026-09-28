@@ -643,6 +643,75 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .t-pegasi  {color:#FF6EC7}
 .t-unicorns{color:#00FF21}
 .t-naval   {color:#00FFFF}
+
+/* ---------- grand strategy ---------- */
+.gs-top{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start}
+.gs-h{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);
+  font-weight:600;margin-bottom:6px}
+.gs-inputs{display:flex;gap:5px;flex-wrap:wrap}
+.gs-in{
+  display:inline-flex;align-items:center;gap:5px;margin:0;
+  background:var(--sunken);border:1px solid var(--border-soft);border-radius:4px;padding:3px 4px 3px 6px;
+}
+.gs-in input,.gs-ritem input{
+  width:86px;padding:2px 4px;font-size:12px;text-align:right;
+  font-family:"SFMono-Regular",Menlo,Consolas,monospace;
+}
+.gs-bit{display:inline-block;width:16px;text-align:center;color:#fff;font-weight:600;font-size:13px;line-height:16px}
+.gs-strip{
+  display:inline-flex;gap:2px;align-items:center;margin-top:6px;padding:3px 8px;
+  background:rgba(0,0,0,.22);border:1px solid var(--border-soft);border-radius:4px;
+}
+.gs-strip .gs-x{font:700 12px/1 "SFMono-Regular",Menlo,Consolas,monospace;color:#faa123;margin-right:6px}
+
+.gs-res > summary{
+  font-size:12px;color:var(--text-dim);list-style:none;display:inline-flex;gap:5px;align-items:center;
+  text-transform:uppercase;letter-spacing:.06em;font-weight:600;
+}
+.gs-res > summary::-webkit-details-marker{display:none}
+.gs-res > summary:before{content:"▸";display:inline-block;transition:transform .12s}
+.gs-res[open] > summary:before{transform:rotate(90deg)}
+.gs-res > summary:hover{color:#fff}
+.gs-res-cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:10px}
+@media (max-width:1100px){.gs-res-cols{grid-template-columns:1fr}}
+.gs-rgrp{display:flex;gap:8px;align-items:flex-start;padding:4px 0;border-top:1px solid rgba(0,0,0,.35)}
+.gs-rgrp:first-child{border-top:none}
+.gs-rgrp > .gs-rtype{flex:0 0 66px;font-size:12px;font-weight:600;padding-top:3px}
+.gs-ritems{display:flex;flex-wrap:wrap;gap:4px 12px;flex:1 1 auto}
+.gs-ritem{display:inline-flex;align-items:center;gap:5px;margin:0;font-size:12px;color:var(--text)}
+.gs-ritem .gear-img{flex:0 0 32px}
+.gs-ritem .g-name{width:112px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gs-ritem input{width:62px}
+
+.gs-comps{display:flex;gap:4px;flex-wrap:wrap;padding-bottom:10px;margin-bottom:12px;
+  border-bottom:1px solid var(--border-soft)}
+.gs-comps:empty{display:none}
+.gs-out{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1fr) minmax(0,1.15fr);gap:14px;align-items:start}
+@media (max-width:1100px){.gs-out{grid-template-columns:1fr}}
+.gs-out > .well{padding:9px 10px;overflow-x:auto}
+.gs-t{width:100%}
+.gs-t th,.gs-t td{padding:2px 6px;font-size:12px;white-space:nowrap}
+.gs-t thead th{font-size:10px;padding-bottom:4px}
+.gs-t tbody tr{border-bottom:1px solid rgba(0,0,0,.28)}
+.gs-t tbody tr:last-child{border-bottom:none}
+.gs-t .n{text-align:right;font-family:"SFMono-Regular",Menlo,Consolas,monospace}
+.gs-t th.n{font-family:inherit}
+.gs-t .ic-c{width:1%;text-align:center}
+.gs-t .ic-c .gear-img{vertical-align:middle}
+.gs-t tr.gs-sub td{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);
+  padding-top:7px}
+.gs-t tr.gs-sub:first-child td{padding-top:2px}
+.gs-t tfoot td{border-top:1px solid var(--border-soft);padding-top:5px;color:var(--text-dim)}
+.gs-t tfoot td.n{color:#fff}
+.gs-t + .gs-t{margin-top:12px}
+.gs-t .has-tip{cursor:help;border-bottom:1px dotted var(--text-dim)}
+.gs-t .dim{color:var(--text-dim)}
+.gs-t .ok{color:#78cc78}
+.gs-x-btn{
+  background:var(--sunken);border:1px solid var(--border-soft);border-radius:3px;cursor:pointer;
+  font:700 10px/1 "SFMono-Regular",Menlo,Consolas,monospace;color:#faa123;padding:2px 5px;
+}
+.gs-x-btn:hover{border-color:var(--text-dim);color:#fff}
 </style>
 </head>
 <body>
@@ -652,6 +721,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
     title="Import / export presets" aria-expanded="false">›</button></span>
   <button class="tab active" data-tab="battle">Battle</button>
   <button class="tab" data-tab="counter">Counters</button>
+  <button class="tab" data-tab="grand">Grand Strategy</button>
   <span class="ref-btns">
     <button class="ref-btn" data-ref="stats" title="Weapon &amp; armor stat table  (F)">
       <span class="ref-lab">Stats</span><kbd>F</kbd></button>
@@ -989,6 +1059,34 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
   </div>
 
   <div id="ctrOut"></div>
+</div>
+
+<!-- ============ GRAND STRATEGY ============ -->
+<div id="viewGrand" style="display:none">
+  <div class="panel gs-top">
+    <div>
+      <div class="gs-h">Stockpile</div>
+      <div class="gs-inputs" id="gsStock"></div>
+    </div>
+    <div>
+      <div class="gs-h">Production / turn</div>
+      <div class="gs-inputs" id="gsProd"></div>
+      <div class="gs-strip" id="gsStrip"></div>
+    </div>
+  </div>
+
+  <details class="panel gs-res" id="gsReserves">
+    <summary>Reserves</summary>
+    <div class="gs-res-cols">
+      <div><div class="gs-h">Weapons</div><div id="gsResW"></div></div>
+      <div><div class="gs-h">Armor</div><div id="gsResA"></div></div>
+    </div>
+  </details>
+
+  <div class="panel">
+    <div class="gs-comps" id="gsComps"></div>
+    <div id="gsOut"></div>
+  </div>
 </div>
 
 <div id="tip"></div>
@@ -3312,6 +3410,7 @@ function refreshPresetSelects(){
   if (tc) tc.textContent = `${armies.length} army · ${battles.length} battle` +
     (storageOK ? "" : " · storage unavailable");
   renderMarks();
+  document.dispatchEvent(new Event("warcalc:presets"));   // the Grand Strategy list follows
 }
 
 /* ---- marked armies: the presets you swap between, one click away ---- */
@@ -5344,7 +5443,7 @@ syncSolveSide();
    9. TABS
    =================================================================== */
 
-const VIEWS = {battle:"viewBattle", counter:"viewCounter"};
+const VIEWS = {battle:"viewBattle", counter:"viewCounter", grand:"viewGrand"};
 
 function showTab(name){
   if (!VIEWS[name]) name = "battle";
@@ -5978,6 +6077,220 @@ ctrEl("ctrType").addEventListener("change", ()=>{
 ctrEl("btnCounter").addEventListener("click", runCounter);
 ctrEl("btnCounterStop").addEventListener("click", ()=>{ ctrHalt = true; });
 fillCounterTypes();
+
+
+/* ===================================================================
+   10. GRAND STRATEGY — what a set of saved armies costs against the
+       stockpile, and what their upkeep eats of a war-tick's production
+   =================================================================== */
+
+const LS_GRAND = "warcalc.grand";
+const GS_TICKS = 6;                                   // turns produced per war tick
+const GS_STOCK = ["apples","coffee","gems","copper","composites","machinery",
+                  "vehicle","precision","plastics","tungsten","bits"];
+const GS_PROD  = ["apples","coffee","gems","gasoline","bits","copper"];
+const GS_STRIP = ["apples","coffee","gems","gasoline"];
+const GS_COST  = ["bits","copper","tungsten","plastics","machinery","vehicle","precision","composites"];
+const GS_UPKEEP = ["apples","coffee","gems","gasoline"];
+const GS_GEAR  = UNIT_ORDER.flatMap(g => g.gear);
+
+const gs = (()=>{
+  const s = store.get(LS_GRAND, null);
+  const o = s && typeof s === "object" ? s : {};
+  const obj = v => v && typeof v === "object" && !Array.isArray(v) ? v : {};
+  return {stock: obj(o.stock), prod: obj(o.prod), resv: obj(o.resv),
+          comps: Array.isArray(o.comps) ? o.comps : [], upx: o.upx === 1 ? 1 : GS_TICKS};
+})();
+const gsSave = () => store.set(LS_GRAND, gs);
+const gsNum  = v => Math.max(0, Number(v) || 0);
+const gsEl   = id => document.getElementById(id);
+
+const gsIcon = k => k === "bits"
+  ? `<span class="gs-bit" title="Bits">${BIT}</span>` : resIcon(k);
+const gsName = k => k === "bits" ? "Bits" : (RESOURCES[k]?.name || k);
+const gsFmt  = n => (Math.round(n * 100) / 100).toLocaleString("en-US");
+
+function gsPct(need, have){
+  if (!(need > 0)) return `<span class="dim">—</span>`;
+  if (!(have > 0)) return `<span class="crunch-short">∞</span>`;
+  const p = need / have * 100;
+  const t = p < 1 ? "<1%" : Math.round(p).toLocaleString("en-US") + "%";
+  return `<span class="${p > 100 ? "crunch-short" : p >= 80 ? "crunch-over" : ""}">${t}</span>`;
+}
+
+function gsInputs(boxId, bucket, keys){
+  gsEl(boxId).innerHTML = keys.map(k=>`<label class="gs-in" title="${esc(gsName(k))}">${gsIcon(k)}
+      <input type="number" min="0" step="any" data-gs-bucket="${bucket}" data-gs-key="${k}"
+        value="${gs[bucket][k] ? esc(gs[bucket][k]) : ""}" placeholder="0"></label>`).join("");
+}
+
+function gsStrip(){
+  gsEl("gsStrip").innerHTML = `<span class="gs-x">×${GS_TICKS}</span>` + GS_STRIP.map(k=>
+    `<span class="res-chip">${gsIcon(k)} <span class="mono">${gsFmt(gsNum(gs.prod[k]) * GS_TICKS)}</span></span>`).join("");
+}
+
+function gsReserves(){
+  const col = kind => UNIT_ORDER.filter(g => g.gear.length).map(g=>{
+    const items = g.gear.filter(k => kind === "weapon" ? k in WEAPON_COST : k in ARMOR_COST);
+    return `<div class="gs-rgrp"><span class="gs-rtype t-${g.type.toLowerCase()}">${esc(g.type)}</span>
+      <div class="gs-ritems">${items.map(k=>`<label class="gs-ritem">${gearImg(k)}
+        <span class="g-name">${esc(label(k))}</span>
+        <input type="number" min="0" step="1" data-gs-bucket="resv" data-gs-key="${esc(k)}"
+          value="${gs.resv[k] ? esc(gs.resv[k]) : ""}" placeholder="0"></label>`).join("")}</div></div>`;
+  }).join("");
+  gsEl("gsResW").innerHTML = col("weapon");
+  gsEl("gsResA").innerHTML = col("armor");
+}
+
+function gsComps(){
+  const armies = getArmies();
+  const names = Object.keys(armies).sort();
+  gs.comps = gs.comps.filter(n => armies[n]);
+  gsEl("gsComps").innerHTML = names.map(n=>`<span class="mark-chip${gs.comps.includes(n) ? " on" : ""}"
+      data-gs-comp="${esc(n)}"><span class="n">${esc(n)}</span></span>`).join("");
+  return names.filter(n => gs.comps.includes(n)).map(n => ({name: n, units: armies[n]}));
+}
+
+function renderGrand(){
+  clearTips("gs");
+  const comps = gsComps();
+
+  /* what the armies need */
+  let hire = 0;
+  const upkeep = {}, need = {};
+  comps.forEach(c => c.units.forEach(u=>{
+    const n = gsNum(u.size);
+    const uc = UNIT_COST[u.type] || {hire:0, upkeep:{}};
+    hire += uc.hire * n;
+    addRes(upkeep, uc.upkeep, n);
+    [u.weapon, u.armor].forEach(k=>{ if (k && !SCROUNGED[k]) need[k] = (need[k] || 0) + n; });
+  }));
+
+  /* reserves first, the rest gets built */
+  let gearBits = 0;
+  const res = {};
+  const gear = GS_GEAR.filter(k => need[k] > 0).map(k=>{
+    const from = Math.min(need[k], Math.floor(gsNum(gs.resv[k])));
+    const build = need[k] - from;
+    const c = gearCost(k in WEAPON_COST ? "weapon" : "armor", k);
+    gearBits += c.bits * build;
+    addRes(res, c.res, build);
+    return {k, need: need[k], from, build};
+  });
+  res.bits = hire + gearBits;
+
+  /* units */
+  let troops = 0;
+  const unitRows = comps.map(c=>{
+    const rows = c.units.map(raw=>{
+      const u = Object.assign({}, raw, {weapon: raw.weapon || "ScroungedWeapons", armor: raw.armor || "ScroungedArmor"});
+      const n = gsNum(u.size);
+      troops += n;
+      const t = u.type.toLowerCase();
+      return `<tr><td class="t-${t}" ${tipAttrs(u.type, u.weapon, u.armor, n, u.training ?? 0)}>${esc(u.type)}</td>
+        <td class="ic-c">${gearImg(u.weapon)}</td><td class="ic-c">${gearImg(u.armor)}</td>
+        <td class="n">${n.toLocaleString("en-US")}</td><td class="n">${clampInt(u.training ?? 0, 0, 20)}</td></tr>`;
+    }).join("");
+    return (comps.length > 1 ? `<tr class="gs-sub"><td colspan="5">${esc(c.name)}</td></tr>` : "") + rows;
+  }).join("");
+  const unitsTbl = `<table class="gs-t">
+      <thead><tr><th>Type</th><th class="ic-c">W</th><th class="ic-c">A</th><th class="n">Size</th><th class="n">Tr</th></tr></thead>
+      <tbody>${unitRows}</tbody>
+      <tfoot><tr><td colspan="3">Troops</td><td class="n">${troops.toLocaleString("en-US")}</td><td></td></tr>
+        <tr><td colspan="3">Sat</td><td class="n">${satCost(troops).toLocaleString("en-US")}</td><td></td></tr></tfoot>
+    </table>`;
+
+  /* gear */
+  const gearTbl = `<table class="gs-t">
+      <thead><tr><th class="ic-c"></th><th>Gear</th><th class="n">Need</th><th class="n">Res</th><th class="n">Build</th></tr></thead>
+      <tbody>${gear.map(g=>`<tr><td class="ic-c">${gearImg(g.k)}</td><td>${esc(label(g.k))}</td>
+        <td class="n">${g.need.toLocaleString("en-US")}</td>
+        <td class="n${g.from ? " ok" : " dim"}">${g.from.toLocaleString("en-US")}</td>
+        <td class="n">${g.build.toLocaleString("en-US")}</td></tr>`).join("")
+        || `<tr><td></td><td class="dim">—</td><td></td><td></td><td></td></tr>`}</tbody>
+    </table>`;
+
+  /* costs against the stockpile */
+  const bitsTip = regTip(`<div class="tip-title">Bits</div><table class="tip-break" style="margin-top:6px">
+      <tr><td>Raise army</td><td class="bits" style="text-align:right">${money(hire)}</td></tr>
+      <tr><td>Equipment</td><td class="bits" style="text-align:right">${money(gearBits)}</td></tr></table>`, "gs");
+  const costRows = GS_COST.filter(k => k === "bits" || res[k] > 0).map(k=>{
+    const want = res[k] || 0, have = gsNum(gs.stock[k]), left = have - want;
+    const prod = gsNum(gs.prod[k]);
+    const turns = left < 0 && prod > 0 ? Math.ceil(-left / prod) : null;
+    const lab = k === "bits" ? ` class="n has-tip" data-tip-key="${bitsTip}"` : ` class="n"`;
+    return `<tr><td class="ic-c">${gsIcon(k)}</td>
+      <td${lab}>${money(want)}</td><td class="n">${money(have)}</td>
+      <td class="n${left < 0 ? " crunch-short" : ""}">${money(left)}</td>
+      <td class="n">${gsPct(want, have)}</td>
+      <td class="n dim">${turns == null ? "" : turns.toLocaleString("en-US")}</td></tr>`;
+  }).join("");
+  const costTbl = `<table class="gs-t">
+      <thead><tr><th class="ic-c"></th><th class="n">Cost</th><th class="n">Have</th><th class="n">Left</th>
+        <th class="n">%</th><th class="n">Turns</th></tr></thead>
+      <tbody>${costRows}</tbody>
+    </table>`;
+
+  /* upkeep against a war-tick's production, or one turn's */
+  const upRows = GS_UPKEEP.filter(k => upkeep[k] > 0).map(k=>{
+    const prod = gsNum(gs.prod[k]) * gs.upx;
+    const stock = GS_STOCK.includes(k) ? gsNum(gs.stock[k]) : null;
+    return `<tr><td class="ic-c">${gsIcon(k)}</td>
+      <td class="n">${money(upkeep[k])}</td><td class="n">${gsFmt(prod)}</td>
+      <td class="n">${gsPct(upkeep[k], prod)}</td>
+      <td class="n">${stock == null ? `<span class="dim">—</span>` : gsPct(upkeep[k], stock)}</td></tr>`;
+  }).join("") || `<tr><td></td><td class="n dim">—</td><td></td><td></td><td></td></tr>`;
+  const upTbl = `<table class="gs-t">
+      <thead><tr><th class="ic-c"></th><th class="n">Upkeep</th>
+        <th class="n">Prod <button type="button" class="gs-x-btn" data-gs-upx>×${gs.upx}</button></th>
+        <th class="n">% prod</th><th class="n">% stock</th></tr></thead>
+      <tbody>${upRows}</tbody>
+    </table>`;
+
+  gsEl("gsOut").innerHTML = `<div class="gs-out">
+      <div class="well"><div class="gs-h">Units</div>${unitsTbl}</div>
+      <div class="well"><div class="gs-h">Gear</div>${gearTbl}</div>
+      <div class="well"><div class="gs-h">Costs</div>${costTbl}${upTbl}</div>
+    </div>`;
+}
+
+/* ---- grand strategy wiring ---- */
+gsInputs("gsStock", "stock", GS_STOCK);
+gsInputs("gsProd", "prod", GS_PROD);
+gsReserves();
+gsStrip();
+gsEl("gsReserves").open = store.get(LS_GRAND + ".resOpen", false) === true;
+gsEl("gsReserves").addEventListener("toggle", ()=>
+  store.set(LS_GRAND + ".resOpen", gsEl("gsReserves").open));
+
+gsEl("viewGrand").addEventListener("input", e=>{
+  const i = e.target.closest("[data-gs-bucket]");
+  if (!i) return;
+  const v = gsNum(i.value);
+  if (v) gs[i.dataset.gsBucket][i.dataset.gsKey] = v;
+  else delete gs[i.dataset.gsBucket][i.dataset.gsKey];
+  gsSave();
+  if (i.dataset.gsBucket === "prod") gsStrip();
+  renderGrand();
+});
+
+gsEl("viewGrand").addEventListener("click", e=>{
+  const chip = e.target.closest("[data-gs-comp]");
+  if (chip){
+    const n = chip.dataset.gsComp, i = gs.comps.indexOf(n);
+    if (i >= 0) gs.comps.splice(i, 1); else gs.comps.push(n);
+    gsSave();
+    renderGrand();
+    return;
+  }
+  if (e.target.closest("[data-gs-upx]")){
+    gs.upx = gs.upx === 1 ? GS_TICKS : 1;
+    gsSave();
+    renderGrand();
+  }
+});
+
+document.addEventListener("warcalc:presets", renderGrand);
 
 
 restoreAutosave();
