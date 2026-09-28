@@ -685,9 +685,9 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .gs-ritem .g-name{width:112px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gs-ritem input{width:62px}
 
-.gs-comps{display:flex;gap:4px;flex-wrap:wrap;padding-bottom:10px;margin-bottom:12px;
+.gs-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding-bottom:10px;margin-bottom:12px;
   border-bottom:1px solid var(--border-soft)}
-.gs-comps:empty{display:none}
+.gs-comps{display:flex;gap:4px;flex-wrap:wrap}
 .gs-slips{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;padding-bottom:10px}
 .slip{
   --paper:#25282c;--ink:#d6d3cc;
@@ -703,13 +703,25 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
   content:"";position:absolute;left:0;right:0;bottom:-8px;height:8px;
   background:conic-gradient(from 135deg at 50% 0,var(--paper) 90deg,transparent 0) 0 0/12px 8px repeat-x;
 }
-.slip-dots{display:flex;gap:4px;justify-content:center;margin-bottom:8px}
+.gs-slips.wide .slip{width:380px}
+/* one swatch in the corner; it opens the rest */
+.slip-color{
+  position:absolute;top:9px;right:9px;width:14px;height:14px;padding:0;border-radius:50%;cursor:pointer;
+  border:1px solid rgba(255,255,255,.35);box-shadow:0 0 0 2px rgba(0,0,0,.25);
+}
+.slip-color:hover,.slip-color.open{border-color:#fff}
+.slip-pop{
+  position:absolute;top:28px;right:6px;z-index:5;display:flex;gap:5px;padding:6px 7px;
+  background:var(--sunken);border:1px solid var(--border-soft);border-radius:4px;
+  box-shadow:0 6px 16px rgba(0,0,0,.55);
+}
 .slip-dot{width:11px;height:11px;padding:0;border-radius:50%;cursor:pointer;
   border:1px solid rgba(255,255,255,.28)}
 .slip-dot.on{outline:1.5px solid var(--ink);outline-offset:1px}
 .slip-name{text-align:center;font-weight:700;font-size:14px;letter-spacing:.12em;text-transform:uppercase;
   overflow-wrap:anywhere}
 .slip-meta{text-align:center;font-size:11px;opacity:.6}
+.slip-name{padding:0 18px}
 .slip-cut{border-top:1.5px dashed color-mix(in srgb,var(--ink) 30%,transparent);margin:9px 0}
 .slip-cut.double{border-top:3px double color-mix(in srgb,var(--ink) 35%,transparent);margin:11px 0 8px}
 .slip-u{padding:2px 0 3px}
@@ -737,9 +749,8 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .slip-sub{font:700 10px/1.3 "Helvetica Neue",Helvetica,Arial,sans-serif;letter-spacing:.1em;text-transform:uppercase;
   opacity:.55;margin:8px 0 3px;display:flex;align-items:center;gap:6px}
 .slip-sub:first-child{margin-top:0}
-.slip-pcs{display:grid;grid-template-columns:1fr 1fr;gap:2px 10px}
-.slip-pc{display:inline-flex;align-items:center;gap:5px;font-weight:700;flex-wrap:wrap}
-.slip-pc .t{font-weight:400;font-size:10px;opacity:.7}
+.slip-l .pc{opacity:.5;font-size:11px}
+.slip-l .t{font-size:10px;opacity:.6;font-family:"SFMono-Regular",Menlo,Consolas,monospace}
 .slip .bad{color:#f17a77}
 .slip .warn{color:#faa123}
 .slip-x{background:none;border:1px solid color-mix(in srgb,var(--ink) 35%,transparent);border-radius:3px;
@@ -750,8 +761,8 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .gs-total{margin-bottom:24px}
 .slip.slip-wide{width:100%;padding:12px 18px 16px}
 .slip-wide-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
-.slip-wide-head .slip-dots{margin:0;align-self:center}
-.slip-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px 28px}
+.slip-wide .slip-name{padding:0}
+.slip-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px 28px}
 .slip-cols > div:empty{display:none}
 </style>
 </head>
@@ -1125,7 +1136,11 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
   </details>
 
   <div class="panel">
-    <div class="gs-comps" id="gsComps"></div>
+    <div class="gs-bar">
+      <div class="gs-comps" id="gsComps"></div>
+      <span class="spacer"></span>
+      <label class="hk-toggle" for="gsWide"><input type="checkbox" id="gsWide"> Full width</label>
+    </div>
     <div id="gsOut"></div>
   </div>
 
@@ -6142,7 +6157,7 @@ const gs = (()=>{
   const o = s && typeof s === "object" ? s : {};
   const obj = v => v && typeof v === "object" && !Array.isArray(v) ? v : {};
   return {stock: obj(o.stock), prod: obj(o.prod), resv: obj(o.resv),
-          comps: Array.isArray(o.comps) ? o.comps : [], colors: obj(o.colors), upx: GS_TICKS};    // every visit opens on the x6 view
+          comps: Array.isArray(o.comps) ? o.comps : [], colors: obj(o.colors), wide: o.wide === true, upx: GS_TICKS};    // every visit opens on the x6 view
 })();
 const gsSave = () => store.set(LS_GRAND, gs);
 const gsNum  = v => Math.max(0, Number(v) || 0);
@@ -6152,14 +6167,6 @@ const gsIcon = k => k === "bits"
   ? `<span class="gs-bit" title="Bits">${BIT}</span>` : resIcon(k);
 const gsName = k => k === "bits" ? "Bits" : (RESOURCES[k]?.name || k);
 const gsFmt  = n => (Math.round(n * 100) / 100).toLocaleString("en-US");
-
-function gsPct(need, have){
-  if (!(need > 0)) return `<span class="dim">—</span>`;
-  if (!(have > 0)) return `<span class="crunch-short">∞</span>`;
-  const p = need / have * 100;
-  const t = p < 1 ? "<1%" : Math.round(p).toLocaleString("en-US") + "%";
-  return `<span class="${p > 100 ? "crunch-short" : p >= 80 ? "crunch-over" : ""}">${t}</span>`;
-}
 
 function gsInputs(boxId, bucket, keys){
   gsEl(boxId).innerHTML = keys.map(k=>`<label class="gs-in" title="${esc(gsName(k))}">${gsIcon(k)}
@@ -6201,7 +6208,7 @@ const GS_TOTAL = "__total__";                          // colour key for the tot
 /* the long names squeezed to fit half a slip */
 const GS_SHORT = {ScroungedWeapons:"Scrounged", ScroungedArmor:"Scrounged",
   "Chem-LightBattery":"Chem-Light", WaterlineEraser:"W. Eraser", CanopyLights:"Canopy Lts"};
-const gsShort = k => GS_SHORT[k] || label(k);
+const gsShort = k => (!gs.wide && GS_SHORT[k]) || label(k);
 
 function gsComps(){
   const armies = getArmies();
@@ -6245,22 +6252,26 @@ function gsMerge(bills){
   return t;
 }
 
-function gsSlipPct(need, have){
-  if (!(need > 0)) return "";
-  if (!(have > 0)) return `<span class="bad">∞</span>`;
+/* the amount, then what share it is, faded, in brackets */
+function gsAmtPct(need, have){
+  if (!(have > 0)) return `<span class="bad">${money(need)}</span> <span class="pc">(∞)</span>`;
   const p = need / have * 100;
   const t = p < 1 ? "<1%" : Math.round(p).toLocaleString("en-US") + "%";
-  return `<span class="${p > 100 ? "bad" : p >= 80 ? "warn" : ""}">${t}</span>`;
+  const cls = p > 100 ? "bad" : p >= 80 ? "warn" : "";
+  return `<span class="${cls}">${money(need)}</span> <span class="pc">(${t})</span>`;
 }
 
 const gsRow = (l, v, cls) =>
   `<div class="slip-l${cls ? " " + cls : ""}"><span>${l}</span><span class="v">${v}</span></div>`;
 
+let gsPicker = null;                                   // which ticket has its colours open
 function gsDots(key){
   const cur = GS_PAPER[gs.colors[key]] ? gs.colors[key] : GS_PAPER_DEFAULT;
-  return `<div class="slip-dots">${Object.entries(GS_PAPER).map(([id, c])=>
+  const pop = gsPicker === key ? `<div class="slip-pop">${Object.entries(GS_PAPER).map(([id, c])=>
     `<button type="button" class="slip-dot${cur === id ? " on" : ""}" title="${id}"
-       style="background:${c.paper}" data-gs-color="${id}" data-gs-slip="${esc(key)}"></button>`).join("")}</div>`;
+       style="background:${c.paper}" data-gs-color="${id}" data-gs-slip="${esc(key)}"></button>`).join("")}</div>` : "";
+  return `<button type="button" class="slip-color${pop ? " open" : ""}" title="Colour"
+      data-gs-pick="${esc(key)}" style="background:${GS_PAPER[cur].paper}"></button>${pop}`;
 }
 
 function gsPaper(key){
@@ -6270,13 +6281,17 @@ function gsPaper(key){
 
 /* the pieces a slip is made of; the totals ticket lays the same ones out wide */
 function gsBillHTML(b){
-  const used = Object.entries(b.used);
   return gsRow("Hire", money(b.hire)) + gsRow("Gear", money(b.gearBits)) +
     gsRow(`${gsIcon("bits")} Total`, money(b.res.bits), "slip-tot") +
     GS_COST.filter(k => k !== "bits" && b.res[k] > 0)
-      .map(k => gsRow(`${gsIcon(k)} ${esc(gsName(k))}`, money(b.res[k]))).join("") +
-    (used.length ? `<div class="slip-sub">From reserves</div>` + used.map(([k, n]) =>
-      gsRow(`${gearImg(k)} ${esc(gsShort(k))}`, n.toLocaleString("en-US"))).join("") : "");
+      .map(k => gsRow(`${gsIcon(k)} ${esc(gsName(k))}`, money(b.res[k]))).join("");
+}
+
+/* gear taken off the reserves rather than built */
+function gsWriteoffHTML(b){
+  const used = Object.entries(b.used);
+  return used.length ? `<div class="slip-sub">Writeoffs</div>` + used.map(([k, n]) =>
+    gsRow(`${gearImg(k)} ${esc(gsShort(k))}`, n.toLocaleString("en-US"))).join("") : "";
 }
 
 function gsUpkeepHTML(b){
@@ -6286,30 +6301,29 @@ function gsUpkeepHTML(b){
 }
 
 function gsStockHTML(b){
-  const pcs = GS_COST.filter(k => b.res[k] > 0).map(k=>{
+  const rows = GS_COST.filter(k => b.res[k] > 0).map(k=>{
     const have = gsNum(gs.stock[k]), prod = gsNum(gs.prod[k]);
     const turns = b.res[k] > have && prod > 0 ? Math.ceil((b.res[k] - have) / prod) : null;
-    return `<span class="slip-pc">${gsIcon(k)} ${gsSlipPct(b.res[k], have)}${
-      turns == null ? "" : `<span class="t">+${turns.toLocaleString("en-US")} turns</span>`}</span>`;
+    return gsRow(`${gsIcon(k)} ${esc(gsName(k))}${turns == null ? ""
+      : ` <span class="t">+${turns.toLocaleString("en-US")} turns</span>`}`, gsAmtPct(b.res[k], have));
   }).join("");
-  return `<div class="slip-sub">Stockpile</div><div class="slip-pcs">${pcs || `<span class="slip-pc">—</span>`}</div>`;
+  return `<div class="slip-sub">Stockpile</div>${rows || gsRow("—", "")}`;
 }
 
 /* upkeep against production; past 100% the stockpile makes up the gap, and
-   the slip says how many ticks of the chosen view it lasts */
+   the row says how many ticks of the chosen view it lasts */
 function gsProdHTML(b){
-  const pcs = GS_UPKEEP.filter(k => b.upkeep[k] > 0).map(k=>{
+  const rows = GS_UPKEEP.filter(k => b.upkeep[k] > 0).map(k=>{
     const prod = gsNum(gs.prod[k]) * gs.upx;
     const gap = b.upkeep[k] - prod;
     let left = "";
     if (gap > 0){
       const n = Math.floor(gsNum(gs.stock[k]) / gap);
-      left = `<span class="t">${n.toLocaleString("en-US")} tick${n === 1 ? "" : "s"}</span>`;
+      left = ` <span class="t">${n.toLocaleString("en-US")} tick${n === 1 ? "" : "s"}</span>`;
     }
-    return `<span class="slip-pc">${gsIcon(k)} ${gsSlipPct(b.upkeep[k], prod)}${left}</span>`;
+    return gsRow(`${gsIcon(k)} ${esc(gsName(k))}${left}`, gsAmtPct(b.upkeep[k], prod));
   }).join("");
-  return pcs ? `<div class="slip-sub">Production <button type="button" class="slip-x" data-gs-upx>×${gs.upx}</button></div>
-      <div class="slip-pcs">${pcs}</div>` : "";
+  return rows ? `<div class="slip-sub">Production <button type="button" class="slip-x" data-gs-upx>×${gs.upx}</button></div>${rows}` : "";
 }
 
 function gsUnitHTML(raw){
@@ -6323,6 +6337,7 @@ function gsUnitHTML(raw){
 }
 
 function gsSlip(c, b){
+  const wo = gsWriteoffHTML(b);
   return `<div class="slip" style="${gsPaper(c.name)}">
       ${gsDots(c.name)}
       <div class="slip-name">${esc(c.name)}</div>
@@ -6331,7 +6346,8 @@ function gsSlip(c, b){
       ${c.units.map(gsUnitHTML).join("")}
       <div class="slip-cut"></div>
       ${gsBillHTML(b)}
-      ${gsUpkeepHTML(b)}
+      ${wo ? `<div class="slip-cut"></div>${wo}` : ""}
+      ${gsUpkeepHTML(b) ? `<div class="slip-cut"></div>${gsUpkeepHTML(b)}` : ""}
       <div class="slip-cut double"></div>
       ${gsStockHTML(b)}
       ${gsProdHTML(b)}
@@ -6345,14 +6361,16 @@ function gsTotal(comps, bills, t){
       <div class="slip-wide-head">
         <div class="slip-name">Total</div>
         <div class="slip-meta">${t.troops.toLocaleString("en-US")} troops · sat ${satCost(t.troops).toLocaleString("en-US")}</div>
-        <span class="spacer"></span>${gsDots(GS_TOTAL)}
+        ${gsDots(GS_TOTAL)}
       </div>
       <div class="slip-cut"></div>
       <div class="slip-cols">
         <div><div class="slip-sub">Armies</div>${armies}</div>
         <div><div class="slip-sub">Bill</div>${gsBillHTML(t)}</div>
+        <div>${gsWriteoffHTML(t)}</div>
         <div>${gsUpkeepHTML(t)}</div>
-        <div>${gsStockHTML(t)}${gsProdHTML(t)}</div>
+        <div>${gsStockHTML(t)}</div>
+        <div>${gsProdHTML(t)}</div>
       </div>
     </div>`;
 }
@@ -6363,8 +6381,9 @@ function renderGrand(){
   const resvLeft = {};
   GS_GEAR.forEach(k=>{ resvLeft[k] = Math.floor(gsNum(gs.resv[k])); });
   const bills = comps.map(c => gsBill(c.units, resvLeft));
+  gsEl("gsWide").checked = gs.wide;
   gsEl("gsOut").innerHTML = comps.length
-    ? `<div class="gs-slips">${comps.map((c, i) => gsSlip(c, bills[i])).join("")}</div>` : "";
+    ? `<div class="gs-slips${gs.wide ? " wide" : ""}">${comps.map((c, i) => gsSlip(c, bills[i])).join("")}</div>` : "";
   gsEl("gsTotal").innerHTML = comps.length ? gsTotal(comps, bills, gsMerge(bills)) : "";
 }
 
@@ -6397,9 +6416,16 @@ gsEl("viewGrand").addEventListener("click", e=>{
     renderGrand();
     return;
   }
+  const pick = e.target.closest("[data-gs-pick]");
+  if (pick){
+    gsPicker = gsPicker === pick.dataset.gsPick ? null : pick.dataset.gsPick;
+    renderGrand();
+    return;
+  }
   const dot = e.target.closest("[data-gs-color]");
   if (dot){
     gs.colors[dot.dataset.gsSlip] = dot.dataset.gsColor;
+    gsPicker = null;
     gsSave();
     renderGrand();
     return;
@@ -6412,6 +6438,19 @@ gsEl("viewGrand").addEventListener("click", e=>{
 });
 
 document.addEventListener("warcalc:presets", renderGrand);
+
+/* a click anywhere else puts an open colour picker away */
+document.addEventListener("click", e=>{
+  if (gsPicker == null || e.target.closest(".slip-pop,[data-gs-pick]")) return;
+  gsPicker = null;
+  renderGrand();
+});
+
+gsEl("gsWide").addEventListener("change", ()=>{
+  gs.wide = gsEl("gsWide").checked;
+  gsSave();
+  renderGrand();
+});
 
 
 restoreAutosave();
