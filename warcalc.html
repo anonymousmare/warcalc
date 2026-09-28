@@ -645,7 +645,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .t-naval   {color:#00FFFF}
 
 /* ---------- grand strategy ---------- */
-.gs-top{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start}
+.gs-top{display:flex;gap:6px 22px;flex-wrap:wrap;align-items:flex-start}
 .gs-h{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);
   font-weight:600;margin-bottom:6px}
 .gs-inputs{display:flex;gap:5px;flex-wrap:wrap}
@@ -673,7 +673,9 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .gs-res[open] > summary:before{transform:rotate(90deg)}
 .gs-res > summary:hover{color:#fff}
 .gs-res-cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:10px}
-@media (max-width:1100px){.gs-res-cols{grid-template-columns:1fr}}
+.gs-res-cols > div + div{border-left:2px solid rgba(255,255,255,.22);padding-left:18px}
+@media (max-width:1100px){.gs-res-cols{grid-template-columns:1fr}
+  .gs-res-cols > div + div{border-left:none;padding-left:0;border-top:2px solid rgba(255,255,255,.22);padding-top:12px}}
 .gs-rgrp{display:flex;gap:8px;align-items:flex-start;padding:4px 0;border-top:1px solid rgba(0,0,0,.35)}
 .gs-rgrp:first-child{border-top:none}
 .gs-rgrp > .gs-rtype{flex:0 0 66px;font-size:12px;font-weight:600;padding-top:3px}
@@ -686,32 +688,57 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .gs-comps{display:flex;gap:4px;flex-wrap:wrap;padding-bottom:10px;margin-bottom:12px;
   border-bottom:1px solid var(--border-soft)}
 .gs-comps:empty{display:none}
-.gs-out{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1fr) minmax(0,1.15fr);gap:14px;align-items:start}
-@media (max-width:1100px){.gs-out{grid-template-columns:1fr}}
-.gs-out > .well{padding:9px 10px;overflow-x:auto}
-.gs-t{width:100%}
-.gs-t th,.gs-t td{padding:2px 6px;font-size:12px;white-space:nowrap}
-.gs-t thead th{font-size:10px;padding-bottom:4px}
-.gs-t tbody tr{border-bottom:1px solid rgba(0,0,0,.28)}
-.gs-t tbody tr:last-child{border-bottom:none}
-.gs-t .n{text-align:right;font-family:"SFMono-Regular",Menlo,Consolas,monospace}
-.gs-t th.n{font-family:inherit}
-.gs-t .ic-c{width:1%;text-align:center}
-.gs-t .ic-c .gear-img{vertical-align:middle}
-.gs-t tr.gs-sub td{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);
-  padding-top:7px}
-.gs-t tr.gs-sub:first-child td{padding-top:2px}
-.gs-t tfoot td{border-top:1px solid var(--border-soft);padding-top:5px;color:var(--text-dim)}
-.gs-t tfoot td.n{color:#fff}
-.gs-t + .gs-t{margin-top:12px}
-.gs-t .has-tip{cursor:help;border-bottom:1px dotted var(--text-dim)}
-.gs-t .dim{color:var(--text-dim)}
-.gs-t .ok{color:#78cc78}
-.gs-x-btn{
-  background:var(--sunken);border:1px solid var(--border-soft);border-radius:3px;cursor:pointer;
-  font:700 10px/1 "SFMono-Regular",Menlo,Consolas,monospace;color:#faa123;padding:2px 5px;
+.gs-slips{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;padding-bottom:10px}
+.slip{
+  --paper:#f4efe1;--ink:#2b2a27;
+  position:relative;width:262px;padding:12px 14px 14px;margin-bottom:8px;
+  background:var(--paper);color:var(--ink);border-radius:3px 3px 0 0;
+  font:12px/1.5 "SFMono-Regular",Menlo,Consolas,monospace;
+  box-shadow:0 7px 16px rgba(0,0,0,.45);
 }
-.gs-x-btn:hover{border-color:var(--text-dim);color:#fff}
+/* the torn edge a till leaves on the bottom of a slip */
+.slip::after{
+  content:"";position:absolute;left:0;right:0;bottom:-8px;height:8px;
+  background:conic-gradient(from 135deg at 50% 0,var(--paper) 90deg,transparent 0) 0 0/12px 8px repeat-x;
+}
+.slip-dots{display:flex;gap:4px;justify-content:center;margin-bottom:8px}
+.slip-dot{width:11px;height:11px;padding:0;border-radius:50%;cursor:pointer;
+  border:1px solid color-mix(in srgb,var(--ink) 35%,transparent)}
+.slip-dot.on{outline:1.5px solid var(--ink);outline-offset:1px}
+.slip-name{text-align:center;font-weight:700;font-size:14px;letter-spacing:.12em;text-transform:uppercase;
+  overflow-wrap:anywhere}
+.slip-meta{text-align:center;font-size:11px;opacity:.7}
+.slip-cut{border-top:1.5px dashed color-mix(in srgb,var(--ink) 45%,transparent);margin:9px 0}
+.slip-cut.double{border-top:3px double color-mix(in srgb,var(--ink) 55%,transparent);margin:11px 0 8px}
+.slip-u{display:flex;align-items:center;gap:6px;padding:1px 0}
+.slip-u[data-tip-t]{cursor:help}
+.slip-u .q{flex:0 0 46px;text-align:right;font-weight:700}
+.slip-u .nm{flex:1 1 auto;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slip-u .gi{display:inline-flex;gap:2px}
+.slip-u .tr{flex:0 0 28px;text-align:right;opacity:.75}
+.slip-l{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:1px 0}
+.slip-l > span:first-child{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;display:inline-flex;align-items:center;gap:5px}
+.slip-l .v{text-align:right}
+.slip-tot{font-weight:700;font-size:13px;margin:2px 0 3px;padding:3px 0;
+  border-top:1px solid color-mix(in srgb,var(--ink) 30%,transparent);
+  border-bottom:1px solid color-mix(in srgb,var(--ink) 30%,transparent)}
+.slip .gs-bit{color:var(--ink)}
+.slip-used{display:flex;flex-wrap:wrap;gap:3px 8px;margin:3px 0;padding:3px 5px;font-size:11px;
+  background:color-mix(in srgb,var(--ink) 8%,transparent);border-radius:3px}
+.slip-used > span{display:inline-flex;align-items:center;gap:2px}
+.slip-used .gear-img{flex:0 0 auto;width:auto;max-width:32px}
+.slip-sub{font:700 10px/1.3 "Helvetica Neue",Helvetica,Arial,sans-serif;letter-spacing:.1em;text-transform:uppercase;
+  opacity:.65;margin:7px 0 3px;display:flex;align-items:center;gap:6px}
+.slip-pcs{display:grid;grid-template-columns:1fr 1fr;gap:2px 10px}
+.slip-pc{display:inline-flex;align-items:center;gap:5px;font-weight:700}
+.slip-pc .t{font-weight:400;font-size:10px;opacity:.7}
+.slip .bad{color:#c62828}
+.slip .warn{color:#b86400}
+.slip.dark .bad{color:#f17a77}
+.slip.dark .warn{color:#faa123}
+.slip-x{background:none;border:1px solid color-mix(in srgb,var(--ink) 40%,transparent);border-radius:3px;
+  color:var(--ink);font:700 10px/1 "SFMono-Regular",Menlo,Consolas,monospace;padding:1px 4px;cursor:pointer;opacity:1}
+.slip-x:hover{background:color-mix(in srgb,var(--ink) 12%,transparent)}
 </style>
 </head>
 <body>
@@ -6099,7 +6126,7 @@ const gs = (()=>{
   const o = s && typeof s === "object" ? s : {};
   const obj = v => v && typeof v === "object" && !Array.isArray(v) ? v : {};
   return {stock: obj(o.stock), prod: obj(o.prod), resv: obj(o.resv),
-          comps: Array.isArray(o.comps) ? o.comps : [], upx: o.upx === 1 ? 1 : GS_TICKS};
+          comps: Array.isArray(o.comps) ? o.comps : [], colors: obj(o.colors), upx: o.upx === 1 ? 1 : GS_TICKS};
 })();
 const gsSave = () => store.set(LS_GRAND, gs);
 const gsNum  = v => Math.max(0, Number(v) || 0);
@@ -6142,116 +6169,138 @@ function gsReserves(){
   gsEl("gsResA").innerHTML = col("armor");
 }
 
+/* paper colours a slip can be printed on; the last is a dark slip */
+const GS_PAPER = {
+  cream:   {paper:"#f4efe1", ink:"#2b2a27"},
+  butter:  {paper:"#f8eeb4", ink:"#2e2a16"},
+  pink:    {paper:"#f7d9e2", ink:"#3a2029"},
+  mint:    {paper:"#d6efdc", ink:"#1d3324"},
+  sky:     {paper:"#d4e7f6", ink:"#1b2c3b"},
+  lilac:   {paper:"#e3dbf5", ink:"#2a2140"},
+  slate:   {paper:"#3b4148", ink:"#e6e6e6", dark:true}
+};
+const GS_TOTAL = "__total__";                          // colour key for the totals slip
+
 function gsComps(){
   const armies = getArmies();
   const names = Object.keys(armies).sort();
   gs.comps = gs.comps.filter(n => armies[n]);
   gsEl("gsComps").innerHTML = names.map(n=>`<span class="mark-chip${gs.comps.includes(n) ? " on" : ""}"
       data-gs-comp="${esc(n)}"><span class="n">${esc(n)}</span></span>`).join("");
-  return names.filter(n => gs.comps.includes(n)).map(n => ({name: n, units: armies[n]}));
+  /* slips come out in the order they were picked, and take reserves in that order */
+  return gs.comps.map(n => ({name: n, units: armies[n]}));
+}
+
+/* one army's bill; reserves it draws on are taken out of resvLeft */
+function gsBill(units, resvLeft){
+  let hire = 0, gearBits = 0, troops = 0;
+  const upkeep = {}, need = {}, res = {}, used = {};
+  units.forEach(u=>{
+    const n = gsNum(u.size);
+    troops += n;
+    const uc = UNIT_COST[u.type] || {hire:0, upkeep:{}};
+    hire += uc.hire * n;
+    addRes(upkeep, uc.upkeep, n);
+    [u.weapon, u.armor].forEach(k=>{ if (k && !SCROUNGED[k]) need[k] = (need[k] || 0) + n; });
+  });
+  GS_GEAR.filter(k => need[k] > 0).forEach(k=>{
+    const from = Math.min(need[k], resvLeft[k] || 0);
+    if (from){ used[k] = from; resvLeft[k] -= from; }
+    const c = gearCost(k in WEAPON_COST ? "weapon" : "armor", k);
+    gearBits += c.bits * (need[k] - from);
+    addRes(res, c.res, need[k] - from);
+  });
+  res.bits = hire + gearBits;
+  return {hire, gearBits, troops, upkeep, res, used};
+}
+
+function gsMerge(bills){
+  const t = {hire:0, gearBits:0, troops:0, upkeep:{}, res:{}, used:{}};
+  bills.forEach(b=>{
+    t.hire += b.hire; t.gearBits += b.gearBits; t.troops += b.troops;
+    addRes(t.upkeep, b.upkeep); addRes(t.res, b.res); addRes(t.used, b.used);
+  });
+  return t;
+}
+
+function gsSlipPct(need, have){
+  if (!(need > 0)) return "";
+  if (!(have > 0)) return `<span class="bad">∞</span>`;
+  const p = need / have * 100;
+  const t = p < 1 ? "<1%" : Math.round(p).toLocaleString("en-US") + "%";
+  return `<span class="${p > 100 ? "bad" : p >= 80 ? "warn" : ""}">${t}</span>`;
+}
+
+function gsSlip(key, title, lines, b){
+  const pc = GS_PAPER[gs.colors[key]] || GS_PAPER.cream;
+  const sw = Object.entries(GS_PAPER).map(([id, c])=>
+    `<button type="button" class="slip-dot${(gs.colors[key] || "cream") === id ? " on" : ""}" title="${id}"
+       style="background:${c.paper}" data-gs-color="${id}" data-gs-slip="${esc(key)}"></button>`).join("");
+  const row = (l, v, cls) => `<div class="slip-l${cls ? " " + cls : ""}"><span>${l}</span><span class="v">${v}</span></div>`;
+
+  const resRows = GS_COST.filter(k => k !== "bits" && b.res[k] > 0)
+    .map(k => row(`${gsIcon(k)} ${esc(gsName(k))}`, money(b.res[k]))).join("");
+  const upRows = GS_UPKEEP.filter(k => b.upkeep[k] > 0)
+    .map(k => row(`${gsIcon(k)} ${esc(gsName(k))}`, money(b.upkeep[k]))).join("");
+  const usedRow = Object.keys(b.used).length
+    ? `<div class="slip-used">${Object.entries(b.used).map(([k, n]) =>
+        `<span title="${esc(label(k))}">${gearImg(k)}<span>${n.toLocaleString("en-US")}</span></span>`).join("")}</div>` : "";
+
+  /* the bottom of the slip: what share of the stockpile and production it eats */
+  const stockPct = GS_COST.filter(k => b.res[k] > 0).map(k=>{
+    const have = gsNum(gs.stock[k]), prod = gsNum(gs.prod[k]);
+    const turns = b.res[k] > have && prod > 0 ? Math.ceil((b.res[k] - have) / prod) : null;
+    return `<span class="slip-pc">${gsIcon(k)} ${gsSlipPct(b.res[k], have)}${
+      turns == null ? "" : `<span class="t">+${turns.toLocaleString("en-US")}t</span>`}</span>`;
+  }).join("");
+  const prodPct = GS_UPKEEP.filter(k => b.upkeep[k] > 0).map(k=>
+    `<span class="slip-pc">${gsIcon(k)} ${gsSlipPct(b.upkeep[k], gsNum(gs.prod[k]) * gs.upx)}</span>`).join("");
+
+  return `<div class="slip${pc.dark ? " dark" : ""}" style="--paper:${pc.paper};--ink:${pc.ink}">
+      <div class="slip-dots">${sw}</div>
+      <div class="slip-name">${esc(title)}</div>
+      <div class="slip-meta">${b.troops.toLocaleString("en-US")} troops · sat ${satCost(b.troops).toLocaleString("en-US")}</div>
+      <div class="slip-cut"></div>
+      ${lines}
+      <div class="slip-cut"></div>
+      ${row("Hire", money(b.hire))}
+      ${row("Gear", money(b.gearBits))}
+      ${row(`${gsIcon("bits")} Total`, money(b.res.bits), "slip-tot")}
+      ${resRows}
+      ${usedRow}
+      ${upRows ? `<div class="slip-sub">Upkeep / turn</div>${upRows}` : ""}
+      <div class="slip-cut double"></div>
+      <div class="slip-sub">Stockpile</div>
+      <div class="slip-pcs">${stockPct}</div>
+      ${prodPct ? `<div class="slip-sub">Production <button type="button" class="slip-x" data-gs-upx>×${gs.upx}</button></div>
+      <div class="slip-pcs">${prodPct}</div>` : ""}
+    </div>`;
 }
 
 function renderGrand(){
   clearTips("gs");
   const comps = gsComps();
+  const resvLeft = {};
+  GS_GEAR.forEach(k=>{ resvLeft[k] = Math.floor(gsNum(gs.resv[k])); });
 
-  /* what the armies need */
-  let hire = 0;
-  const upkeep = {}, need = {};
-  comps.forEach(c => c.units.forEach(u=>{
-    const n = gsNum(u.size);
-    const uc = UNIT_COST[u.type] || {hire:0, upkeep:{}};
-    hire += uc.hire * n;
-    addRes(upkeep, uc.upkeep, n);
-    [u.weapon, u.armor].forEach(k=>{ if (k && !SCROUNGED[k]) need[k] = (need[k] || 0) + n; });
-  }));
-
-  /* reserves first, the rest gets built */
-  let gearBits = 0;
-  const res = {};
-  const gear = GS_GEAR.filter(k => need[k] > 0).map(k=>{
-    const from = Math.min(need[k], Math.floor(gsNum(gs.resv[k])));
-    const build = need[k] - from;
-    const c = gearCost(k in WEAPON_COST ? "weapon" : "armor", k);
-    gearBits += c.bits * build;
-    addRes(res, c.res, build);
-    return {k, need: need[k], from, build};
-  });
-  res.bits = hire + gearBits;
-
-  /* units */
-  let troops = 0;
-  const unitRows = comps.map(c=>{
-    const rows = c.units.map(raw=>{
+  const bills = comps.map(c => gsBill(c.units, resvLeft));
+  const slips = comps.map((c, i)=>{
+    const lines = c.units.map(raw=>{
       const u = Object.assign({}, raw, {weapon: raw.weapon || "ScroungedWeapons", armor: raw.armor || "ScroungedArmor"});
       const n = gsNum(u.size);
-      troops += n;
-      const t = u.type.toLowerCase();
-      return `<tr><td class="t-${t}" ${tipAttrs(u.type, u.weapon, u.armor, n, u.training ?? 0)}>${esc(u.type)}</td>
-        <td class="ic-c">${gearImg(u.weapon)}</td><td class="ic-c">${gearImg(u.armor)}</td>
-        <td class="n">${n.toLocaleString("en-US")}</td><td class="n">${clampInt(u.training ?? 0, 0, 20)}</td></tr>`;
+      return `<div class="slip-u" ${tipAttrs(u.type, u.weapon, u.armor, n, u.training ?? 0)}>
+          <span class="q">${n.toLocaleString("en-US")}</span><span class="nm">${esc(u.type)}</span>
+          <span class="gi">${gearImg(u.weapon)}${gearImg(u.armor)}</span>
+          <span class="tr">T${clampInt(u.training ?? 0, 0, 20)}</span></div>`;
     }).join("");
-    return (comps.length > 1 ? `<tr class="gs-sub"><td colspan="5">${esc(c.name)}</td></tr>` : "") + rows;
-  }).join("");
-  const unitsTbl = `<table class="gs-t">
-      <thead><tr><th>Type</th><th class="ic-c">W</th><th class="ic-c">A</th><th class="n">Size</th><th class="n">Tr</th></tr></thead>
-      <tbody>${unitRows}</tbody>
-      <tfoot><tr><td colspan="3">Troops</td><td class="n">${troops.toLocaleString("en-US")}</td><td></td></tr>
-        <tr><td colspan="3">Sat</td><td class="n">${satCost(troops).toLocaleString("en-US")}</td><td></td></tr></tfoot>
-    </table>`;
-
-  /* gear */
-  const gearTbl = `<table class="gs-t">
-      <thead><tr><th class="ic-c"></th><th>Gear</th><th class="n">Need</th><th class="n">Res</th><th class="n">Build</th></tr></thead>
-      <tbody>${gear.map(g=>`<tr><td class="ic-c">${gearImg(g.k)}</td><td>${esc(label(g.k))}</td>
-        <td class="n">${g.need.toLocaleString("en-US")}</td>
-        <td class="n${g.from ? " ok" : " dim"}">${g.from.toLocaleString("en-US")}</td>
-        <td class="n">${g.build.toLocaleString("en-US")}</td></tr>`).join("")
-        || `<tr><td></td><td class="dim">—</td><td></td><td></td><td></td></tr>`}</tbody>
-    </table>`;
-
-  /* costs against the stockpile */
-  const bitsTip = regTip(`<div class="tip-title">Bits</div><table class="tip-break" style="margin-top:6px">
-      <tr><td>Raise army</td><td class="bits" style="text-align:right">${money(hire)}</td></tr>
-      <tr><td>Equipment</td><td class="bits" style="text-align:right">${money(gearBits)}</td></tr></table>`, "gs");
-  const costRows = GS_COST.filter(k => k === "bits" || res[k] > 0).map(k=>{
-    const want = res[k] || 0, have = gsNum(gs.stock[k]), left = have - want;
-    const prod = gsNum(gs.prod[k]);
-    const turns = left < 0 && prod > 0 ? Math.ceil(-left / prod) : null;
-    const lab = k === "bits" ? ` class="n has-tip" data-tip-key="${bitsTip}"` : ` class="n"`;
-    return `<tr><td class="ic-c">${gsIcon(k)}</td>
-      <td${lab}>${money(want)}</td><td class="n">${money(have)}</td>
-      <td class="n${left < 0 ? " crunch-short" : ""}">${money(left)}</td>
-      <td class="n">${gsPct(want, have)}</td>
-      <td class="n dim">${turns == null ? "" : turns.toLocaleString("en-US")}</td></tr>`;
-  }).join("");
-  const costTbl = `<table class="gs-t">
-      <thead><tr><th class="ic-c"></th><th class="n">Cost</th><th class="n">Have</th><th class="n">Left</th>
-        <th class="n">%</th><th class="n">Turns</th></tr></thead>
-      <tbody>${costRows}</tbody>
-    </table>`;
-
-  /* upkeep against a war-tick's production, or one turn's */
-  const upRows = GS_UPKEEP.filter(k => upkeep[k] > 0).map(k=>{
-    const prod = gsNum(gs.prod[k]) * gs.upx;
-    const stock = GS_STOCK.includes(k) ? gsNum(gs.stock[k]) : null;
-    return `<tr><td class="ic-c">${gsIcon(k)}</td>
-      <td class="n">${money(upkeep[k])}</td><td class="n">${gsFmt(prod)}</td>
-      <td class="n">${gsPct(upkeep[k], prod)}</td>
-      <td class="n">${stock == null ? `<span class="dim">—</span>` : gsPct(upkeep[k], stock)}</td></tr>`;
-  }).join("") || `<tr><td></td><td class="n dim">—</td><td></td><td></td><td></td></tr>`;
-  const upTbl = `<table class="gs-t">
-      <thead><tr><th class="ic-c"></th><th class="n">Upkeep</th>
-        <th class="n">Prod <button type="button" class="gs-x-btn" data-gs-upx>×${gs.upx}</button></th>
-        <th class="n">% prod</th><th class="n">% stock</th></tr></thead>
-      <tbody>${upRows}</tbody>
-    </table>`;
-
-  gsEl("gsOut").innerHTML = `<div class="gs-out">
-      <div class="well"><div class="gs-h">Units</div>${unitsTbl}</div>
-      <div class="well"><div class="gs-h">Gear</div>${gearTbl}</div>
-      <div class="well"><div class="gs-h">Costs</div>${costTbl}${upTbl}</div>
-    </div>`;
+    return gsSlip(c.name, c.name, lines, bills[i]);
+  });
+  if (comps.length > 1){
+    const lines = comps.map((c, i)=>`<div class="slip-u"><span class="q">${bills[i].troops.toLocaleString("en-US")}</span>
+        <span class="nm">${esc(c.name)}</span></div>`).join("");
+    slips.push(gsSlip(GS_TOTAL, "Total", lines, gsMerge(bills)));
+  }
+  gsEl("gsOut").innerHTML = slips.length ? `<div class="gs-slips">${slips.join("")}</div>` : "";
 }
 
 /* ---- grand strategy wiring ---- */
@@ -6279,6 +6328,13 @@ gsEl("viewGrand").addEventListener("click", e=>{
   if (chip){
     const n = chip.dataset.gsComp, i = gs.comps.indexOf(n);
     if (i >= 0) gs.comps.splice(i, 1); else gs.comps.push(n);
+    gsSave();
+    renderGrand();
+    return;
+  }
+  const dot = e.target.closest("[data-gs-color]");
+  if (dot){
+    gs.colors[dot.dataset.gsSlip] = dot.dataset.gsColor;
     gsSave();
     renderGrand();
     return;
