@@ -6294,12 +6294,6 @@ function gsWriteoffHTML(b){
     gsRow(`${gearImg(k)} ${esc(gsShort(k))}`, n.toLocaleString("en-US"))).join("") : "";
 }
 
-function gsUpkeepHTML(b){
-  const rows = GS_UPKEEP.filter(k => b.upkeep[k] > 0)
-    .map(k => gsRow(`${gsIcon(k)} ${esc(gsName(k))}`, money(b.upkeep[k]))).join("");
-  return rows ? `<div class="slip-sub">Upkeep</div>${rows}` : "";
-}
-
 function gsStockHTML(b){
   const rows = GS_COST.filter(k => b.res[k] > 0).map(k=>{
     const have = gsNum(gs.stock[k]), prod = gsNum(gs.prod[k]);
@@ -6310,9 +6304,9 @@ function gsStockHTML(b){
   return `<div class="slip-sub">Stockpile</div>${rows || gsRow("—", "")}`;
 }
 
-/* upkeep against production; past 100% the stockpile makes up the gap, and
-   the row says how many ticks of the chosen view it lasts */
-function gsProdHTML(b){
+/* upkeep, and the share of production it eats; past 100% the stockpile
+   makes up the gap, and the row says how many ticks of the chosen view it lasts */
+function gsUpkeepHTML(b){
   const rows = GS_UPKEEP.filter(k => b.upkeep[k] > 0).map(k=>{
     const prod = gsNum(gs.prod[k]) * gs.upx;
     const gap = b.upkeep[k] - prod;
@@ -6323,7 +6317,7 @@ function gsProdHTML(b){
     }
     return gsRow(`${gsIcon(k)} ${esc(gsName(k))}${left}`, gsAmtPct(b.upkeep[k], prod));
   }).join("");
-  return rows ? `<div class="slip-sub">Production <button type="button" class="slip-x" data-gs-upx>×${gs.upx}</button></div>${rows}` : "";
+  return rows ? `<div class="slip-sub">Upkeep <button type="button" class="slip-x" data-gs-upx>×${gs.upx}</button></div>${rows}` : "";
 }
 
 function gsUnitHTML(raw){
@@ -6347,10 +6341,9 @@ function gsSlip(c, b){
       <div class="slip-cut"></div>
       ${gsBillHTML(b)}
       ${wo ? `<div class="slip-cut"></div>${wo}` : ""}
-      ${gsUpkeepHTML(b) ? `<div class="slip-cut"></div>${gsUpkeepHTML(b)}` : ""}
       <div class="slip-cut double"></div>
       ${gsStockHTML(b)}
-      ${gsProdHTML(b)}
+      ${gsUpkeepHTML(b)}
     </div>`;
 }
 
@@ -6368,9 +6361,8 @@ function gsTotal(comps, bills, t){
         <div><div class="slip-sub">Armies</div>${armies}</div>
         <div><div class="slip-sub">Bill</div>${gsBillHTML(t)}</div>
         <div>${gsWriteoffHTML(t)}</div>
-        <div>${gsUpkeepHTML(t)}</div>
         <div>${gsStockHTML(t)}</div>
-        <div>${gsProdHTML(t)}</div>
+        <div>${gsUpkeepHTML(t)}</div>
       </div>
     </div>`;
 }
