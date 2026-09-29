@@ -331,7 +331,10 @@ body.no-unspent .log .unspent{display:none}
 .cmp-cur .cmp-one{color:var(--text-dim)}
 /* the weapon an armour row's dead take with them, greyed under the armour */
 .cmp-ic{display:flex;flex-direction:column;align-items:flex-start;gap:3px}
-.cmp-wpn .gear-img{filter:grayscale(1);opacity:.55}
+.cmp-wpn .gear-img{filter:grayscale(.75)}
+#tip .w{color:#fff}
+#tip .mono-ic .res-icon{filter:grayscale(1)}
+#tip .tip-gear .gear-img{vertical-align:-3px;margin-right:4px}
 /* figures in the wide view explain themselves on hover */
 .has-ntip{cursor:help}
 .has-ntip:hover b,.has-ntip:hover .cx-chip{text-decoration:underline dotted}
@@ -2762,9 +2765,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
     if (r === now) return one(now);
     return one(r) + one(now) + tr("difference", sgn(dead(r) * perLoss(r.key, res) - dead(now) * perLoss(now.key, res)), "tot");
   };
-  const deadNote = `<div class="small muted" style="margin-top:6px;max-width:300px">${isW ? "Killed" : "Dead"} is this
-    exchange's damage rounded down, capped at the ${money(D.size)} in the stack, with the same ${money(l.hits)} hits.
-    Each one is counted as rebought with the kit it carried.</div>`;
+  const deadNote = "";
   const tipKit = (r, res) => tipTitle(r, "kit", res) + `<table class="tip-math">${kitRows(r, res)}</table>`;
   const tipLoss = (r, res) => tipTitle(r, isW ? "enemy troops killed" : "troops lost", res) +
     `<table class="tip-math">${lossRows(r, res)}</table>` + deadNote;
@@ -2772,16 +2773,35 @@ function gearCompare(kind, A, D, l, bonusApplied){
     `<table class="tip-math">${[r, now].filter((x, i) => !i || r !== now).map(x =>
       tr(`${esc(label(x.key))}: ${money(x.dmg)} dmg`, `${money(dead(x))} killed`)).join("")}${
       r === now ? "" : tr("difference", sgn(dead(r) - dead(now)), "tot")}</table>` + deadNote;
+  /* the net card: both pieces with the weapon they sit beside, what the
+     stack's worth costs, then the dead each leaves behind */
   const tipNet = (r, res)=>{
-    const kitD = (kitUnit(r.key, res) - kitUnit(now.key, res)) * n;
+    const ico = res ? resIcon(res) : BIT;
+    const amt = (v, mono) => `(<span class="${mono ? "mono-ic" : ""}">${ico}</span> ${money(v)})`;
+    const wv = res ? (Dw.res[res] || 0) : Dw.bits;             // the weapon beside each suit
+    const a1 = kitUnit(r.key, res), a0 = kitUnit(now.key, res);
+    const t1 = (a1 + wv) * n, t0 = (a0 + wv) * n;
+    const per = (x, a, t) => tr(`${esc(label(x.key))} per`,
+      `<b class="w">${money(a + wv)}</b> <span class="muted">(×${money(n)} = ${money(t)})</span>`);
+    const deadRow = x=>{
+      const k = dead(x), p1 = perLoss(x.key, res);
+      return tr(`<span class="tip-gear">${gearImg(x.key)}</span>${esc(label(x.key))}: ${money(k)} dead
+        <span class="muted">× ${money(p1)}</span> ${ico}`, money(k * p1));
+    };
     const lossD = dead(r) * perLoss(r.key, res) - dead(now) * perLoss(now.key, res);
-    return tipTitle(r, "net", res) +
-      `<div class="small" style="margin-bottom:2px">Kit for the whole stack</div><table class="tip-math">${kitRows(r, res)}</table>
-       <div class="small" style="margin:8px 0 2px">Troops lost, rebought</div><table class="tip-math">${lossRows(r, res)}</table>
-       <table class="tip-math" style="margin-top:8px">${tr("kit", sgn(kitD))}${tr("+ troops lost", sgn(lossD))}${
-         tr("net", sgn(kitD + lossD), "tot")}</table>` + deadNote;
+    return `<div data-tip-bg="#1c2531"><div class="tip-title">${amt(a1)} ${esc(label(r.key))}
+        <span class="muted">vs</span> ${amt(a0)} ${esc(label(now.key))} ${ico}</div>
+      <div class="small" style="margin:6px 0 2px">Including weapon${wv ? ` <span class="muted">${amt(wv, true)}</span>` : ""}</div>
+      <table class="tip-math">${per(r, a1, t1)}${per(now, a0, t0)}
+        ${tr(`difference <span class="muted">${money(t1)} − ${money(t0)}</span>`, sgn(t1 - t0), "tot")}</table>
+      <div class="small" style="margin:8px 0 2px">Killed${res ? "" : ` <span class="muted">(each also re-raised for ${money(hire(D))})</span>`}</div>
+      <table class="tip-math">${deadRow(r)}${deadRow(now)}${tr("difference", sgn(lossD), "tot")}</table>
+      <table class="tip-math" style="margin-top:8px">${tr("Equipment", sgn(t1 - t0))}${tr("+ troops lost", sgn(lossD))}${
+        tr("net", sgn(t1 - t0 + lossD), "tot")}</table></div>`;
   };
-  const tipped = (html, tip) => `<span class="has-ntip" data-tip-key="${regTip(tip, "pin")}">${html}</span>`;
+  const tipBg = isW ? "#321f27" : "#1c2531";
+  const tipped = (html, tip) => `<span class="has-ntip" data-tip-key="${regTip(
+    tip.startsWith("<div data-tip-bg") ? tip : `<div data-tip-bg="${tipBg}">${tip}</div>`, "pin")}">${html}</span>`;
 
   const signed = (v, good, tip) => tipped(!v ? `<b class="cmp-same">±0</b>`
     : `<b class="${good(v) ? "cmp-up" : "cmp-down"}">${sgn(v)}</b>`, tip);
@@ -4741,6 +4761,8 @@ document.addEventListener("mouseover", e=>{
       d.tipSize !== undefined ? d.tipSize : null, d.tipTrain);
   }
   if (!d.tipLeft || PREFS.plainHover || d.tipKey) tipEl.classList.remove("tip-wide");
+  const bg = tipEl.querySelector("[data-tip-bg]");         // a card can ask for its panel's colour
+  tipEl.style.background = bg ? bg.dataset.tipBg : "";
   tipEl.style.display = "block";
   moveTip(e);
 });
