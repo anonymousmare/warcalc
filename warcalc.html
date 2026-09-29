@@ -204,6 +204,8 @@ body.log-names.log-nums .ref-num{display:inline}
 .ref-def .ref-num{color:#4f8a9c}
 #logNumsWrap{display:none}
 body.log-names #logNumsWrap{display:inline-flex}
+.log .overkill{color:#e2c760;border-bottom:none}
+.log .overkill b{color:#e2c760}
 .ref-atk{color:#f17a77}
 .ref-def{color:#74cae3}
 .ref-size{color:#fff}
@@ -2730,7 +2732,7 @@ function chainTickBlock(k, cum){
     <div class="chain-tick ${TICK_TONES[(k.tick - 1) % TICK_TONES.length]}">
     <div class="chain-body">
       ${stallsNote(r.stalls)}
-      ${exchangeLogBlock(r.units, r.log, lastBonus, `logExchange_t${n}`, "chain")}
+      ${exchangeLogBlock(r.units, r.log, lastBonus, `logExchange_t${n}`, "chain", overkillLine(r.units))}
       ${casualtiesBlock(r.units, r.casualties, `logCasualties_t${n}`)}
 
       <div style="margin-top:16px">${survivorsGrid(all)}</div>
@@ -2961,7 +2963,22 @@ function stallsNote(stalls){
   return stalls.length ? `<div class="note warn"><strong>${stalls.length} matchup(s) did nothing.</strong></div>` : "";
 }
 
-function exchangeLogBlock(units, log, bonus, id, ns){
+/* damage piled onto units past the point they were wiped out, read off the
+   finished result (simulate() is left exactly as it is). Only the fight that
+   ends the battle — one side wiped — gets the line, and only if there is any. */
+function overkillLine(units){
+  const all = Object.values(units);
+  const wiped = inv => all.filter(u => !!u.attack_mission === inv).every(u => u.dead);
+  if (!wiped(true) && !wiped(false)) return "";
+  const over = inv => round6(all.filter(u => !!u.attack_mission !== inv && u.dead)
+    .reduce((s, u) => s + Math.max(0, u.damage - u.size), 0));
+  const atk = over(true), def = over(false);          // dealt BY attackers / defenders
+  if (atk <= 0 && def <= 0) return "";
+  return `<div class="overkill">Overkill damage${atk > 0 ? ` — Attackers dealt <b>${fmt(atk)}</b> extra` : ""}${
+    def > 0 ? `${atk > 0 ? " ·" : " —"} Defenders dealt <b>${fmt(def)}</b> extra` : ""}</div>`;
+}
+
+function exchangeLogBlock(units, log, bonus, id, ns, tail){
   return `<div>
     <div class="log-head">
       <h3>Exchange log</h3>
@@ -2978,7 +2995,7 @@ function exchangeLogBlock(units, log, bonus, id, ns){
           ${unitRef(D, D.armor)}
           for <b class="dmg-ref" data-tip-key="${mk}">${fmt(l.damage)}</b> damage
           <span class="muted">(${l.hits} hits)</span></div>`;
-      }).join("") : '<div class="muted">No hits were exchanged.</div>'}</div>
+      }).join("") : '<div class="muted">No hits were exchanged.</div>'}${tail || ""}</div>
   </div>`;
 }
 
@@ -3106,7 +3123,7 @@ function render(result, atkRaw, defRaw, bonus){
       ${stallsNote(stalls)}
 
       <div>
-        ${exchangeLogBlock(units, log, bonus, "logExchange", "death")}
+        ${exchangeLogBlock(units, log, bonus, "logExchange", "death", overkillLine(units))}
         ${casualtiesBlock(units, casualties, "logCasualties")}
       </div>
     </div>
