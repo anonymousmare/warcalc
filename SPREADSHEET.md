@@ -4,7 +4,7 @@ Four codes travel between the sheet and the calculator.
 
 | Code | What it is | Who writes it |
 |---|---|---|
-| **army code** | one side's units — type, weapon, armour, size, training for every stack | Warcalc's copy button, pasted into the sheet by hand |
+| **army code** | one side's units — type, weapon, armour, size, training for every stack, and any unit names after a `.` | Warcalc's copy button, pasted into the sheet by hand |
 | **crunch** | the 43 roster counts plus training | a formula in the sheet, always live |
 | **battle code** | both army codes, the defender bonus and the crunch, in one string | a formula in the sheet |
 | **link** | the battle code with the site in front of it | a formula in the sheet |
