@@ -3034,7 +3034,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
     ${row(now, true)}
     ${others.length ? others.map(r => row(r, false)).join("")
       : `<div class="small muted">Nothing else this unit can ${isW ? "carry" : "wear"}.</div>`}
-    <div class="pin-art"><img src="https://derpicdn.net/img/view/${isW ? "2015/2/5/822141" : "2019/5/15/2039978"}.png"
+    <div class="pin-art"><img src="https://derpicdn.net/img/${isW ? "2015/2/5/822141" : "2019/5/15/2039978"}/thumb.png"
       alt="" onerror="this.parentNode.remove()"></div>`;
 }
 
@@ -3067,7 +3067,7 @@ function dmgPinHTML(A, D, l, bonusApplied){
       <div class="pin-col pin-mid">${dmgMathTip(A, D, l, bonusApplied)}
         <div class="pin-vs">${pinUnit(A, true)}<span class="pin-vs-word">vs</span>${pinUnit(D, false)}</div>
         <div class="m1-more" title="Show what each swap costs or saves">${M1_ICON}<span class="m1-txt">m1 for compare</span></div>
-        <div class="pin-art"><img src="https://derpicdn.net/img/view/2023/9/3/3193754.png" alt=""
+        <div class="pin-art"><img src="https://derpicdn.net/img/2023/9/3/3193754/thumb.png" alt=""
           onerror="this.parentNode.remove()"></div></div>
       <div class="pin-col cmp-armor ${D.attack_mission ? "bg-inv" : "bg-def"}${PIN_HOLD ? " hold-open" : ""}">${gearCompare("armor", A, D, l, bonusApplied)}</div>
     </div>`;
