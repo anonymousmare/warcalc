@@ -252,10 +252,28 @@ body.no-unspent .log .unspent{display:none}
 #dmgPin .pin-col + .pin-col::before{
   content:"";position:absolute;left:-11px;top:0;bottom:0;width:1px;background:var(--border-soft);
 }
-#dmgPin .pin-close{position:absolute;top:4px;right:6px;background:none;border:none;
+#dmgPin .pin-close{position:absolute;top:2px;right:3px;z-index:2;background:none;border:none;
   color:var(--text-dim);font-size:16px;line-height:1;cursor:pointer;padding:2px 4px}
 #dmgPin .pin-close:hover{color:#fff}
-.cmp-sub{font-size:11px;margin:2px 0 8px}
+/* the compare panels wear the Grand Strategy ticket papers: navy for the
+   armour being struck, wine for the weapon swinging */
+#dmgPin .pin-col.cmp-armor,#dmgPin .pin-col.cmp-weapon{padding:8px 9px;border-radius:3px}
+#dmgPin .cmp-armor{background:#1c2531}
+#dmgPin .cmp-weapon{background:#321f27}
+#dmgPin .cmp-armor::before,#dmgPin .cmp-weapon::before,#dmgPin .pin-mid::before{display:none}
+#dmgPin .tip-title + .cmp-tag{margin-top:8px}
+/* the two units squared up under the breakdown */
+.pin-vs{display:flex;align-items:center;justify-content:center;gap:12px;
+  margin-top:12px;padding-top:10px;border-top:1px solid var(--border-soft)}
+.pin-unit{display:flex;flex-direction:column;align-items:center;text-align:center;
+  font-size:11px;line-height:1.35;min-width:0}
+.pin-unit .sprite{margin:3px 0 4px}
+.pin-unit.side-atk .sprite{border:1px solid #f17a77}
+.pin-unit.side-def .sprite{border:1px solid #74cae3}
+.pin-unit.side-atk .pu-gear{color:#b04542}
+.pin-unit.side-def .pu-gear{color:#3a7fa0}
+.pin-unit .pu-size{color:#fff;font-weight:600;font-family:"SFMono-Regular",Menlo,Consolas,monospace}
+.pin-vs-word{color:var(--text-dim);font-weight:700;font-size:12px;letter-spacing:.06em}
 .cmp-row{display:grid;grid-template-columns:auto 1fr auto;gap:2px 8px;align-items:center;
   padding:6px 0;border-top:1px solid var(--border-soft)}
 .cmp-row .gear-img{width:28px;height:28px}
@@ -2615,46 +2633,56 @@ function gearCompare(kind, A, D, l, bonusApplied){
     const stat = isW ? st.dmg[vs] : st.arm[vs];
     const base = isW ? stat : A.dmg[TYPES[D.type]];
     const armv = isW ? D.arm[TYPES[A.type]] : stat;
-    const dmg = round6(exchangePerHit(base, armv, A, D, bonusApplied) * l.hits);
+    const dmg = Math.floor(round6(exchangePerHit(base, armv, A, D, bonusApplied) * l.hits));
     const c = gearCost(kind, key);
     return {key, stat, dmg, bits: c.bits * n, res: addRes({}, c.res, n)};
   };
   const now = calc(cur);
-  now.dmg = l.damage;                                 // the figure that was clicked
+  now.dmg = Math.floor(l.damage);                     // the figure that was clicked
 
   const row = (r, isCur)=>{
     let delta = "";
     if (!isCur){
-      const d = round6(r.dmg - now.dmg);
+      const d = r.dmg - now.dmg;
       const good = isW ? d > 0 : d < 0;
       delta = `<span class="${!d ? "cmp-same" : good ? "cmp-up" : "cmp-down"}">${
-        !d ? "±0" : (d > 0 ? "+" : "−") + fmt(Math.abs(d))}</span>`;
+        !d ? "±0" : (d > 0 ? "+" : "−") + money(Math.abs(d))}</span>`;
     }
     return `<div class="cmp-row${isCur ? " cmp-cur" : ""}">
       <span class="cmp-ic">${gearImg(r.key)}</span>
       <span class="cmp-name">${esc(label(r.key))}</span>
       <span class="cmp-stat">${isW ? "" : "×"}${fmt(r.stat)}</span>
       <span class="cmp-cost"><span class="bits">${money(r.bits)}</span> ${resChips(r.res)}</span>
-      <span class="cmp-dmg"><span>${fmt(r.dmg)} dmg</span>${delta}</span>
+      <span class="cmp-dmg"><span>${money(r.dmg)} dmg</span>${delta}</span>
     </div>`;
   };
 
   const others = pool.filter(k => k !== cur).map(calc);
   return `<div class="tip-title">${isW ? "Weapon" : "Armour"} Compare</div>
-    <div class="cmp-sub muted">vs ${cap(vs)} · ${n.toLocaleString("en-US")} ${isW ? "weapon" : "suit"}${
-      n === 1 ? "" : "s"} · same ${l.hits.toLocaleString("en-US")} hits</div>
     <div class="cmp-tag">Equipped</div>
     ${row(now, true)}
     ${others.length ? others.map(r => row(r, false)).join("")
       : `<div class="small muted">Nothing else this unit can ${isW ? "carry" : "wear"}.</div>`}`;
 }
 
+/* size on top, the sprite in its side's colour, then the kit and training */
+function pinUnit(U){
+  return `<div class="pin-unit ${U.attack_mission ? "side-atk" : "side-def"}">
+    <span class="pu-size">${Number(U.size).toLocaleString("en-US")}</span>
+    ${buildSprite(U.origType, U.weapon, U.armor, true)}
+    <span class="pu-gear">${esc(label(U.weapon))}</span>
+    <span class="pu-gear">${esc(label(U.armor))}</span>
+    <span class="muted">training ${esc(U.training)}</span>
+  </div>`;
+}
+
 function dmgPinHTML(A, D, l, bonusApplied){
   return `<button class="pin-close" title="Close (Esc)">×</button>
     <div class="pin-cols">
-      <div class="pin-col">${gearCompare("armor", A, D, l, bonusApplied)}</div>
-      <div class="pin-col pin-mid">${dmgMathTip(A, D, l, bonusApplied)}</div>
-      <div class="pin-col">${gearCompare("weapon", A, D, l, bonusApplied)}</div>
+      <div class="pin-col cmp-armor">${gearCompare("armor", A, D, l, bonusApplied)}</div>
+      <div class="pin-col pin-mid">${dmgMathTip(A, D, l, bonusApplied)}
+        <div class="pin-vs">${pinUnit(A)}<span class="pin-vs-word">vs</span>${pinUnit(D)}</div></div>
+      <div class="pin-col cmp-weapon">${gearCompare("weapon", A, D, l, bonusApplied)}</div>
     </div>`;
 }
 
