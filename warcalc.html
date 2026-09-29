@@ -291,7 +291,7 @@ body.no-unspent .log .unspent{display:none}
 /* spare rows above and below share the height of a long list, so the
    left side sits packed together in the middle of its row */
 #dmgPin.pin-wide .cmp-row{grid-template-columns:auto 1fr auto 150px;grid-template-rows:1fr auto auto auto 1fr}
-#dmgPin.pin-wide .cmp-ic{grid-row:2 / span 3}
+#dmgPin.pin-wide .cmp-ic{grid-row:2 / span 2}
 #dmgPin.pin-wide .cmp-name,#dmgPin.pin-wide .cmp-stat{grid-row:2}
 #dmgPin.pin-wide .cmp-cost{grid-row:3}
 #dmgPin.pin-wide .cmp-dmg{grid-row:4}
@@ -336,7 +336,8 @@ body.no-unspent .log .unspent{display:none}
   margin-top:50px;line-height:16px}
 .cmp-row{display:grid;grid-template-columns:auto 1fr auto;gap:2px 8px;align-items:center;
   padding:6px 0;border-top:1px solid var(--border-soft)}
-.cmp-row .cmp-ic{grid-row:span 3;align-self:center}
+/* the icon sits beside the name and cost; the damage line runs under it from the left edge */
+.cmp-row .cmp-ic{grid-row:span 2;align-self:center}
 .cmp-name{font-weight:600;font-size:12px;color:#fff}
 .cmp-stat{font-family:"SFMono-Regular",Menlo,Consolas,monospace;font-size:12px;text-align:right}
 .cmp-cost{grid-column:2 / span 2;font-size:11px}
@@ -364,7 +365,7 @@ body.no-unspent .log .unspent{display:none}
 #dmgPin .tt-aside input{margin:0;width:11px;height:11px;cursor:pointer}
 #dmgPin .pin-grip{cursor:move;user-select:none}
 #dmgPin.pin-dragging,#dmgPin.pin-dragging *{cursor:move;user-select:none}
-.cmp-dmg{grid-column:2 / span 2;font-size:12px;display:flex;justify-content:space-between;
+.cmp-dmg{grid-column:1 / span 3;font-size:12px;display:flex;justify-content:space-between;
   font-family:"SFMono-Regular",Menlo,Consolas,monospace}
 .cmp-cur{border:1px solid rgba(120,204,120,.45);border-radius:3px;padding:6px 2px;margin:0 -3px 6px}
 .cmp-cur .cmp-name,.cmp-cur .cmp-stat,.cmp-cur .cmp-cost .bits,.cmp-cur .cmp-dmg{color:#78cc78}
@@ -2926,7 +2927,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
       <span class="cmp-cost"><span class="bits">${money(r.bits)}</span><span class="cmp-res">${resChips(r.res)}</span>${oneOf(r.key)}</span>
       <span class="cmp-dmg"><span>${r.dmg >= D.size
         ? `[${money(D.size)}] ${isW ? "dealt" : "taken"} <span class="muted">(${money(r.dmg)} total)</span>`
-        : `${money(r.dmg)} dmg ${isW ? "dealt" : "taken"}`}</span>${delta}</span>
+        : `${money(r.dmg)} ${isW ? "dealt" : "taken"}`}</span>${delta}</span>
       <div class="cmp-x">${extra(r, isCur)}</div>
       ${isW ? "" : `<div class="cmp-hold">${sizeCol(r)}</div>`}
     </div>`;
