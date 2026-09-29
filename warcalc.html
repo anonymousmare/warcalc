@@ -275,9 +275,14 @@ body.no-unspent .log .unspent{display:none}
 /* m1 again: the compares widen to show what each swap does to the bill */
 #dmgPin.pin-wide .cmp-armor,#dmgPin.pin-wide .cmp-weapon{width:440px}
 .cmp-x{display:none}
-/* a spare last row takes the height of a long list, so the left side stays packed */
-#dmgPin.pin-wide .cmp-row{grid-template-columns:auto 1fr auto 150px;grid-template-rows:auto auto auto 1fr;align-items:start}
-#dmgPin.pin-wide .cmp-x{display:block;grid-column:4;grid-row:1 / span 4;align-self:stretch;
+/* spare rows above and below share the height of a long list, so the
+   left side sits packed together in the middle of its row */
+#dmgPin.pin-wide .cmp-row{grid-template-columns:auto 1fr auto 150px;grid-template-rows:1fr auto auto auto 1fr}
+#dmgPin.pin-wide .cmp-ic{grid-row:2 / span 3}
+#dmgPin.pin-wide .cmp-name,#dmgPin.pin-wide .cmp-stat{grid-row:2}
+#dmgPin.pin-wide .cmp-cost{grid-row:3}
+#dmgPin.pin-wide .cmp-dmg{grid-row:4}
+#dmgPin.pin-wide .cmp-x{display:block;grid-column:4;grid-row:1 / span 5;align-self:stretch;
   padding-left:9px;border-left:1px solid var(--border-soft);font-size:11px;line-height:1.5}
 .cx-line{display:flex;flex-wrap:wrap;align-items:center;gap:0 5px}
 .cx-k{color:var(--text-dim);width:30px;flex:none}
