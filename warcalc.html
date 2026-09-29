@@ -329,7 +329,7 @@ body.no-pin-art .pinbox .pin-art{display:none}
 .sz-gap{height:8px}
 .cmp-par{color:#e2c760}
 .cx-act{color:var(--text-dim);font-size:9.5px;margin-left:3px}
-.sz-act{margin-left:0;font-family:"SFMono-Regular",Menlo,Consolas,monospace}
+.sz-act{margin-left:0;font-size:8px;font-family:"SFMono-Regular",Menlo,Consolas,monospace}
 .cx-upk .muted{font-size:9px;margin-left:1px}
 .cx-line{display:flex;flex-wrap:wrap;align-items:center;gap:0 5px}
 .cx-k{color:var(--text-dim);width:30px;flex:none}
@@ -375,7 +375,7 @@ body.no-pin-art .pinbox .pin-art{display:none}
 /* fully spread out, the costs list one resource to a line like everything beside them */
 .pinbox.pin-wide .cmp-cost .cmp-res{display:flex;flex-direction:column;align-items:flex-start}
 .pinbox.pin-wide .cmp-cost .res-chip{margin:0}
-.cx-sep{height:6px}
+
 /* one piece's cost, in grey, under the whole stack's */
 .cmp-one{display:block;color:var(--text-dim);font-size:10px;margin-top:1px}
 .cmp-one > span{display:block}
@@ -2918,15 +2918,6 @@ function gearCompare(kind, A, D, l, bonusApplied){
       <table class="tip-math">${tr(`<span class="tip-gear">${gearImg(now.key)}</span>${esc(label(now.key))}: ${money(k)} dead
         <span class="muted">× ${money(per)}</span> ${ico}`, money(k * per), "tot")}</table>`;
   };
-  /* weapons: what fielding the stack with this weapon instead costs */
-  const wPiece = (key, res) => kitUnit(key, res) + (res ? (Wa.res[res] || 0) : Wa.bits);
-  const tipSwap = (r, res)=>{
-    const ico = res ? resIcon(res) : BIT, u1 = wPiece(r.key, res), u0 = wPiece(now.key, res);
-    return wTitle(r, res) + `<div class="small" style="margin:6px 0 2px">To field${PIN_WITH_ARM ? ", including armour" : ""}</div>
-      <table class="tip-math">${tr(`${esc(label(r.key))} per`, `<b class="w">${money(u1)}</b> <span class="muted">(×${money(n)} = ${money(u1 * n)})</span>`)}${
-        tr(`${esc(label(now.key))} per`, `<b class="w">${money(u0)}</b> <span class="muted">(×${money(n)} = ${money(u0 * n)})</span>`)}${
-        tr("difference", sgn((u1 - u0) * n), "tot")}</table>`;
-  };
   const extra = (r, isCur)=>{
     const L = lossOf(r);
     if (isCur) return isW
@@ -2936,9 +2927,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
     const kitB = r.bits - now.bits, kitR = resSub(r.res, now.res);
     const lossB = L.bits - nowLoss.bits, lossR = resSub(L.res, nowLoss.res);
     if (isW) return line("kills", signed(L.k - nowLoss.k, more, tipWKills(r)) + troops) +
-      line("", signed(lossB, more, tipWorth(r, null)), "", chips(lossR, more, k => tipWorth(r, k), L.res)) +
-      `<div class="cx-sep"></div>` +
-      line("swap", signed(kitB, less, tipSwap(r, null)), "", chips(kitR, less, k => tipSwap(r, k), r.res));
+      line("", signed(lossB, more, tipWorth(r, null)), "", chips(lossR, more, k => tipWorth(r, k), L.res));
     return line("net", signed(lossB, less, tipNet(r, null)), "", chips(lossR, less, k => tipNet(r, k), L.res));
   };
 
@@ -2951,7 +2940,9 @@ function gearCompare(kind, A, D, l, bonusApplied){
   const S = D.size;
   const upk = (UNIT_COST[D.origType] || {upkeep:{}}).upkeep;
   const survivors = r => Math.max(0, S - dead(r));
-  const plan = (r, E, res) => E * perLoss(r.key, res);
+  /* re-equipping the troops already there with this piece; nothing on the equipped row */
+  const swapOf = (r, res) => r === now ? 0 : S * (kitUnit(r.key, res) - kitUnit(now.key, res));
+  const plan = (r, E, res) => E * perLoss(r.key, res) + swapOf(r, res);
   /* the fewest hits at `ph` a piece that lands `T` damage needs */
   const hitsTo = (ph, T)=>{
     if (!(T > 0)) return 0;
@@ -2981,15 +2972,16 @@ function gearCompare(kind, A, D, l, bonusApplied){
     return `<div data-tip-bg="${tipBg}"><div class="tip-title">${esc(label(r.key))}, ${
         kind === "parity" ? (up ? "raised to match" : "cut to match") : up ? "raised" : "skimmed"} ${ico}</div>
       <div class="small muted" style="margin:4px 0 6px">${head}</div>
-      <table class="tip-math">${tr(`${up ? "raise" : "skim"} ${money(Math.abs(E))} <span class="muted">× ${money(p1)}</span> ${ico}`,
-        sgn(E * p1), "tot")}</table>
+      <table class="tip-math">${r === now ? "" : tr(`swap the ${money(S)} to ${esc(label(r.key))} <span class="muted">(${money(kitUnit(r.key, res))} − ${money(kitUnit(now.key, res))} each)</span>`, sgn(swapOf(r, res)))}
+        ${E ? tr(`${up ? "raise" : "skim"} ${money(Math.abs(E))} <span class="muted">× ${money(p1)}</span> ${ico}`, sgn(E * p1)) : ""}
+        ${tr("total", sgn(plan(r, E, res)), "tot")}</table>
       <div class="small" style="margin:8px 0 2px">Killed</div>
       <table class="tip-math">${killRow(deadX, `at ${money(X)}`)}${killRow(dead(r), `at ${money(S)}`)}
         ${tr("burned", sgn((deadX - dead(r)) * p1), "tot")}</table></div>`;
   };
   /* upkeep per 12 hours for the troops a plan adds or drops */
   /* the grey bracket after each is the whole resized stack's upkeep */
-  const upkChips = (E, good, X, u) => Object.keys(u || upk).filter(k => (u || upk)[k]).map(k=>
+  const upkChips = (E, good, X, u) => !E ? "" : Object.keys(u || upk).filter(k => (u || upk)[k]).map(k=>
     `<span class="cx-chip cx-upk ${good(E) ? "cmp-up" : "cmp-down"}">${resIcon(k)}${sgn(E * (u || upk)[k])}<span class="muted">/12h</span>${
       X != null ? `<span class="cx-act">(${money(X * (u || upk)[k])})</span>` : ""}</span>`).join("");
   /* a resized stack in full kit, resource by resource: the bracketed actuals */
@@ -2999,7 +2991,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
     const word = kind === "parity" ? "parity" : E > 0 ? "raise" : "skim";
     const xr = RES_ORDER.reduce((o, k)=>{ const v = plan(r, E, k); if (v) o[k] = v; return o; }, {});
     return `<div class="sz${word === "skim" ? " sz-skim" : ""}"><div class="sz-k"><span class="${cls}">${word}</span>
-        <b class="sz-n ${cls}">${E > 0 ? "+" : "−"}${money(Math.abs(E))}</b><span class="cx-act sz-act">(${money(S + E)})</span></div>
+        <b class="sz-n ${cls}">${E ? (E > 0 ? "+" : "−") + money(Math.abs(E)) : "±0"}</b><span class="cx-act sz-act">(${money(S + E)})</span></div>
       <div class="sz-v"><div class="cx-line">${signed(plan(r, E, null), less, tipPlan(r, E, kind, null))}</div>
         <div class="cx-res">${chips(xr, less, k => tipPlan(r, E, kind, k), stackRes(S + E, k => perLoss(r.key, k)))}${
           upkChips(E, less, S + E)}</div></div></div>`;
@@ -3016,29 +3008,32 @@ function gearCompare(kind, A, D, l, bonusApplied){
     const w = gearCost("weapon", key);
     return res ? (w.res[res] || 0) + (Aa.res[res] || 0) : hire(A) + w.bits + Aa.bits;
   };
+  const swapW = (r, res) => r === now ? 0 : A.size * (kitUnit(r.key, res) - kitUnit(now.key, res));
+  const planW = (r, E, res) => E * perA(r.key, res) + swapW(r, res);
   const tipWPlan = (r, E, res)=>{
     const ico = res ? resIcon(res) : BIT, p1 = perA(r.key, res), up = E > 0, need = hitsFor(r);
     return `<div data-tip-bg="${tipBg}"><div class="tip-title">${esc(label(r.key))}, ${up ? "raised to match" : "skimmed"} ${ico}</div>
       <div class="small muted" style="margin:4px 0 6px">${esc(label(now.key))} deals ${money(K)} ·
         ${esc(label(r.key))} needs ${money(need)} hits × ${fmt(round3(r.ph))} · has ${money(H)} ·
         <b class="${up ? "cmp-par" : "cmp-up"}">${up ? "+" : "−"}${money(Math.abs(E))}</b></div>
-      <table class="tip-math">${tr(`${up ? "raise" : "skim"} ${money(Math.abs(E))} <span class="muted">× ${money(p1)}</span> ${ico}
+      <table class="tip-math">${tr(`swap the ${money(A.size)} to ${esc(label(r.key))} <span class="muted">(${money(kitUnit(r.key, res))} − ${money(kitUnit(now.key, res))} each)</span>`, sgn(swapW(r, res)))}
+        ${E ? tr(`${up ? "raise" : "skim"} ${money(Math.abs(E))} <span class="muted">× ${money(p1)}</span> ${ico}
         <div class="small muted">each: ${res ? "" : `raise ${money(hire(A))} + `}${esc(label(r.key))} ${money(res ? (gearCost("weapon", r.key).res[res] || 0) : gearCost("weapon", r.key).bits)}
-          ${PIN_WITH_ARM ? `+ ${esc(label(A.armor))} ${money(res ? (Aa.res[res] || 0) : Aa.bits)}` : ""}</div>`, sgn(E * p1), "tot")}</table></div>`;
+          ${PIN_WITH_ARM ? `+ ${esc(label(A.armor))} ${money(res ? (Aa.res[res] || 0) : Aa.bits)}` : ""}</div>`, sgn(E * p1)) : ""}
+        ${tr("total", sgn(planW(r, E, res)), "tot")}</table></div>`;
   };
   const wparCol = r=>{
     if (!isW || !K || r === now) return "";
     const need = hitsFor(r);
     if (!isFinite(need)) return `<span class="muted small">can't match</span>`;
-    const E = need - H;
-    if (!E) return "";
-    const up = E > 0, cls = up ? "cmp-par" : "cmp-up";
-    const xr = RES_ORDER.reduce((o, k)=>{ const v = E * perA(r.key, k); if (v) o[k] = v; return o; }, {});
+    const E = need - H;                        // even at ±0 the swap itself still costs
+    const up = E >= 0, cls = up ? "cmp-par" : "cmp-up";
+    const xr = RES_ORDER.reduce((o, k)=>{ const v = planW(r, E, k); if (v) o[k] = v; return o; }, {});
     const X = A.size + E;                      // the swinging stack, resized
     const upk = upkChips(E, less, X, upkA);
     return `<div class="sz${up ? "" : " sz-skim"}"><div class="sz-k"><span class="${cls}">${up ? "parity" : "skim"}</span>
-        <b class="sz-n ${cls}">${up ? "+" : "−"}${money(Math.abs(E))}</b><span class="cx-act sz-act">(${money(X)})</span></div>
-      <div class="sz-v"><div class="cx-line">${signed(E * perA(r.key, null), less, tipWPlan(r, E, null))}</div>
+        <b class="sz-n ${cls}">${E ? (up ? "+" : "−") + money(Math.abs(E)) : "±0"}</b><span class="cx-act sz-act">(${money(X)})</span></div>
+      <div class="sz-v"><div class="cx-line">${signed(planW(r, E, null), less, tipWPlan(r, E, null))}</div>
         <div class="cx-res">${chips(xr, less, k => tipWPlan(r, E, k), stackRes(X, k => perA(r.key, k)))}${upk}</div></div></div>`;
   };
 
@@ -3046,7 +3041,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
     if (isW) return "";
     const E = r.dmg + 1 - S;                   // one left standing: + raise, − skim
     const P = parityOf(r);                     // soaking and standing level with the equipped piece
-    const par = r !== now && P !== 0;
+    const par = r !== now && (P !== 0 || !E);
     return (E ? planBlock(r, E, "size") : "") + (par ? `<div class="sz-gap"></div>` + planBlock(r, P, "parity") : "");
   };
 
