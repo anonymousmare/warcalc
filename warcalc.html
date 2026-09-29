@@ -248,79 +248,79 @@ body.no-unspent .log .unspent{display:none}
 }
 /* the three always sit side by side; on a narrow screen the compares give up
    width first, and past that the window scrolls sideways */
-#dmgPin .pin-cols{display:flex;gap:22px;align-items:stretch;flex-wrap:nowrap}
-#dmgPin .pin-col{flex:0 1 auto;width:330px;min-width:250px;position:relative}
-#dmgPin .pin-mid{width:230px;flex-shrink:0;display:flex;flex-direction:column}
+.pinbox .pin-cols{display:flex;gap:22px;align-items:stretch;flex-wrap:nowrap}
+.pinbox .pin-col{flex:0 1 auto;width:330px;min-width:250px;position:relative}
+.pinbox .pin-mid{width:230px;flex-shrink:0;display:flex;flex-direction:column}
 /* whatever height the side panels leave under the prompt, the picture fills;
    with none left over it takes none */
 /* the compares stack their rows so a picture can take what is left at the foot */
-#dmgPin .cmp-weapon,#dmgPin .cmp-armor{display:flex;flex-direction:column}
-#dmgPin .pin-art{flex:1 1 0;min-height:0;position:relative;margin-top:10px}
-#dmgPin .pin-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center bottom;
+.pinbox .cmp-weapon,.pinbox .cmp-armor{display:flex;flex-direction:column}
+.pinbox .pin-art{flex:1 1 0;min-height:0;position:relative;margin-top:10px}
+.pinbox .pin-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center bottom;
   pointer-events:none;user-select:none;opacity:.25}
-body.no-pin-art #dmgPin .pin-art{display:none}
-#dmgPin .pin-col + .pin-col::before{
+body.no-pin-art .pinbox .pin-art{display:none}
+.pinbox .pin-col + .pin-col::before{
   content:"";position:absolute;left:-11px;top:0;bottom:0;width:1px;background:var(--border-soft);
 }
-#dmgPin .pin-close{position:absolute;top:2px;right:3px;z-index:2;background:none;border:none;
+.pinbox .pin-close{position:absolute;top:2px;right:3px;z-index:2;background:none;border:none;
   color:var(--text-dim);font-size:16px;line-height:1;cursor:pointer;padding:2px 4px}
-#dmgPin .pin-close:hover{color:#fff}
+.pinbox .pin-close:hover{color:#fff}
 /* the compare panels wear the Grand Strategy ticket papers: navy for the
    armour being struck, wine for the weapon swinging */
-#dmgPin .pin-col.cmp-armor,#dmgPin .pin-col.cmp-weapon{padding:8px 9px;border-radius:3px}
+.pinbox .pin-col.cmp-armor,.pinbox .pin-col.cmp-weapon{padding:8px 9px;border-radius:3px}
 /* each compare wears its unit's side: wine for the invader, navy for the defender */
-#dmgPin .pin-col.bg-inv{background:#321f27}
-#dmgPin .pin-col.bg-def{background:#1c2531}
-#dmgPin .cmp-armor::before,#dmgPin .cmp-weapon::before,#dmgPin .pin-mid::before{display:none}
-#dmgPin .tip-title + .cmp-tag{margin-top:8px}
-#dmgPin .pin-col > .tip-title{text-align:center}
+.pinbox .pin-col.bg-inv{background:#321f27}
+.pinbox .pin-col.bg-def{background:#1c2531}
+.pinbox .cmp-armor::before,.pinbox .cmp-weapon::before,.pinbox .pin-mid::before{display:none}
+.pinbox .tip-title + .cmp-tag{margin-top:8px}
+.pinbox .pin-col > .tip-title{text-align:center}
 /* a mouse with its left button lit: the figure under it opens up on a click */
 .m1-ic{display:inline-block;vertical-align:middle;color:var(--text-dim)}
 .tip-title-m1{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
-#dmgPin .tip-title-m1{display:block}
-#dmgPin .tip-title-m1 .m1-ic{display:none}
+.pinbox .tip-title-m1{display:block}
+.pinbox .tip-title-m1 .m1-ic{display:none}
 .m1-more{display:flex;flex-direction:column;align-items:center;gap:3px;margin-top:12px;
   padding-top:8px;border-top:1px solid var(--border-soft);cursor:pointer;
   font-size:11px;color:var(--text-dim);user-select:none}
 .m1-more:hover,.m1-more:hover .m1-ic{color:#fff}
 /* m1 again: the compares widen to show what each swap does to the bill */
-#dmgPin.pin-wide .cmp-armor,#dmgPin.pin-wide .cmp-weapon{width:540px;min-width:380px}
+.pinbox.pin-wide .cmp-armor,.pinbox.pin-wide .cmp-weapon{width:540px;min-width:380px}
 /* armour's fifth column, raise / skim, pulled out by the tab down its right edge */
 .cmp-hold,.hold-tab{display:none}
-#dmgPin.pin-wide .cmp-armor{padding-right:22px}
-#dmgPin.pin-wide .hold-tab{display:flex;align-items:center;justify-content:center;position:absolute;
+.pinbox.pin-wide .cmp-armor{padding-right:22px}
+.pinbox.pin-wide .hold-tab{display:flex;align-items:center;justify-content:center;position:absolute;
   top:0;right:0;bottom:0;width:14px;border:none;border-left:1px solid var(--border-soft);
   background:rgba(0,0,0,.18);color:var(--text-dim);font-size:13px;cursor:pointer;padding:0;border-radius:0 3px 3px 0}
-#dmgPin.pin-wide .hold-tab:hover{background:rgba(255,255,255,.06);color:#fff}
+.pinbox.pin-wide .hold-tab:hover{background:rgba(255,255,255,.06);color:#fff}
 /* weapon's matching column opens the other way, from a tab down its left edge */
-#dmgPin.pin-wide .cmp-weapon{padding-left:22px}
-#dmgPin.pin-wide .cmp-weapon .hold-tab{right:auto;left:0;border-left:none;border-right:1px solid var(--border-soft);
+.pinbox.pin-wide .cmp-weapon{padding-left:22px}
+.pinbox.pin-wide .cmp-weapon .hold-tab{right:auto;left:0;border-left:none;border-right:1px solid var(--border-soft);
   border-radius:3px 0 0 3px}
 .cmp-wpar{display:none}
-#dmgPin.pin-wide .cmp-weapon.hold-open{width:760px;min-width:540px}
-#dmgPin.pin-wide .cmp-weapon.hold-open .cmp-row{grid-template-columns:200px auto 1fr auto 190px}
-#dmgPin.pin-wide .cmp-weapon.hold-open .cmp-wpar{display:block;grid-column:1;grid-row:1 / span 5;align-self:stretch;
+.pinbox.pin-wide .cmp-weapon.hold-open{width:760px;min-width:540px}
+.pinbox.pin-wide .cmp-weapon.hold-open .cmp-row{grid-template-columns:200px auto 1fr auto 190px}
+.pinbox.pin-wide .cmp-weapon.hold-open .cmp-wpar{display:block;grid-column:1;grid-row:1 / span 5;align-self:stretch;
   padding-right:9px;border-right:1px solid var(--border-soft);font-size:11px;line-height:1.5}
-#dmgPin.pin-wide .cmp-weapon.hold-open .cmp-ic,
-#dmgPin.pin-wide .cmp-weapon.hold-open .cmp-dmg-k{grid-column:2}
-#dmgPin.pin-wide .cmp-weapon.hold-open .cmp-name{grid-column:3}
-#dmgPin.pin-wide .cmp-weapon.hold-open .cmp-stat{grid-column:4}
-#dmgPin.pin-wide .cmp-weapon.hold-open .cmp-cost,
-#dmgPin.pin-wide .cmp-weapon.hold-open .cmp-dmg{grid-column:3 / span 2}
-#dmgPin.pin-wide .cmp-weapon.hold-open .cmp-x{grid-column:5}
-#dmgPin.pin-wide .cmp-armor.hold-open{width:760px;min-width:540px}
-#dmgPin.pin-wide .cmp-armor.hold-open .cmp-row{grid-template-columns:auto 1fr auto 190px 200px}
-#dmgPin.pin-wide .cmp-armor.hold-open .cmp-hold{display:block;grid-column:5;grid-row:1 / span 5;align-self:stretch;
+.pinbox.pin-wide .cmp-weapon.hold-open .cmp-ic,
+.pinbox.pin-wide .cmp-weapon.hold-open .cmp-dmg-k{grid-column:2}
+.pinbox.pin-wide .cmp-weapon.hold-open .cmp-name{grid-column:3}
+.pinbox.pin-wide .cmp-weapon.hold-open .cmp-stat{grid-column:4}
+.pinbox.pin-wide .cmp-weapon.hold-open .cmp-cost,
+.pinbox.pin-wide .cmp-weapon.hold-open .cmp-dmg{grid-column:3 / span 2}
+.pinbox.pin-wide .cmp-weapon.hold-open .cmp-x{grid-column:5}
+.pinbox.pin-wide .cmp-armor.hold-open{width:760px;min-width:540px}
+.pinbox.pin-wide .cmp-armor.hold-open .cmp-row{grid-template-columns:auto 1fr auto 190px 200px}
+.pinbox.pin-wide .cmp-armor.hold-open .cmp-hold{display:block;grid-column:5;grid-row:1 / span 5;align-self:stretch;
   padding-left:9px;border-left:1px solid var(--border-soft);font-size:11px;line-height:1.5}
 .cmp-x{display:none}
 /* spare rows above and below share the height of a long list, so the
    left side sits packed together in the middle of its row */
-#dmgPin.pin-wide .cmp-row{grid-template-columns:auto 1fr auto 190px;grid-template-rows:1fr auto auto auto 1fr}
-#dmgPin.pin-wide .cmp-ic{grid-row:2 / span 2}
-#dmgPin.pin-wide .cmp-name,#dmgPin.pin-wide .cmp-stat{grid-row:2}
-#dmgPin.pin-wide .cmp-cost{grid-row:3}
-#dmgPin.pin-wide .cmp-dmg,#dmgPin.pin-wide .cmp-dmg-k{grid-row:4}
-#dmgPin.pin-wide .cmp-x{display:block;grid-column:4;grid-row:1 / span 5;align-self:stretch;
+.pinbox.pin-wide .cmp-row{grid-template-columns:auto 1fr auto 190px;grid-template-rows:1fr auto auto auto 1fr}
+.pinbox.pin-wide .cmp-ic{grid-row:2 / span 2}
+.pinbox.pin-wide .cmp-name,.pinbox.pin-wide .cmp-stat{grid-row:2}
+.pinbox.pin-wide .cmp-cost{grid-row:3}
+.pinbox.pin-wide .cmp-dmg,.pinbox.pin-wide .cmp-dmg-k{grid-row:4}
+.pinbox.pin-wide .cmp-x{display:block;grid-column:4;grid-row:1 / span 5;align-self:stretch;
   padding-left:9px;border-left:1px solid var(--border-soft);font-size:11px;line-height:1.5}
 .sz{display:flex;gap:5px;align-items:flex-start}
 .sz-k{display:flex;flex-direction:column;min-width:30px;flex:none}
@@ -387,12 +387,14 @@ body.no-pin-art #dmgPin .pin-art{display:none}
 .has-ntip{cursor:help}
 .has-ntip:hover b,.has-ntip:hover .cx-chip{text-decoration:underline dotted}
 /* the title stays centred; its note hangs off to the right of it */
-#dmgPin .tt-wrap{position:relative}
-#dmgPin .tt-aside{position:absolute;left:100%;top:1px;margin-left:6px;white-space:nowrap;
+.pinbox .tt-wrap{position:relative}
+.pinbox .tt-aside{position:absolute;left:100%;top:1px;margin-left:6px;white-space:nowrap;
   font-size:9.5px;font-weight:400;color:var(--text-dim);cursor:pointer;display:flex;align-items:center;gap:3px}
-#dmgPin .tt-aside input{margin:0;width:11px;height:11px;cursor:pointer}
-#dmgPin .pin-grip{cursor:move;user-select:none}
+.pinbox .tt-aside input{margin:0;width:11px;height:11px;cursor:pointer}
+.pinbox .pin-grip{cursor:move;user-select:none}
 #dmgPin.pin-dragging,#dmgPin.pin-dragging *{cursor:move;user-select:none}
+/* the compare riding the pointer: the same panels, minus the controls */
+.pin-hover .pin-close,.pin-hover .hold-tab,.pin-hover .tt-aside input{display:none}
 .cmp-dmg-k{grid-column:1;justify-self:center;font-size:10px;color:var(--text-dim);letter-spacing:.04em}
 .cmp-dmg{grid-column:2 / span 2;font-size:12px;display:flex;justify-content:space-between;
   font-family:"SFMono-Regular",Menlo,Consolas,monospace}
@@ -1176,6 +1178,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
     <label class="hk-toggle"><input type="checkbox" data-pref="cardSlash"> Slashes instead of newline for unit card weapon+armor</label>
     <label class="hk-toggle"><input type="checkbox" data-pref="noUnspent"> Hide unspent hits</label>
     <label class="hk-toggle"><input type="checkbox" data-pref="noPinArt"> Hide pictures in the damage compare</label>
+    <label class="hk-toggle"><input type="checkbox" data-pref="minDmg"> Minimal damage breakdown view</label>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:10px;
               border-top:1px solid var(--border-soft)">
@@ -1532,7 +1535,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 </div>
 
 <div id="tip"></div>
-<div id="dmgPin"></div>
+<div id="dmgPin" class="pinbox"></div>
 
 <!-- ============ JUMP DOCK ============ -->
 <div class="hk-dock" id="hkDock" role="group" aria-label="Jump to a section of the page">
@@ -2696,6 +2699,17 @@ function unitRef(u, gear, swing){
 /* whether the armour side counts the weapon each suit is worn with: it is
    bought beside the suit and goes down with the troop that carries it */
 let PIN_WITH_WPN = true;
+/* the hover-card namespace a compare is being built under: "pin" for the
+   locked window, "hov" for the one riding the pointer, so drawing one never
+   drops the other's cards */
+let PIN_NS = "pin";
+/* build a damage figure's compare for hovering rather than locking */
+function hoverPinHTML(key){
+  const build = PINS.get(key);
+  if (!build) return "";
+  PIN_NS = "hov";
+  try { return build(); } finally { PIN_NS = "pin"; }
+}
 /* whether the armour side's raise / skim column is pulled out */
 let PIN_HOLD = false;
 /* and the weapon side's matching column */
@@ -2859,7 +2873,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
         r === now ? "" : tr("difference", sgn((dead(r) - dead(now)) * per), "tot")}</table>`;
   };
   const tipped = (html, tip) => `<span class="has-ntip" data-tip-key="${regTip(
-    tip.startsWith("<div data-tip-bg") ? tip : `<div data-tip-bg="${tipBg}">${tip}</div>`, "pin")}">${html}</span>`;
+    tip.startsWith("<div data-tip-bg") ? tip : `<div data-tip-bg="${tipBg}">${tip}</div>`, PIN_NS)}">${html}</span>`;
 
   const signed = (v, good, tip) => tipped(!v ? `<b class="cmp-same">±0</b>`
     : `<b class="${good(v) ? "cmp-up" : "cmp-down"}">${sgn(v)}</b>`, tip);
@@ -3062,7 +3076,7 @@ function pinUnit(U, swings){
 }
 
 function dmgPinHTML(A, D, l, bonusApplied){
-  clearTips("pin");
+  clearTips(PIN_NS);
   return `<button class="pin-close" title="Close (Esc)">×</button>
     <div class="pin-cols">
       <div class="pin-col cmp-weapon ${A.attack_mission ? "bg-inv" : "bg-def"}${PIN_WHOLD ? " hold-open" : ""}">${gearCompare("weapon", A, D, l, bonusApplied)}</div>
@@ -3452,7 +3466,7 @@ const LOG_FULL = new Map();          // remembers the choice across re-renders
 /* the settings in the gear drawer; filled from storage at boot */
 let PREFS = {standOpen:false, deathsOpen:false, casOpen:false, logFull:true,
              iconsWA:false, plainHover:false, cardSlash:false, noUnspent:false,
-             noPinArt:false};
+             noPinArt:false, minDmg:false};
 
 /* an exchange log with no choice made opens full when the setting says so */
 const logIsFull = id => LOG_FULL.has(id) ? LOG_FULL.get(id)
@@ -4927,7 +4941,18 @@ document.addEventListener("mouseover", e=>{
   const t = e.target.closest?.("[data-tip-t],[data-tip-key]");
   if (!t) return;
   const d = t.dataset;
-  if (d.tipKey){
+  /* a damage figure shows its whole compare on hover, unless the minimal
+     view is on or that very figure is already locked open */
+  const full = d.pinKey && !PREFS.minDmg &&
+    !(pinEl.style.display === "block" && pinEl.dataset.key === d.pinKey);
+  if (full){
+    const html = hoverPinHTML(d.pinKey);
+    if (!html) return;
+    tipEl.innerHTML = `<div class="pinbox pin-hover">${html}</div>`;
+    const txt = tipEl.querySelector(".m1-txt");
+    if (txt) txt.textContent = "m1 to lock";
+  } else if (d.tipKey){
+    if (d.pinKey && pinEl.style.display === "block" && pinEl.dataset.key === d.pinKey) return;
     const html = TIPS.get(d.tipKey);
     if (!html) return;
     tipEl.innerHTML = html;
@@ -4945,6 +4970,12 @@ document.addEventListener("mouseover", e=>{
       d.tipSize !== undefined ? d.tipSize : null, d.tipTrain);
   }
   if (!d.tipLeft || PREFS.plainHover || d.tipKey) tipEl.classList.remove("tip-wide");
+  if (full){
+    tipEl.classList.add("tip-wide");
+    tipEl.querySelectorAll(".pu-name").forEach(n=>{
+      if (n.scrollWidth > n.clientWidth + 1) n.classList.add("pu-fade");
+    });
+  }
   const bg = tipEl.querySelector("[data-tip-bg]");         // a card can ask for its panel's colour
   tipEl.style.background = bg ? bg.dataset.tipBg : "";
   if (bg) tipEl.classList.add("tip-wide");                 // those cards lay out wide tables
