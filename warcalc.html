@@ -207,6 +207,7 @@ body.log-names #logNumsWrap{display:inline-flex}
 .log .overkill{color:#e2c760;border-bottom:none}
 .log .overkill b{color:#e2c760}
 body.no-overkill .log .overkill{display:none}
+.log .overkill .ok-row{display:block;padding:1px 0 0 14px}
 .ref-atk{color:#f17a77}
 .ref-def{color:#74cae3}
 .ref-size{color:#fff}
@@ -2983,7 +2984,8 @@ function overkillLine(units){
     lines.push(`Overkill damage${atk > 0 ? ` — Attackers dealt <b>${fmt(atk)}</b> extra` : ""}${
       def > 0 ? `${atk > 0 ? " ·" : " —"} Defenders dealt <b>${fmt(def)}</b> extra` : ""}`);
   if (idle.length)
-    lines.push(`Unspent hits — ${idle.map(u => `${unitRef(u)} <b>${u.hits.toLocaleString("en-US")}</b>`).join(" · ")}`);
+    lines.push(`Unspent hits${idle.map(u =>
+      `<span class="ok-row">${unitRef(u)} — <b>${u.hits.toLocaleString("en-US")}</b></span>`).join("")}`);
   return lines.length ? `<div class="overkill">${lines.join("<br>")}</div>` : "";
 }
 
