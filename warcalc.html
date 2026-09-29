@@ -189,13 +189,6 @@ body.log-icons .ref-ic{display:inline-block;vertical-align:-3px;margin-right:4px
 body.log-icons .ref-ic .gear-img{width:auto;max-width:32px;flex:none}
 body.log-names .ref-nick{display:inline}
 body.log-names .unit-ref:has(.ref-nick) .ref-sys{display:none}
-/* Numbers with names: the unit's size after its name, dimmed so the name leads */
-.ref-num{display:none;margin-left:4px;font-weight:500}
-body.log-names.log-nums .ref-num{display:inline}
-.ref-atk .ref-num{color:#a8514f}
-.ref-def .ref-num{color:#4f8a9c}
-#logNumsWrap{display:none}
-body.log-names #logNumsWrap{display:inline-flex}
 .ref-atk{color:#f17a77}
 .ref-def{color:#74cae3}
 
@@ -1005,8 +998,6 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
       <input type="checkbox" id="logIcons"> Use icons</label>
     <label class="hk-toggle log-opt" for="logNames">
       <input type="checkbox" id="logNames"> Use names</label>
-    <label class="hk-toggle log-opt" for="logNums" id="logNumsWrap">
-      <input type="checkbox" id="logNums"> Numbers with names?</label>
   </div>
 </div>
 
@@ -2408,7 +2399,7 @@ function unitRef(u, gear){
   const ic = gear && gearImgSrc(gear) ? `<span class="ref-ic">${gearImg(gear)}</span>` : "";
   return `${ic}<span class="unit-ref ${u.attack_mission ? "ref-atk" : "ref-def"}"
     ${tipAttrs(u.origType, u.weapon, u.armor, u.size, u.training)}><span class="ref-sys">${esc(u.name)}</span>${
-    u.nick ? `<span class="ref-nick">${esc(u.nick)}<span class="ref-num">${esc(u.size)}</span></span>` : ""}</span>`;
+    u.nick ? `<span class="ref-nick">${esc(u.nick)}</span>` : ""}</span>`;
 }
 
 /* ---- hover math for a single exchange-log damage figure ---- */
@@ -5881,7 +5872,7 @@ hkBox.addEventListener("change", syncHotkeys);
 const LS_LOG_OPTS = "warcalc.logOpts";
 {
   const o = store.get(LS_LOG_OPTS, {}) || {};
-  [["logIcons", "icons", "log-icons"], ["logNames", "names", "log-names"], ["logNums", "nums", "log-nums"]].forEach(([id, k, cls])=>{
+  [["logIcons", "icons", "log-icons"], ["logNames", "names", "log-names"]].forEach(([id, k, cls])=>{
     const box = document.getElementById(id);
     box.checked = o[k] === true;
     document.body.classList.toggle(cls, box.checked);
