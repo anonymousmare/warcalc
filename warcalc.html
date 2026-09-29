@@ -267,8 +267,9 @@ body.no-unspent .log .unspent{display:none}
 /* the compare panels wear the Grand Strategy ticket papers: navy for the
    armour being struck, wine for the weapon swinging */
 #dmgPin .pin-col.cmp-armor,#dmgPin .pin-col.cmp-weapon{padding:8px 9px;border-radius:3px}
-#dmgPin .cmp-armor{background:#1c2531}
-#dmgPin .cmp-weapon{background:#321f27}
+/* each compare wears its unit's side: wine for the invader, navy for the defender */
+#dmgPin .pin-col.bg-inv{background:#321f27}
+#dmgPin .pin-col.bg-def{background:#1c2531}
 #dmgPin .cmp-armor::before,#dmgPin .cmp-weapon::before,#dmgPin .pin-mid::before{display:none}
 #dmgPin .tip-title + .cmp-tag{margin-top:8px}
 #dmgPin .pin-col > .tip-title{text-align:center}
@@ -2749,6 +2750,7 @@ function exchangePerHit(base, armv, A, D, bonusApplied){
 function gearCompare(kind, A, D, l, bonusApplied){
   const isW = kind === "weapon";
   const U = isW ? A : D;                              // whose gear is being swapped
+  const tipBg = U.attack_mission ? "#321f27" : "#1c2531";   // its side's paper, as the panel wears
   const cur = isW ? A.weapon : D.armor;
   const vs = isW ? TYPES[D.type] : TYPES[A.type];
   const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
@@ -2824,7 +2826,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
         <span class="muted">× ${money(p1)}</span> ${ico}`, money(k * p1));
     };
     const lossD = dead(r) * perLoss(r.key, res) - dead(now) * perLoss(now.key, res);
-    return `<div data-tip-bg="#1c2531"><div class="tip-title">${amt(a1)} ${esc(label(r.key))}
+    return `<div data-tip-bg="${tipBg}"><div class="tip-title">${amt(a1)} ${esc(label(r.key))}
         <span class="muted">vs</span> ${amt(a0)} ${esc(label(now.key))} ${ico}</div>
       <div class="small" style="margin:6px 0 2px">To field, ${PIN_WITH_WPN ? `including weapon${wv ? ` <span class="muted">${amt(wv, true)}</span>` : ""}` : "armour only"}</div>
       <table class="tip-math">${per(r, a1, t1)}${per(now, a0, t0)}
@@ -2832,7 +2834,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
       <div class="small" style="margin:8px 0 2px">Killed${res ? "" : ` <span class="muted">(raise ${money(hire(D))} each, with their kit)</span>`}</div>
       <table class="tip-math">${deadRow(r)}${deadRow(now)}${tr("net", sgn(lossD), "tot")}</table></div>`;
   };
-  const tipBg = isW ? "#321f27" : "#1c2531";
+
   /* weapon cards: the swing and what it brings down, laid out like the net card */
   const wTitle = (r, res)=>{
     const ico = res === false ? "" : res ? resIcon(res) : BIT;
@@ -2905,7 +2907,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
          need <b class="cmp-par">+${money(E)}</b> to match`
       : `${money(H)} hits × ${fmt(round3(r.ph))} = ${money(r.dmg)} dmg ·
          need <b class="${up ? "cmp-down" : "cmp-up"}">${up ? "+" : "−"}${money(Math.abs(E))}</b> to absorb`;
-    return `<div data-tip-bg="#1c2531"><div class="tip-title">${esc(label(r.key))}, ${
+    return `<div data-tip-bg="${tipBg}"><div class="tip-title">${esc(label(r.key))}, ${
         kind === "parity" ? "raised to match" : up ? "raised" : "skimmed"} ${ico}</div>
       <div class="small muted" style="margin:4px 0 6px">${head}</div>
       <table class="tip-math">${tr(`${up ? "raise" : "skim"} ${money(Math.abs(E))} <span class="muted">× ${money(p1)}</span> ${ico}`,
@@ -2952,7 +2954,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
   };
   const tipWPlan = (r, E, res)=>{
     const ico = res ? resIcon(res) : BIT, p1 = perA(r.key, res), up = E > 0, need = hitsFor(r);
-    return `<div data-tip-bg="#321f27"><div class="tip-title">${esc(label(r.key))}, ${up ? "raised to match" : "skimmed"} ${ico}</div>
+    return `<div data-tip-bg="${tipBg}"><div class="tip-title">${esc(label(r.key))}, ${up ? "raised to match" : "skimmed"} ${ico}</div>
       <div class="small muted" style="margin:4px 0 6px">${esc(label(now.key))} kills ${money(K)} ·
         ${esc(label(r.key))} needs ${money(need)} hits × ${fmt(round3(r.ph))} · has ${money(H)} ·
         <b class="${up ? "cmp-par" : "cmp-up"}">${up ? "+" : "−"}${money(Math.abs(E))}</b></div>
@@ -3061,13 +3063,13 @@ function dmgPinHTML(A, D, l, bonusApplied){
   clearTips("pin");
   return `<button class="pin-close" title="Close (Esc)">×</button>
     <div class="pin-cols">
-      <div class="pin-col cmp-weapon${PIN_WHOLD ? " hold-open" : ""}">${gearCompare("weapon", A, D, l, bonusApplied)}</div>
+      <div class="pin-col cmp-weapon ${A.attack_mission ? "bg-inv" : "bg-def"}${PIN_WHOLD ? " hold-open" : ""}">${gearCompare("weapon", A, D, l, bonusApplied)}</div>
       <div class="pin-col pin-mid">${dmgMathTip(A, D, l, bonusApplied)}
         <div class="pin-vs">${pinUnit(A, true)}<span class="pin-vs-word">vs</span>${pinUnit(D, false)}</div>
         <div class="m1-more" title="Show what each swap costs or saves">${M1_ICON}<span class="m1-txt">m1 for compare</span></div>
         <div class="pin-art"><img src="https://derpicdn.net/img/view/2023/9/3/3193754.png" alt=""
           onerror="this.parentNode.remove()"></div></div>
-      <div class="pin-col cmp-armor${PIN_HOLD ? " hold-open" : ""}">${gearCompare("armor", A, D, l, bonusApplied)}</div>
+      <div class="pin-col cmp-armor ${D.attack_mission ? "bg-inv" : "bg-def"}${PIN_HOLD ? " hold-open" : ""}">${gearCompare("armor", A, D, l, bonusApplied)}</div>
     </div>`;
 }
 
