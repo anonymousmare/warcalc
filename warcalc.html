@@ -371,6 +371,10 @@ body.no-pin-art .pinbox .pin-art{display:none}
 .cmp-cost{grid-column:2 / span 2;font-size:11px}
 .cmp-cost .res-chip{font-size:11px}
 .cmp-cost .cmp-res{display:block}
+/* fully spread out, the costs list one resource to a line like everything beside them */
+.pinbox.pin-wide .cmp-cost .cmp-res{display:flex;flex-direction:column;align-items:flex-start}
+.pinbox.pin-wide .cmp-cost .res-chip{margin:0}
+.cx-sep{height:6px}
 /* one piece's cost, in grey, under the whole stack's */
 .cmp-one{display:block;color:var(--text-dim);font-size:10px;margin-top:1px}
 .cmp-one > span{display:block}
@@ -2905,16 +2909,35 @@ function gearCompare(kind, A, D, l, bonusApplied){
   /* weapons: the kit, then the kills and what they were worth.
      armour: just the net of the kit and the troops that die more or less. */
   const troops = `<span class="muted">troops</span>`;
+  /* the equipped piece's own burn, which every net is measured from */
+  const tipBase = res=>{
+    const ico = res ? resIcon(res) : BIT, per = perLoss(now.key, res), k = dead(now);
+    return `<div class="tip-title">${esc(label(now.key))}, as fought ${ico}</div>
+      <div class="small" style="margin:6px 0 2px">Killed${res ? "" : ` <span class="muted">(raise ${money(hire(D))} each, with their kit)</span>`}</div>
+      <table class="tip-math">${tr(`<span class="tip-gear">${gearImg(now.key)}</span>${esc(label(now.key))}: ${money(k)} dead
+        <span class="muted">× ${money(per)}</span> ${ico}`, money(k * per), "tot")}</table>`;
+  };
+  /* weapons: what fielding the stack with this weapon instead costs */
+  const wPiece = (key, res) => kitUnit(key, res) + (res ? (Wa.res[res] || 0) : Wa.bits);
+  const tipSwap = (r, res)=>{
+    const ico = res ? resIcon(res) : BIT, u1 = wPiece(r.key, res), u0 = wPiece(now.key, res);
+    return wTitle(r, res) + `<div class="small" style="margin:6px 0 2px">To field${PIN_WITH_ARM ? ", including armour" : ""}</div>
+      <table class="tip-math">${tr(`${esc(label(r.key))} per`, `<b class="w">${money(u1)}</b> <span class="muted">(×${money(n)} = ${money(u1 * n)})</span>`)}${
+        tr(`${esc(label(now.key))} per`, `<b class="w">${money(u0)}</b> <span class="muted">(×${money(n)} = ${money(u0 * n)})</span>`)}${
+        tr("difference", sgn((u1 - u0) * n), "tot")}</table>`;
+  };
   const extra = (r, isCur)=>{
     const L = lossOf(r);
     if (isCur) return isW
       ? line("kills", tipped(`<b>${money(L.k)}</b>`, tipWKills(r)) + troops) +
         line("", tipped(`<b>${money(L.bits)}</b>`, tipWorth(r, null)), "", chips(L.res, null, k => tipWorth(r, k)))
-      : line("net", `<span><b class="cmp-same">±0</b></span>`);
+      : line("base", tipped(`<b>${money(L.bits)}</b>`, tipBase(null)), "", chips(L.res, null, k => tipBase(k)));
     const kitB = r.bits - now.bits, kitR = resSub(r.res, now.res);
     const lossB = L.bits - nowLoss.bits, lossR = resSub(L.res, nowLoss.res);
     if (isW) return line("kills", signed(L.k - nowLoss.k, more, tipWKills(r)) + troops) +
-      line("", signed(lossB, more, tipWorth(r, null)), "", chips(lossR, more, k => tipWorth(r, k), L.res));
+      line("", signed(lossB, more, tipWorth(r, null)), "", chips(lossR, more, k => tipWorth(r, k), L.res)) +
+      `<div class="cx-sep"></div>` +
+      line("swap", signed(kitB, less, tipSwap(r, null)), "", chips(kitR, less, k => tipSwap(r, k), r.res));
     return line("net", signed(lossB, less, tipNet(r, null)), "", chips(lossR, less, k => tipNet(r, k), L.res));
   };
 
@@ -3497,7 +3520,7 @@ const LOG_FULL = new Map();          // remembers the choice across re-renders
 /* the settings in the gear drawer; filled from storage at boot */
 let PREFS = {standOpen:false, deathsOpen:false, casOpen:false, logFull:true,
              iconsWA:false, plainHover:false, cardSlash:false, noUnspent:false,
-             noPinArt:false, minDmg:false, hide1x:false, hideAct:false,
+             noPinArt:false, minDmg:false, hide1x:true, hideAct:false,
              hideSkim:true};
 
 /* an exchange log with no choice made opens full when the setting says so */
