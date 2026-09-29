@@ -411,6 +411,7 @@ body.no-pin-art .pinbox .pin-art{display:none}
 body.hide-1x .cmp-one{display:none}
 body.hide-act .cx-act{display:none}
 body.hide-skim .sz-skim,body.hide-skim .sz-skim + .sz-gap{display:none}
+body.hide-raise .sz-raise,body.hide-raise .sz-raise + .sz-gap{display:none}
 .pin-hover .pin-close,.pin-hover .hold-tab,.pin-hover .tt-aside input{display:none}
 .cmp-dmg-k{grid-column:1;justify-self:center;font-size:10px;color:var(--text-dim);letter-spacing:.04em}
 .cmp-dmg{grid-column:2 / span 2;font-size:12px;display:flex;justify-content:space-between;
@@ -2990,7 +2991,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
     const cls = kind === "parity" ? "cmp-par" : E > 0 ? "cmp-down" : "cmp-up";
     const word = kind === "parity" ? "parity" : E > 0 ? "raise" : "skim";
     const xr = RES_ORDER.reduce((o, k)=>{ const v = plan(r, E, k); if (v) o[k] = v; return o; }, {});
-    return `<div class="sz${word === "skim" ? " sz-skim" : ""}"><div class="sz-k"><span class="${cls}">${word}</span>
+    return `<div class="sz${word === "skim" ? " sz-skim" : word === "raise" ? " sz-raise" : ""}"><div class="sz-k"><span class="${cls}">${word}</span>
         <b class="sz-n ${cls}">${E ? (E > 0 ? "+" : "−") + money(Math.abs(E)) : "±0"}</b><span class="cx-act sz-act">(${money(S + E)})</span></div>
       <div class="sz-v"><div class="cx-line">${signed(plan(r, E, null), less, tipPlan(r, E, kind, null))}</div>
         <div class="cx-res">${chips(xr, less, k => tipPlan(r, E, kind, k), stackRes(S + E, k => perLoss(r.key, k)))}${
@@ -3132,6 +3133,7 @@ function dmgPinHTML(A, D, l, bonusApplied){
           <label><input type="checkbox" data-pref="hide1x"${PREFS.hide1x ? " checked" : ""}> Hide 1x figures</label>
           <label><input type="checkbox" data-pref="hideAct"${PREFS.hideAct ? " checked" : ""}> Hide actual numbers</label>
           <label><input type="checkbox" data-pref="hideSkim"${PREFS.hideSkim ? " checked" : ""}> Hide skim</label>
+          <label><input type="checkbox" data-pref="hideRaise"${PREFS.hideRaise ? " checked" : ""}> Hide raise</label>
         </div>
         <div class="pin-art"><img src="https://derpicdn.net/img/2023/9/3/3193754/thumb.png" alt=""
           onerror="this.parentNode.remove()"></div></div>
@@ -3517,7 +3519,7 @@ const LOG_FULL = new Map();          // remembers the choice across re-renders
 let PREFS = {standOpen:false, deathsOpen:false, casOpen:false, logFull:true,
              iconsWA:false, plainHover:false, cardSlash:false, noUnspent:false,
              noPinArt:false, minDmg:false, hide1x:true, hideAct:false,
-             hideSkim:true};
+             hideSkim:true, hideRaise:false};
 
 /* an exchange log with no choice made opens full when the setting says so */
 const logIsFull = id => LOG_FULL.has(id) ? LOG_FULL.get(id)
@@ -5132,7 +5134,7 @@ document.addEventListener("change", e=>{
   if (!k) return;
   PREFS[k] = e.target.checked;
   store.set(LS_PREFS, PREFS);
-  document.body.classList.toggle({hide1x:"hide-1x", hideAct:"hide-act", hideSkim:"hide-skim"}[k], e.target.checked);
+  document.body.classList.toggle({hide1x:"hide-1x", hideAct:"hide-act", hideSkim:"hide-skim", hideRaise:"hide-raise"}[k], e.target.checked);
 });
 
 /* the attached-weapon and attached-armour boxes redraw the pin where it stands, wide or not */
@@ -6824,6 +6826,7 @@ const LS_PREFS = "warcalc.prefs";
   document.body.classList.toggle("hide-1x", PREFS.hide1x);
   document.body.classList.toggle("hide-act", PREFS.hideAct);
   document.body.classList.toggle("hide-skim", PREFS.hideSkim);
+  document.body.classList.toggle("hide-raise", PREFS.hideRaise);
   document.querySelectorAll("[data-pref]").forEach(box=>{
     const k = box.dataset.pref;
     box.checked = !!PREFS[k];
