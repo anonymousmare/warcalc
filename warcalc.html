@@ -238,8 +238,8 @@ body.no-unspent .log .unspent{display:none}
 .tip-math .tot td{border-top:1px solid var(--border-soft);padding-top:4px;color:#fff}
 .dmg-ref{cursor:pointer;border-bottom:1px dotted currentColor}
 /* a damage figure clicked open: the breakdown pinned in place, with what
-   the struck side could have worn on its left and what the swinger could
-   have carried on its right */
+   the swinger could have carried on its left and what the struck side
+   could have worn on its right, each beside its own unit */
 #dmgPin{
   position:fixed;z-index:998;display:none;
   background:var(--raised);border:1px solid var(--border);border-radius:4px;
@@ -277,7 +277,7 @@ body.no-unspent .log .unspent{display:none}
   -webkit-mask-image:linear-gradient(to right,#000 70%,transparent);
   mask-image:linear-gradient(to right,#000 70%,transparent)}
 /* the piece the comparison is not about sits back */
-.pin-unit .pu-gear.pu-off{color:#555a5f;opacity:.55}
+.pin-unit.side-atk .pu-gear.pu-off,.pin-unit.side-def .pu-gear.pu-off{color:#6e7378}
 .pin-unit.side-atk .sprite{border:1px solid #f17a77}
 .pin-unit.side-def .sprite{border:1px solid #74cae3}
 .pin-unit.side-atk .pu-gear{color:#b04542}
@@ -2667,7 +2667,9 @@ function gearCompare(kind, A, D, l, bonusApplied){
     </div>`;
   };
 
-  const others = pool.filter(k => k !== cur).map(calc);
+  /* Scrounged is the fallback, not a choice, so it always goes last */
+  const others = pool.filter(k => k !== cur)
+    .sort((a, b) => !!SCROUNGED[a] - !!SCROUNGED[b]).map(calc);
   return `<div class="tip-title">${isW ? "Weapon" : "Armour"} Compare</div>
     <div class="cmp-tag">Equipped</div>
     ${row(now, true)}
@@ -2692,10 +2694,10 @@ function pinUnit(U){
 function dmgPinHTML(A, D, l, bonusApplied){
   return `<button class="pin-close" title="Close (Esc)">×</button>
     <div class="pin-cols">
-      <div class="pin-col cmp-armor">${gearCompare("armor", A, D, l, bonusApplied)}</div>
+      <div class="pin-col cmp-weapon">${gearCompare("weapon", A, D, l, bonusApplied)}</div>
       <div class="pin-col pin-mid">${dmgMathTip(A, D, l, bonusApplied)}
         <div class="pin-vs">${pinUnit(A)}<span class="pin-vs-word">vs</span>${pinUnit(D)}</div></div>
-      <div class="pin-col cmp-weapon">${gearCompare("weapon", A, D, l, bonusApplied)}</div>
+      <div class="pin-col cmp-armor">${gearCompare("armor", A, D, l, bonusApplied)}</div>
     </div>`;
 }
 
