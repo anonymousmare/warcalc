@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Warcalc 1.75 — CLOP</title>
+<title>Warcalc 1.8 — CLOP</title>
 <style>
 :root{
   --bg:#272b30;
@@ -257,7 +257,8 @@ body.no-unspent .log .unspent{display:none}
 #dmgPin .cmp-weapon,#dmgPin .cmp-armor{display:flex;flex-direction:column}
 #dmgPin .pin-art{flex:1 1 0;min-height:0;position:relative;margin-top:10px}
 #dmgPin .pin-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center bottom;
-  pointer-events:none;user-select:none}
+  pointer-events:none;user-select:none;opacity:.5}
+body.no-pin-art #dmgPin .pin-art{display:none}
 #dmgPin .pin-col + .pin-col::before{
   content:"";position:absolute;left:-11px;top:0;bottom:0;width:1px;background:var(--border-soft);
 }
@@ -1111,7 +1112,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 <body>
 
 <div class="tabstrip">
-  <span class="tab-brand">Warcalc 1.75<button class="gear-btn" id="btnTools"
+  <span class="tab-brand">Warcalc 1.8<button class="gear-btn" id="btnTools"
     title="Settings, import / export presets" aria-expanded="false"><svg viewBox="0 0 24 24"
     aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path
     d="M10.3 2.5h3.4l.5 2.6a7.6 7.6 0 0 1 2 1.2l2.5-.9 1.7 2.9-2 1.8a7.7 7.7 0 0 1 0 2.3l2 1.8-1.7 2.9-2.5-.9a7.6 7.6 0 0 1-2 1.2l-.5 2.6h-3.4l-.5-2.6a7.6 7.6 0 0 1-2-1.2l-2.5.9-1.7-2.9 2-1.8a7.7 7.7 0 0 1 0-2.3l-2-1.8 1.7-2.9 2.5.9a7.6 7.6 0 0 1 2-1.2z"/><circle
@@ -1174,6 +1175,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
     <label class="hk-toggle"><input type="checkbox" data-pref="plainHover"> Disable expanded unit-hover view (for damaged units)</label>
     <label class="hk-toggle"><input type="checkbox" data-pref="cardSlash"> Slashes instead of newline for unit card weapon+armor</label>
     <label class="hk-toggle"><input type="checkbox" data-pref="noUnspent"> Hide unspent hits</label>
+    <label class="hk-toggle"><input type="checkbox" data-pref="noPinArt"> Hide pictures in the damage compare</label>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:10px;
               border-top:1px solid var(--border-soft)">
@@ -3449,7 +3451,8 @@ const LOG_FULL = new Map();          // remembers the choice across re-renders
 
 /* the settings in the gear drawer; filled from storage at boot */
 let PREFS = {standOpen:false, deathsOpen:false, casOpen:false, logFull:true,
-             iconsWA:false, plainHover:false, cardSlash:false, noUnspent:false};
+             iconsWA:false, plainHover:false, cardSlash:false, noUnspent:false,
+             noPinArt:false};
 
 /* an exchange log with no choice made opens full when the setting says so */
 const logIsFull = id => LOG_FULL.has(id) ? LOG_FULL.get(id)
@@ -6713,7 +6716,7 @@ const LS_LOG_OPTS = "warcalc.logOpts";
   });
 }
 /* the settings in the gear drawer. They take hold on the next thing drawn,
-   bar the icon order, the card slashes and the unspent hits, which are body
+   bar the icon order, the card slashes, the unspent hits and the pictures, which are body
    classes and so turn over at once */
 const LS_PREFS = "warcalc.prefs";
 {
@@ -6722,6 +6725,7 @@ const LS_PREFS = "warcalc.prefs";
   document.body.classList.toggle("icons-wa", PREFS.iconsWA);
   document.body.classList.toggle("card-slash", PREFS.cardSlash);
   document.body.classList.toggle("no-unspent", PREFS.noUnspent);
+  document.body.classList.toggle("no-pin-art", PREFS.noPinArt);
   document.querySelectorAll("[data-pref]").forEach(box=>{
     const k = box.dataset.pref;
     box.checked = !!PREFS[k];
@@ -6731,6 +6735,7 @@ const LS_PREFS = "warcalc.prefs";
       if (k === "iconsWA") document.body.classList.toggle("icons-wa", box.checked);
       if (k === "cardSlash") document.body.classList.toggle("card-slash", box.checked);
       if (k === "noUnspent") document.body.classList.toggle("no-unspent", box.checked);
+      if (k === "noPinArt") document.body.classList.toggle("no-pin-art", box.checked);
     });
   });
 }
