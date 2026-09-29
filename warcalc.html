@@ -182,11 +182,17 @@ tr.reserve td.col-sprite::before{
 .log div{padding:2px 0;border-bottom:1px solid rgba(0,0,0,.25)}
 .log b{color:#fff;font-weight:600}
 .unit-ref{font-weight:600;cursor:help;border-bottom:1px dotted currentColor}
-/* the exchange log's Use icons / Use names boxes */
-.log-opt{margin:0 0 7px}
+/* the exchange log's Use icons / Use names boxes, centred on the Resolve / Clear buttons */
+.run-row{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.log-opt{margin:0}
 .ref-ic,.ref-nick{display:none}
-body.log-icons .ref-ic{display:inline-block;vertical-align:-3px;margin-right:4px}
+/* Use icons shows the piece in play; Show weapon and armor shows both, weapon first */
+body.log-icons:not(.log-both) .ref-one,
+body.log-icons.log-both .ref-both{display:inline-block;vertical-align:-3px;margin-right:4px}
+.ref-both .gear-img + .gear-img{margin-left:2px}
 body.log-icons .ref-ic .gear-img{width:auto;max-width:32px;flex:none}
+#logBothWrap{display:none}
+body.log-icons #logBothWrap{display:inline-flex}
 body.log-names .ref-nick{display:inline}
 body.log-names .unit-ref:has(.ref-nick) .ref-sys{display:none}
 /* Numbers with names: the unit's size after its name, dimmed so the name leads */
@@ -234,6 +240,10 @@ body.log-names #logNumsWrap{display:inline-flex}
   content:"";position:absolute;left:30%;right:30%;bottom:3px;height:2px;
   border-radius:1px;background:#e2c760;
 }
+.surv-card{position:relative}
+.surv-lost{position:absolute;right:7px;bottom:5px;font:600 11px/1 "SFMono-Regular",Menlo,Consolas,monospace}
+.surv-atk .surv-lost{color:#a8514f}
+.surv-def .surv-lost{color:#4f8a9c}
 .surv-col{display:flex;flex-direction:column}
 .surv-col h3{margin-bottom:8px}
 .surv-grid{display:flex;gap:12px;flex-wrap:wrap}
@@ -245,6 +255,14 @@ body.log-names #logNumsWrap{display:inline-flex}
   padding:8px 10px;font-size:12px;border-bottom:1px solid var(--border-soft);
 }
 .worth-head .cost-label{color:var(--text)}
+/* Total standing, Casualties and a tick's Deaths fold away; the caret says which way */
+summary.worth-head,.fold > summary{list-style:none;cursor:pointer}
+summary.worth-head::-webkit-details-marker,.fold > summary::-webkit-details-marker{display:none}
+summary.worth-head::before,.fold > summary::before{content:"\25B8";color:var(--text-dim);font-size:11px;width:9px}
+details[open] > summary.worth-head::before,.fold[open] > summary::before{content:"\25BE"}
+details.surv-worth:not([open]) > .worth-head{border-bottom:none}
+.fold:not([open]) > summary{margin-bottom:0}
+.fold:not([open]) [data-log-toggle]{display:none}
 .surv-worth-body{padding:8px 10px}
 .surv-worth .cost-row{font-size:12px}
 /* inside a replayed tick the value block takes that tick's own hue, a shade
@@ -253,6 +271,10 @@ body.log-names #logNumsWrap{display:inline-flex}
 .chain-tick.tone-a .surv-worth{background-image:linear-gradient(rgba(226,199,96,.05),rgba(226,199,96,.05))}
 .chain-tick.tone-b .surv-worth{background-image:linear-gradient(rgba(92,168,226,.05),rgba(92,168,226,.05))}
 .chain-tick.tone-c .surv-worth{background-image:linear-gradient(rgba(162,116,226,.055),rgba(162,116,226,.055))}
+/* a tick's deaths wear its hue too, over the same dark well */
+.chain-tick.tone-a .chain-deaths .well{background-image:linear-gradient(rgba(226,199,96,.06),rgba(226,199,96,.06))}
+.chain-tick.tone-b .chain-deaths .well{background-image:linear-gradient(rgba(92,168,226,.06),rgba(92,168,226,.06))}
+.chain-tick.tone-c .chain-deaths .well{background-image:linear-gradient(rgba(162,116,226,.07),rgba(162,116,226,.07))}
 .worth-plain{margin-top:12px;background:var(--sunken)}
 /* a unit card is a shortcut into the counter finder */
 .surv-card{cursor:pointer}
@@ -676,7 +698,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 
 /* one colour a unit type, on the column heads and on the gear each type carries */
 .t-cavalry {color:#FF0000}
-.t-tanks   {color:#0094FF}
+.t-tanks   {color:#0076FF}
 .t-pegasi  {color:#FF6EC7}
 .t-unicorns{color:#00FF21}
 .t-naval   {color:#00FFFF}
@@ -695,8 +717,9 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
   font-family:"SFMono-Regular",Menlo,Consolas,monospace;
 }
 .gs-bit{display:inline-block;width:16px;text-align:center;color:#fff;font-weight:600;font-size:13px;line-height:16px}
+.gs-strip-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}
 .gs-strip{
-  display:inline-flex;gap:2px;align-items:center;margin-top:6px;padding:3px 8px;
+  display:inline-flex;gap:2px;align-items:center;padding:3px 8px;
   background:rgba(0,0,0,.22);border:1px solid var(--border-soft);border-radius:4px;
 }
 .gs-strip .gs-x{font:700 12px/1 "SFMono-Regular",Menlo,Consolas,monospace;color:#faa123;margin-right:6px}
@@ -721,17 +744,24 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .gs-ritem{display:inline-flex;align-items:center;gap:5px;margin:0;font-size:12px;color:var(--text);
   padding:0 9px;border-left:1px solid rgba(0,0,0,.4)}
 .gs-ritem .gear-img{flex:0 0 32px}
-.gs-ritem .g-name{flex:1 1 auto;min-width:0;text-align:right;font-weight:600;
+.gs-ritem .g-name{flex:1 1 auto;min-width:0;text-align:left;font-weight:600;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gs-ritem input{width:70px;flex:0 0 auto}
 
-.gs-io{display:flex;gap:5px;margin-top:8px}
+.gs-io{display:flex;gap:5px}
 .gs-io-text{width:100%;min-height:260px;resize:vertical;box-sizing:border-box;
   font:12px/1.5 "SFMono-Regular",Menlo,Consolas,monospace}
 
 .gs-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding-bottom:10px;margin-bottom:12px;
   border-bottom:1px solid var(--border-soft)}
 .gs-comps{display:flex;gap:4px;flex-wrap:wrap}
+/* squarer and green, so it never reads as one more army */
+.gs-colours{
+  border:1px solid var(--border-soft);border-radius:3px;padding:1px 7px;font-size:11px;color:#fff;cursor:pointer;
+  background-image:linear-gradient(to bottom,var(--btn-success-a),var(--btn-success-b));
+  text-shadow:0 -1px 0 rgba(0,0,0,.4);
+}
+.gs-colours:hover{filter:brightness(1.14)}
 .gs-slips{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;padding-bottom:10px}
 .slip{
   --paper:#25282c;--ink:#d6d3cc;
@@ -775,7 +805,8 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .slip-u1 .q{flex:0 0 auto;font-weight:700}
 .slip-u1 .nm{flex:1 1 auto;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-weight:600}
 .slip-u1 .tr{flex:0 0 auto;opacity:.65}
-.slip-u2{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px}
+.slip-u2{display:flex;align-items:center;gap:5px;font-size:11px;min-width:0}
+.slip-u2 .plus{flex:0 0 auto;color:#7d8187;font-weight:700}
 .slip-u2 .g{display:flex;align-items:center;gap:4px;min-width:0}
 .slip-u2 .g.none{opacity:.45}
 .slip-u2 .gn{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -1000,14 +1031,18 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
       <label for="defBonus">Defender bonus</label>
       <select id="defBonus"><option value="Yes">Yes</option><option value="No">No</option></select>
     </div>
+    <div class="run-row">
     <button class="btn btn-success" id="btnRun" style="padding:7px 22px;font-size:14px">Resolve battle</button>
     <button class="btn" id="btnClearResults" style="padding:7px 16px;font-size:14px">Clear</button>
     <label class="hk-toggle log-opt" for="logIcons">
       <input type="checkbox" id="logIcons"> Use icons</label>
+    <label class="hk-toggle log-opt" for="logBoth" id="logBothWrap">
+      <input type="checkbox" id="logBoth"> Show weapon and armor</label>
     <label class="hk-toggle log-opt" for="logNames">
       <input type="checkbox" id="logNames"> Use names</label>
     <label class="hk-toggle log-opt" for="logNums" id="logNumsWrap">
       <input type="checkbox" id="logNums"> Numbers with names?</label>
+    </div>
   </div>
 </div>
 
@@ -1222,15 +1257,17 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
     <div>
       <div class="gs-h">Stockpile</div>
       <div class="gs-inputs" id="gsStock"></div>
-      <div class="gs-io">
-        <button type="button" class="btn btn-xs" id="gsExport">Export</button>
-        <button type="button" class="btn btn-xs" id="gsImport">Import</button>
-      </div>
     </div>
     <div>
       <div class="gs-h">Production / turn</div>
       <div class="gs-inputs" id="gsProd"></div>
-      <div class="gs-strip" id="gsStrip"></div>
+      <div class="gs-strip-row">
+        <div class="gs-strip" id="gsStrip"></div>
+        <div class="gs-io">
+          <button type="button" class="btn btn-xs" id="gsExport">Export</button>
+          <button type="button" class="btn btn-xs" id="gsImport">Import</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1245,6 +1282,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
   <div class="panel">
     <div class="gs-bar">
       <div class="gs-comps" id="gsComps"></div>
+      <button type="button" class="gs-colours" id="gsColours" title="Give every ticket on show its own colour, in turn">colours</button>
       <span class="spacer"></span>
       <label class="hk-toggle" for="gsWide"><input type="checkbox" id="gsWide"> Full width</label>
       <label class="hk-toggle" for="gsFocus"><input type="checkbox" id="gsFocus"> Hover to focus</label>
@@ -1335,9 +1373,9 @@ const WEAPON_IMG = {
   "ATFU":              "https://i.imgur.com/GOiknbp.png",
   "APFU":              "https://i.imgur.com/Z3wmr34.png",
   "AUFU":              "https://i.imgur.com/VqFNeAV.png",
-  "K9P":               "https://i.imgur.com/l7urADe.png",
-  "ELBO-GRS":          "https://i.imgur.com/kJSdfDE.png",
-  "Chem-LightBattery": "https://i.imgur.com/SNSjAyZ.png",
+  "K9P":               "https://i.imgur.com/o8NCyt0.png",
+  "ELBO-GRS":          "https://i.imgur.com/5pn0ElS.png",
+  "Chem-LightBattery": "https://i.imgur.com/vwuuyq9.png",
   "PropWash":          "https://i.imgur.com/rYEmCsB.png",
   "SteamBucket":       "https://i.imgur.com/lhh4Yg1.png",
   "CanopyLights":      "https://i.imgur.com/tesIIt8.png",
@@ -1353,10 +1391,10 @@ const ARMOR_IMG = {
   "Barding":    "https://i.imgur.com/f1h2gr0.png",
   "Bigdog":     "https://i.imgur.com/NfYFs8E.png",
   "Nope":       "https://i.imgur.com/HotA2gh.png",
-  "Trundle":    "https://i.imgur.com/7tPSiIL.png",
-  "Shepherd":   "https://i.imgur.com/J8fFn14.png",
-  "Ohno":       "https://i.imgur.com/mQ2Q6T2.png",
-  "Titan":      "https://i.imgur.com/cYvQNCV.png",
+  "Trundle":    "https://i.imgur.com/xsc3kyE.png",
+  "Shepherd":   "https://i.imgur.com/ez3DlRu.png",
+  "Ohno":       "https://i.imgur.com/mxRljRn.png",
+  "Titan":      "https://i.imgur.com/LpRcKGC.png",
   "Cooler":     "https://i.imgur.com/ixM7qD0.png",
   "Wonder":     "https://i.imgur.com/KnmvPuL.png",
   "Griffin":    "https://i.imgur.com/I0ikivG.png",
@@ -1444,7 +1482,7 @@ const RESOURCES = {
   oil:       {name:"Oil",             icon:"https://i.imgur.com/zvueJJj.png"},
   apples:    {name:"Apples",          icon:"https://i.imgur.com/2leAiCK.png"},
   coffee:    {name:"Coffee",          icon:"https://i.imgur.com/LdolLL8.png"},
-  gasoline:  {name:"Gasoline",        icon:"https://i.imgur.com/82T1Csv.png"},
+  gasoline:  {name:"Gasoline",        icon:"https://i.imgur.com/itxPyNI.png"},
   machinery: {name:"Machinery Parts", icon:"https://i.imgur.com/NVx5mLK.png"},
   vehicle:   {name:"Vehicle Parts",   icon:"https://i.imgur.com/SaDikbH.png"},
   precision: {name:"Precision Parts", icon:"https://i.imgur.com/IIdIWXQ.png"},
@@ -2404,9 +2442,13 @@ function tipAttrs(type, weapon, armor, size, training){
 
 /* both the long name and the unit's own name go out; the Use names box picks
    which shows. `gear`, when given, is the piece whose icon Use icons puts in
-   front — the swinger's weapon, the one struck's armour. */
+   front — the swinger's weapon, the one struck's armour; Show weapon and
+   armor swaps that for both pieces. */
 function unitRef(u, gear){
-  const ic = gear && gearImgSrc(gear) ? `<span class="ref-ic">${gearImg(gear)}</span>` : "";
+  const img = k => k && gearImgSrc(k) ? gearImg(k) : "";
+  const pair = img(u.weapon) + img(u.armor);
+  const ic = (img(gear) ? `<span class="ref-ic ref-one">${img(gear)}</span>` : "") +
+             (pair ? `<span class="ref-ic ref-both">${pair}</span>` : "");
   return `${ic}<span class="unit-ref ${u.attack_mission ? "ref-atk" : "ref-def"}"
     ${tipAttrs(u.origType, u.weapon, u.armor, u.size, u.training)}><span class="ref-sys">${esc(u.name).replace(/size_\d+/, "<span class=\"ref-size\">$&</span>")}</span>${
     u.nick ? `<span class="ref-nick">${esc(u.nick)}<span class="ref-num">${esc(u.size)}</span></span>` : ""}</span>`;
@@ -2628,13 +2670,15 @@ function chainTickBlock(k, cum){
 
       <div style="margin-top:16px">${survivorsGrid(all)}</div>
 
-      <div class="log-head" style="margin-top:16px">
-        <h3>Deaths</h3>
-        <span class="spacer"></span>
-        <span class="badge badge-danger">Attackers −${money(burnedIn(k.atkDead))}</span>
-        <span class="badge badge-info">Defenders −${money(burnedIn(k.defDead))}</span>
-      </div>
-      ${deathsGrid(k.atkDead, k.defDead, "chain")}
+      <details class="fold chain-deaths" style="margin-top:16px">
+        <summary class="log-head">
+          <h3>Deaths</h3>
+          <span class="spacer"></span>
+          <span class="badge badge-danger">Attackers −${money(burnedIn(k.atkDead))}</span>
+          <span class="badge badge-info">Defenders −${money(burnedIn(k.defDead))}</span>
+        </summary>
+        ${deathsGrid(k.atkDead, k.defDead, "chain")}
+      </details>
 
       <div class="chain-upkeep">
         <span class="muted">Upkeep cumulative total</span>
@@ -2680,10 +2724,10 @@ function chainTotalsColumn(title, cls, t, ticks){
         <span class="cost-label" style="color:var(--text)">Total burned</span>
         <span class="cost-val bits" style="font-size:13px">${money(t.hire + t.gear + raw.craftBits)}</span></div>
     </div>
-    <div class="well surv-worth worth-plain" style="margin-top:12px">
-      <div class="worth-head"><span class="cost-label">Total standing</span>
+    <details class="well surv-worth worth-plain" style="margin-top:12px">
+      <summary class="worth-head"><span class="cost-label">Total standing</span>
         <span class="spacer"></span>
-        <span class="cost-val bits">${money(t.leftover.hire + t.leftover.gear)}</span></div>
+        <span class="cost-val bits">${money(t.leftover.hire + t.leftover.gear)}</span></summary>
       <div class="surv-worth-body">
         <div class="cost-row"><span class="cost-label">Raise value</span>
           <span class="cost-val bits">${money(t.leftover.hire)}</span></div>
@@ -2698,7 +2742,7 @@ function chainTotalsColumn(title, cls, t, ticks){
                <span class="cost-val">${resChips(t.leftover.res)}</span></div>`
           : `<div class="small muted" style="margin-top:6px">Nothing left standing.</div>`}
       </div>
-    </div>
+    </details>
   </div>`;
 }
 
@@ -2824,6 +2868,7 @@ function logToggle(id){
 document.addEventListener("click", e=>{
   const btn = e.target.closest?.("[data-log-toggle]");
   if (!btn) return;
+  e.preventDefault();
   const id = btn.dataset.logToggle;
   const box = document.getElementById(id);
   if (!box) return;
@@ -2864,13 +2909,13 @@ function exchangeLogBlock(units, log, bonus, id, ns){
 }
 
 function casualtiesBlock(units, casualties, id){
-  return `<div style="margin-top:14px">
-    <div class="log-head">
+  return `<details class="fold" style="margin-top:14px">
+    <summary class="log-head">
       <h3>Casualties</h3>
       <span class="small muted">${casualties.length} entr${casualties.length === 1 ? "y" : "ies"}</span>
       <span class="spacer"></span>
       ${logToggle(id)}
-    </div>
+    </summary>
     <div class="well log${LOG_FULL.has(id) ? " log-full" : ""}" id="${id}">${
       casualties.length ? casualties.map(c=>{
         const u = units[c.uid];
@@ -2878,7 +2923,7 @@ function casualtiesBlock(units, casualties, id){
           ? `<div>${unitRef(u)} <span class="kill">IS KILL</span></div>`
           : `<div>${unitRef(u)} <span class="hurt">lost <b>${c.lost}</b> size!</span></div>`;
       }).join("") : '<div class="muted">Everyone walked away.</div>'}</div>
-  </div>`;
+  </details>`;
 }
 
 /* what is still standing on one side, priced up: the money it took to raise
@@ -2903,10 +2948,10 @@ function survivorValue(units){
 
 function survivorWorth(units){
   const v = survivorValue(units);
-  return `<div class="well surv-worth">
-    <div class="worth-head"><span class="cost-label">Total standing</span>
+  return `<details class="well surv-worth">
+    <summary class="worth-head"><span class="cost-label">Total standing</span>
       <span class="spacer"></span>
-      <span class="cost-val bits">${money(v.hire + v.gear)}</span></div>
+      <span class="cost-val bits">${money(v.hire + v.gear)}</span></summary>
     <div class="surv-worth-body">
       <div class="cost-row"><span class="cost-label">Raise value</span>
         <span class="cost-val bits">${money(v.hire)}</span></div>
@@ -2915,7 +2960,7 @@ function survivorWorth(units){
       <div class="cost-row"><span class="cost-label">Upkeep / 12 h</span>
         <span class="cost-val">${resChips(v.upkeep)}</span></div>
     </div>
-  </div>`;
+  </details>`;
 }
 
 function survivorsGrid(all){
@@ -2933,6 +2978,7 @@ function survivorsGrid(all){
               <div class="mono" style="margin-top:4px;font-size:15px;${u.dead?'color:#f17a77':''}">
                 ${u.dead ? "DESTROYED" : `<b>${u.remaining}</b> <span class="muted small">/ ${u.size}</span>`}
               </div>
+              ${!u.dead && u.remaining < u.size ? `<span class="surv-lost">-${u.size - u.remaining}</span>` : ""}
             </div>`).join("") : '<div class="muted small">None fielded.</div>'}</div>
         ${survivorWorth(side)}
       </div>`;
@@ -5882,9 +5928,11 @@ hkBox.addEventListener("change", syncHotkeys);
 const LS_LOG_OPTS = "warcalc.logOpts";
 {
   const o = store.get(LS_LOG_OPTS, {}) || {};
-  [["logIcons", "icons", "log-icons"], ["logNames", "names", "log-names"], ["logNums", "nums", "log-nums"]].forEach(([id, k, cls])=>{
+  /* icons start on, everything else off */
+  [["logIcons", "icons", "log-icons", true], ["logBoth", "both", "log-both"],
+   ["logNames", "names", "log-names"], ["logNums", "nums", "log-nums"]].forEach(([id, k, cls, dflt])=>{
     const box = document.getElementById(id);
-    box.checked = o[k] === true;
+    box.checked = typeof o[k] === "boolean" ? o[k] : !!dflt;
     document.body.classList.toggle(cls, box.checked);
     box.addEventListener("change", ()=>{
       document.body.classList.toggle(cls, box.checked);
@@ -6539,6 +6587,8 @@ const GS_PAPER = {
   ash:   {paper:"#33373c", ink:"#e2e2e2"}
 };
 const GS_PAPER_DEFAULT = "coal";
+/* the order the colours button hands the papers out in */
+const GS_PAPER_CYCLE = ["wine", "navy", "moss", "ember", "plum", "ash", "coal"];
 const GS_TOTAL = "__total__";                          // colour key for the totals ticket
 
 /* the long names squeezed to fit half a slip */
@@ -6663,7 +6713,7 @@ function gsUnitHTML(raw){
   return `<div class="slip-u" ${tipAttrs(u.type, u.weapon, u.armor, n, u.training ?? 0)}>
       <div class="slip-u1"><span class="q">${n.toLocaleString("en-US")}</span><span class="nm">${esc(u.type)}</span>
         <span class="tr">T${clampInt(u.training ?? 0, 0, 20)}</span></div>
-      <div class="slip-u2">${gear(u.weapon)}${gear(u.armor)}</div></div>`;
+      <div class="slip-u2">${gear(u.weapon)}<span class="plus">+</span>${gear(u.armor)}</div></div>`;
 }
 
 function gsSlip(c, b){
@@ -6818,14 +6868,18 @@ function gsChart(comps, bills){
 }
 
 /* ---- stockpile in and out, as plain "Name: amount" lines ---- */
+/* the reserves only list the gear there is some of */
 function gsExportText(){
   const sec = (title, bucket, keys) => [title].concat(keys.map(k => `${gsName(k)}: ${gsFmt(gsNum(gs[bucket][k]))}`));
-  return sec("Stockpile", "stock", GS_STOCK).concat([""], sec("Production / turn", "prod", GS_PROD)).join("\n");
+  const resv = ["Reserves"].concat(GS_GEAR.filter(k => gsNum(gs.resv[k]) > 0)
+    .map(k => `${label(k)}: ${gsFmt(gsNum(gs.resv[k]))}`));
+  return sec("Stockpile", "stock", GS_STOCK).concat([""], sec("Production / turn", "prod", GS_PROD), [""], resv).join("\n");
 }
 
 /* a section a paste names replaces that section; a paste with no headings is the stockpile */
 function gsImportText(txt){
-  const byName = k => [gsName(k), k].map(s => s.toLowerCase().replace(/[^a-z]/g, ""));
+  const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const byName = k => (bucket === "resv" ? [label(k), k] : [gsName(k), k]).map(norm);
   let bucket = "stock", keys = GS_STOCK, n = 0;
   const seen = {};
   const bad = [];
@@ -6834,8 +6888,10 @@ function gsImportText(txt){
     if (!l) return;
     if (/^production/i.test(l)){ bucket = "prod"; keys = GS_PROD; return; }
     if (/^stock/i.test(l)){ bucket = "stock"; keys = GS_STOCK; return; }
+    /* only the gear there is some of is written out, so the heading alone clears the rest */
+    if (/^reserve/i.test(l)){ bucket = "resv"; keys = GS_GEAR; seen.resv = true; gs.resv = {}; n++; return; }
     const m = l.match(/^(.+?)\s*[:=]\s*([\d,.\s]*)$/);
-    const want = m && m[1].toLowerCase().replace(/[^a-z]/g, "");
+    const want = m && norm(m[1]);
     const k = m && keys.find(k => byName(k).includes(want));
     if (!k){ bad.push(l); return; }
     if (!seen[bucket]){ seen[bucket] = true; gs[bucket] = {}; }
@@ -6861,7 +6917,7 @@ function gsModal(title, bodyHTML, footHTML){
 }
 
 function gsShowExport(){
-  const w = gsModal("Export stockpile",
+  const w = gsModal("Export stockpile and reserves",
     `<textarea class="gs-io-text" id="gsIoText" readonly spellcheck="false"></textarea>`,
     `<span class="small muted" id="gsIoMsg"></span><span class="spacer"></span>
      <button class="btn btn-xs btn-primary" id="gsIoCopy">Copy</button>
@@ -6878,7 +6934,7 @@ function gsShowExport(){
 }
 
 function gsShowImport(){
-  const w = gsModal("Import stockpile",
+  const w = gsModal("Import stockpile and reserves",
     `<div class="small muted" style="margin-bottom:6px">Paste an exported stockpile. Sections it names are
        replaced; anything else is left alone.</div>
      <textarea class="gs-io-text" id="gsIoText" spellcheck="false" placeholder="Stockpile\nApples: 1,200\n…"></textarea>`,
@@ -6893,6 +6949,7 @@ function gsShowImport(){
     gsSave();
     gsInputs("gsStock", "stock", GS_STOCK);
     gsInputs("gsProd", "prod", GS_PROD);
+    gsReserves();
     gsStrip();
     renderGrand();
     if (r.bad.length) w.querySelector("#gsIoMsg").textContent =
@@ -6923,9 +6980,7 @@ gsInputs("gsStock", "stock", GS_STOCK);
 gsInputs("gsProd", "prod", GS_PROD);
 gsReserves();
 gsStrip();
-gsEl("gsReserves").open = store.get(LS_GRAND + ".resOpen", false) === true;
-gsEl("gsReserves").addEventListener("toggle", ()=>
-  store.set(LS_GRAND + ".resOpen", gsEl("gsReserves").open));
+gsEl("gsReserves").open = false;                        // every visit opens with the reserves folded
 gsEl("gsChart").open = store.get(LS_GRAND + ".readerOpen", false) === true;
 /* toggle does not bubble, so the sections inside are caught on the way down */
 gsEl("gsChart").addEventListener("toggle", e=>{
@@ -7001,6 +7056,11 @@ document.addEventListener("change", e=>{
 });
 gsEl("gsFocus").addEventListener("change", ()=>{
   gs.focus = gsEl("gsFocus").checked;
+  gsSave();
+  renderGrand();
+});
+gsEl("gsColours").addEventListener("click", ()=>{
+  gs.comps.forEach((n, i)=>{ gs.colors[n] = GS_PAPER_CYCLE[i % GS_PAPER_CYCLE.length]; });
   gsSave();
   renderGrand();
 });
