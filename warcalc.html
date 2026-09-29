@@ -301,6 +301,9 @@ body.no-unspent .log .unspent{display:none}
 .sz-k{display:flex;flex-direction:column;min-width:30px}
 .sz-n{font-size:14px;line-height:1.15;font-family:"SFMono-Regular",Menlo,Consolas,monospace}
 .sz-v .cx-res{padding-left:0}
+.sz-gap{height:8px}
+.cmp-par{color:#e2c760}
+.cx-upk .muted{font-size:9px;margin-left:1px}
 .cx-line{display:flex;flex-wrap:wrap;align-items:center;gap:0 5px}
 .cx-k{color:var(--text-dim);width:30px;flex:none}
 .cx-line b{font-weight:600;font-family:"SFMono-Regular",Menlo,Consolas,monospace}
@@ -2770,8 +2773,10 @@ function gearCompare(kind, A, D, l, bonusApplied){
     return res ? (Aw.res[res] || 0) + (a.res[res] || 0) : hire(D) + Aw.bits + a.bits;
   };
   const tr = (a, b, cls) => `<tr${cls ? ` class="${cls}"` : ""}><td>${a}</td><td class="n">${b}</td></tr>`;
-  /* the net card: both pieces with the weapon they sit beside, what the
-     stack's worth costs, then the dead each leaves behind */
+  /* the net card: both pieces with the weapon they sit beside and what the
+     stack costs to field, then the dead each leaves behind. Only the dead are
+     spent: a survivor keeps its kit, and a dead one's kit was already bought
+     in the fielding, so the net is what the fight burns and nothing more. */
   const tipNet = (r, res)=>{
     const ico = res ? resIcon(res) : BIT;
     const amt = (v, mono) => `(<span class="${mono ? "mono-ic" : ""}">${ico}</span> ${money(v)})`;
@@ -2788,13 +2793,11 @@ function gearCompare(kind, A, D, l, bonusApplied){
     const lossD = dead(r) * perLoss(r.key, res) - dead(now) * perLoss(now.key, res);
     return `<div data-tip-bg="#1c2531"><div class="tip-title">${amt(a1)} ${esc(label(r.key))}
         <span class="muted">vs</span> ${amt(a0)} ${esc(label(now.key))} ${ico}</div>
-      <div class="small" style="margin:6px 0 2px">${PIN_WITH_WPN ? `Including weapon${wv ? ` <span class="muted">${amt(wv, true)}</span>` : ""}` : "Armour only"}</div>
+      <div class="small" style="margin:6px 0 2px">To field, ${PIN_WITH_WPN ? `including weapon${wv ? ` <span class="muted">${amt(wv, true)}</span>` : ""}` : "armour only"}</div>
       <table class="tip-math">${per(r, a1, t1)}${per(now, a0, t0)}
         ${tr(`difference <span class="muted">${money(t1)} − ${money(t0)}</span>`, sgn(t1 - t0), "tot")}</table>
-      <div class="small" style="margin:8px 0 2px">Killed${res ? "" : ` <span class="muted">(each also re-raised for ${money(hire(D))})</span>`}</div>
-      <table class="tip-math">${deadRow(r)}${deadRow(now)}${tr("difference", sgn(lossD), "tot")}</table>
-      <table class="tip-math" style="margin-top:8px">${tr("Equipment", sgn(t1 - t0))}${tr("+ troops lost", sgn(lossD))}${
-        tr("net", sgn(t1 - t0 + lossD), "tot")}</table></div>`;
+      <div class="small" style="margin:8px 0 2px">Killed${res ? "" : ` <span class="muted">(raise ${money(hire(D))} each, with their kit)</span>`}</div>
+      <table class="tip-math">${deadRow(r)}${deadRow(now)}${tr("net", sgn(lossD), "tot")}</table></div>`;
   };
   const tipBg = isW ? "#321f27" : "#1c2531";
   /* weapon cards: the swing and what it brings down, laid out like the net card */
@@ -2843,61 +2846,57 @@ function gearCompare(kind, A, D, l, bonusApplied){
     const lossB = L.bits - nowLoss.bits, lossR = resSub(L.res, nowLoss.res);
     if (isW) return line("kills", signed(L.k - nowLoss.k, more, tipWKills(r)) + troops) +
       line("", signed(lossB, more, tipWorth(r, null)), "", chips(lossR, more, k => tipWorth(r, k)));
-    return line("net", signed(kitB + lossB, less, tipNet(r, null)), "",
-      chips(addRes(addRes({}, kitR), lossR), less, k => tipNet(r, k)));
+    return line("net", signed(lossB, less, tipNet(r, null)), "", chips(lossR, less, k => tipNet(r, k)));
   };
 
   /* ---- armour: the stack sized to the hits. One that falls could be
      raised until one is left standing; one with room to spare could be
-     skimmed down to that same one. Either way every hit still kills, the
-     extra (or missing) troops wear the same kit, and it is measured, like
-     the net, against the equipped piece as fought. */
+     skimmed down to that same one. If the equipped piece leaves more
+     standing, parity is what it takes for this piece to match it. Each is
+     the troops raised (or not) in full kit, with their upkeep; the hits all
+     still kill, so a bigger stack only burns more. */
   const S = D.size;
-  const kPiece = (key, res) => kitUnit(key, res) + (res ? (Aw.res[res] || 0) : Aw.bits);
-  const netOf = (r, res) => S * (kPiece(r.key, res) - kPiece(now.key, res)) +
-    dead(r) * perLoss(r.key, res) - dead(now) * perLoss(now.key, res);
-  const need = r => r.dmg + 1;                 // troops that take every hit with one to spare
-  const sizeOf = (r, res)=>{
-    const E = need(r) - S;                     // + raise, − skim
-    const equip = S * (kPiece(r.key, res) - kPiece(now.key, res));
-    const raised = E * perLoss(r.key, res);    // a troop raised or not raised, in full kit
-    const lost = r.dmg * perLoss(r.key, res) - dead(now) * perLoss(now.key, res);
-    return {E, equip, raised, lost, net: equip + raised + lost};
-  };
-  let holdBest = null;                         // the cheapest piece that holds as it is
-  const tipSize = (r, res)=>{
-    const ico = res ? resIcon(res) : BIT, x = sizeOf(r, res), p1 = perLoss(r.key, res);
-    const up = x.E > 0;
-    const killRow = (y, k, per, tag) => tr(`<span class="tip-gear">${gearImg(y.key)}</span>${esc(label(y.key))}${
+  const upk = (UNIT_COST[D.origType] || {upkeep:{}}).upkeep;
+  const survivors = r => Math.max(0, S - dead(r));
+  const plan = (r, E, res) => E * perLoss(r.key, res);
+  const tipPlan = (r, E, kind, res)=>{
+    const ico = res ? resIcon(res) : BIT, p1 = perLoss(r.key, res);
+    const X = S + E, deadX = Math.min(X, r.dmg), up = E > 0;
+    const killRow = (k, tag) => tr(`<span class="tip-gear">${gearImg(r.key)}</span>${esc(label(r.key))}${
       tag ? ` <span class="muted">${tag}</span>` : ""}: ${money(k)} dead
-      <span class="muted">× ${money(per)}</span> ${ico}`, money(k * per));
-    return `<div data-tip-bg="#1c2531"><div class="tip-title">${esc(label(r.key))}, ${up ? "raised" : "skimmed"} ${ico}</div>
-      <div class="small muted" style="margin:4px 0 6px">${money(H)} hits × ${fmt(round3(r.ph))} = ${money(r.dmg)} dmg ·
-        need <b class="${up ? "cmp-down" : "cmp-up"}">${up ? "+" : "−"}${money(Math.abs(x.E))}</b> to absorb</div>
-      <table class="tip-math">
-        ${r === now ? "" : tr(`${esc(label(r.key))} for the ${money(S)} <span class="muted">(${money(kPiece(r.key, res))} − ${money(kPiece(now.key, res))} each)</span>`, sgn(x.equip))}
-        ${tr(`${up ? "raise" : "skim"} ${money(Math.abs(x.E))} <span class="muted">× ${money(p1)}</span> ${ico}`, sgn(x.raised))}
-      </table>
+      <span class="muted">× ${money(p1)}</span> ${ico}`, money(k * p1));
+    const head = kind === "parity"
+      ? `${money(survivors(now))} left with ${esc(label(now.key))}, ${money(survivors(r))} with ${esc(label(r.key))} ·
+         need <b class="cmp-par">+${money(E)}</b> to match`
+      : `${money(H)} hits × ${fmt(round3(r.ph))} = ${money(r.dmg)} dmg ·
+         need <b class="${up ? "cmp-down" : "cmp-up"}">${up ? "+" : "−"}${money(Math.abs(E))}</b> to absorb`;
+    return `<div data-tip-bg="#1c2531"><div class="tip-title">${esc(label(r.key))}, ${
+        kind === "parity" ? "raised to match" : up ? "raised" : "skimmed"} ${ico}</div>
+      <div class="small muted" style="margin:4px 0 6px">${head}</div>
+      <table class="tip-math">${tr(`${up ? "raise" : "skim"} ${money(Math.abs(E))} <span class="muted">× ${money(p1)}</span> ${ico}`,
+        sgn(E * p1), "tot")}</table>
       <div class="small" style="margin:8px 0 2px">Killed</div>
-      <table class="tip-math">${killRow(r, r.dmg, p1, up ? "raised" : "skimmed")}${killRow(now, dead(now), perLoss(now.key, res), "as fought")}
-        ${tr("difference", sgn(x.lost), "tot")}</table>
-      <table class="tip-math" style="margin-top:8px">${r === now ? "" : tr("Equipment", sgn(x.equip))}${
-        tr(up ? "+ raised" : "− skimmed", sgn(x.raised))}${tr("+ troops lost", sgn(x.lost))}${tr("net", sgn(x.net), "tot")}</table>
-      ${holdBest && holdBest !== r ? `<div class="small" style="margin-top:6px">vs ${esc(label(holdBest.key))}
-        <b>${sgn(netOf(holdBest, res))}</b></div>` : ""}</div>`;
+      <table class="tip-math">${killRow(deadX, `at ${money(X)}`)}${killRow(dead(r), `at ${money(S)}`)}
+        ${tr("burned", sgn((deadX - dead(r)) * p1), "tot")}</table></div>`;
+  };
+  /* upkeep per 12 hours for the troops a plan adds or drops */
+  const upkChips = (E, good) => Object.keys(upk).filter(k => upk[k]).map(k=>
+    `<span class="cx-chip cx-upk ${good(E) ? "cmp-up" : "cmp-down"}">${resIcon(k)}${sgn(E * upk[k])}<span class="muted">/12h</span></span>`).join("");
+  const planBlock = (r, E, kind)=>{
+    const cls = kind === "parity" ? "cmp-par" : E > 0 ? "cmp-down" : "cmp-up";
+    const word = kind === "parity" ? "parity" : E > 0 ? "raise" : "skim";
+    const xr = RES_ORDER.reduce((o, k)=>{ const v = plan(r, E, k); if (v) o[k] = v; return o; }, {});
+    return `<div class="sz"><div class="sz-k"><span class="${cls}">${word}</span>
+        <b class="sz-n ${cls}">${E > 0 ? "+" : "−"}${money(Math.abs(E))}</b></div>
+      <div class="sz-v"><div class="cx-line">${signed(plan(r, E, null), less, tipPlan(r, E, kind, null))}</div>
+        <div class="cx-res">${chips(xr, less, k => tipPlan(r, E, kind, k))}${upkChips(E, less)}</div></div></div>`;
   };
   const sizeCol = r=>{
     if (isW) return "";
-    const x = sizeOf(r, null);
-    if (!x.E) return "";
-    const up = x.E > 0;
-    const xr = RES_ORDER.reduce((o, k)=>{ const v = sizeOf(r, k).net; if (v) o[k] = v; return o; }, {});
-    /* the word with the troop count under it, so the bits sit level with net's */
-    const cls = up ? "cmp-down" : "cmp-up";
-    return `<div class="sz"><div class="sz-k"><span class="${cls}">${up ? "raise" : "skim"}</span>
-        <b class="sz-n ${cls}">${up ? "+" : "−"}${money(Math.abs(x.E))}</b></div>
-      <div class="sz-v"><div class="cx-line">${signed(x.net, less, tipSize(r, null))}</div>
-        <div class="cx-res">${chips(xr, less, k => tipSize(r, k))}</div></div></div>`;
+    const E = r.dmg + 1 - S;                   // one left standing: + raise, − skim
+    const P = survivors(now) + r.dmg - S;      // standing level with the equipped piece
+    const par = r !== now && survivors(now) > survivors(r) && P > 0 && P !== E;
+    return (E ? planBlock(r, E, "size") : "") + (par ? `<div class="sz-gap"></div>` + planBlock(r, P, "parity") : "");
   };
 
   /* what one piece costs, greyed, under what the stack's worth costs */
@@ -2936,8 +2935,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
   /* Scrounged is the fallback, not a choice, so it always goes last */
   const others = pool.filter(k => k !== cur)
     .sort((a, b) => !!SCROUNGED[a] - !!SCROUNGED[b]).map(calc);
-  const holders = [now, ...others].filter(r => r.dmg < S);
-  holdBest = holders.sort((a, b) => netOf(a, null) - netOf(b, null))[0] || null;
+
 
   return `<div class="tip-title pin-grip"><span class="tt-wrap">${isW ? "Weapon Compare"
       : `Armour Compare<label class="tt-aside" title="Count the weapon each suit is worn with"><input type="checkbox"
@@ -4846,6 +4844,7 @@ document.addEventListener("mouseover", e=>{
   if (!d.tipLeft || PREFS.plainHover || d.tipKey) tipEl.classList.remove("tip-wide");
   const bg = tipEl.querySelector("[data-tip-bg]");         // a card can ask for its panel's colour
   tipEl.style.background = bg ? bg.dataset.tipBg : "";
+  if (bg) tipEl.classList.add("tip-wide");                 // those cards lay out wide tables
   tipEl.style.display = "block";
   moveTip(e);
 });
