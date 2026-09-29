@@ -294,7 +294,7 @@ body.no-unspent .log .unspent{display:none}
 #dmgPin.pin-wide .cmp-ic{grid-row:2 / span 2}
 #dmgPin.pin-wide .cmp-name,#dmgPin.pin-wide .cmp-stat{grid-row:2}
 #dmgPin.pin-wide .cmp-cost{grid-row:3}
-#dmgPin.pin-wide .cmp-dmg{grid-row:4}
+#dmgPin.pin-wide .cmp-dmg,#dmgPin.pin-wide .cmp-dmg-k{grid-row:4}
 #dmgPin.pin-wide .cmp-x{display:block;grid-column:4;grid-row:1 / span 5;align-self:stretch;
   padding-left:9px;border-left:1px solid var(--border-soft);font-size:11px;line-height:1.5}
 .sz{display:flex;gap:5px;align-items:flex-start}
@@ -336,7 +336,7 @@ body.no-unspent .log .unspent{display:none}
   margin-top:50px;line-height:16px}
 .cmp-row{display:grid;grid-template-columns:auto 1fr auto;gap:2px 8px;align-items:center;
   padding:6px 0;border-top:1px solid var(--border-soft)}
-/* the icon sits beside the name and cost; the damage line runs under it from the left edge */
+/* the icon sits beside the name and cost; under it, level with the damage, a DMG: label */
 .cmp-row .cmp-ic{grid-row:span 2;align-self:center}
 .cmp-name{font-weight:600;font-size:12px;color:#fff}
 .cmp-stat{font-family:"SFMono-Regular",Menlo,Consolas,monospace;font-size:12px;text-align:right}
@@ -365,7 +365,8 @@ body.no-unspent .log .unspent{display:none}
 #dmgPin .tt-aside input{margin:0;width:11px;height:11px;cursor:pointer}
 #dmgPin .pin-grip{cursor:move;user-select:none}
 #dmgPin.pin-dragging,#dmgPin.pin-dragging *{cursor:move;user-select:none}
-.cmp-dmg{grid-column:1 / span 3;font-size:12px;display:flex;justify-content:space-between;
+.cmp-dmg-k{grid-column:1;justify-self:center;font-size:10px;color:var(--text-dim);letter-spacing:.04em}
+.cmp-dmg{grid-column:2 / span 2;font-size:12px;display:flex;justify-content:space-between;
   font-family:"SFMono-Regular",Menlo,Consolas,monospace}
 .cmp-cur{border:1px solid rgba(120,204,120,.45);border-radius:3px;padding:6px 2px;margin:0 -3px 6px}
 .cmp-cur .cmp-name,.cmp-cur .cmp-stat,.cmp-cur .cmp-cost .bits,.cmp-cur .cmp-dmg{color:#78cc78}
@@ -2925,6 +2926,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
       <span class="cmp-name">${esc(label(r.key))}</span>
       <span class="cmp-stat">${isW ? "" : "×"}${fmt(r.stat)}</span>
       <span class="cmp-cost"><span class="bits">${money(r.bits)}</span><span class="cmp-res">${resChips(r.res)}</span>${oneOf(r.key)}</span>
+      <span class="cmp-dmg-k">DMG:</span>
       <span class="cmp-dmg"><span>${r.dmg >= D.size
         ? `[${money(D.size)}] ${isW ? "dealt" : "taken"} <span class="muted">(${money(r.dmg)} total)</span>`
         : `${money(r.dmg)} ${isW ? "dealt" : "taken"}`}</span>${delta}</span>
