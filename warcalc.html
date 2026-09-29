@@ -776,8 +776,16 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .gs-focus .slip:hover,.gs-focus .slip:has(.slip-pop){filter:none}
 
 /* who eats what: one 100% bar per resource, split by army */
-.gs-chart:empty{display:none}
+.gs-chart.none{display:none}
 .gs-chart{margin-bottom:24px}
+.gs-sub{margin-top:10px;border-top:1px solid var(--border-soft);padding-top:8px}
+.gs-sub > summary{font-size:11px;color:var(--text-dim);list-style:none;display:inline-flex;gap:5px;align-items:center;
+  text-transform:uppercase;letter-spacing:.06em;font-weight:600;cursor:pointer;margin-bottom:6px}
+.gs-sub > summary::-webkit-details-marker{display:none}
+.gs-sub > summary:before{content:"▸";display:inline-block;transition:transform .12s}
+.gs-sub[open] > summary:before{transform:rotate(90deg)}
+.gs-sub > summary:hover{color:#fff}
+.gs-clab .g-name{font-weight:600;overflow:hidden;text-overflow:ellipsis}
 .gs-chart-bar{display:flex;gap:4px 10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
 .gs-rtog{display:inline-flex;align-items:center;gap:4px;padding:3px 6px;cursor:pointer;
   background:var(--sunken);border:1px solid var(--border-soft);border-radius:4px;color:var(--text);font-size:11px}
@@ -793,7 +801,9 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .gs-clab .v{margin-left:auto;color:var(--text-dim);font:11px "SFMono-Regular",Menlo,Consolas,monospace}
 .gs-cbar{display:flex;gap:2px;height:20px}
 .gs-seg{min-width:3px;border-radius:2px;display:flex;align-items:center;justify-content:center;overflow:hidden;
-  font:600 10px/1 "SFMono-Regular",Menlo,Consolas,monospace;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.6)}
+  white-space:nowrap;padding:0 4px;box-sizing:border-box;
+  font:600 11px/1 "Helvetica Neue",Helvetica,Arial,sans-serif;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.5)}
+.gs-seg span{overflow:hidden;text-overflow:ellipsis}
 .gs-seg:first-child{border-radius:4px 2px 2px 4px}
 .gs-seg:last-child{border-radius:2px 4px 4px 2px}
 .gs-seg:only-child{border-radius:4px}
@@ -1185,7 +1195,10 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
   </div>
 
   <div class="gs-total" id="gsTotal"></div>
-  <div class="panel gs-chart" id="gsChart"></div>
+  <details class="panel gs-res gs-chart" id="gsChart">
+    <summary>Reader</summary>
+    <div id="gsChartBody"></div>
+  </details>
 </div>
 
 <div id="tip"></div>
@@ -6199,7 +6212,8 @@ const gs = (()=>{
   const obj = v => v && typeof v === "object" && !Array.isArray(v) ? v : {};
   return {stock: obj(o.stock), prod: obj(o.prod), resv: obj(o.resv),
           comps: Array.isArray(o.comps) ? o.comps : [], colors: obj(o.colors), wide: o.wide === true, upx: GS_TICKS,
-          focus: o.focus !== false, chartOff: Array.isArray(o.chartOff) ? o.chartOff : []};    // every visit opens on the x6 view
+          focus: o.focus !== false, chartOff: Array.isArray(o.chartOff) ? o.chartOff : [],
+          reader: Object.assign({res: true}, obj(o.reader))};    // every visit opens on the x6 view
 })();
 const gsSave = () => store.set(LS_GRAND, gs);
 const gsNum  = v => Math.max(0, Number(String(v ?? "").replace(/,/g, "")) || 0);
@@ -6428,59 +6442,85 @@ function gsTotal(comps, bills, t){
     </div>`;
 }
 
-/* ---- who eats what ----
-   one 100% bar per resource, split by army, with an overall bar that
-   averages each army's share over the resources switched on */
-const GS_SERIES = ["#3987e5","#d95926","#199e70","#c98500","#d55181","#008300","#9085e9","#e66767"];
-const GS_OTHER  = "#6b6f75";
+/* ---- the reader ----
+   100% bars split by army: what each resource goes to, and who fields which
+   unit types and gear. An army's bar wears its own ticket colour, muted */
 const GS_CHART  = GS_COST.map(k => ({id: k, k, up: false}))
   .concat(GS_UPKEEP.map(k => ({id: "up:" + k, k, up: true})));
 
+/* a slip's paper, lifted toward its ink so it reads on the panel */
+function gsMute(key){
+  const pc = GS_PAPER[gs.colors[key]] || GS_PAPER[GS_PAPER_DEFAULT];
+  const h = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16));
+  const [p, k] = [h(pc.paper), h(pc.ink)];
+  return "#" + p.map((v, i) => Math.round(v * .72 + k[i] * .28).toString(16).padStart(2, "0")).join("");
+}
+
 function gsChart(comps, bills){
   if (comps.length < 2) return "";
-  /* colour follows the army's place in the pick order; past eight they share an "Other" */
-  const series = comps.slice(0, 8).map((c, i) => ({name: c.name, color: GS_SERIES[i], idx: [i]}));
-  if (comps.length > 8) series.push({name: `Other (${comps.length - 8})`, color: GS_OTHER,
-    idx: comps.slice(8).map((_, j) => j + 8)});
-  const amt = (r, i) => (r.up ? bills[i].upkeep[r.k] : bills[i].res[r.k]) || 0;
-  const live = GS_CHART.filter(r => bills.some((_, i) => amt(r, i) > 0));
-  if (!live.length) return "";
-  const on = live.filter(r => !gs.chartOff.includes(r.id));
-
-  const rows = on.map(r=>{
-    const vals = series.map(s => s.idx.reduce((a, i) => a + amt(r, i), 0));
-    const tot = vals.reduce((a, b) => a + b, 0);
-    return {r, vals, tot, shares: vals.map(v => tot ? v / tot : 0)};
-  });
-  const overall = series.map((_, j) => rows.length ? rows.reduce((a, row) => a + row.shares[j], 0) / rows.length : 0);
+  const series = comps.map(c => ({name: c.name, color: gsMute(c.name)}));
+  const pct = pc => pc < 1 ? "<1%" : Math.round(pc) + "%";
 
   const bar = (shares, tipFor) => `<div class="gs-cbar">${series.map((s, j)=>{
     const p = shares[j];
     if (!(p > 0)) return "";
     const pc = p * 100;
-    const txt = pc >= 7 ? (pc < 1 ? "<1" : Math.round(pc)) + "%" : "";
-    return `<div class="gs-seg" style="flex:${p} 1 0;background:${s.color}" data-tip-key="${regTip(tipFor(s, j, pc), "gs")}">${txt}</div>`;
+    return `<div class="gs-seg" style="flex:${p} 1 0;background:${s.color}" data-tip-key="${regTip(tipFor(s, j, pc), "gs")}">${
+      pc >= 7 ? `<span>${esc(s.name)} ${pct(pc)}</span>` : ""}</div>`;
   }).join("")}</div>`;
-  const pct = pc => pc < 1 ? "<1%" : Math.round(pc) + "%";
 
-  const lines = rows.map(row=>`<div class="gs-crow">
-      <div class="gs-clab">${gsIcon(row.r.k)} ${esc(gsName(row.r.k))}${row.r.up ? ` <span class="small muted">upkeep</span>` : ""}
-        <span class="v">${money(row.tot)}</span></div>
-      ${bar(row.shares, (s, j, pc) => `<b>${esc(s.name)}</b><br>${gsIcon(row.r.k)} ${money(row.vals[j])}
-        of ${money(row.tot)} · ${pct(pc)}`)}
-    </div>`).join("");
+  /* one row: its label, its total, and the split */
+  const line = (lab, vals, iconHTML) => {
+    const tot = vals.reduce((a, b) => a + b, 0);
+    return `<div class="gs-crow"><div class="gs-clab">${lab}<span class="v">${money(tot)}</span></div>
+      ${bar(vals.map(v => tot ? v / tot : 0), (s, j, pc) =>
+        `<b>${esc(s.name)}</b><br>${iconHTML} ${money(vals[j])} of ${money(tot)} · ${pct(pc)}`)}</div>`;
+  };
+  const sec = (id, title, inner) => inner ? `<details class="gs-sub" data-gs-sec="${id}"${gs.reader[id] ? " open" : ""}>
+      <summary>${title}</summary>${inner}</details>` : "";
 
+  /* resources, with an overall bar averaging each army's share of the ones switched on */
+  const amt = (r, i) => (r.up ? bills[i].upkeep[r.k] : bills[i].res[r.k]) || 0;
+  const live = GS_CHART.filter(r => bills.some((_, i) => amt(r, i) > 0));
+  const on = live.filter(r => !gs.chartOff.includes(r.id));
+  const shares = on.map(r=>{
+    const vals = comps.map((_, i) => amt(r, i)), tot = vals.reduce((a, b) => a + b, 0);
+    return vals.map(v => tot ? v / tot : 0);
+  });
+  const overall = series.map((_, j) => shares.length ? shares.reduce((a, row) => a + row[j], 0) / shares.length : 0);
   const toggles = live.map(r=>`<button type="button" class="gs-rtog${gs.chartOff.includes(r.id) ? " off" : ""}"
       data-gs-chart="${r.id}" title="${esc(gsName(r.k))}${r.up ? " upkeep" : ""}">${gsIcon(r.k)}${r.up ? `<span class="up">up</span>` : ""}</button>`).join("");
-
-  return `<div class="gs-h">Who eats what</div>
-    <div class="gs-chart-bar">${toggles}</div>
-    <div class="gs-legend">${series.map(s=>`<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join("")}</div>
-    ${rows.length ? `<div class="gs-crow all"><div class="gs-clab"><b>Overall</b>
-        <span class="v">avg of ${rows.length}</span></div>
+  const resHTML = live.length ? `<div class="gs-chart-bar">${toggles}</div>
+    ${on.length ? `<div class="gs-crow all"><div class="gs-clab"><b>Overall</b><span class="v">avg of ${on.length}</span></div>
       ${bar(overall, (s, j, pc) => `<b>${esc(s.name)}</b><br>${pct(pc)} average share over the
-        ${rows.length} resource${rows.length === 1 ? "" : "s"} switched on`)}</div>${lines}`
-      : `<div class="small muted">Every resource is switched off — click an icon to bring it back.</div>`}`;
+        ${on.length} resource${on.length === 1 ? "" : "s"} switched on`)}</div>` +
+      on.map(r => line(`${gsIcon(r.k)} ${esc(gsName(r.k))}${r.up ? ` <span class="small muted">upkeep</span>` : ""}`,
+        comps.map((_, i) => amt(r, i)), gsIcon(r.k))).join("")
+      : `<div class="small muted">Every resource is switched off — click an icon to bring it back.</div>`}` : "";
+
+  /* troops by unit type, and troops carrying each piece of gear */
+  const count = (keyOf) => {
+    const m = {};
+    comps.forEach((c, i) => c.units.forEach(u=>{
+      const k = keyOf(u);
+      if (!k) return;
+      (m[k] = m[k] || comps.map(() => 0))[i] += gsNum(u.size);
+    }));
+    return m;
+  };
+  const byType = count(u => u.type);
+  const typesHTML = UNIT_ORDER.filter(g => byType[g.type]).map(g =>
+    line(`<span class="g-name t-${g.type.toLowerCase()}">${esc(g.type)}</span>`, byType[g.type], "")).join("");
+  const gearHTML = kind => {
+    const m = count(u => { const k = u[kind]; return k && !SCROUNGED[k] ? k : null; });
+    const costs = kind === "weapon" ? WEAPON_COST : ARMOR_COST;
+    return UNIT_ORDER.flatMap(g => g.gear.filter(k => k in costs && m[k]).map(k =>
+      line(`${gearImg(k)}<span class="g-name t-${g.type.toLowerCase()}">${esc(label(k))}</span>`, m[k], gearImg(k)))).join("");
+  };
+
+  return `<div class="gs-legend">${series.map(s=>`<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join("")}</div>` +
+    sec("res", "Resources", resHTML) + sec("types", "Unit types", typesHTML) +
+    sec("weapons", "Weapons", gearHTML("weapon")) + sec("armor", "Armour", gearHTML("armor"));
 }
 
 /* ---- stockpile in and out, as plain "Name: amount" lines ---- */
@@ -6579,7 +6619,9 @@ function renderGrand(){
   gsEl("gsOut").innerHTML = comps.length
     ? `<div class="gs-slips${gs.wide ? " wide" : ""}">${comps.map((c, i) => gsSlip(c, bills[i])).join("")}</div>` : "";
   gsEl("gsTotal").innerHTML = comps.length ? gsTotal(comps, bills, gsMerge(bills)) : "";
-  gsEl("gsChart").innerHTML = gsChart(comps, bills);
+  const reader = gsChart(comps, bills);
+  gsEl("gsChartBody").innerHTML = reader;
+  gsEl("gsChart").classList.toggle("none", !reader);
 }
 
 /* ---- grand strategy wiring ---- */
@@ -6590,6 +6632,13 @@ gsStrip();
 gsEl("gsReserves").open = store.get(LS_GRAND + ".resOpen", false) === true;
 gsEl("gsReserves").addEventListener("toggle", ()=>
   store.set(LS_GRAND + ".resOpen", gsEl("gsReserves").open));
+gsEl("gsChart").open = store.get(LS_GRAND + ".readerOpen", false) === true;
+/* toggle does not bubble, so the sections inside are caught on the way down */
+gsEl("gsChart").addEventListener("toggle", e=>{
+  const d = e.target;
+  if (d === gsEl("gsChart")) store.set(LS_GRAND + ".readerOpen", d.open);
+  else if (d.dataset?.gsSec){ gs.reader[d.dataset.gsSec] = d.open; gsSave(); }
+}, true);
 
 gsEl("viewGrand").addEventListener("input", e=>{
   const i = e.target.closest("[data-gs-bucket]");
