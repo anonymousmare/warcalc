@@ -236,7 +236,40 @@ body.no-unspent .log .unspent{display:none}
 .tip-math tbody tr{border:none}
 .tip-math .n{text-align:right;font-family:"SFMono-Regular",Menlo,Consolas,monospace}
 .tip-math .tot td{border-top:1px solid var(--border-soft);padding-top:4px;color:#fff}
-.dmg-ref{cursor:help;border-bottom:1px dotted currentColor}
+.dmg-ref{cursor:pointer;border-bottom:1px dotted currentColor}
+/* a damage figure clicked open: the breakdown pinned in place, with what
+   the struck side could have worn on its left and what the swinger could
+   have carried on its right */
+#dmgPin{
+  position:fixed;z-index:998;display:none;
+  background:var(--raised);border:1px solid var(--border);border-radius:4px;
+  padding:10px 12px;box-shadow:0 10px 28px rgba(0,0,0,.65);
+  max-width:calc(100vw - 16px);max-height:calc(100vh - 16px);overflow:auto;
+}
+#dmgPin .pin-cols{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}
+#dmgPin .pin-col{flex:0 0 auto;width:270px;position:relative}
+#dmgPin .pin-mid{width:230px}
+#dmgPin .pin-col + .pin-col::before{
+  content:"";position:absolute;left:-11px;top:0;bottom:0;width:1px;background:var(--border-soft);
+}
+#dmgPin .pin-close{position:absolute;top:4px;right:6px;background:none;border:none;
+  color:var(--text-dim);font-size:16px;line-height:1;cursor:pointer;padding:2px 4px}
+#dmgPin .pin-close:hover{color:#fff}
+.cmp-sub{font-size:11px;margin:2px 0 8px}
+.cmp-row{display:grid;grid-template-columns:auto 1fr auto;gap:2px 8px;align-items:center;
+  padding:6px 0;border-top:1px solid var(--border-soft)}
+.cmp-row .gear-img{width:28px;height:28px}
+.cmp-row .cmp-ic{grid-row:span 3;align-self:start}
+.cmp-name{font-weight:600;font-size:12px;color:#fff}
+.cmp-stat{font-family:"SFMono-Regular",Menlo,Consolas,monospace;font-size:12px;text-align:right}
+.cmp-cost{grid-column:2 / span 2;font-size:11px}
+.cmp-cost .res-chip{font-size:11px}
+.cmp-dmg{grid-column:2 / span 2;font-size:12px;display:flex;justify-content:space-between;
+  font-family:"SFMono-Regular",Menlo,Consolas,monospace}
+.cmp-cur{border:1px solid rgba(120,204,120,.45);border-radius:3px;padding:6px;margin-bottom:6px}
+.cmp-cur .cmp-name,.cmp-cur .cmp-stat,.cmp-cur .cmp-cost .bits,.cmp-cur .cmp-dmg{color:#78cc78}
+.cmp-tag{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#78cc78;margin-bottom:2px}
+.cmp-up{color:#78cc78}.cmp-down{color:#f17a77}.cmp-same{color:var(--text-dim)}
 .tip-table{width:100%;border-top:1px solid var(--border-soft);padding-top:4px}
 .tip-table th{font-size:10px;padding:3px 4px}
 .tip-table td{font-size:12px;padding:1px 4px}
@@ -1368,6 +1401,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 </div>
 
 <div id="tip"></div>
+<div id="dmgPin"></div>
 
 <!-- ============ JUMP DOCK ============ -->
 <div class="hk-dock" id="hkDock" role="group" aria-label="Jump to a section of the page">
@@ -1881,7 +1915,10 @@ function regTip(html, ns){
 }
 function clearTips(ns){
   [...TIPS.keys()].forEach(k=>{ if (k.startsWith(ns)) TIPS.delete(k); });
+  [...PINS.keys()].forEach(k=>{ if (k.startsWith(ns)) PINS.delete(k); });
 }
+/* what a damage figure opens into when clicked, built only when asked for */
+const PINS = new Map();
 
 function costsOf(rows){
   let hire = 0, gearBits = 0;
@@ -2555,6 +2592,72 @@ function dmgMathTip(A, D, l, bonusApplied){
 `;
 }
 
+/* ---- the same exchange with other gear -----------------------------
+   Every figure is one piece swapped and everything else held still: the
+   same hits land, training and the defender bonus apply as before, and the
+   per-hit figure is rounded the way simulate() rounds it. */
+function exchangePerHit(base, armv, A, D, bonusApplied){
+  const d = round3(base * armv * Math.pow(1.5, (A.training - D.training) / 20));
+  return bonusApplied ? d * 0.75 : d;
+}
+
+function gearCompare(kind, A, D, l, bonusApplied){
+  const isW = kind === "weapon";
+  const U = isW ? A : D;                              // whose gear is being swapped
+  const cur = isW ? A.weapon : D.armor;
+  const vs = isW ? TYPES[D.type] : TYPES[A.type];
+  const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
+  const pool = (LOADOUTS[U.origType] || {})[isW ? "weapons" : "armor"] || [cur];
+  const n = U.size;
+
+  const calc = key=>{
+    const st = effectiveStats(U.origType, isW ? key : U.weapon, isW ? U.armor : key);
+    const stat = isW ? st.dmg[vs] : st.arm[vs];
+    const base = isW ? stat : A.dmg[TYPES[D.type]];
+    const armv = isW ? D.arm[TYPES[A.type]] : stat;
+    const dmg = round6(exchangePerHit(base, armv, A, D, bonusApplied) * l.hits);
+    const c = gearCost(kind, key);
+    return {key, stat, dmg, bits: c.bits * n, res: addRes({}, c.res, n)};
+  };
+  const now = calc(cur);
+  now.dmg = l.damage;                                 // the figure that was clicked
+
+  const row = (r, isCur)=>{
+    let delta = "";
+    if (!isCur){
+      const d = round6(r.dmg - now.dmg);
+      const good = isW ? d > 0 : d < 0;
+      delta = `<span class="${!d ? "cmp-same" : good ? "cmp-up" : "cmp-down"}">${
+        !d ? "±0" : (d > 0 ? "+" : "−") + fmt(Math.abs(d))}</span>`;
+    }
+    return `<div class="cmp-row${isCur ? " cmp-cur" : ""}">
+      <span class="cmp-ic">${gearImg(r.key)}</span>
+      <span class="cmp-name">${esc(label(r.key))}</span>
+      <span class="cmp-stat">${isW ? "" : "×"}${fmt(r.stat)}</span>
+      <span class="cmp-cost"><span class="bits">${money(r.bits)}</span> ${resChips(r.res)}</span>
+      <span class="cmp-dmg"><span>${fmt(r.dmg)} dmg</span>${delta}</span>
+    </div>`;
+  };
+
+  const others = pool.filter(k => k !== cur).map(calc);
+  return `<div class="tip-title">${isW ? "Weapon" : "Armour"} Compare</div>
+    <div class="cmp-sub muted">vs ${cap(vs)} · ${n.toLocaleString("en-US")} ${isW ? "weapon" : "suit"}${
+      n === 1 ? "" : "s"} · same ${l.hits.toLocaleString("en-US")} hits</div>
+    <div class="cmp-tag">Equipped</div>
+    ${row(now, true)}
+    ${others.length ? others.map(r => row(r, false)).join("")
+      : `<div class="small muted">Nothing else this unit can ${isW ? "carry" : "wear"}.</div>`}`;
+}
+
+function dmgPinHTML(A, D, l, bonusApplied){
+  return `<button class="pin-close" title="Close (Esc)">×</button>
+    <div class="pin-cols">
+      <div class="pin-col">${gearCompare("armor", A, D, l, bonusApplied)}</div>
+      <div class="pin-col pin-mid">${dmgMathTip(A, D, l, bonusApplied)}</div>
+      <div class="pin-col">${gearCompare("weapon", A, D, l, bonusApplied)}</div>
+    </div>`;
+}
+
 /* ---- what a side lost, in money and materiel ---- */
 function deathCosts(units, isAtk){
   const items = [];
@@ -2993,9 +3096,10 @@ function exchangeLogBlock(units, log, bonus, id, ns, tail){
         const A = units[l.aid], D = units[l.did];
         const bonusApplied = !!A.attack_mission && bonus === "Yes";
         const mk = regTip(dmgMathTip(A, D, l, bonusApplied), ns);
+        PINS.set(mk, ()=>dmgPinHTML(A, D, l, bonusApplied));
         return `<div>${unitRef(A, A.weapon, true)} hit
           ${unitRef(D, D.armor)}
-          for <b class="dmg-ref" data-tip-key="${mk}">${fmt(l.damage)}</b> damage
+          for <b class="dmg-ref" data-tip-key="${mk}" data-pin-key="${mk}">${fmt(l.damage)}</b> damage
           <span class="muted">(${l.hits} hits)</span></div>`;
       }).join("") : '<div class="muted">No hits were exchanged.</div>'}${tail || ""}</div>
   </div>`;
@@ -3105,6 +3209,8 @@ function render(result, atkRaw, defRaw, bonus){
 
   clearTips("death");
   clearTips("chain");
+  const pin = document.getElementById("dmgPin");        // its numbers are gone now
+  if (pin){ pin.style.display = "none"; pin.innerHTML = ""; }
   /* a fresh battle opens its exchange logs the way the setting says */
   if (PREFS.logFull) [...LOG_FULL.keys()].forEach(k => { if (k.startsWith("logExchange")) LOG_FULL.delete(k); });
   const atkDead = deathCosts(units, true), defDead = deathCosts(units, false);
@@ -4436,6 +4542,35 @@ function moveTip(e){
   tipEl.style.left = x + "px";
   tipEl.style.top  = y + "px";
 }
+
+/* click a damage figure to pin it open with the gear comparisons */
+const pinEl = document.getElementById("dmgPin");
+const closePin = ()=>{ pinEl.style.display = "none"; pinEl.innerHTML = ""; };
+
+document.addEventListener("click", e=>{
+  const t = e.target.closest?.("[data-pin-key]");
+  if (t){
+    const build = PINS.get(t.dataset.pinKey);
+    if (!build) return;
+    tipEl.style.display = "none";
+    pinEl.innerHTML = build();
+    pinEl.style.display = "block";
+    const r = pinEl.getBoundingClientRect();
+    /* the breakdown sits where the hover card was; the side panels open out
+       either side of it and the whole thing is kept on screen */
+    const mid = pinEl.querySelector(".pin-mid");
+    const off = mid ? mid.getBoundingClientRect().left - r.left : 0;
+    let x = e.clientX + 16 - off, y = e.clientY + 16;
+    x = Math.max(8, Math.min(x, innerWidth  - r.width  - 8));
+    if (y + r.height > innerHeight - 8) y = Math.max(8, innerHeight - r.height - 8);
+    pinEl.style.left = x + "px";
+    pinEl.style.top  = y + "px";
+    return;
+  }
+  if (pinEl.style.display !== "block") return;
+  if (e.target.closest?.(".pin-close") || !pinEl.contains(e.target)) closePin();
+});
+addEventListener("keydown", e=>{ if (e.key === "Escape" && pinEl.style.display === "block") closePin(); });
 
 /* boot */
 (function checkStorage(){
