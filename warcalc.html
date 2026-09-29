@@ -181,6 +181,13 @@ tr.reserve td.col-sprite::before{
 .log div{padding:2px 0;border-bottom:1px solid rgba(0,0,0,.25)}
 .log b{color:#fff;font-weight:600}
 .unit-ref{font-weight:600;cursor:help;border-bottom:1px dotted currentColor}
+/* the exchange log's Use icons / Use names boxes */
+.log-opt{margin:0 0 7px}
+.ref-ic,.ref-nick{display:none}
+body.log-icons .ref-ic{display:inline-block;vertical-align:-3px;margin-right:4px}
+body.log-icons .ref-ic .gear-img{width:auto;max-width:32px;flex:none}
+body.log-names .ref-nick{display:inline}
+body.log-names .unit-ref:has(.ref-nick) .ref-sys{display:none}
 .ref-atk{color:#f17a77}
 .ref-def{color:#74cae3}
 
@@ -982,6 +989,10 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
     </div>
     <button class="btn btn-success" id="btnRun" style="padding:7px 22px;font-size:14px">Resolve battle</button>
     <button class="btn" id="btnClearResults" style="padding:7px 16px;font-size:14px">Clear</button>
+    <label class="hk-toggle log-opt" for="logIcons">
+      <input type="checkbox" id="logIcons"> Use icons</label>
+    <label class="hk-toggle log-opt" for="logNames">
+      <input type="checkbox" id="logNames"> Use names</label>
   </div>
 </div>
 
@@ -2351,9 +2362,14 @@ function tipAttrs(type, weapon, armor, size, training){
          (size != null ? ` data-tip-size="${esc(size)}" data-tip-train="${esc(training)}"` : "");
 }
 
-function unitRef(u){
-  return `<span class="unit-ref ${u.attack_mission ? "ref-atk" : "ref-def"}"
-    ${tipAttrs(u.origType, u.weapon, u.armor, u.size, u.training)}>${esc(u.nick || u.name)}</span>`;
+/* both the long name and the unit's own name go out; the Use names box picks
+   which shows. `gear`, when given, is the piece whose icon Use icons puts in
+   front — the swinger's weapon, the one struck's armour. */
+function unitRef(u, gear){
+  const ic = gear && gearImgSrc(gear) ? `<span class="ref-ic">${gearImg(gear)}</span>` : "";
+  return `${ic}<span class="unit-ref ${u.attack_mission ? "ref-atk" : "ref-def"}"
+    ${tipAttrs(u.origType, u.weapon, u.armor, u.size, u.training)}><span class="ref-sys">${esc(u.name)}</span>${
+    u.nick ? `<span class="ref-nick">${esc(u.nick)}</span>` : ""}</span>`;
 }
 
 /* ---- hover math for a single exchange-log damage figure ---- */
@@ -2799,8 +2815,8 @@ function exchangeLogBlock(units, log, bonus, id, ns){
         const A = units[l.aid], D = units[l.did];
         const bonusApplied = !!A.attack_mission && bonus === "Yes";
         const mk = regTip(dmgMathTip(A, D, l, bonusApplied), ns);
-        return `<div>${unitRef(A)} <span class="muted">(size <b>${A.size}</b>)</span> hit
-          ${unitRef(D)} <span class="muted">(size <b>${D.size}</b>)</span>
+        return `<div>${unitRef(A, A.weapon)} <span class="muted">(size <b>${A.size}</b>)</span> hit
+          ${unitRef(D, D.armor)} <span class="muted">(size <b>${D.size}</b>)</span>
           for <b class="dmg-ref" data-tip-key="${mk}">${fmt(l.damage)}</b> damage
           <span class="muted">(<b>${l.hits}</b> hits)</span></div>`;
       }).join("") : '<div class="muted">No hits were exchanged.</div>'}</div>
@@ -5811,6 +5827,21 @@ hkBox.checked = store.get(LS_HOTKEYS, true) !== false;
 hkDock.classList.toggle("keys-off", !hotkeysOn());
 hkBox.addEventListener("change", syncHotkeys);
 
+const LS_LOG_OPTS = "warcalc.logOpts";
+{
+  const o = store.get(LS_LOG_OPTS, {}) || {};
+  [["logIcons", "icons", "log-icons"], ["logNames", "names", "log-names"]].forEach(([id, k, cls])=>{
+    const box = document.getElementById(id);
+    box.checked = o[k] === true;
+    document.body.classList.toggle(cls, box.checked);
+    box.addEventListener("change", ()=>{
+      document.body.classList.toggle(cls, box.checked);
+      const cur = store.get(LS_LOG_OPTS, {}) || {};
+      cur[k] = box.checked;
+      store.set(LS_LOG_OPTS, cur);
+    });
+  });
+}
 const LS_BC_NOGROUP = "warcalc.builderNoGroup";
 const bcBox = document.getElementById("bcNoGroup");
 bcBox.checked = store.get(LS_BC_NOGROUP, false) === true;
