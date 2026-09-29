@@ -303,6 +303,7 @@ body.no-unspent .log .unspent{display:none}
 .sz-v .cx-res{padding-left:0}
 .sz-gap{height:8px}
 .cmp-par{color:#e2c760}
+.cx-act{color:var(--text-dim);font-size:9.5px;margin-left:3px}
 .cx-upk .muted{font-size:9px;margin-left:1px}
 .cx-line{display:flex;flex-wrap:wrap;align-items:center;gap:0 5px}
 .cx-k{color:var(--text-dim);width:30px;flex:none}
@@ -2828,9 +2829,11 @@ function gearCompare(kind, A, D, l, bonusApplied){
 
   const signed = (v, good, tip) => tipped(!v ? `<b class="cmp-same">±0</b>`
     : `<b class="${good(v) ? "cmp-up" : "cmp-down"}">${sgn(v)}</b>`, tip);
-  /* one resource to a line; with no `good` they are plain amounts, not changes */
-  const chips = (res, good, tip) => RES_ORDER.filter(k => Math.round(res[k] || 0)).map(k=> tipped(good
-    ? `<span class="cx-chip ${good(res[k]) ? "cmp-up" : "cmp-down"}">${resIcon(k)}${sgn(res[k])}</span>`
+  /* one resource to a line; with no `good` they are plain amounts, not changes.
+     `act`, when given, is the amount itself, shown small and grey after the change */
+  const chips = (res, good, tip, act) => RES_ORDER.filter(k => Math.round(res[k] || 0)).map(k=> tipped(good
+    ? `<span class="cx-chip ${good(res[k]) ? "cmp-up" : "cmp-down"}">${resIcon(k)}${sgn(res[k])}${
+        act ? `<span class="cx-act">(${money(act[k] || 0)})</span>` : ""}</span>`
     : `<span class="cx-chip">${resIcon(k)}${money(res[k])}</span>`, tip(k))).join("");
   const line = (k, html, cls, res) => `<div class="${cls || ""}"><div class="cx-line"><span class="cx-k">${k}</span>${html}</div>${
     res ? `<div class="cx-res">${res}</div>` : ""}</div>`;
@@ -2847,8 +2850,8 @@ function gearCompare(kind, A, D, l, bonusApplied){
     const kitB = r.bits - now.bits, kitR = resSub(r.res, now.res);
     const lossB = L.bits - nowLoss.bits, lossR = resSub(L.res, nowLoss.res);
     if (isW) return line("kills", signed(L.k - nowLoss.k, more, tipWKills(r)) + troops) +
-      line("", signed(lossB, more, tipWorth(r, null)), "", chips(lossR, more, k => tipWorth(r, k)));
-    return line("net", signed(lossB, less, tipNet(r, null)), "", chips(lossR, less, k => tipNet(r, k)));
+      line("", signed(lossB, more, tipWorth(r, null)), "", chips(lossR, more, k => tipWorth(r, k), L.res));
+    return line("net", signed(lossB, less, tipNet(r, null)), "", chips(lossR, less, k => tipNet(r, k), L.res));
   };
 
   /* ---- armour: the stack sized to the hits. One that falls could be
