@@ -374,7 +374,7 @@ body.no-pin-art .pinbox .pin-art{display:none}
 /* one piece's cost, in grey, under the whole stack's */
 .cmp-one{display:block;color:var(--text-dim);font-size:10px;margin-top:1px}
 .cmp-one > span{display:block}
-.cmp-one .res-icon{filter:grayscale(1);opacity:.7}
+.cmp-one .res-icon{filter:saturate(.75);opacity:.7}
 .cmp-cur .cmp-one{color:var(--text-dim)}
 /* the weapon an armour row's dead take with them, greyed under the armour */
 .cmp-ic{display:flex;flex-direction:column;align-items:flex-start;gap:3px}
@@ -396,6 +396,15 @@ body.no-pin-art .pinbox .pin-art{display:none}
 /* the compare riding the pointer: the same panels, minus the controls */
 .pinbox .pin-close2{display:none}
 .pinbox.pin-wide .pin-close2{display:block;position:static;align-self:center;margin-top:6px;font-size:18px}
+/* the wide view's own switches, under its second close */
+.pinbox .pin-opts{display:none}
+.pinbox.pin-wide .pin-opts{display:flex;flex-direction:column;align-items:flex-start;align-self:center;gap:3px;
+  margin-top:6px;font-size:11px;color:var(--text-dim)}
+.pinbox .pin-opts label{display:flex;align-items:center;gap:5px;cursor:pointer}
+.pinbox .pin-opts input{margin:0}
+.pin-hover .pin-opts{display:none !important}
+body.hide-1x .cmp-one{display:none}
+body.hide-act .cx-act{display:none}
 .pin-hover .pin-close,.pin-hover .hold-tab,.pin-hover .tt-aside input{display:none}
 .cmp-dmg-k{grid-column:1;justify-self:center;font-size:10px;color:var(--text-dim);letter-spacing:.04em}
 .cmp-dmg{grid-column:2 / span 2;font-size:12px;display:flex;justify-content:space-between;
@@ -3094,6 +3103,10 @@ function dmgPinHTML(A, D, l, bonusApplied){
         <div class="pin-vs">${pinUnit(A, true)}<span class="pin-vs-word">vs</span>${pinUnit(D, false)}</div>
         <div class="m1-more" title="Show what each swap costs or saves">${M1_ICON}<span class="m1-txt">m1 for compare</span></div>
         <button class="pin-close pin-close2" title="Close (Esc)">×</button>
+        <div class="pin-opts">
+          <label><input type="checkbox" data-pref="hide1x"${PREFS.hide1x ? " checked" : ""}> Hide 1x figures</label>
+          <label><input type="checkbox" data-pref="hideAct"${PREFS.hideAct ? " checked" : ""}> Hide actual numbers</label>
+        </div>
         <div class="pin-art"><img src="https://derpicdn.net/img/2023/9/3/3193754/thumb.png" alt=""
           onerror="this.parentNode.remove()"></div></div>
       <div class="pin-col cmp-armor ${D.attack_mission ? "bg-inv" : "bg-def"}${PIN_HOLD ? " hold-open" : ""}">${gearCompare("armor", A, D, l, bonusApplied)}</div>
@@ -3477,7 +3490,7 @@ const LOG_FULL = new Map();          // remembers the choice across re-renders
 /* the settings in the gear drawer; filled from storage at boot */
 let PREFS = {standOpen:false, deathsOpen:false, casOpen:false, logFull:true,
              iconsWA:false, plainHover:false, cardSlash:false, noUnspent:false,
-             noPinArt:false, minDmg:false};
+             noPinArt:false, minDmg:false, hide1x:false, hideAct:false};
 
 /* an exchange log with no choice made opens full when the setting says so */
 const logIsFull = id => LOG_FULL.has(id) ? LOG_FULL.get(id)
@@ -5084,6 +5097,15 @@ document.addEventListener("click", e=>{
 /* Esc closes a helper first if one is open (it claims the key), then this */
 addEventListener("keydown", e=>{
   if (e.key === "Escape" && !e.defaultPrevented && pinEl.style.display === "block") closePin();
+});
+
+/* the wide view's hide boxes: settings like any other, kept with them */
+document.addEventListener("change", e=>{
+  const k = e.target.closest?.(".pin-opts [data-pref]")?.dataset.pref;
+  if (!k) return;
+  PREFS[k] = e.target.checked;
+  store.set(LS_PREFS, PREFS);
+  document.body.classList.toggle(k === "hide1x" ? "hide-1x" : "hide-act", e.target.checked);
 });
 
 /* the attached-weapon box redraws the pin where it stands, wide or not */
@@ -6771,6 +6793,8 @@ const LS_PREFS = "warcalc.prefs";
   document.body.classList.toggle("card-slash", PREFS.cardSlash);
   document.body.classList.toggle("no-unspent", PREFS.noUnspent);
   document.body.classList.toggle("no-pin-art", PREFS.noPinArt);
+  document.body.classList.toggle("hide-1x", PREFS.hide1x);
+  document.body.classList.toggle("hide-act", PREFS.hideAct);
   document.querySelectorAll("[data-pref]").forEach(box=>{
     const k = box.dataset.pref;
     box.checked = !!PREFS[k];
