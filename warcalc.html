@@ -374,7 +374,7 @@ body.no-pin-art .pinbox .pin-art{display:none}
 /* one piece's cost, in grey, under the whole stack's */
 .cmp-one{display:block;color:var(--text-dim);font-size:10px;margin-top:1px}
 .cmp-one > span{display:block}
-.cmp-one .res-icon{filter:grayscale(1);opacity:.7}
+.cmp-one .res-icon{filter:saturate(.75);opacity:.7}
 .cmp-cur .cmp-one{color:var(--text-dim)}
 /* the weapon an armour row's dead take with them, greyed under the armour */
 .cmp-ic{display:flex;flex-direction:column;align-items:flex-start;gap:3px}
@@ -394,6 +394,17 @@ body.no-pin-art .pinbox .pin-art{display:none}
 .pinbox .pin-grip{cursor:move;user-select:none}
 #dmgPin.pin-dragging,#dmgPin.pin-dragging *{cursor:move;user-select:none}
 /* the compare riding the pointer: the same panels, minus the controls */
+.pinbox .pin-close2{display:none}
+.pinbox.pin-wide .pin-close2{display:block;position:static;align-self:center;margin-top:6px;font-size:18px}
+/* the wide view's own switches, under its second close */
+.pinbox .pin-opts{display:none}
+.pinbox.pin-wide .pin-opts{display:flex;flex-direction:column;align-items:flex-start;align-self:center;gap:3px;
+  margin-top:6px;font-size:11px;color:var(--text-dim)}
+.pinbox .pin-opts label{display:flex;align-items:center;gap:5px;cursor:pointer}
+.pinbox .pin-opts input{margin:0}
+.pin-hover .pin-opts{display:none !important}
+body.hide-1x .cmp-one{display:none}
+body.hide-act .cx-act{display:none}
 .pin-hover .pin-close,.pin-hover .hold-tab,.pin-hover .tt-aside input{display:none}
 .cmp-dmg-k{grid-column:1;justify-self:center;font-size:10px;color:var(--text-dim);letter-spacing:.04em}
 .cmp-dmg{grid-column:2 / span 2;font-size:12px;display:flex;justify-content:space-between;
@@ -2912,19 +2923,34 @@ function gearCompare(kind, A, D, l, bonusApplied){
   const upk = (UNIT_COST[D.origType] || {upkeep:{}}).upkeep;
   const survivors = r => Math.max(0, S - dead(r));
   const plan = (r, E, res) => E * perLoss(r.key, res);
+  /* the fewest hits at `ph` a piece that lands `T` damage needs */
+  const hitsTo = (ph, T)=>{
+    if (!(T > 0)) return 0;
+    if (!(ph > 0)) return Infinity;
+    let h = Math.max(1, Math.ceil(T / ph - 1e-9));
+    while (Math.floor(round6(ph * h)) < T) h++;
+    while (h > 1 && Math.floor(round6(ph * (h - 1))) >= T) h--;
+    return h;
+  };
+  const dmgAt = (r, h) => Math.floor(round6(r.ph * h));
+  /* parity soaks what the equipped piece soaked: every hit if it stood, or
+     the hits it took to fall if it fell, and leaves as many standing */
+  const soaked = survivors(now) > 0 ? H : Math.min(H, hitsTo(now.ph, S));
+  const parityOf = r => dmgAt(r, soaked) + survivors(now) - S;
   const tipPlan = (r, E, kind, res)=>{
     const ico = res ? resIcon(res) : BIT, p1 = perLoss(r.key, res);
-    const X = S + E, deadX = Math.min(X, r.dmg), up = E > 0;
+    const X = S + E, up = E > 0;
+    const deadX = Math.min(X, kind === "parity" ? dmgAt(r, soaked) : r.dmg);
     const killRow = (k, tag) => tr(`<span class="tip-gear">${gearImg(r.key)}</span>${esc(label(r.key))}${
       tag ? ` <span class="muted">${tag}</span>` : ""}: ${money(k)} dead
       <span class="muted">× ${money(p1)}</span> ${ico}`, money(k * p1));
     const head = kind === "parity"
-      ? `${money(survivors(now))} left with ${esc(label(now.key))}, ${money(survivors(r))} with ${esc(label(r.key))} ·
-         need <b class="cmp-par">+${money(E)}</b> to match`
+      ? `${esc(label(now.key))} soaks ${money(soaked)} hits${survivors(now) ? ` with ${money(survivors(now))} left` : " before falling"} ·
+         ${esc(label(r.key))} needs ${money(X)} for the same · <b class="cmp-par">${up ? "+" : "−"}${money(Math.abs(E))}</b>`
       : `${money(H)} hits × ${fmt(round3(r.ph))} = ${money(r.dmg)} dmg ·
          need <b class="${up ? "cmp-down" : "cmp-up"}">${up ? "+" : "−"}${money(Math.abs(E))}</b> to absorb`;
     return `<div data-tip-bg="${tipBg}"><div class="tip-title">${esc(label(r.key))}, ${
-        kind === "parity" ? "raised to match" : up ? "raised" : "skimmed"} ${ico}</div>
+        kind === "parity" ? (up ? "raised to match" : "cut to match") : up ? "raised" : "skimmed"} ${ico}</div>
       <div class="small muted" style="margin:4px 0 6px">${head}</div>
       <table class="tip-math">${tr(`${up ? "raise" : "skim"} ${money(Math.abs(E))} <span class="muted">× ${money(p1)}</span> ${ico}`,
         sgn(E * p1), "tot")}</table>
@@ -2949,21 +2975,14 @@ function gearCompare(kind, A, D, l, bonusApplied){
         <div class="cx-res">${chips(xr, less, k => tipPlan(r, E, kind, k), stackRes(S + E, k => perLoss(r.key, k)))}${
           upkChips(E, less, S + E)}</div></div></div>`;
   };
-  /* ---- weapon: the swinging stack sized to kill as many as the equipped
-     weapon does. Every troop is one hit, so a weaker weapon needs more of
-     them (parity) and one that overkills can do with fewer (skim). Each is
-     the troops raised or dropped in full kit, with their upkeep. */
+  /* ---- weapon: the swinging stack sized to deal as much as the equipped
+     weapon does, overkill and all. Every troop is one hit, so a weaker
+     weapon needs more of them (parity) and a stronger one fewer (skim).
+     Each is the troops raised or dropped in full kit, with their upkeep. */
   const Aa = gearCost("armor", A.armor);
   const upkA = (UNIT_COST[A.origType] || {upkeep:{}}).upkeep;
-  const K = dead(now);                                   // the kills to match
-  const hitsFor = r=>{
-    if (!K) return H;
-    if (!(r.ph > 0)) return Infinity;
-    let h = Math.max(1, Math.ceil(K / r.ph - 1e-9));
-    while (Math.floor(round6(r.ph * h)) < K) h++;
-    while (h > 1 && Math.floor(round6(r.ph * (h - 1))) >= K) h--;
-    return h;
-  };
+  const K = now.dmg;                                     // the damage to match
+  const hitsFor = r => K ? hitsTo(r.ph, K) : H;
   const perA = (key, res)=>{
     const w = gearCost("weapon", key);
     return res ? (w.res[res] || 0) + (Aa.res[res] || 0) : hire(A) + w.bits + Aa.bits;
@@ -2971,7 +2990,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
   const tipWPlan = (r, E, res)=>{
     const ico = res ? resIcon(res) : BIT, p1 = perA(r.key, res), up = E > 0, need = hitsFor(r);
     return `<div data-tip-bg="${tipBg}"><div class="tip-title">${esc(label(r.key))}, ${up ? "raised to match" : "skimmed"} ${ico}</div>
-      <div class="small muted" style="margin:4px 0 6px">${esc(label(now.key))} kills ${money(K)} ·
+      <div class="small muted" style="margin:4px 0 6px">${esc(label(now.key))} deals ${money(K)} ·
         ${esc(label(r.key))} needs ${money(need)} hits × ${fmt(round3(r.ph))} · has ${money(H)} ·
         <b class="${up ? "cmp-par" : "cmp-up"}">${up ? "+" : "−"}${money(Math.abs(E))}</b></div>
       <table class="tip-math">${tr(`${up ? "raise" : "skim"} ${money(Math.abs(E))} <span class="muted">× ${money(p1)}</span> ${ico}
@@ -2979,7 +2998,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
           + ${esc(label(A.armor))} ${money(res ? (Aa.res[res] || 0) : Aa.bits)}</div>`, sgn(E * p1), "tot")}</table></div>`;
   };
   const wparCol = r=>{
-    if (!isW || !K) return "";
+    if (!isW || !K || r === now) return "";
     const need = hitsFor(r);
     if (!isFinite(need)) return `<span class="muted small">can't match</span>`;
     const E = need - H;
@@ -2997,8 +3016,8 @@ function gearCompare(kind, A, D, l, bonusApplied){
   const sizeCol = r=>{
     if (isW) return "";
     const E = r.dmg + 1 - S;                   // one left standing: + raise, − skim
-    const P = survivors(now) + r.dmg - S;      // standing level with the equipped piece
-    const par = r !== now && survivors(now) > survivors(r) && P > 0 && P !== E;
+    const P = parityOf(r);                     // soaking and standing level with the equipped piece
+    const par = r !== now && P !== 0;
     return (E ? planBlock(r, E, "size") : "") + (par ? `<div class="sz-gap"></div>` + planBlock(r, P, "parity") : "");
   };
 
@@ -3083,6 +3102,11 @@ function dmgPinHTML(A, D, l, bonusApplied){
       <div class="pin-col pin-mid">${dmgMathTip(A, D, l, bonusApplied)}
         <div class="pin-vs">${pinUnit(A, true)}<span class="pin-vs-word">vs</span>${pinUnit(D, false)}</div>
         <div class="m1-more" title="Show what each swap costs or saves">${M1_ICON}<span class="m1-txt">m1 for compare</span></div>
+        <button class="pin-close pin-close2" title="Close (Esc)">×</button>
+        <div class="pin-opts">
+          <label><input type="checkbox" data-pref="hide1x"${PREFS.hide1x ? " checked" : ""}> Hide 1x figures</label>
+          <label><input type="checkbox" data-pref="hideAct"${PREFS.hideAct ? " checked" : ""}> Hide actual numbers</label>
+        </div>
         <div class="pin-art"><img src="https://derpicdn.net/img/2023/9/3/3193754/thumb.png" alt=""
           onerror="this.parentNode.remove()"></div></div>
       <div class="pin-col cmp-armor ${D.attack_mission ? "bg-inv" : "bg-def"}${PIN_HOLD ? " hold-open" : ""}">${gearCompare("armor", A, D, l, bonusApplied)}</div>
@@ -3466,7 +3490,7 @@ const LOG_FULL = new Map();          // remembers the choice across re-renders
 /* the settings in the gear drawer; filled from storage at boot */
 let PREFS = {standOpen:false, deathsOpen:false, casOpen:false, logFull:true,
              iconsWA:false, plainHover:false, cardSlash:false, noUnspent:false,
-             noPinArt:false, minDmg:false};
+             noPinArt:false, minDmg:false, hide1x:false, hideAct:false};
 
 /* an exchange log with no choice made opens full when the setting says so */
 const logIsFull = id => LOG_FULL.has(id) ? LOG_FULL.get(id)
@@ -5073,6 +5097,15 @@ document.addEventListener("click", e=>{
 /* Esc closes a helper first if one is open (it claims the key), then this */
 addEventListener("keydown", e=>{
   if (e.key === "Escape" && !e.defaultPrevented && pinEl.style.display === "block") closePin();
+});
+
+/* the wide view's hide boxes: settings like any other, kept with them */
+document.addEventListener("change", e=>{
+  const k = e.target.closest?.(".pin-opts [data-pref]")?.dataset.pref;
+  if (!k) return;
+  PREFS[k] = e.target.checked;
+  store.set(LS_PREFS, PREFS);
+  document.body.classList.toggle(k === "hide1x" ? "hide-1x" : "hide-act", e.target.checked);
 });
 
 /* the attached-weapon box redraws the pin where it stands, wide or not */
@@ -6760,6 +6793,8 @@ const LS_PREFS = "warcalc.prefs";
   document.body.classList.toggle("card-slash", PREFS.cardSlash);
   document.body.classList.toggle("no-unspent", PREFS.noUnspent);
   document.body.classList.toggle("no-pin-art", PREFS.noPinArt);
+  document.body.classList.toggle("hide-1x", PREFS.hide1x);
+  document.body.classList.toggle("hide-act", PREFS.hideAct);
   document.querySelectorAll("[data-pref]").forEach(box=>{
     const k = box.dataset.pref;
     box.checked = !!PREFS[k];
