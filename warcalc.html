@@ -329,6 +329,7 @@ body.no-pin-art .pinbox .pin-art{display:none}
 .sz-gap{height:8px}
 .cmp-par{color:#e2c760}
 .cx-act{color:var(--text-dim);font-size:9.5px;margin-left:3px}
+.sz-act{margin-left:0;font-family:"SFMono-Regular",Menlo,Consolas,monospace}
 .cx-upk .muted{font-size:9px;margin-left:1px}
 .cx-line{display:flex;flex-wrap:wrap;align-items:center;gap:0 5px}
 .cx-k{color:var(--text-dim);width:30px;flex:none}
@@ -2998,7 +2999,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
     const word = kind === "parity" ? "parity" : E > 0 ? "raise" : "skim";
     const xr = RES_ORDER.reduce((o, k)=>{ const v = plan(r, E, k); if (v) o[k] = v; return o; }, {});
     return `<div class="sz${word === "skim" ? " sz-skim" : ""}"><div class="sz-k"><span class="${cls}">${word}</span>
-        <b class="sz-n ${cls}">${E > 0 ? "+" : "−"}${money(Math.abs(E))}</b></div>
+        <b class="sz-n ${cls}">${E > 0 ? "+" : "−"}${money(Math.abs(E))}</b><span class="cx-act sz-act">(${money(S + E)})</span></div>
       <div class="sz-v"><div class="cx-line">${signed(plan(r, E, null), less, tipPlan(r, E, kind, null))}</div>
         <div class="cx-res">${chips(xr, less, k => tipPlan(r, E, kind, k), stackRes(S + E, k => perLoss(r.key, k)))}${
           upkChips(E, less, S + E)}</div></div></div>`;
@@ -3036,7 +3037,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
     const X = A.size + E;                      // the swinging stack, resized
     const upk = upkChips(E, less, X, upkA);
     return `<div class="sz${up ? "" : " sz-skim"}"><div class="sz-k"><span class="${cls}">${up ? "parity" : "skim"}</span>
-        <b class="sz-n ${cls}">${up ? "+" : "−"}${money(Math.abs(E))}</b></div>
+        <b class="sz-n ${cls}">${up ? "+" : "−"}${money(Math.abs(E))}</b><span class="cx-act sz-act">(${money(X)})</span></div>
       <div class="sz-v"><div class="cx-line">${signed(E * perA(r.key, null), less, tipWPlan(r, E, null))}</div>
         <div class="cx-res">${chips(xr, less, k => tipWPlan(r, E, k), stackRes(X, k => perA(r.key, k)))}${upk}</div></div></div>`;
   };
