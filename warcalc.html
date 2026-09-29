@@ -2903,8 +2903,12 @@ function gearCompare(kind, A, D, l, bonusApplied){
         ${tr("burned", sgn((deadX - dead(r)) * p1), "tot")}</table></div>`;
   };
   /* upkeep per 12 hours for the troops a plan adds or drops */
-  const upkChips = (E, good) => Object.keys(upk).filter(k => upk[k]).map(k=>
-    `<span class="cx-chip cx-upk ${good(E) ? "cmp-up" : "cmp-down"}">${resIcon(k)}${sgn(E * upk[k])}<span class="muted">/12h</span></span>`).join("");
+  /* the grey bracket after each is the whole resized stack's upkeep */
+  const upkChips = (E, good, X, u) => Object.keys(u || upk).filter(k => (u || upk)[k]).map(k=>
+    `<span class="cx-chip cx-upk ${good(E) ? "cmp-up" : "cmp-down"}">${resIcon(k)}${sgn(E * (u || upk)[k])}<span class="muted">/12h</span>${
+      X != null ? `<span class="cx-act">(${money(X * (u || upk)[k])})</span>` : ""}</span>`).join("");
+  /* a resized stack in full kit, resource by resource: the bracketed actuals */
+  const stackRes = (X, per) => RES_ORDER.reduce((o, k)=>{ o[k] = X * per(k); return o; }, {});
   const planBlock = (r, E, kind)=>{
     const cls = kind === "parity" ? "cmp-par" : E > 0 ? "cmp-down" : "cmp-up";
     const word = kind === "parity" ? "parity" : E > 0 ? "raise" : "skim";
@@ -2912,7 +2916,8 @@ function gearCompare(kind, A, D, l, bonusApplied){
     return `<div class="sz"><div class="sz-k"><span class="${cls}">${word}</span>
         <b class="sz-n ${cls}">${E > 0 ? "+" : "−"}${money(Math.abs(E))}</b></div>
       <div class="sz-v"><div class="cx-line">${signed(plan(r, E, null), less, tipPlan(r, E, kind, null))}</div>
-        <div class="cx-res">${chips(xr, less, k => tipPlan(r, E, kind, k))}${upkChips(E, less)}</div></div></div>`;
+        <div class="cx-res">${chips(xr, less, k => tipPlan(r, E, kind, k), stackRes(S + E, k => perLoss(r.key, k)))}${
+          upkChips(E, less, S + E)}</div></div></div>`;
   };
   /* ---- weapon: the swinging stack sized to kill as many as the equipped
      weapon does. Every troop is one hit, so a weaker weapon needs more of
@@ -2951,12 +2956,12 @@ function gearCompare(kind, A, D, l, bonusApplied){
     if (!E) return "";
     const up = E > 0, cls = up ? "cmp-par" : "cmp-up";
     const xr = RES_ORDER.reduce((o, k)=>{ const v = E * perA(r.key, k); if (v) o[k] = v; return o; }, {});
-    const upk = Object.keys(upkA).filter(k => upkA[k]).map(k=>
-      `<span class="cx-chip cx-upk ${up ? "cmp-down" : "cmp-up"}">${resIcon(k)}${sgn(E * upkA[k])}<span class="muted">/12h</span></span>`).join("");
+    const X = A.size + E;                      // the swinging stack, resized
+    const upk = upkChips(E, less, X, upkA);
     return `<div class="sz"><div class="sz-k"><span class="${cls}">${up ? "parity" : "skim"}</span>
         <b class="sz-n ${cls}">${up ? "+" : "−"}${money(Math.abs(E))}</b></div>
       <div class="sz-v"><div class="cx-line">${signed(E * perA(r.key, null), less, tipWPlan(r, E, null))}</div>
-        <div class="cx-res">${chips(xr, less, k => tipWPlan(r, E, k))}${upk}</div></div></div>`;
+        <div class="cx-res">${chips(xr, less, k => tipWPlan(r, E, k), stackRes(X, k => perA(r.key, k)))}${upk}</div></div></div>`;
   };
 
   const sizeCol = r=>{
