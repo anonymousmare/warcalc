@@ -349,6 +349,8 @@ body.no-unspent .log .unspent{display:none}
 .pin-unit.side-def .pu-gear{color:#3a7fa0}
 .pin-unit .pu-size{color:#fff;font-weight:600;font-family:"SFMono-Regular",Menlo,Consolas,monospace}
 .pin-unit .pu-train{color:#b8962e}
+.pin-unit .pu-upk{display:flex;flex-direction:column;align-items:center;margin-top:2px;font-size:11px}
+.pin-unit .pu-upk .muted{font-size:9px;margin-left:1px}
 .pin-vs-word{color:var(--text-dim);font-weight:700;font-size:12px;letter-spacing:.06em;
   margin-top:50px;line-height:16px}
 .cmp-row{display:grid;grid-template-columns:auto 1fr auto;gap:2px 8px;align-items:center;
@@ -3033,6 +3035,10 @@ function pinUnit(U){
     <span class="pu-gear${atk ? "" : " pu-off"}">${esc(label(U.weapon))}</span>
     <span class="pu-gear${atk ? " pu-off" : ""}">${esc(label(U.armor))}</span>
     <span class="pu-train">training ${esc(U.training)}</span>
+    ${(()=>{ const u = (UNIT_COST[U.origType] || {upkeep:{}}).upkeep;   // the whole stack, per 12 hours
+      const ks = RES_ORDER.filter(k => u[k]);
+      return ks.length ? `<span class="pu-upk">${ks.map(k =>
+        `<span class="cx-chip">${resIcon(k)}${money(u[k] * U.size)}<span class="muted">/12h</span></span>`).join("")}</span>` : ""; })()}
   </div>`;
 }
 
