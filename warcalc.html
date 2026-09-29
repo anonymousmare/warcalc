@@ -236,7 +236,98 @@ body.no-unspent .log .unspent{display:none}
 .tip-math tbody tr{border:none}
 .tip-math .n{text-align:right;font-family:"SFMono-Regular",Menlo,Consolas,monospace}
 .tip-math .tot td{border-top:1px solid var(--border-soft);padding-top:4px;color:#fff}
-.dmg-ref{cursor:help;border-bottom:1px dotted currentColor}
+.dmg-ref{cursor:pointer;border-bottom:1px dotted currentColor}
+/* a damage figure clicked open: the breakdown pinned in place, with what
+   the swinger could have carried on its left and what the struck side
+   could have worn on its right, each beside its own unit */
+#dmgPin{
+  position:fixed;z-index:998;display:none;
+  background:var(--raised);border:1px solid var(--border);border-radius:4px;
+  padding:10px 12px;box-shadow:0 10px 28px rgba(0,0,0,.65);
+  max-width:calc(100vw - 16px);max-height:calc(100vh - 16px);overflow:auto;
+}
+#dmgPin .pin-cols{display:flex;gap:22px;align-items:stretch;flex-wrap:wrap}
+#dmgPin .pin-col{flex:0 0 auto;width:270px;position:relative}
+#dmgPin .pin-mid{width:230px}
+#dmgPin .pin-col + .pin-col::before{
+  content:"";position:absolute;left:-11px;top:0;bottom:0;width:1px;background:var(--border-soft);
+}
+#dmgPin .pin-close{position:absolute;top:2px;right:3px;z-index:2;background:none;border:none;
+  color:var(--text-dim);font-size:16px;line-height:1;cursor:pointer;padding:2px 4px}
+#dmgPin .pin-close:hover{color:#fff}
+/* the compare panels wear the Grand Strategy ticket papers: navy for the
+   armour being struck, wine for the weapon swinging */
+#dmgPin .pin-col.cmp-armor,#dmgPin .pin-col.cmp-weapon{padding:8px 9px;border-radius:3px}
+#dmgPin .cmp-armor{background:#1c2531}
+#dmgPin .cmp-weapon{background:#321f27}
+#dmgPin .cmp-armor::before,#dmgPin .cmp-weapon::before,#dmgPin .pin-mid::before{display:none}
+#dmgPin .tip-title + .cmp-tag{margin-top:8px}
+#dmgPin .pin-col > .tip-title{text-align:center}
+/* a mouse with its left button lit: the figure under it opens up on a click */
+.m1-ic{display:inline-block;vertical-align:middle;color:var(--text-dim)}
+.tip-title-m1{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+#dmgPin .tip-title-m1{display:block}
+#dmgPin .tip-title-m1 .m1-ic{display:none}
+.m1-more{display:flex;flex-direction:column;align-items:center;gap:3px;margin-top:12px;
+  padding-top:8px;border-top:1px solid var(--border-soft);cursor:pointer;
+  font-size:11px;color:var(--text-dim);user-select:none}
+.m1-more:hover,.m1-more:hover .m1-ic{color:#fff}
+/* m1 again: the compares widen to show what each swap does to the bill */
+#dmgPin.pin-wide .cmp-armor,#dmgPin.pin-wide .cmp-weapon{width:440px}
+.cmp-x{display:none}
+/* spare rows above and below share the height of a long list, so the
+   left side sits packed together in the middle of its row */
+#dmgPin.pin-wide .cmp-row{grid-template-columns:auto 1fr auto 150px;grid-template-rows:1fr auto auto auto 1fr}
+#dmgPin.pin-wide .cmp-ic{grid-row:2 / span 3}
+#dmgPin.pin-wide .cmp-name,#dmgPin.pin-wide .cmp-stat{grid-row:2}
+#dmgPin.pin-wide .cmp-cost{grid-row:3}
+#dmgPin.pin-wide .cmp-dmg{grid-row:4}
+#dmgPin.pin-wide .cmp-x{display:block;grid-column:4;grid-row:1 / span 5;align-self:stretch;
+  padding-left:9px;border-left:1px solid var(--border-soft);font-size:11px;line-height:1.5}
+.cx-line{display:flex;flex-wrap:wrap;align-items:center;gap:0 5px}
+.cx-k{color:var(--text-dim);width:30px;flex:none}
+.cx-line b{font-weight:600;font-family:"SFMono-Regular",Menlo,Consolas,monospace}
+.cx-net{border-top:1px solid var(--border-soft);margin-top:2px;padding-top:2px}
+.cx-res{display:flex;flex-direction:column;align-items:flex-start;padding-left:35px}
+.cx-chip{white-space:nowrap;font-family:"SFMono-Regular",Menlo,Consolas,monospace}
+.cx-chip .res-icon{vertical-align:-3px}
+/* the two units squared up under the breakdown */
+.pin-vs{display:flex;align-items:flex-start;justify-content:center;gap:12px;
+  margin-top:12px;padding-top:10px;border-top:1px solid var(--border-soft)}
+.pin-unit{display:flex;flex-direction:column;align-items:center;text-align:center;
+  font-size:11px;line-height:1.35;min-width:0;width:96px}
+.pin-unit .sprite{margin:3px 0 4px}
+/* name and size hold one line each, so both sprites start at the same height */
+.pin-unit .pu-name,.pin-unit .pu-size{height:15px;line-height:15px;white-space:nowrap}
+.pin-unit .pu-name{max-width:100%;overflow:hidden;color:var(--text)}
+/* a name too long for the slot trails off into the background */
+.pin-unit .pu-name.pu-fade{text-align:left;align-self:stretch;
+  -webkit-mask-image:linear-gradient(to right,#000 70%,transparent);
+  mask-image:linear-gradient(to right,#000 70%,transparent)}
+/* the piece the comparison is not about sits back */
+.pin-unit.side-atk .pu-gear.pu-off,.pin-unit.side-def .pu-gear.pu-off{color:#6e7378}
+.pin-unit.side-atk .sprite{border:1px solid #f17a77}
+.pin-unit.side-def .sprite{border:1px solid #74cae3}
+.pin-unit.side-atk .pu-gear{color:#b04542}
+.pin-unit.side-def .pu-gear{color:#3a7fa0}
+.pin-unit .pu-size{color:#fff;font-weight:600;font-family:"SFMono-Regular",Menlo,Consolas,monospace}
+.pin-unit .pu-train{color:#b8962e}
+.pin-vs-word{color:var(--text-dim);font-weight:700;font-size:12px;letter-spacing:.06em;
+  margin-top:50px;line-height:16px}
+.cmp-row{display:grid;grid-template-columns:auto 1fr auto;gap:2px 8px;align-items:center;
+  padding:6px 0;border-top:1px solid var(--border-soft)}
+.cmp-row .cmp-ic{grid-row:span 3;align-self:center}
+.cmp-name{font-weight:600;font-size:12px;color:#fff}
+.cmp-stat{font-family:"SFMono-Regular",Menlo,Consolas,monospace;font-size:12px;text-align:right}
+.cmp-cost{grid-column:2 / span 2;font-size:11px}
+.cmp-cost .res-chip{font-size:11px}
+.cmp-cost .cmp-res{display:block}
+.cmp-dmg{grid-column:2 / span 2;font-size:12px;display:flex;justify-content:space-between;
+  font-family:"SFMono-Regular",Menlo,Consolas,monospace}
+.cmp-cur{border:1px solid rgba(120,204,120,.45);border-radius:3px;padding:6px;margin:0 -7px 6px}
+.cmp-cur .cmp-name,.cmp-cur .cmp-stat,.cmp-cur .cmp-cost .bits,.cmp-cur .cmp-dmg{color:#78cc78}
+.cmp-tag{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#78cc78;margin-bottom:2px}
+.cmp-up{color:#78cc78}.cmp-down{color:#f17a77}.cmp-same{color:var(--text-dim)}
 .tip-table{width:100%;border-top:1px solid var(--border-soft);padding-top:4px}
 .tip-table th{font-size:10px;padding:3px 4px}
 .tip-table td{font-size:12px;padding:1px 4px}
@@ -1368,6 +1459,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 </div>
 
 <div id="tip"></div>
+<div id="dmgPin"></div>
 
 <!-- ============ JUMP DOCK ============ -->
 <div class="hk-dock" id="hkDock" role="group" aria-label="Jump to a section of the page">
@@ -1881,7 +1973,10 @@ function regTip(html, ns){
 }
 function clearTips(ns){
   [...TIPS.keys()].forEach(k=>{ if (k.startsWith(ns)) TIPS.delete(k); });
+  [...PINS.keys()].forEach(k=>{ if (k.startsWith(ns)) PINS.delete(k); });
 }
+/* what a damage figure opens into when clicked, built only when asked for */
+const PINS = new Map();
 
 function costsOf(rows){
   let hire = 0, gearBits = 0;
@@ -2525,6 +2620,12 @@ function unitRef(u, gear, swing){
     u.nick ? `<span class="ref-nick">${esc(u.nick)}<span class="ref-num">${esc(u.size)}</span></span>` : ""}</span>`;
 }
 
+/* a mouse, left button lit */
+const M1_ICON = `<svg class="m1-ic" viewBox="0 0 16 22" width="9" height="12" aria-label="left click">
+  <rect x="1" y="1" width="14" height="20" rx="7" fill="none" stroke="currentColor" stroke-width="1.4"/>
+  <path d="M8 1.7A6.3 6.3 0 0 0 1.7 8V9H8z" fill="currentColor" opacity=".6"/>
+  <path d="M8 1v8M1.2 9h13.6" stroke="currentColor" stroke-width="1.2"/></svg>`;
+
 /* ---- hover math for a single exchange-log damage figure ---- */
 function dmgMathTip(A, D, l, bonusApplied){
   const vsDef = TYPES[D.type];        // what the attacker's weapon rates against
@@ -2537,7 +2638,7 @@ function dmgMathTip(A, D, l, bonusApplied){
   const perHit = bonusApplied ? rounded * 0.75 : rounded;
   const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
 
-  return `<div class="tip-title">Damage breakdown</div>
+  return `<div class="tip-title tip-title-m1">Damage breakdown ${M1_ICON}</div>
     <table class="tip-math" style="margin-top:6px">
       <tr><td><span style="color:#f17a77">${esc(label(A.weapon))}</span>
               <span class="muted">vs ${cap(vsDef)}</span></td>
@@ -2553,6 +2654,136 @@ function dmgMathTip(A, D, l, bonusApplied){
           <td class="n">${fmt(l.damage)}</td></tr>
     </table>
 `;
+}
+
+/* ---- the same exchange with other gear -----------------------------
+   Every figure is one piece swapped and everything else held still: the
+   same hits land, training and the defender bonus apply as before, and the
+   per-hit figure is rounded the way simulate() rounds it. */
+function exchangePerHit(base, armv, A, D, bonusApplied){
+  const d = round3(base * armv * Math.pow(1.5, (A.training - D.training) / 20));
+  return bonusApplied ? d * 0.75 : d;
+}
+
+function gearCompare(kind, A, D, l, bonusApplied){
+  const isW = kind === "weapon";
+  const U = isW ? A : D;                              // whose gear is being swapped
+  const cur = isW ? A.weapon : D.armor;
+  const vs = isW ? TYPES[D.type] : TYPES[A.type];
+  const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
+  const pool = (LOADOUTS[U.origType] || {})[isW ? "weapons" : "armor"] || [cur];
+  const n = U.size;
+
+  const calc = key=>{
+    const st = effectiveStats(U.origType, isW ? key : U.weapon, isW ? U.armor : key);
+    const stat = isW ? st.dmg[vs] : st.arm[vs];
+    const base = isW ? stat : A.dmg[TYPES[D.type]];
+    const armv = isW ? D.arm[TYPES[A.type]] : stat;
+    const dmg = Math.floor(round6(exchangePerHit(base, armv, A, D, bonusApplied) * l.hits));
+    const c = gearCost(kind, key);
+    return {key, stat, dmg, bits: c.bits * n, res: addRes({}, c.res, n)};
+  };
+  const now = calc(cur);
+  now.dmg = Math.floor(l.damage);                     // the figure that was clicked
+
+  /* the wide view: what the swap does to the bill. Troops lost are this
+     exchange's damage, floored and capped at the stack, as casualties are.
+     Armour: the new kit, then the troops (and the kit on them) that die
+     more or less, then the two together. Weapon: the new kit, then the
+     enemy troops and value that go down more or less. */
+  const hire = u => (UNIT_COST[u.origType] || {hire:0}).hire;
+  const Dw = gearCost("weapon", D.weapon), Da = gearCost("armor", D.armor);
+  const dead = r => Math.min(D.size, Math.floor(r.dmg));
+  const lossOf = r=>{
+    const k = dead(r);
+    if (isW) return {k, bits: k * (hire(D) + Dw.bits + Da.bits),
+                     res: addRes(addRes({}, Dw.res, k), Da.res, k)};
+    const a = gearCost("armor", r.key);
+    return {k, bits: k * (hire(D) + Dw.bits + a.bits),
+            res: addRes(addRes({}, Dw.res, k), a.res, k)};
+  };
+  const nowLoss = lossOf(now);
+  const resSub = (x, y) => { const o = addRes({}, x); addRes(o, y, -1); return o; };
+  const signed = (v, good) => !v ? `<b class="cmp-same">±0</b>`
+    : `<b class="${good(v) ? "cmp-up" : "cmp-down"}">${v > 0 ? "+" : "−"}${money(Math.abs(v))}</b>`;
+  /* one resource to a line; with no `good` they are plain amounts, not changes */
+  const chips = (res, good) => RES_ORDER.filter(k => Math.round(res[k] || 0)).map(k=> good
+    ? `<span class="cx-chip ${good(res[k]) ? "cmp-up" : "cmp-down"}">${resIcon(k)}${
+        res[k] > 0 ? "+" : "−"}${money(Math.abs(res[k]))}</span>`
+    : `<span class="cx-chip">${resIcon(k)}${money(res[k])}</span>`).join("");
+  const less = v => v < 0, more = v => v > 0;
+  const line = (k, html, cls, res) => `<div class="${cls || ""}"><div class="cx-line"><span class="cx-k">${k}</span>${html}</div>${
+    res ? `<div class="cx-res">${res}</div>` : ""}</div>`;
+
+  /* weapons: the kit, then the kills and what they were worth.
+     armour: just the net of the kit and the troops that die more or less. */
+  const troops = `<span class="muted">troops</span>`;
+  const extra = (r, isCur)=>{
+    const L = lossOf(r);
+    if (isCur) return isW
+      ? line("kit", `<b>${money(r.bits)}</b>`) +
+        line("kills", `<b>${money(L.k)}</b>${troops}`) +
+        line("", `<b>${money(L.bits)}</b>`, "", chips(L.res))
+      : line("net", `<b class="cmp-same">±0</b>`);
+    const kitB = r.bits - now.bits, kitR = resSub(r.res, now.res);
+    const lossB = L.bits - nowLoss.bits, lossR = resSub(L.res, nowLoss.res);
+    if (isW) return line("kit", signed(kitB, less), "", chips(kitR, less)) +
+      line("kills", signed(L.k - nowLoss.k, more) + troops) +
+      line("", signed(lossB, more), "", chips(lossR, more));
+    return line("net", signed(kitB + lossB, less), "", chips(addRes(addRes({}, kitR), lossR), less));
+  };
+
+  const row = (r, isCur)=>{
+    let delta = "";
+    if (!isCur){
+      const d = r.dmg - now.dmg;
+      const good = isW ? d > 0 : d < 0;
+      delta = `<span class="${!d ? "cmp-same" : good ? "cmp-up" : "cmp-down"}">${
+        !d ? "±0" : (d > 0 ? "+" : "−") + money(Math.abs(d))}</span>`;
+    }
+    return `<div class="cmp-row${isCur ? " cmp-cur" : ""}">
+      <span class="cmp-ic">${gearImg(r.key)}</span>
+      <span class="cmp-name">${esc(label(r.key))}</span>
+      <span class="cmp-stat">${isW ? "" : "×"}${fmt(r.stat)}</span>
+      <span class="cmp-cost"><span class="bits">${money(r.bits)}</span><span class="cmp-res">${resChips(r.res)}</span></span>
+      <span class="cmp-dmg"><span>${money(r.dmg)} dmg</span>${delta}</span>
+      <div class="cmp-x">${extra(r, isCur)}</div>
+    </div>`;
+  };
+
+  /* Scrounged is the fallback, not a choice, so it always goes last */
+  const others = pool.filter(k => k !== cur)
+    .sort((a, b) => !!SCROUNGED[a] - !!SCROUNGED[b]).map(calc);
+  return `<div class="tip-title">${isW ? "Weapon" : "Armour"} Compare</div>
+    <div class="cmp-tag">Equipped</div>
+    ${row(now, true)}
+    ${others.length ? others.map(r => row(r, false)).join("")
+      : `<div class="small muted">Nothing else this unit can ${isW ? "carry" : "wear"}.</div>`}`;
+}
+
+/* size on top, the sprite in its side's colour, then the kit and training */
+function pinUnit(U){
+  const atk = !!U.attack_mission;      // the swinger's weapon counts, the struck one's armour
+  const name = U.nick || U.name;
+  return `<div class="pin-unit ${atk ? "side-atk" : "side-def"}">
+    <span class="pu-name" title="${esc(name)}">${esc(name)}</span>
+    <span class="pu-size">${Number(U.size).toLocaleString("en-US")}</span>
+    ${buildSprite(U.origType, U.weapon, U.armor, true)}
+    <span class="pu-gear${atk ? "" : " pu-off"}">${esc(label(U.weapon))}</span>
+    <span class="pu-gear${atk ? " pu-off" : ""}">${esc(label(U.armor))}</span>
+    <span class="pu-train">training ${esc(U.training)}</span>
+  </div>`;
+}
+
+function dmgPinHTML(A, D, l, bonusApplied){
+  return `<button class="pin-close" title="Close (Esc)">×</button>
+    <div class="pin-cols">
+      <div class="pin-col cmp-weapon">${gearCompare("weapon", A, D, l, bonusApplied)}</div>
+      <div class="pin-col pin-mid">${dmgMathTip(A, D, l, bonusApplied)}
+        <div class="pin-vs">${pinUnit(A)}<span class="pin-vs-word">vs</span>${pinUnit(D)}</div>
+        <div class="m1-more" title="Show what each swap costs or saves">${M1_ICON}<span class="m1-txt">m1 for compare</span></div></div>
+      <div class="pin-col cmp-armor">${gearCompare("armor", A, D, l, bonusApplied)}</div>
+    </div>`;
 }
 
 /* ---- what a side lost, in money and materiel ---- */
@@ -2993,9 +3224,10 @@ function exchangeLogBlock(units, log, bonus, id, ns, tail){
         const A = units[l.aid], D = units[l.did];
         const bonusApplied = !!A.attack_mission && bonus === "Yes";
         const mk = regTip(dmgMathTip(A, D, l, bonusApplied), ns);
+        PINS.set(mk, ()=>dmgPinHTML(A, D, l, bonusApplied));
         return `<div>${unitRef(A, A.weapon, true)} hit
           ${unitRef(D, D.armor)}
-          for <b class="dmg-ref" data-tip-key="${mk}">${fmt(l.damage)}</b> damage
+          for <b class="dmg-ref" data-tip-key="${mk}" data-pin-key="${mk}">${fmt(l.damage)}</b> damage
           <span class="muted">(${l.hits} hits)</span></div>`;
       }).join("") : '<div class="muted">No hits were exchanged.</div>'}${tail || ""}</div>
   </div>`;
@@ -3105,6 +3337,8 @@ function render(result, atkRaw, defRaw, bonus){
 
   clearTips("death");
   clearTips("chain");
+  const pin = document.getElementById("dmgPin");        // its numbers are gone now
+  if (pin){ pin.style.display = "none"; pin.innerHTML = ""; pin.dataset.key = ""; }
   /* a fresh battle opens its exchange logs the way the setting says */
   if (PREFS.logFull) [...LOG_FULL.keys()].forEach(k => { if (k.startsWith("logExchange")) LOG_FULL.delete(k); });
   const atkDead = deathCosts(units, true), defDead = deathCosts(units, false);
@@ -4436,6 +4670,59 @@ function moveTip(e){
   tipEl.style.left = x + "px";
   tipEl.style.top  = y + "px";
 }
+
+/* click a damage figure to pin it open with the gear comparisons */
+const pinEl = document.getElementById("dmgPin");
+const closePin = ()=>{ pinEl.style.display = "none"; pinEl.innerHTML = ""; pinEl.dataset.key = ""; };
+/* after a widen or narrow: grow out from the same middle, kept on screen.
+   It is measured from the left edge first so it can take its full width. */
+function placePin(was){
+  pinEl.style.left = "8px";
+  const r = pinEl.getBoundingClientRect();
+  pinEl.style.left = Math.max(8, Math.min(was.left + (was.width - r.width) / 2,
+                                          innerWidth - r.width - 8)) + "px";
+  pinEl.style.top  = Math.max(8, Math.min(was.top, innerHeight - r.height - 8)) + "px";
+}
+
+document.addEventListener("click", e=>{
+  const t = e.target.closest?.("[data-pin-key]");
+  /* m1 on the prompt, or on the same figure again, widens or narrows it */
+  if (pinEl.style.display === "block" &&
+      (e.target.closest?.(".m1-more") || (t && t.dataset.pinKey === pinEl.dataset.key))){
+    const was = pinEl.getBoundingClientRect();
+    const wide = pinEl.classList.toggle("pin-wide");
+    const txt = pinEl.querySelector(".m1-txt");
+    if (txt) txt.textContent = wide ? "m1 to collapse" : "m1 for compare";
+    placePin(was);
+    return;
+  }
+  if (t){
+    const build = PINS.get(t.dataset.pinKey);
+    if (!build) return;
+    tipEl.style.display = "none";
+    pinEl.innerHTML = build();
+    pinEl.dataset.key = t.dataset.pinKey;
+    pinEl.classList.remove("pin-wide");
+    pinEl.style.display = "block";
+    pinEl.querySelectorAll(".pu-name").forEach(n=>{
+      if (n.scrollWidth > n.clientWidth + 1) n.classList.add("pu-fade");
+    });
+    const r = pinEl.getBoundingClientRect();
+    /* the breakdown sits where the hover card was; the side panels open out
+       either side of it and the whole thing is kept on screen */
+    const mid = pinEl.querySelector(".pin-mid");
+    const off = mid ? mid.getBoundingClientRect().left - r.left : 0;
+    let x = e.clientX + 16 - off, y = e.clientY + 16;
+    x = Math.max(8, Math.min(x, innerWidth  - r.width  - 8));
+    if (y + r.height > innerHeight - 8) y = Math.max(8, innerHeight - r.height - 8);
+    pinEl.style.left = x + "px";
+    pinEl.style.top  = y + "px";
+    return;
+  }
+  if (pinEl.style.display !== "block") return;
+  if (e.target.closest?.(".pin-close") || !pinEl.contains(e.target)) closePin();
+});
+addEventListener("keydown", e=>{ if (e.key === "Escape" && pinEl.style.display === "block") closePin(); });
 
 /* boot */
 (function checkStorage(){
