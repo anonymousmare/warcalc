@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Warcalc 1.7 — CLOP</title>
+<title>Warcalc 1.71 — CLOP</title>
 <style>
 :root{
   --bg:#272b30;
@@ -122,6 +122,7 @@ tbody tr:last-child{border-bottom:none}
   font-size:11px;font-weight:400;color:var(--text-dim);text-transform:none;letter-spacing:0}
 .barracks input{width:30px;padding:1px 3px;font-size:11px;-moz-appearance:textfield;appearance:textfield}
 .barracks input::-webkit-inner-spin-button,.barracks input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.barracks .uncap{width:auto;margin:0 0 0 2px;padding:0}
 /* training is two digits at most, so its box drops the spinner and keeps the room */
 .force-table .training{padding-left:4px;padding-right:2px;-moz-appearance:textfield;appearance:textfield}
 .force-table .training::-webkit-inner-spin-button,
@@ -188,8 +189,16 @@ body.log-icons .ref-ic{display:inline-block;vertical-align:-3px;margin-right:4px
 body.log-icons .ref-ic .gear-img{width:auto;max-width:32px;flex:none}
 body.log-names .ref-nick{display:inline}
 body.log-names .unit-ref:has(.ref-nick) .ref-sys{display:none}
+/* Numbers with names: the unit's size after its name, dimmed so the name leads */
+.ref-num{display:none;margin-left:4px;font-weight:500}
+body.log-names.log-nums .ref-num{display:inline}
+.ref-atk .ref-num{color:#a8514f}
+.ref-def .ref-num{color:#4f8a9c}
+#logNumsWrap{display:none}
+body.log-names #logNumsWrap{display:inline-flex}
 .ref-atk{color:#f17a77}
 .ref-def{color:#74cae3}
+.ref-size{color:#fff}
 
 #tip{
   position:fixed;z-index:999;display:none;pointer-events:none;
@@ -849,7 +858,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 <body>
 
 <div class="tabstrip">
-  <span class="tab-brand">Warcalc 1.7<button class="caret-btn" id="btnTools"
+  <span class="tab-brand">Warcalc 1.71<button class="caret-btn" id="btnTools"
     title="Import / export presets" aria-expanded="false">›</button></span>
   <button class="tab active" data-tab="battle">Battle</button>
   <button class="tab" data-tab="counter">Counters</button>
@@ -916,7 +925,9 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
       <h2>Attackers</h2>
       <span class="badge badge-danger" id="atkCount">0</span>
       <label class="barracks" title="Training given to every new unit on this side">Barracks
-        <input type="number" min="0" max="20" value="0" data-barracks="attacker"></label>
+        <input type="number" min="0" max="20" value="0" data-barracks="attacker">
+        <input type="checkbox" class="uncap" data-uncap="attacker"
+               title="Uncap training: let Barracks and this side's units go past 20"></label>
       <span class="spacer"></span>
       <div class="army-presets">
         <span class="mark-chips" data-ap-marks="attacker"></span>
@@ -950,7 +961,9 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
       <h2>Defenders</h2>
       <span class="badge badge-info" id="defCount">0</span>
       <label class="barracks" title="Training given to every new unit on this side">Barracks
-        <input type="number" min="0" max="20" value="0" data-barracks="defender"></label>
+        <input type="number" min="0" max="20" value="0" data-barracks="defender">
+        <input type="checkbox" class="uncap" data-uncap="defender"
+               title="Uncap training: let Barracks and this side's units go past 20"></label>
       <span class="spacer"></span>
       <div class="army-presets">
         <span class="mark-chips" data-ap-marks="defender"></span>
@@ -993,6 +1006,8 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
       <input type="checkbox" id="logIcons"> Use icons</label>
     <label class="hk-toggle log-opt" for="logNames">
       <input type="checkbox" id="logNames"> Use names</label>
+    <label class="hk-toggle log-opt" for="logNums" id="logNumsWrap">
+      <input type="checkbox" id="logNums"> Numbers with names?</label>
   </div>
 </div>
 
@@ -1582,20 +1597,44 @@ function spriteMissing(img){
 
 let rowSeq = 0;
 
+/* training tops out at 20, unless the box beside that side's Barracks is ticked */
+const TRAIN_UNCAPPED = 9999;
+const uncapBox = side => document.querySelector(`[data-uncap="${side}"]`);
+const trainCap = side => uncapBox(side)?.checked ? TRAIN_UNCAPPED : 20;
+function setUncap(side, on){
+  const box = uncapBox(side);
+  if (!box) return;
+  box.checked = !!on;
+  const cap = trainCap(side);
+  document.querySelectorAll(`[data-barracks="${side}"], #tbody${side === "attacker" ? "Attacker" : "Defender"} .training`)
+    .forEach(el=>{ el.max = cap; if (el.value !== "" && +el.value > cap) el.value = cap; });
+}
+/* a level past 20 coming in (a preset, an import) ticks the box rather than
+   being cut down */
+const uncapFor = (side, n) => { if (parseInt(n, 10) > 20 && !uncapBox(side)?.checked) setUncap(side, true); };
+document.querySelectorAll("[data-uncap]").forEach(box=>box.addEventListener("change", ()=>{
+  const side = box.dataset.uncap;
+  setUncap(side, box.checked);
+  document.querySelectorAll(`#tbody${side === "attacker" ? "Attacker" : "Defender"} tr`).forEach(paintRow);
+  scheduleSave();
+}));
+
 /* the Barracks box beside each side's count: the training a new row starts at */
 const barracksOf = side =>
-  clampInt(document.querySelector(`[data-barracks="${side}"]`)?.value, 0, 20);
+  clampInt(document.querySelector(`[data-barracks="${side}"]`)?.value, 0, trainCap(side));
 /* a Barracks level that came in with an import or a preset; anything that is
    not a level leaves the box as it is */
 function setBarracks(side, n){
   const el = document.querySelector(`[data-barracks="${side}"]`);
   if (!el || n == null || n === "" || isNaN(parseInt(n, 10))) return;
-  el.value = clampInt(n, 0, 20);
+  uncapFor(side, n);
+  el.value = clampInt(n, 0, trainCap(side));
   scheduleSave();
 }
 document.querySelectorAll("[data-barracks]").forEach(el=>{
-  el.addEventListener("input", ()=>{ if (el.value !== "" && +el.value > 20) el.value = 20; scheduleSave(); });
-  el.addEventListener("change", ()=>{ el.value = clampInt(el.value, 0, 20); scheduleSave(); });
+  const side = el.dataset.barracks;
+  el.addEventListener("input", ()=>{ const cap = trainCap(side); if (el.value !== "" && +el.value > cap) el.value = cap; scheduleSave(); });
+  el.addEventListener("change", ()=>{ el.value = clampInt(el.value, 0, trainCap(side)); scheduleSave(); });
 });
 
 function makeRow(side, data){
@@ -1620,8 +1659,8 @@ function makeRow(side, data){
     <td class="col-weapon"><select class="weapon"><option value="">—</option></select></td>
     <td class="col-armor"><select class="armor"><option value="">—</option></select></td>
     <td class="col-size"><input type="number" class="size" min="1" value="${data?.size ?? 1}"></td>
-    <td class="col-train"><input type="number" class="training" min="0" max="20"
-      value="${clampInt(data?.training ?? barracksOf(side), 0, 20)}"></td>
+    <td class="col-train"><input type="number" class="training" min="0" max="${trainCap(side)}"
+      value="${clampInt(data?.training ?? barracksOf(side), 0, trainCap(side))}"></td>
     <td class="col-del"><button class="btn btn-danger btn-xs del" title="Remove unit">×</button></td>`;
 
   const typeSel = tr.querySelector(".type");
@@ -1633,10 +1672,11 @@ function makeRow(side, data){
   aSel.addEventListener("change", ()=>paintRow(tr));
   const trIn = tr.querySelector(".training");
   trIn.addEventListener("input", ()=>{
-    if (trIn.value !== "" && +trIn.value > 20) trIn.value = 20;     // training tops out at 20
+    const cap = trainCap(side);                                      // training tops out at 20
+    if (trIn.value !== "" && +trIn.value > cap) trIn.value = cap;    // unless uncapped
     paintRow(tr);
   });
-  trIn.addEventListener("change", ()=>{ trIn.value = clampInt(trIn.value, 0, 20); paintRow(tr); });
+  trIn.addEventListener("change", ()=>{ trIn.value = clampInt(trIn.value, 0, trainCap(side)); paintRow(tr); });
   tr.querySelector(".uname").addEventListener("input", refreshCosts);
   tr.querySelector(".size").addEventListener("input", ()=>paintRow(tr));
   tr.querySelector(".del").addEventListener("click", ()=>{ tr.remove(); refreshCounts(); });
@@ -2077,7 +2117,7 @@ function readSide(side){
     const weapon = tr.querySelector(".weapon").value || "ScroungedWeapons";
     const armor = tr.querySelector(".armor").value || "ScroungedArmor";
     const size = parseInt(tr.querySelector(".size").value,10) || 0;
-    const training = clampInt(tr.querySelector(".training").value, 0, 20);
+    const training = clampInt(tr.querySelector(".training").value, 0, trainCap(side));
     const nick = tr.querySelector(".uname").value.trim();
     out.push({type, weapon, armor, size, training, nick, reserve: tr.classList.contains("reserve"),
       name:`${type}_${weapon}_${armor}_size_${size}_train_${training}`});
@@ -2368,8 +2408,8 @@ function tipAttrs(type, weapon, armor, size, training){
 function unitRef(u, gear){
   const ic = gear && gearImgSrc(gear) ? `<span class="ref-ic">${gearImg(gear)}</span>` : "";
   return `${ic}<span class="unit-ref ${u.attack_mission ? "ref-atk" : "ref-def"}"
-    ${tipAttrs(u.origType, u.weapon, u.armor, u.size, u.training)}><span class="ref-sys">${esc(u.name)}</span>${
-    u.nick ? `<span class="ref-nick">${esc(u.nick)}</span>` : ""}</span>`;
+    ${tipAttrs(u.origType, u.weapon, u.armor, u.size, u.training)}><span class="ref-sys">${esc(u.name).replace(/size_\d+/, "<span class=\"ref-size\">$&</span>")}</span>${
+    u.nick ? `<span class="ref-nick">${esc(u.nick)}<span class="ref-num">${esc(u.size)}</span></span>` : ""}</span>`;
 }
 
 /* ---- hover math for a single exchange-log damage figure ---- */
@@ -2815,8 +2855,8 @@ function exchangeLogBlock(units, log, bonus, id, ns){
         const A = units[l.aid], D = units[l.did];
         const bonusApplied = !!A.attack_mission && bonus === "Yes";
         const mk = regTip(dmgMathTip(A, D, l, bonusApplied), ns);
-        return `<div>${unitRef(A, A.weapon)} <span class="muted">(size <b>${A.size}</b>)</span> hit
-          ${unitRef(D, D.armor)} <span class="muted">(size <b>${D.size}</b>)</span>
+        return `<div>${unitRef(A, A.weapon)} hit
+          ${unitRef(D, D.armor)}
           for <b class="dmg-ref" data-tip-key="${mk}">${fmt(l.damage)}</b> damage
           <span class="muted">(<b>${l.hits}</b> hits)</span></div>`;
       }).join("") : '<div class="muted">No hits were exchanged.</div>'}</div>
@@ -3394,7 +3434,7 @@ function parsePresetJSON(text){
     weapon: String(u.weapon || "").trim(),
     armor: String(u.armor || "").trim(),
     size: Math.max(1, parseInt(u.size, 10) || 1),
-    training: Math.min(20, Math.max(0, parseInt(u.training, 10) || 0))
+    training: Math.min(TRAIN_UNCAPPED, Math.max(0, parseInt(u.training, 10) || 0))
   }, typeof u.name === "string" && u.name.trim() ? {name: u.name.trim().slice(0, 50)} : {},
      u.reserve === true ? {reserve:true} : {});
   const units = a => (Array.isArray(a) ? a : []).filter(u => u && typeof u === "object").map(unit);
@@ -3488,7 +3528,7 @@ function importRows(side){
                   size: parseInt(lines[i-1].split(":")[1].trim(),10),
                   training: parseInt(lines[i].split(":")[1].trim(),10)};
         }
-        unit.training = Math.min(20, Math.max(0, unit.training || 0));
+        unit.training = Math.min(TRAIN_UNCAPPED, Math.max(0, unit.training || 0));
         /* the line above the type is the unit's own name, as the game's
            army page copies out; group headings sit apart, each followed by
            an "Owned by" line, so they never land here. warcalc's own long
@@ -3633,6 +3673,7 @@ const packSide = side => readSide(side).map(u=>Object.assign({
   u.nick ? {name:u.nick} : {}, u.reserve ? {reserve:true} : {}));
 
 function setSide(side, units){
+  (units || []).forEach(u=>uncapFor(side, u.training));
   setBarracks(side, units?.barracks);
   document.getElementById(side === "attacker" ? "tbodyAttacker" : "tbodyDefender").innerHTML = "";
   (units || []).forEach(u=>{
@@ -3654,6 +3695,7 @@ function scheduleSave(){
       defender: packSide("defender"),
       bonus: document.getElementById("defBonus").value,
       barracks: {attacker: barracksOf("attacker"), defender: barracksOf("defender")},
+      uncap: {attacker: !!uncapBox("attacker")?.checked, defender: !!uncapBox("defender")?.checked},
       at: Date.now()
     });
   }, 400);
@@ -3662,9 +3704,10 @@ function scheduleSave(){
 function restoreAutosave(){
   const s = store.get(LS_KEY, null);
   if (!s) return false;
+  if (s.uncap) ["attacker", "defender"].forEach(side=>setUncap(side, s.uncap[side]));
   if (s.barracks) ["attacker", "defender"].forEach(side=>{
     const el = document.querySelector(`[data-barracks="${side}"]`);
-    if (el) el.value = clampInt(s.barracks[side], 0, 20);
+    if (el) el.value = clampInt(s.barracks[side], 0, trainCap(side));
   });
   setSide("attacker", s.attacker);
   setSide("defender", s.defender);
@@ -3682,7 +3725,7 @@ function setArmyBarracks(name, n, rename){
   const m = getArmyBarracks();
   if (rename !== undefined){ if (name in m) m[rename] = m[name]; delete m[name]; }
   else if (n == null) delete m[name];
-  else m[name] = clampInt(n, 0, 20);
+  else m[name] = clampInt(n, 0, TRAIN_UNCAPPED);
   store.set(LS_ABRK, m);
 }
 /* the levels for a set of army presets, for an export */
@@ -5839,7 +5882,7 @@ hkBox.addEventListener("change", syncHotkeys);
 const LS_LOG_OPTS = "warcalc.logOpts";
 {
   const o = store.get(LS_LOG_OPTS, {}) || {};
-  [["logIcons", "icons", "log-icons"], ["logNames", "names", "log-names"]].forEach(([id, k, cls])=>{
+  [["logIcons", "icons", "log-icons"], ["logNames", "names", "log-names"], ["logNums", "nums", "log-nums"]].forEach(([id, k, cls])=>{
     const box = document.getElementById(id);
     box.checked = o[k] === true;
     document.body.classList.toggle(cls, box.checked);
