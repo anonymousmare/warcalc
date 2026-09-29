@@ -285,7 +285,7 @@ body.no-unspent .log .unspent{display:none}
 #dmgPin.pin-wide .hold-tab:hover{background:rgba(255,255,255,.06);color:#fff}
 #dmgPin.pin-wide .cmp-armor.hold-open{width:600px;min-width:470px}
 #dmgPin.pin-wide .cmp-armor.hold-open .cmp-row{grid-template-columns:auto 1fr auto 150px 150px}
-#dmgPin.pin-wide .cmp-armor.hold-open .cmp-hold{display:block;grid-column:5;grid-row:1 / span 5;
+#dmgPin.pin-wide .cmp-armor.hold-open .cmp-hold{display:block;grid-column:5;grid-row:1 / span 5;align-self:stretch;
   padding-left:9px;border-left:1px solid var(--border-soft);font-size:11px;line-height:1.5}
 .cmp-x{display:none}
 /* spare rows above and below share the height of a long list, so the
@@ -297,6 +297,10 @@ body.no-unspent .log .unspent{display:none}
 #dmgPin.pin-wide .cmp-dmg{grid-row:4}
 #dmgPin.pin-wide .cmp-x{display:block;grid-column:4;grid-row:1 / span 5;align-self:stretch;
   padding-left:9px;border-left:1px solid var(--border-soft);font-size:11px;line-height:1.5}
+.sz{display:flex;gap:5px;align-items:flex-start}
+.sz-k{display:flex;flex-direction:column;min-width:30px}
+.sz-n{font-size:14px;line-height:1.15;font-family:"SFMono-Regular",Menlo,Consolas,monospace}
+.sz-v .cx-res{padding-left:0}
 .cx-line{display:flex;flex-wrap:wrap;align-items:center;gap:0 5px}
 .cx-k{color:var(--text-dim);width:30px;flex:none}
 .cx-line b{font-weight:600;font-family:"SFMono-Regular",Menlo,Consolas,monospace}
@@ -2834,7 +2838,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
     if (isCur) return isW
       ? line("kills", tipped(`<b>${money(L.k)}</b>`, tipWKills(r)) + troops) +
         line("", tipped(`<b>${money(L.bits)}</b>`, tipWorth(r, null)), "", chips(L.res, null, k => tipWorth(r, k)))
-      : line("net", `<b class="cmp-same">±0</b>`);
+      : line("net", `<span><b class="cmp-same">±0</b></span>`);
     const kitB = r.bits - now.bits, kitR = resSub(r.res, now.res);
     const lossB = L.bits - nowLoss.bits, lossR = resSub(L.res, nowLoss.res);
     if (isW) return line("kills", signed(L.k - nowLoss.k, more, tipWKills(r)) + troops) +
@@ -2888,9 +2892,12 @@ function gearCompare(kind, A, D, l, bonusApplied){
     if (!x.E) return "";
     const up = x.E > 0;
     const xr = RES_ORDER.reduce((o, k)=>{ const v = sizeOf(r, k).net; if (v) o[k] = v; return o; }, {});
-    return line(`<span class="${up ? "cmp-down" : "cmp-up"}">${up ? "raise" : "skim"}</span>`,
-        `<b class="${up ? "cmp-down" : "cmp-up"}">${up ? "+" : "−"}${money(Math.abs(x.E))}</b><span class="muted">troops</span>`) +
-      line("", signed(x.net, less, tipSize(r, null)), "", chips(xr, less, k => tipSize(r, k)));
+    /* the word with the troop count under it, so the bits sit level with net's */
+    const cls = up ? "cmp-down" : "cmp-up";
+    return `<div class="sz"><div class="sz-k"><span class="${cls}">${up ? "raise" : "skim"}</span>
+        <b class="sz-n ${cls}">${up ? "+" : "−"}${money(Math.abs(x.E))}</b></div>
+      <div class="sz-v"><div class="cx-line">${signed(x.net, less, tipSize(r, null))}</div>
+        <div class="cx-res">${chips(xr, less, k => tipSize(r, k))}</div></div></div>`;
   };
 
   /* what one piece costs, greyed, under what the stack's worth costs */
