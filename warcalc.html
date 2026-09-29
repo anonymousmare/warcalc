@@ -332,7 +332,7 @@ body.no-pin-art .pinbox .pin-art{display:none}
 .sz-act{margin-left:0;font-family:"SFMono-Regular",Menlo,Consolas,monospace}
 .cx-upk .muted{font-size:9px;margin-left:1px}
 .cx-line{display:flex;flex-wrap:wrap;align-items:center;gap:0 5px}
-.cx-k{color:var(--text-dim);width:30px;flex:none}
+.cx-k{color:var(--text-dim);width:30px;flex:none;line-height:1.15}
 .cx-line b{font-weight:600;font-family:"SFMono-Regular",Menlo,Consolas,monospace}
 .cx-net{border-top:1px solid var(--border-soft);margin-top:2px;padding-top:2px}
 .cx-res{display:flex;flex-direction:column;align-items:flex-start;padding-left:35px}
@@ -413,6 +413,7 @@ body.hide-act .cx-act{display:none}
 body.hide-skim .sz-skim,body.hide-skim .sz-skim + .sz-gap{display:none}
 body.hide-raise .sz-raise,body.hide-raise .sz-raise + .sz-gap{display:none}
 body.hide-par .sz-par,body.hide-par .sz-gap:has(+ .sz-par){display:none}
+body.hide-skim .sz-gap:has(+ .sz-skim),body.hide-raise .sz-gap:has(+ .sz-raise){display:none}
 .pin-hover .pin-close,.pin-hover .hold-tab,.pin-hover .tt-aside input{display:none}
 .cmp-dmg-k{grid-column:1;justify-self:center;font-size:10px;color:var(--text-dim);letter-spacing:.04em}
 .cmp-dmg{grid-column:2 / span 2;font-size:12px;display:flex;justify-content:space-between;
@@ -2941,7 +2942,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
     if (isCur) return isW
       ? line("kills", tipped(`<b>${money(L.k)}</b>`, tipWKills(r)) + troops) +
         line("", tipped(`<b>${money(L.bits)}</b>`, tipWorth(r, null)), "", chips(L.res, null, k => tipWorth(r, k)))
-      : line("base", tipped(`<b>${money(L.bits)}</b>`, tipBase(null)), "", chips(L.res, null, k => tipBase(k)));
+      : line("loss<br>base", tipped(`<b>${money(L.bits)}</b>`, tipBase(null)), "", chips(L.res, null, k => tipBase(k)));
     const kitB = r.bits - now.bits, kitR = resSub(r.res, now.res);
     const lossB = L.bits - nowLoss.bits, lossR = resSub(L.res, nowLoss.res);
     if (isW) return line("kills", signed(L.k - nowLoss.k, more, tipWKills(r)) + troops) +
@@ -3095,8 +3096,29 @@ function gearCompare(kind, A, D, l, bonusApplied){
     return out;
   };
 
+  /* the equipped armour's own army: what it cost to raise and kit, and its upkeep */
+  const tipABase = res=>{
+    const ico = res ? resIcon(res) : BIT, per = perLoss(now.key, res);
+    return `<div data-tip-bg="${tipBg}"><div class="tip-title">${esc(label(now.key))}, as fielded ${ico}</div>
+      <table class="tip-math" style="margin-top:6px">${tr(`${money(S)} <span class="muted">× ${money(per)}</span> ${ico}
+        <div class="small muted">each: ${res ? "" : `raise ${money(hire(D))} + `}${esc(label(now.key))} ${money(kitUnit(now.key, res))}
+          ${PIN_WITH_WPN ? `+ ${esc(label(D.weapon))} ${money(res ? (Dw.res[res] || 0) : Dw.bits)}` : ""}</div>`, money(S * per), "tot")}</table></div>`;
+  };
+  const aBase = ()=>{
+    const xr = RES_ORDER.reduce((o, k)=>{ const v = S * perLoss(now.key, k); if (v) o[k] = v; return o; }, {});
+    const up = Object.keys(upk).filter(k => upk[k]).map(k=>
+      `<span class="cx-chip cx-upk">${resIcon(k)}${money(S * upk[k])}<span class="muted">/12h</span></span>`).join("");
+    return `<div class="sz"><div class="sz-k"><span class="muted">base</span>
+        <b class="sz-n">${money(S)}</b></div>
+      <div class="sz-v"><div class="cx-line">${tipped(`<b>${money(S * perLoss(now.key, null))}</b>`, tipABase(null))}</div>
+        <div class="cx-res">${chips(xr, null, k => tipABase(k))}${up}</div></div></div>`;
+  };
   const sizeCol = r=>{
     if (isW) return "";
+    if (r === now){
+      const E = r.dmg + 1 - S;
+      return aBase() + (E ? `<div class="sz-gap"></div>` + planBlock(r, E, "size") : "");
+    }
     const E = r.dmg + 1 - S;                   // one left standing: + raise, − skim
     const P = parityOf(r);                     // soaking and standing level with the equipped piece
     const par = r !== now && (P !== 0 || !E);
