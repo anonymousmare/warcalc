@@ -283,6 +283,22 @@ body.no-unspent .log .unspent{display:none}
   top:0;right:0;bottom:0;width:14px;border:none;border-left:1px solid var(--border-soft);
   background:rgba(0,0,0,.18);color:var(--text-dim);font-size:13px;cursor:pointer;padding:0;border-radius:0 3px 3px 0}
 #dmgPin.pin-wide .hold-tab:hover{background:rgba(255,255,255,.06);color:#fff}
+/* weapon's matching column opens the other way, from a tab down its left edge */
+#dmgPin.pin-wide .cmp-weapon{padding-left:22px}
+#dmgPin.pin-wide .cmp-weapon .hold-tab{right:auto;left:0;border-left:none;border-right:1px solid var(--border-soft);
+  border-radius:3px 0 0 3px}
+.cmp-wpar{display:none}
+#dmgPin.pin-wide .cmp-weapon.hold-open{width:600px;min-width:470px}
+#dmgPin.pin-wide .cmp-weapon.hold-open .cmp-row{grid-template-columns:150px auto 1fr auto 150px}
+#dmgPin.pin-wide .cmp-weapon.hold-open .cmp-wpar{display:block;grid-column:1;grid-row:1 / span 5;align-self:stretch;
+  padding-right:9px;border-right:1px solid var(--border-soft);font-size:11px;line-height:1.5}
+#dmgPin.pin-wide .cmp-weapon.hold-open .cmp-ic,
+#dmgPin.pin-wide .cmp-weapon.hold-open .cmp-dmg-k{grid-column:2}
+#dmgPin.pin-wide .cmp-weapon.hold-open .cmp-name{grid-column:3}
+#dmgPin.pin-wide .cmp-weapon.hold-open .cmp-stat{grid-column:4}
+#dmgPin.pin-wide .cmp-weapon.hold-open .cmp-cost,
+#dmgPin.pin-wide .cmp-weapon.hold-open .cmp-dmg{grid-column:3 / span 2}
+#dmgPin.pin-wide .cmp-weapon.hold-open .cmp-x{grid-column:5}
 #dmgPin.pin-wide .cmp-armor.hold-open{width:600px;min-width:470px}
 #dmgPin.pin-wide .cmp-armor.hold-open .cmp-row{grid-template-columns:auto 1fr auto 150px 150px}
 #dmgPin.pin-wide .cmp-armor.hold-open .cmp-hold{display:block;grid-column:5;grid-row:1 / span 5;align-self:stretch;
@@ -2670,6 +2686,8 @@ function unitRef(u, gear, swing){
 let PIN_WITH_WPN = true;
 /* whether the armour side's raise / skim column is pulled out */
 let PIN_HOLD = false;
+/* and the weapon side's matching column */
+let PIN_WHOLD = false;
 
 /* a mouse, left button lit */
 const M1_ICON = `<svg class="m1-ic" viewBox="0 0 16 22" width="9" height="12" aria-label="left click">
@@ -2896,6 +2914,51 @@ function gearCompare(kind, A, D, l, bonusApplied){
       <div class="sz-v"><div class="cx-line">${signed(plan(r, E, null), less, tipPlan(r, E, kind, null))}</div>
         <div class="cx-res">${chips(xr, less, k => tipPlan(r, E, kind, k))}${upkChips(E, less)}</div></div></div>`;
   };
+  /* ---- weapon: the swinging stack sized to kill as many as the equipped
+     weapon does. Every troop is one hit, so a weaker weapon needs more of
+     them (parity) and one that overkills can do with fewer (skim). Each is
+     the troops raised or dropped in full kit, with their upkeep. */
+  const Aa = gearCost("armor", A.armor);
+  const upkA = (UNIT_COST[A.origType] || {upkeep:{}}).upkeep;
+  const K = dead(now);                                   // the kills to match
+  const hitsFor = r=>{
+    if (!K) return H;
+    if (!(r.ph > 0)) return Infinity;
+    let h = Math.max(1, Math.ceil(K / r.ph - 1e-9));
+    while (Math.floor(round6(r.ph * h)) < K) h++;
+    while (h > 1 && Math.floor(round6(r.ph * (h - 1))) >= K) h--;
+    return h;
+  };
+  const perA = (key, res)=>{
+    const w = gearCost("weapon", key);
+    return res ? (w.res[res] || 0) + (Aa.res[res] || 0) : hire(A) + w.bits + Aa.bits;
+  };
+  const tipWPlan = (r, E, res)=>{
+    const ico = res ? resIcon(res) : BIT, p1 = perA(r.key, res), up = E > 0, need = hitsFor(r);
+    return `<div data-tip-bg="#321f27"><div class="tip-title">${esc(label(r.key))}, ${up ? "raised to match" : "skimmed"} ${ico}</div>
+      <div class="small muted" style="margin:4px 0 6px">${esc(label(now.key))} kills ${money(K)} ·
+        ${esc(label(r.key))} needs ${money(need)} hits × ${fmt(round3(r.ph))} · has ${money(H)} ·
+        <b class="${up ? "cmp-par" : "cmp-up"}">${up ? "+" : "−"}${money(Math.abs(E))}</b></div>
+      <table class="tip-math">${tr(`${up ? "raise" : "skim"} ${money(Math.abs(E))} <span class="muted">× ${money(p1)}</span> ${ico}
+        <div class="small muted">each: ${res ? "" : `raise ${money(hire(A))} + `}${esc(label(r.key))} ${money(res ? (gearCost("weapon", r.key).res[res] || 0) : gearCost("weapon", r.key).bits)}
+          + ${esc(label(A.armor))} ${money(res ? (Aa.res[res] || 0) : Aa.bits)}</div>`, sgn(E * p1), "tot")}</table></div>`;
+  };
+  const wparCol = r=>{
+    if (!isW || !K) return "";
+    const need = hitsFor(r);
+    if (!isFinite(need)) return `<span class="muted small">can't match</span>`;
+    const E = need - H;
+    if (!E) return "";
+    const up = E > 0, cls = up ? "cmp-par" : "cmp-up";
+    const xr = RES_ORDER.reduce((o, k)=>{ const v = E * perA(r.key, k); if (v) o[k] = v; return o; }, {});
+    const upk = Object.keys(upkA).filter(k => upkA[k]).map(k=>
+      `<span class="cx-chip cx-upk ${up ? "cmp-down" : "cmp-up"}">${resIcon(k)}${sgn(E * upkA[k])}<span class="muted">/12h</span></span>`).join("");
+    return `<div class="sz"><div class="sz-k"><span class="${cls}">${up ? "parity" : "skim"}</span>
+        <b class="sz-n ${cls}">${up ? "+" : "−"}${money(Math.abs(E))}</b></div>
+      <div class="sz-v"><div class="cx-line">${signed(E * perA(r.key, null), less, tipWPlan(r, E, null))}</div>
+        <div class="cx-res">${chips(xr, less, k => tipWPlan(r, E, k))}${upk}</div></div></div>`;
+  };
+
   const sizeCol = r=>{
     if (isW) return "";
     const E = r.dmg + 1 - S;                   // one left standing: + raise, − skim
@@ -2934,7 +2997,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
         ? `[${money(D.size)}] ${isW ? "dealt" : "taken"} <span class="muted">(${money(r.dmg)} total)</span>`
         : `${money(r.dmg)} ${isW ? "dealt" : "taken"}`}</span>${delta}</span>
       <div class="cmp-x">${extra(r, isCur)}</div>
-      ${isW ? "" : `<div class="cmp-hold">${sizeCol(r)}</div>`}
+      ${isW ? `<div class="cmp-wpar">${wparCol(r)}</div>` : `<div class="cmp-hold">${sizeCol(r)}</div>`}
     </div>`;
   };
 
@@ -2947,7 +3010,8 @@ function gearCompare(kind, A, D, l, bonusApplied){
       : `Armour Compare<label class="tt-aside" title="Count the weapon each suit is worn with"><input type="checkbox"
           class="pin-wpn"${PIN_WITH_WPN ? " checked" : ""}> (+ attached weapon)</label>`}</span></div>
     <div class="cmp-tag">Equipped</div>
-    ${isW ? "" : `<button class="hold-tab" title="${PIN_HOLD ? "Hide" : "Show"} raise / skim">${PIN_HOLD ? "‹" : "›"}</button>`}
+    ${isW ? `<button class="hold-tab" title="${PIN_WHOLD ? "Hide" : "Show"} parity / skim">${PIN_WHOLD ? "›" : "‹"}</button>`
+          : `<button class="hold-tab" title="${PIN_HOLD ? "Hide" : "Show"} raise / skim">${PIN_HOLD ? "‹" : "›"}</button>`}
     ${row(now, true)}
     ${others.length ? others.map(r => row(r, false)).join("")
       : `<div class="small muted">Nothing else this unit can ${isW ? "carry" : "wear"}.</div>`}`;
@@ -2971,7 +3035,7 @@ function dmgPinHTML(A, D, l, bonusApplied){
   clearTips("pin");
   return `<button class="pin-close" title="Close (Esc)">×</button>
     <div class="pin-cols">
-      <div class="pin-col cmp-weapon">${gearCompare("weapon", A, D, l, bonusApplied)}</div>
+      <div class="pin-col cmp-weapon${PIN_WHOLD ? " hold-open" : ""}">${gearCompare("weapon", A, D, l, bonusApplied)}</div>
       <div class="pin-col pin-mid">${dmgMathTip(A, D, l, bonusApplied)}
         <div class="pin-vs">${pinUnit(A)}<span class="pin-vs-word">vs</span>${pinUnit(D)}</div>
         <div class="m1-more" title="Show what each swap costs or saves">${M1_ICON}<span class="m1-txt">m1 for compare</span></div></div>
@@ -4925,9 +4989,12 @@ document.addEventListener("click", e=>{
   const tab = e.target.closest?.(".hold-tab");
   if (tab){
     const was = pinEl.getBoundingClientRect();
-    PIN_HOLD = pinEl.querySelector(".cmp-armor").classList.toggle("hold-open");
-    tab.textContent = PIN_HOLD ? "‹" : "›";
-    tab.title = `${PIN_HOLD ? "Hide" : "Show"} raise / skim`;
+    const col = tab.closest(".pin-col"), isW = col.classList.contains("cmp-weapon");
+    const open = col.classList.toggle("hold-open");
+    if (isW) PIN_WHOLD = open; else PIN_HOLD = open;
+    /* each arrow points the way its column will move */
+    tab.textContent = isW ? (open ? "›" : "‹") : (open ? "‹" : "›");
+    tab.title = `${open ? "Hide" : "Show"} ${isW ? "parity" : "raise"} / skim`;
     placePin(was);
     return;
   }
