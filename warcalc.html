@@ -244,6 +244,11 @@ body.log-names #logNumsWrap{display:inline-flex}
   width:150px;text-align:center;padding:10px;border-radius:4px;
   border:1px solid var(--border-soft);background:var(--sunken);
 }
+.card-gear{margin-top:7px;color:var(--text-dim);overflow-wrap:anywhere}
+.card-gear > span{display:block}
+.card-gear > .cg-sep{display:none}
+body.card-slash .card-gear{word-break:break-all}
+body.card-slash .card-gear > span{display:inline}
 .surv-atk{background:#241a1a;border-color:rgba(241,122,119,.22)}
 .surv-def{background:#1a2026;border-color:rgba(116,202,227,.18)}
 .surv-dead{opacity:.45}
@@ -339,7 +344,11 @@ body.log-icons .gear-ic{display:inline-flex}
 .chain-wrap[open] > .tick-divider .caret::before{content:"\25BE"}
 .tick-divider .reinf{font-size:11px;letter-spacing:.06em;text-transform:none;font-weight:600;color:#e2c760}
 .chain-wrap:first-of-type > .tick-divider{margin-top:14px}
-.chain-wrap:not([open]) > .tick-divider{margin-bottom:0}
+.chain-wrap:not([open]) > .tick-divider{margin-bottom:0;color:var(--text-dim)}
+.chain-wrap:not([open]) > .tick-divider:hover{color:var(--text)}
+/* the closing rule after the last tick is a marker only, not a fold */
+.tick-divider.tick-end{cursor:default;margin-bottom:22px}
+.tick-divider.tick-end:hover{color:rgba(255,255,255,.78)}
 .chain-wrap:not([open]) + .chain-wrap > .tick-divider{margin-top:22px}
 .chain-body .log{max-height:220px}
 .chain-body .log.log-full{max-height:none}
@@ -989,6 +998,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
     <label class="hk-toggle"><input type="checkbox" data-pref="logFull"> Exchange log always expanded</label>
     <label class="hk-toggle"><input type="checkbox" data-pref="iconsWA"> Use icons always shows in order of weapon-armour</label>
     <label class="hk-toggle"><input type="checkbox" data-pref="plainHover"> Disable expanded unit-hover view (for damaged units)</label>
+    <label class="hk-toggle"><input type="checkbox" data-pref="cardSlash"> Slashes instead of newline for unit card weapon+armor</label>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:10px;
               border-top:1px solid var(--border-soft)">
@@ -2859,7 +2869,8 @@ function renderChain(){
       <button class="btn btn-xs" data-chain-fold="1" title="Fold every tick away">Collapse all</button>
     </div>
     ${blocks}
-    <div class="panel" id="panelEntireBattle" style="margin-top:22px">
+    <div class="tick-divider tick-end">End battle</div>
+    <div class="panel" id="panelEntireBattle">
       <div class="panel-head"><h2>Entire battle</h2>
         <span class="spacer"></span>
         <span class="badge">Ticks 1–${ticks}</span>
@@ -2907,7 +2918,7 @@ const LOG_FULL = new Map();          // remembers the choice across re-renders
 
 /* the settings in the gear drawer; filled from storage at boot */
 let PREFS = {standOpen:false, deathsOpen:false, casOpen:false, logFull:true,
-             iconsWA:false, plainHover:false};
+             iconsWA:false, plainHover:false, cardSlash:false};
 
 /* an exchange log with no choice made opens full when the setting says so */
 const logIsFull = id => LOG_FULL.has(id) ? LOG_FULL.get(id)
@@ -2958,7 +2969,7 @@ function exchangeLogBlock(units, log, bonus, id, ns){
         return `<div>${unitRef(A, A.weapon, true)} hit
           ${unitRef(D, D.armor)}
           for <b class="dmg-ref" data-tip-key="${mk}">${fmt(l.damage)}</b> damage
-          <span class="muted">(<b>${l.hits}</b> hits)</span></div>`;
+          <span class="muted">(${l.hits} hits)</span></div>`;
       }).join("") : '<div class="muted">No hits were exchanged.</div>'}</div>
   </div>`;
 }
@@ -3020,6 +3031,10 @@ function survivorWorth(units){
   </details>`;
 }
 
+/* a unit card's weapon over its armour; the slashes setting runs them on one line */
+const cardGear = (w, a) => `<div class="small mono card-gear"><span>${esc(label(w))}</span><span
+  class="cg-sep"> / </span><span>${esc(label(a))}</span></div>`;
+
 function survivorsGrid(all){
   return `<div class="grid2">
     ${[["Attackers", true, "surv-atk"], ["Defenders", false, "surv-def"]].map(([hd, inv, cls])=>{
@@ -3032,7 +3047,7 @@ function survivorsGrid(all){
               ${buildSprite(u.origType, u.weapon, u.armor, true, {size:u.size, training:u.training,
                   left: u.remaining < u.size ? Math.max(0, u.remaining || 0) : null})}
               ${u.nick ? `<div class="small" style="margin-top:6px;font-weight:600;word-break:break-all">${esc(u.nick)}</div>` : ""}
-              <div class="small mono" style="margin-top:7px;word-break:break-all;color:var(--text-dim)">${esc(label(u.weapon))} / ${esc(label(u.armor))}</div>
+              ${cardGear(u.weapon, u.armor)}
               <div class="mono" style="margin-top:4px;font-size:15px;${u.dead?'color:#f17a77':''}">
                 ${u.dead ? "DESTROYED" : `<b>${u.remaining}</b> <span class="muted small">/ ${u.size}</span>`}
               </div>
@@ -5818,8 +5833,7 @@ function renderSolutions(out, opts, bonus, secs){
       <div class="surv-card ${opts.side === "defender" ? "surv-def" : "surv-atk"}" style="min-width:118px"
         ${pickAttrs(u.type, u.weapon, u.armor, u.size, u.training)}>
         ${buildSprite(u.type, u.weapon, u.armor, true, {size:u.size, training:u.training})}
-        <div class="small mono" style="margin-top:7px;word-break:break-all;color:var(--text-dim)">
-          ${esc(label(u.weapon))} / ${esc(label(u.armor))}</div>
+        ${cardGear(u.weapon, u.armor)}
         <div class="mono" style="margin-top:4px;font-size:15px"><b>${u.size.toLocaleString("en-US")}</b></div>
         <div class="small muted mono">${money(troopBits(u) * u.size)}
           ${(sol.live[k].lost || 0) ? `<br><span style="color:#f17a77">−${sol.live[k].lost.toLocaleString("en-US")} lost</span>`
@@ -6017,12 +6031,14 @@ const LS_LOG_OPTS = "warcalc.logOpts";
   });
 }
 /* the settings in the gear drawer. They take hold on the next thing drawn,
-   bar the icon order, which is a body class and so turns over at once */
+   bar the icon order and the card slashes, which are body classes and so
+   turn over at once */
 const LS_PREFS = "warcalc.prefs";
 {
   const o = store.get(LS_PREFS, {}) || {};
   Object.keys(PREFS).forEach(k => { if (typeof o[k] === "boolean") PREFS[k] = o[k]; });
   document.body.classList.toggle("icons-wa", PREFS.iconsWA);
+  document.body.classList.toggle("card-slash", PREFS.cardSlash);
   document.querySelectorAll("[data-pref]").forEach(box=>{
     const k = box.dataset.pref;
     box.checked = !!PREFS[k];
@@ -6030,6 +6046,7 @@ const LS_PREFS = "warcalc.prefs";
       PREFS[k] = box.checked;
       store.set(LS_PREFS, PREFS);
       if (k === "iconsWA") document.body.classList.toggle("icons-wa", box.checked);
+      if (k === "cardSlash") document.body.classList.toggle("card-slash", box.checked);
     });
   });
 }
@@ -6460,8 +6477,7 @@ function counterCard(r, i, o, mode){
         <div class="surv-card ${absorb ? "surv-def" : "surv-atk"}" style="min-width:118px"
           ${pickAttrs(u.type, u.weapon, u.armor, r.size, u.training)}>
           ${buildSprite(u.type, u.weapon, u.armor, true, {size:u.size, training:u.training})}
-          <div class="small mono" style="margin-top:7px;word-break:break-all;color:var(--text-dim)">
-            ${esc(label(u.weapon))} / ${esc(label(u.armor))}</div>
+          ${cardGear(u.weapon, u.armor)}
           <div class="mono" style="margin-top:4px;font-size:15px"><b>${r.size.toLocaleString("en-US")}</b></div>
           <div class="small muted mono">${esc(u.type)}</div>
         </div>
@@ -6621,7 +6637,7 @@ const gs = (()=>{
   const obj = v => v && typeof v === "object" && !Array.isArray(v) ? v : {};
   return {stock: obj(o.stock), prod: obj(o.prod), resv: obj(o.resv),
           comps: Array.isArray(o.comps) ? o.comps : [], colors: obj(o.colors), wide: o.wide === true, upx: GS_TICKS,
-          focus: o.focus !== false, gearAll: o.gearAll === true, chartOff: Array.isArray(o.chartOff) ? o.chartOff : [],
+          focus: o.focus === true, gearAll: o.gearAll === true, chartOff: Array.isArray(o.chartOff) ? o.chartOff : [],
           reader: Object.assign({res: true}, obj(o.reader))};    // every visit opens on the x6 view
 })();
 const gsSave = () => store.set(LS_GRAND, gs);
