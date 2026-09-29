@@ -262,21 +262,32 @@ body.no-unspent .log .unspent{display:none}
 #dmgPin .cmp-weapon{background:#321f27}
 #dmgPin .cmp-armor::before,#dmgPin .cmp-weapon::before,#dmgPin .pin-mid::before{display:none}
 #dmgPin .tip-title + .cmp-tag{margin-top:8px}
+#dmgPin .pin-col > .tip-title{text-align:center}
 /* the two units squared up under the breakdown */
-.pin-vs{display:flex;align-items:center;justify-content:center;gap:12px;
+.pin-vs{display:flex;align-items:flex-start;justify-content:center;gap:12px;
   margin-top:12px;padding-top:10px;border-top:1px solid var(--border-soft)}
 .pin-unit{display:flex;flex-direction:column;align-items:center;text-align:center;
-  font-size:11px;line-height:1.35;min-width:0}
+  font-size:11px;line-height:1.35;min-width:0;width:96px}
 .pin-unit .sprite{margin:3px 0 4px}
+/* name and size hold one line each, so both sprites start at the same height */
+.pin-unit .pu-name,.pin-unit .pu-size{height:15px;line-height:15px;white-space:nowrap}
+.pin-unit .pu-name{max-width:100%;overflow:hidden;color:var(--text)}
+/* a name too long for the slot trails off into the background */
+.pin-unit .pu-name.pu-fade{text-align:left;align-self:stretch;
+  -webkit-mask-image:linear-gradient(to right,#000 70%,transparent);
+  mask-image:linear-gradient(to right,#000 70%,transparent)}
+/* the piece the comparison is not about sits back */
+.pin-unit .pu-gear.pu-off{color:#555a5f;opacity:.55}
 .pin-unit.side-atk .sprite{border:1px solid #f17a77}
 .pin-unit.side-def .sprite{border:1px solid #74cae3}
 .pin-unit.side-atk .pu-gear{color:#b04542}
 .pin-unit.side-def .pu-gear{color:#3a7fa0}
 .pin-unit .pu-size{color:#fff;font-weight:600;font-family:"SFMono-Regular",Menlo,Consolas,monospace}
-.pin-vs-word{color:var(--text-dim);font-weight:700;font-size:12px;letter-spacing:.06em}
+.pin-vs-word{color:var(--text-dim);font-weight:700;font-size:12px;letter-spacing:.06em;
+  margin-top:50px;line-height:16px}
 .cmp-row{display:grid;grid-template-columns:auto 1fr auto;gap:2px 8px;align-items:center;
   padding:6px 0;border-top:1px solid var(--border-soft)}
-.cmp-row .cmp-ic{grid-row:span 3;align-self:start}
+.cmp-row .cmp-ic{grid-row:span 3;align-self:center}
 .cmp-name{font-weight:600;font-size:12px;color:#fff}
 .cmp-stat{font-family:"SFMono-Regular",Menlo,Consolas,monospace;font-size:12px;text-align:right}
 .cmp-cost{grid-column:2 / span 2;font-size:11px}
@@ -2666,11 +2677,14 @@ function gearCompare(kind, A, D, l, bonusApplied){
 
 /* size on top, the sprite in its side's colour, then the kit and training */
 function pinUnit(U){
-  return `<div class="pin-unit ${U.attack_mission ? "side-atk" : "side-def"}">
+  const atk = !!U.attack_mission;      // the swinger's weapon counts, the struck one's armour
+  const name = U.nick || U.name;
+  return `<div class="pin-unit ${atk ? "side-atk" : "side-def"}">
+    <span class="pu-name" title="${esc(name)}">${esc(name)}</span>
     <span class="pu-size">${Number(U.size).toLocaleString("en-US")}</span>
     ${buildSprite(U.origType, U.weapon, U.armor, true)}
-    <span class="pu-gear">${esc(label(U.weapon))}</span>
-    <span class="pu-gear">${esc(label(U.armor))}</span>
+    <span class="pu-gear${atk ? "" : " pu-off"}">${esc(label(U.weapon))}</span>
+    <span class="pu-gear${atk ? " pu-off" : ""}">${esc(label(U.armor))}</span>
     <span class="muted">training ${esc(U.training)}</span>
   </div>`;
 }
@@ -4582,6 +4596,9 @@ document.addEventListener("click", e=>{
     tipEl.style.display = "none";
     pinEl.innerHTML = build();
     pinEl.style.display = "block";
+    pinEl.querySelectorAll(".pu-name").forEach(n=>{
+      if (n.scrollWidth > n.clientWidth + 1) n.classList.add("pu-fade");
+    });
     const r = pinEl.getBoundingClientRect();
     /* the breakdown sits where the hover card was; the side panels open out
        either side of it and the whole thing is kept on screen */
