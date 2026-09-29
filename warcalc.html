@@ -262,7 +262,7 @@ summary.worth-head::before,.fold > summary::before{content:"\25B8";color:var(--t
 details[open] > summary.worth-head::before,.fold[open] > summary::before{content:"\25BE"}
 details.surv-worth:not([open]) > .worth-head{border-bottom:none}
 .fold:not([open]) > summary{margin-bottom:0}
-.fold:not([open]) [data-log-toggle]{display:none}
+.fold:not([open]) [data-log-toggle],.fold:not([open]) > summary .badge{display:none}
 .surv-worth-body{padding:8px 10px}
 .surv-worth .cost-row{font-size:12px}
 /* inside a replayed tick the value block takes that tick's own hue, a shade
@@ -2724,7 +2724,7 @@ function chainTotalsColumn(title, cls, t, ticks){
         <span class="cost-label" style="color:var(--text)">Total burned</span>
         <span class="cost-val bits" style="font-size:13px">${money(t.hire + t.gear + raw.craftBits)}</span></div>
     </div>
-    <details class="well surv-worth worth-plain" style="margin-top:12px">
+    <details class="well surv-worth worth-plain" style="margin-top:12px" open>
       <summary class="worth-head"><span class="cost-label">Total standing</span>
         <span class="spacer"></span>
         <span class="cost-val bits">${money(t.leftover.hire + t.leftover.gear)}</span></summary>
