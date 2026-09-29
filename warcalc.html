@@ -357,10 +357,13 @@ body.log-icons .gear-ic{display:inline-flex}
 .chain-wrap:not([open]) + .chain-wrap > .tick-divider{margin-top:22px}
 .chain-body .log{max-height:220px}
 .chain-body .log.log-full{max-height:none}
+/* two columns like the survivors above, so Defenders starts under Defenders */
 .chain-upkeep{
-  display:flex;gap:16px;flex-wrap:wrap;align-items:center;
+  display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;align-items:center;
   margin-top:16px;padding-top:12px;border-top:1px solid var(--border-soft);font-size:12px;
 }
+.chain-upkeep > span{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+@media (max-width:1100px){.chain-upkeep{grid-template-columns:1fr}}
 .chain-note{margin:12px 0 0}
 
 /* ---------- jump dock (bottom right) ---------- */
@@ -2741,8 +2744,8 @@ function chainTickBlock(k, cum){
       </details>
 
       <div class="chain-upkeep">
-        <span class="muted">Upkeep cumulative total</span>
-        <span><span class="badge badge-danger">Attackers</span> ${resChips(cum.atk)}</span>
+        <span><span class="muted">Upkeep cumulative total</span>
+          <span class="badge badge-danger">Attackers</span> ${resChips(cum.atk)}</span>
         <span><span class="badge badge-info">Defenders</span> ${resChips(cum.def)}</span>
       </div>
     </div>
