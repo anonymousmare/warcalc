@@ -250,7 +250,12 @@ body.no-unspent .log .unspent{display:none}
    width first, and past that the window scrolls sideways */
 #dmgPin .pin-cols{display:flex;gap:22px;align-items:stretch;flex-wrap:nowrap}
 #dmgPin .pin-col{flex:0 1 auto;width:330px;min-width:250px;position:relative}
-#dmgPin .pin-mid{width:230px;flex-shrink:0}
+#dmgPin .pin-mid{width:230px;flex-shrink:0;display:flex;flex-direction:column}
+/* whatever height the side panels leave under the prompt, the picture fills;
+   with none left over it takes none */
+#dmgPin .pin-art{flex:1 1 0;min-height:0;position:relative;margin-top:10px}
+#dmgPin .pin-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center bottom;
+  pointer-events:none;user-select:none}
 #dmgPin .pin-col + .pin-col::before{
   content:"";position:absolute;left:-11px;top:0;bottom:0;width:1px;background:var(--border-soft);
 }
@@ -3049,7 +3054,9 @@ function dmgPinHTML(A, D, l, bonusApplied){
       <div class="pin-col cmp-weapon${PIN_WHOLD ? " hold-open" : ""}">${gearCompare("weapon", A, D, l, bonusApplied)}</div>
       <div class="pin-col pin-mid">${dmgMathTip(A, D, l, bonusApplied)}
         <div class="pin-vs">${pinUnit(A)}<span class="pin-vs-word">vs</span>${pinUnit(D)}</div>
-        <div class="m1-more" title="Show what each swap costs or saves">${M1_ICON}<span class="m1-txt">m1 for compare</span></div></div>
+        <div class="m1-more" title="Show what each swap costs or saves">${M1_ICON}<span class="m1-txt">m1 for compare</span></div>
+        <div class="pin-art"><img src="https://derpicdn.net/img/view/2023/9/3/3193754.png" alt=""
+          onerror="this.parentNode.remove()"></div></div>
       <div class="pin-col cmp-armor${PIN_HOLD ? " hold-open" : ""}">${gearCompare("armor", A, D, l, bonusApplied)}</div>
     </div>`;
 }
