@@ -3013,10 +3013,10 @@ function gearCompare(kind, A, D, l, bonusApplied){
   const planW = (r, E, res) => E * perA(r.key, res) + swapW(r, res);
   const tipWPlan = (r, E, res)=>{
     const ico = res ? resIcon(res) : BIT, p1 = perA(r.key, res), up = E > 0, need = hitsFor(r);
-    return `<div data-tip-bg="${tipBg}"><div class="tip-title">${esc(label(r.key))}, ${up ? "raised to match" : "skimmed"} ${ico}</div>
+    return `<div data-tip-bg="${tipBg}"><div class="tip-title">${esc(label(r.key))}, ${up ? "raised to match" : "cut to match"} ${ico}</div>
       <div class="small muted" style="margin:4px 0 6px">${esc(label(now.key))} deals ${money(K)} ·
         ${esc(label(r.key))} needs ${money(need)} hits × ${fmt(round3(r.ph))} · has ${money(H)} ·
-        <b class="${up ? "cmp-par" : "cmp-up"}">${up ? "+" : "−"}${money(Math.abs(E))}</b></div>
+        <b class="cmp-par">${up ? "+" : "−"}${money(Math.abs(E))}</b></div>
       <table class="tip-math">${tr(`swap the ${money(A.size)} to ${esc(label(r.key))} <span class="muted">(${money(kitUnit(r.key, res))} − ${money(kitUnit(now.key, res))} each)</span>`, sgn(swapW(r, res)))}
         ${E ? tr(`${up ? "raise" : "skim"} ${money(Math.abs(E))} <span class="muted">× ${money(p1)}</span> ${ico}
         <div class="small muted">each: ${res ? "" : `raise ${money(hire(A))} + `}${esc(label(r.key))} ${money(res ? (gearCost("weapon", r.key).res[res] || 0) : gearCost("weapon", r.key).bits)}
@@ -3028,11 +3028,13 @@ function gearCompare(kind, A, D, l, bonusApplied){
     const need = hitsFor(r);
     if (!isFinite(need)) return `<span class="muted small">can't match</span>`;
     const E = need - H;                        // even at ±0 the swap itself still costs
-    const up = E >= 0, cls = up ? "cmp-par" : "cmp-up";
+    /* always parity here, either sign: a better weapon needing fewer troops is
+       the whole point of the column, so it is never tucked away as a skim */
+    const up = E >= 0, cls = "cmp-par";
     const xr = RES_ORDER.reduce((o, k)=>{ const v = planW(r, E, k); if (v) o[k] = v; return o; }, {});
     const X = A.size + E;                      // the swinging stack, resized
     const upk = upkChips(E, less, X, upkA);
-    return `<div class="sz${up ? "" : " sz-skim"}"><div class="sz-k"><span class="${cls}">${up ? "parity" : "skim"}</span>
+    return `<div class="sz"><div class="sz-k"><span class="${cls}">parity</span>
         <b class="sz-n ${cls}">${E ? (up ? "+" : "−") + money(Math.abs(E)) : "±0"}</b><span class="cx-act sz-act">(${money(X)})</span></div>
       <div class="sz-v"><div class="cx-line">${signed(planW(r, E, null), less, tipWPlan(r, E, null))}</div>
         <div class="cx-res">${chips(xr, less, k => tipWPlan(r, E, k), stackRes(X, k => perA(r.key, k)))}${upk}</div></div></div>`;
