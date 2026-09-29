@@ -187,9 +187,11 @@ tr.reserve td.col-sprite::before{
 .log-opt{margin:0}
 .ref-ic,.ref-nick{display:none}
 /* Use icons shows the piece in play; Show weapon and armor shows both, weapon first */
-body.log-icons:not(.log-both) .ref-one,
-body.log-icons.log-both .ref-both{display:inline-block;vertical-align:-3px;margin-right:4px}
-.ref-both .gear-img + .gear-img{margin-left:2px}
+body.log-icons:not(.log-both) .ref-one{display:inline-block;vertical-align:-3px;margin-right:4px}
+body.log-icons.log-both .ref-both{display:inline-flex;gap:2px;vertical-align:-3px;margin-right:4px}
+/* the one swinging reads armour then weapon, so the weapon sits against its
+   name; the setting in the gear drawer puts it back to weapon first */
+body:not(.icons-wa) .ref-both.ref-swing{flex-direction:row-reverse}
 body.log-icons .ref-ic .gear-img{width:auto;max-width:32px;flex:none}
 #logBothWrap{display:none}
 body.log-icons #logBothWrap{display:inline-flex}
@@ -211,6 +213,17 @@ body.log-names #logNumsWrap{display:inline-flex}
   background:var(--raised);border:1px solid var(--border);border-radius:4px;
   padding:10px;min-width:230px;max-width:400px;box-shadow:0 8px 22px rgba(0,0,0,.6);
 }
+#tip.tip-wide{max-width:none}
+/* a unit that lost troops: what it went in as, drained of colour, beside
+   what is left of it */
+.tip-dual{display:flex;gap:18px;align-items:flex-start}
+.tip-dual > div{flex:0 0 auto;min-width:230px}
+.tip-was{filter:grayscale(1);opacity:.6}
+.tip-now{position:relative}
+.tip-now::before{
+  content:"";position:absolute;left:-10px;top:0;bottom:0;width:1px;background:var(--border-soft);
+}
+.tip-gone{padding:18px 0;text-align:center;color:#f17a77;font-weight:700;letter-spacing:.12em}
 .tip-head{display:flex;gap:10px;align-items:flex-start;margin-bottom:8px}
 .tip-head > div{line-height:1.15}
 .tip-head > div > div{margin-top:1px}
@@ -264,6 +277,12 @@ details.surv-worth:not([open]) > .worth-head{border-bottom:none}
 .fold:not([open]) > summary{margin-bottom:0}
 .fold:not([open]) [data-log-toggle],.fold:not([open]) > summary .badge{display:none}
 .surv-worth-body{padding:8px 10px}
+.worth-head .cost-n,.log-head .cost-n{font-size:11.5px;color:var(--text-dim)}
+.cost-n b{color:var(--text);font-weight:600}
+/* Use icons puts the gear on the Entire battle's standing lines too */
+.gear-ic{display:none;vertical-align:-3px;margin-right:4px;gap:2px}
+body.log-icons .gear-ic{display:inline-flex}
+.gear-ic .gear-img{width:auto;max-width:28px;flex:none}
 .surv-worth .cost-row{font-size:12px}
 /* inside a replayed tick the value block takes that tick's own hue, a shade
    up from the tick behind it so it sits in the panel rather than on it */
@@ -301,24 +320,27 @@ details.surv-worth:not([open]) > .worth-head{border-bottom:none}
 .chain-tick.tone-a{background-image:linear-gradient(rgba(226,199,96,.030),rgba(226,199,96,.030));border-color:rgba(226,199,96,.13)}
 .chain-tick.tone-b{background-image:linear-gradient(rgba(92,168,226,.030),rgba(92,168,226,.030));border-color:rgba(92,168,226,.13)}
 .chain-tick.tone-c{background-image:linear-gradient(rgba(162,116,226,.034),rgba(162,116,226,.034));border-color:rgba(162,116,226,.15)}
-/* a plain white rule with the words sitting in the gap */
+/* a plain white rule with the tick's number sitting in the gap; it is also
+   the tick's fold handle. The line box is pinned so the bigger words leave
+   the spacing between ticks as it was */
 .tick-divider{
   display:flex;align-items:center;gap:14px;
-  margin:30px 0;color:rgba(255,255,255,.7);
-  font-size:10px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;
+  margin:30px 0;color:rgba(255,255,255,.78);
+  font-size:21px;line-height:14px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+  list-style:none;cursor:pointer;
 }
+.tick-divider::-webkit-details-marker{display:none}
 .tick-divider::before,.tick-divider::after{
   content:"";flex:1 1 auto;height:1px;background:rgba(255,255,255,.35);
 }
-.chain-tick > summary{
-  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
-  list-style:none;padding:0;font-size:12px;
-}
-.chain-tick > summary::-webkit-details-marker{display:none}
-.chain-tick > summary::before{content:"\25B8";color:var(--text-dim);font-size:11px;width:9px}
-.chain-tick[open] > summary::before{content:"\25BE"}
-.chain-tick[open] > summary{padding-bottom:12px;border-bottom:2px solid rgba(255,255,255,.07)}
-.chain-body{margin-top:16px}
+.tick-divider:hover{color:#fff}
+.tick-divider .caret{font-size:11px;letter-spacing:0;color:var(--text-dim);width:9px;margin-right:-6px}
+.tick-divider .caret::before{content:"\25B8"}
+.chain-wrap[open] > .tick-divider .caret::before{content:"\25BE"}
+.tick-divider .reinf{font-size:11px;letter-spacing:.06em;text-transform:none;font-weight:600;color:#e2c760}
+.chain-wrap:first-of-type > .tick-divider{margin-top:14px}
+.chain-wrap:not([open]) > .tick-divider{margin-bottom:0}
+.chain-wrap:not([open]) + .chain-wrap > .tick-divider{margin-top:22px}
 .chain-body .log{max-height:220px}
 .chain-body .log.log-full{max-height:none}
 .chain-upkeep{
@@ -444,7 +466,6 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
   letter-spacing:.08em;text-transform:uppercase;padding-right:10px;margin-right:6px;
   border-right:1px solid var(--border-soft);
 }
-.tab-brand .caret-btn{font-size:16px}
 
 /* ---------- marked presets ---------- */
 .mark-chips{display:inline-flex;align-items:center;gap:3px;flex-wrap:wrap}
@@ -492,6 +513,24 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 }
 .caret-btn:hover{color:#fff}
 .caret-btn.open{transform:rotate(90deg)}
+/* the settings gear in the tab strip: bigger than the caret it replaced, but
+   still inside the strip's 30px */
+.gear-btn{
+  background:none;border:none;color:var(--text-dim);cursor:pointer;
+  padding:0 2px 0 6px;display:inline-flex;align-items:center;line-height:0;
+}
+.gear-btn svg{width:22px;height:22px;transition:transform .2s}
+.gear-btn:hover{color:#fff}
+.gear-btn.open{color:#fff}
+.gear-btn.open svg{transform:rotate(60deg)}
+/* the settings in the gear drawer, laid out in columns */
+.set-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:7px 18px;
+  margin-top:10px;padding-top:10px;border-top:1px solid var(--border-soft);
+}
+.set-grid .hk-toggle{white-space:normal}
+/* ticket moss, as the Grand Strategy slips wear it */
+.btn-moss{background:#1f2b24;background-image:none;color:#cddfd2;border-color:rgba(120,204,120,.28)}
 .battle-presets{display:flex;align-items:center;gap:4px;opacity:.45;transition:opacity .15s}
 .battle-presets:hover,.battle-presets:focus-within{opacity:1}
 .bp-lab{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em}
@@ -889,8 +928,11 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 <body>
 
 <div class="tabstrip">
-  <span class="tab-brand">Warcalc 1.75<button class="caret-btn" id="btnTools"
-    title="Import / export presets" aria-expanded="false">›</button></span>
+  <span class="tab-brand">Warcalc 1.75<button class="gear-btn" id="btnTools"
+    title="Settings, import / export presets" aria-expanded="false"><svg viewBox="0 0 24 24"
+    aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path
+    d="M10.3 2.5h3.4l.5 2.6a7.6 7.6 0 0 1 2 1.2l2.5-.9 1.7 2.9-2 1.8a7.7 7.7 0 0 1 0 2.3l2 1.8-1.7 2.9-2.5-.9a7.6 7.6 0 0 1-2 1.2l-.5 2.6h-3.4l-.5-2.6a7.6 7.6 0 0 1-2-1.2l-2.5.9-1.7-2.9 2-1.8a7.7 7.7 0 0 1 0-2.3l-2-1.8 1.7-2.9 2.5.9a7.6 7.6 0 0 1 2-1.2z"/><circle
+    cx="12" cy="12" r="3"/></svg></button></span>
   <button class="tab active" data-tab="battle">Battle</button>
   <button class="tab" data-tab="counter">Counters</button>
   <button class="tab" data-tab="grand">Grand Strategy</button>
@@ -927,10 +969,10 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 </div>
 
 <div class="panel" id="toolsPanel" style="display:none">
-  <div class="panel-head"><h2>Presets</h2><span class="spacer"></span>
+  <div class="panel-head"><h2>Settings</h2><span class="spacer"></span>
     <span class="small muted" id="toolsCount"></span></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
-    <button class="btn btn-xs" id="expArmies">Export army presets (JSON)</button>
+    <button class="btn btn-xs btn-moss" id="expArmies">Export army presets (JSON)</button>
     <button class="btn btn-xs" id="expBattles">Export battle presets (JSON)</button>
     <button class="btn btn-xs" id="expAll">Export everything</button>
     <button class="btn btn-xs btn-info" id="impBtn">Import JSON…</button>
@@ -939,6 +981,14 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
       <input type="checkbox" id="hkEnable" checked> Jump hotkeys (Q W E R)</label>
     <label class="hk-toggle" for="bcNoGroup">
       <input type="checkbox" id="bcNoGroup"> Don't group Builder Copy</label>
+  </div>
+  <div class="set-grid" id="prefGrid">
+    <label class="hk-toggle"><input type="checkbox" data-pref="standOpen"> Total standings always uncollapsed</label>
+    <label class="hk-toggle"><input type="checkbox" data-pref="deathsOpen"> Deaths always uncollapsed</label>
+    <label class="hk-toggle"><input type="checkbox" data-pref="casOpen"> Casualties always uncollapsed</label>
+    <label class="hk-toggle"><input type="checkbox" data-pref="logFull"> Exchange log always expanded</label>
+    <label class="hk-toggle"><input type="checkbox" data-pref="iconsWA"> Use icons always shows in order of weapon-armour</label>
+    <label class="hk-toggle"><input type="checkbox" data-pref="plainHover"> Disable expanded unit-hover view (for damaged units)</label>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:10px;
               border-top:1px solid var(--border-soft)">
@@ -1069,6 +1119,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
     <span class="spacer"></span>
     <button class="btn btn-xs" id="btnSolveOpts" aria-expanded="false">Options</button>
     <button class="btn btn-warning" id="btnSolve" style="padding:7px 18px;font-size:14px">Find cheapest force</button>
+    <button class="btn" id="btnSolveClear" style="padding:7px 16px;font-size:14px">Clear</button>
     <button class="btn btn-danger btn-xs" id="btnSolveStop" style="display:none">Stop</button>
   </div>
   <div id="solveOpts" style="display:none">
@@ -1145,7 +1196,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
     </div>
     <div class="solve-grid">
       <div style="min-width:100%">
-        <label>Unit types the solver may hire &mdash; and what each one costs it to reach for</label>
+        <label>Weights</label>
         <div class="solve-types">
           <div class="solve-type" data-lean-cell="Cavalry">
             <label><input type="checkbox" data-solve-type="1" value="Cavalry" checked> Cavalry</label>
@@ -1177,10 +1228,6 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
             <input class="lean" type="number" data-solve-lean="Alicorns" min="0.1" max="10" step="0.05"
               value="1" title="Cost multiplier the search optimises against — under 1 you field plenty of these, over 1 every one is a stretch">
           </div>
-        </div>
-        <div class="small muted" style="margin-top:7px">
-          A multiplier on the price the search optimises against, not on the &#3647; you are quoted.
-          Under 1 the solver reaches for that type sooner, over 1 it has to be worth the trouble.
         </div>
       </div>
     </div>
@@ -1607,7 +1654,8 @@ function spritePath(type, weapon, armor){
 
 function buildSprite(type, weapon, armor, big, meta){
   const tip = typeof tipAttrs === "function"
-    ? tipAttrs(type, weapon, armor, meta?.size, meta?.training) : "";
+    ? tipAttrs(type, weapon, armor, meta?.size, meta?.training) +
+      (meta?.left != null ? ` data-tip-left="${esc(meta.left)}"` : "") : "";
   return `<img class="sprite${big ? " sprite-lg" : ""}" src="${esc(spritePath(type, weapon, armor))}"
     alt="${esc(type)} — ${esc(label(weapon))} / ${esc(label(armor))}" loading="lazy"
     ${tip} onerror="this.replaceWith(spriteMissing(this))">`;
@@ -2443,12 +2491,12 @@ function tipAttrs(type, weapon, armor, size, training){
 /* both the long name and the unit's own name go out; the Use names box picks
    which shows. `gear`, when given, is the piece whose icon Use icons puts in
    front — the swinger's weapon, the one struck's armour; Show weapon and
-   armor swaps that for both pieces. */
-function unitRef(u, gear){
+   armor swaps that for both pieces, armour first on the one swinging. */
+function unitRef(u, gear, swing){
   const img = k => k && gearImgSrc(k) ? gearImg(k) : "";
   const pair = img(u.weapon) + img(u.armor);
   const ic = (img(gear) ? `<span class="ref-ic ref-one">${img(gear)}</span>` : "") +
-             (pair ? `<span class="ref-ic ref-both">${pair}</span>` : "");
+             (pair ? `<span class="ref-ic ref-both${swing ? " ref-swing" : ""}">${pair}</span>` : "");
   return `${ic}<span class="unit-ref ${u.attack_mission ? "ref-atk" : "ref-def"}"
     ${tipAttrs(u.origType, u.weapon, u.armor, u.size, u.training)}><span class="ref-sys">${esc(u.name).replace(/size_\d+/, "<span class=\"ref-size\">$&</span>")}</span>${
     u.nick ? `<span class="ref-nick">${esc(u.nick)}<span class="ref-num">${esc(u.size)}</span></span>` : ""}</span>`;
@@ -2642,7 +2690,13 @@ function chainBattles(atkRows, defRows, bonus){
   return {ticks, stop, error};
 }
 
-const burnedIn = d => d.hire + d.gear + d.craftBits;
+/* how many troops both sides lost, for the Deaths heading */
+const diedCount = (a, d) =>
+  `<span class="cost-n"><b>${(a.troops + d.troops).toLocaleString("en-US")}</b> troop${a.troops + d.troops === 1 ? "" : "s"} died</span>`;
+
+/* how many troops a side still has standing, for the Total standing heading */
+const leftCount = n =>
+  `<span class="cost-n"><b>${n.toLocaleString("en-US")}</b> troop${n === 1 ? "" : "s"} left</span>`;
 
 const TICK_TONES = ["tone-a", "tone-b", "tone-c"];
 
@@ -2652,17 +2706,10 @@ function chainTickBlock(k, cum){
   const n = k.tick + 1;                             // the shown battle is tick 1
   const r = k.res;
   const all = Object.values(r.units);
-  return `<details class="chain-tick ${TICK_TONES[(k.tick - 1) % TICK_TONES.length]}"
-      id="chainTick${n}" open>
-    <summary>
-      <span class="badge badge-warning">Tick ${n}</span>
-      ${n === 2 && reserveCount() ? `<span class="badge">+${reserveCount()} reinforcement${reserveCount() === 1 ? "" : "s"}</span>` : ""}
-      <span class="badge badge-danger">Attackers <b>${k.atkLeft}</b> / ${k.atkStart}</span>
-      <span class="badge badge-info">Defenders <b>${k.defLeft}</b> / ${k.defStart}</span>
-      <span class="spacer"></span>
-      <span class="badge badge-danger">−${k.atkDead.troops} troops</span>
-      <span class="badge badge-info">−${k.defDead.troops} troops</span>
-    </summary>
+  return `<details class="chain-wrap" id="chainTick${n}" open>
+    <summary class="tick-divider"><span class="caret"></span>Tick ${n}${n === 2 && reserveCount()
+      ? `<span class="reinf">+${reserveCount()} reinforcement${reserveCount() === 1 ? "" : "s"}</span>` : ""}</summary>
+    <div class="chain-tick ${TICK_TONES[(k.tick - 1) % TICK_TONES.length]}">
     <div class="chain-body">
       ${stallsNote(r.stalls)}
       ${exchangeLogBlock(r.units, r.log, lastBonus, `logExchange_t${n}`, "chain")}
@@ -2670,12 +2717,10 @@ function chainTickBlock(k, cum){
 
       <div style="margin-top:16px">${survivorsGrid(all)}</div>
 
-      <details class="fold chain-deaths" style="margin-top:16px">
+      <details class="fold chain-deaths" style="margin-top:16px"${PREFS.deathsOpen ? " open" : ""}>
         <summary class="log-head">
           <h3>Deaths</h3>
-          <span class="spacer"></span>
-          <span class="badge badge-danger">Attackers −${money(burnedIn(k.atkDead))}</span>
-          <span class="badge badge-info">Defenders −${money(burnedIn(k.defDead))}</span>
+          ${diedCount(k.atkDead, k.defDead)}
         </summary>
         ${deathsGrid(k.atkDead, k.defDead, "chain")}
       </details>
@@ -2686,6 +2731,7 @@ function chainTickBlock(k, cum){
         <span><span class="badge badge-info">Defenders</span> ${resChips(cum.def)}</span>
       </div>
     </div>
+    </div>
   </details>`;
 }
 
@@ -2695,7 +2741,7 @@ function chainTotalsColumn(title, cls, t, ticks){
   const raw = toRaw(t.res);
   const gear = t.leftover.items.map(it=>`<tr>
       <td class="u">${esc(it.u.type)} <span class="muted mono">\u00d7${it.n}</span>
-        <div class="small muted">${esc(label(it.u.weapon))} / ${esc(label(it.u.armor))}</div></td>
+        <div class="small muted"><span class="gear-ic">${gearImg(it.u.weapon)}${gearImg(it.u.armor)}</span>${esc(label(it.u.weapon))} / ${esc(label(it.u.armor))}</div></td>
       <td style="text-align:right"><span class="bits">${money(it.gear)}</span>
         <div class="small muted">${resChips(it.res)}</div></td>
     </tr>`).join("");
@@ -2726,6 +2772,7 @@ function chainTotalsColumn(title, cls, t, ticks){
     </div>
     <details class="well surv-worth worth-plain" style="margin-top:12px" open>
       <summary class="worth-head"><span class="cost-label">Total standing</span>
+        ${leftCount(t.leftover.items.reduce((n, it) => n + it.n, 0))}
         <span class="spacer"></span>
         <span class="cost-val bits">${money(t.leftover.hire + t.leftover.gear)}</span></summary>
       <div class="surv-worth-body">
@@ -2800,7 +2847,7 @@ function renderChain(){
     defTot.gear += k.defDead.gear; addRes(defTot.res, k.defDead.res); addRes(defTot.up, k.upD);
     addRes(cumA, k.upA); addRes(cumD, k.upD);
     return chainTickBlock(k, {atk: addRes({}, cumA), def: addRes({}, cumD)});
-  }).join(`<div class="tick-divider">Next tick</div>`);
+  }).join("");
 
   const lastUnits = Object.values(last.res.units);
   atkTot.leftover = survivorValue(lastUnits.filter(u=>  u.attack_mission));
@@ -2837,8 +2884,8 @@ function toggleChain(){
     return;
   }
   out.innerHTML = renderChain();
-  setChainJumpButtons(out.querySelectorAll("details.chain-tick").length
-    ? out.querySelectorAll("details.chain-tick").length + 1 : 0);
+  setChainJumpButtons(out.querySelectorAll("details.chain-wrap").length
+    ? out.querySelectorAll("details.chain-wrap").length + 1 : 0);
   btn.textContent = "Hide successive battles";
 }
 
@@ -2846,7 +2893,7 @@ function toggleChain(){
 document.addEventListener("click", e=>{
   const btn = e.target.closest?.("[data-chain-fold]");
   if (!btn) return;
-  const ticks = [...document.querySelectorAll("details.chain-tick")];
+  const ticks = [...document.querySelectorAll("details.chain-wrap")];
   if (!ticks.length) return;
   const open = btn.dataset.chainFold === "1";     // 1 = they are open, so close them
   ticks.forEach(d => { d.open = !open; });
@@ -2856,10 +2903,18 @@ document.addEventListener("click", e=>{
 });
 
 /* ---- expand a scrolling log to its full height ---- */
-const LOG_FULL = new Set();          // remembers the choice across re-renders
+const LOG_FULL = new Map();          // remembers the choice across re-renders
+
+/* the settings in the gear drawer; filled from storage at boot */
+let PREFS = {standOpen:false, deathsOpen:false, casOpen:false, logFull:true,
+             iconsWA:false, plainHover:false};
+
+/* an exchange log with no choice made opens full when the setting says so */
+const logIsFull = id => LOG_FULL.has(id) ? LOG_FULL.get(id)
+  : PREFS.logFull && id.startsWith("logExchange");
 
 function logToggle(id){
-  const open = LOG_FULL.has(id);
+  const open = logIsFull(id);
   return `<button class="btn btn-xs" data-log-toggle="${id}"
     title="${open ? "Scroll box" : "Show all"}"
     >${open ? "Collapse" : "Expand"}</button>`;
@@ -2873,7 +2928,7 @@ document.addEventListener("click", e=>{
   const box = document.getElementById(id);
   if (!box) return;
   const open = box.classList.toggle("log-full");
-  if (open) LOG_FULL.add(id); else LOG_FULL.delete(id);
+  LOG_FULL.set(id, open);
   btn.textContent = open ? "Collapse" : "Expand";
   btn.title = open ? "Scroll box" : "Show all";
 });
@@ -2895,12 +2950,12 @@ function exchangeLogBlock(units, log, bonus, id, ns){
       <span class="spacer"></span>
       ${logToggle(id)}
     </div>
-    <div class="well log${LOG_FULL.has(id) ? " log-full" : ""}" id="${id}">${
+    <div class="well log${logIsFull(id) ? " log-full" : ""}" id="${id}">${
       log.length ? log.map(l=>{
         const A = units[l.aid], D = units[l.did];
         const bonusApplied = !!A.attack_mission && bonus === "Yes";
         const mk = regTip(dmgMathTip(A, D, l, bonusApplied), ns);
-        return `<div>${unitRef(A, A.weapon)} hit
+        return `<div>${unitRef(A, A.weapon, true)} hit
           ${unitRef(D, D.armor)}
           for <b class="dmg-ref" data-tip-key="${mk}">${fmt(l.damage)}</b> damage
           <span class="muted">(<b>${l.hits}</b> hits)</span></div>`;
@@ -2909,14 +2964,14 @@ function exchangeLogBlock(units, log, bonus, id, ns){
 }
 
 function casualtiesBlock(units, casualties, id){
-  return `<details class="fold" style="margin-top:14px">
+  return `<details class="fold" style="margin-top:14px"${PREFS.casOpen ? " open" : ""}>
     <summary class="log-head">
       <h3>Casualties</h3>
       <span class="small muted">${casualties.length} entr${casualties.length === 1 ? "y" : "ies"}</span>
       <span class="spacer"></span>
       ${logToggle(id)}
     </summary>
-    <div class="well log${LOG_FULL.has(id) ? " log-full" : ""}" id="${id}">${
+    <div class="well log${logIsFull(id) ? " log-full" : ""}" id="${id}">${
       casualties.length ? casualties.map(c=>{
         const u = units[c.uid];
         return c.kind === "kill"
@@ -2948,8 +3003,10 @@ function survivorValue(units){
 
 function survivorWorth(units){
   const v = survivorValue(units);
-  return `<details class="well surv-worth">
+  const left = v.items.reduce((n, it) => n + it.n, 0);
+  return `<details class="well surv-worth"${PREFS.standOpen ? " open" : ""}>
     <summary class="worth-head"><span class="cost-label">Total standing</span>
+      ${leftCount(left)}
       <span class="spacer"></span>
       <span class="cost-val bits">${money(v.hire + v.gear)}</span></summary>
     <div class="surv-worth-body">
@@ -2972,7 +3029,8 @@ function survivorsGrid(all){
         <div class="surv-grid">${
           side.length ? side.map(u=>`<div class="surv-card ${cls}${u.dead ? " surv-dead" : ""}${u.fresh ? " surv-fresh" : ""}"
               ${pickAttrs(u.origType, u.weapon, u.armor, u.remaining || u.size, u.training)}>
-              ${buildSprite(u.origType, u.weapon, u.armor, true, {size:u.size, training:u.training})}
+              ${buildSprite(u.origType, u.weapon, u.armor, true, {size:u.size, training:u.training,
+                  left: u.remaining < u.size ? Math.max(0, u.remaining || 0) : null})}
               ${u.nick ? `<div class="small" style="margin-top:6px;font-weight:600;word-break:break-all">${esc(u.nick)}</div>` : ""}
               <div class="small mono" style="margin-top:7px;word-break:break-all;color:var(--text-dim)">${esc(label(u.weapon))} / ${esc(label(u.armor))}</div>
               <div class="mono" style="margin-top:4px;font-size:15px;${u.dead?'color:#f17a77':''}">
@@ -3005,6 +3063,8 @@ function render(result, atkRaw, defRaw, bonus){
 
   clearTips("death");
   clearTips("chain");
+  /* a fresh battle opens its exchange logs the way the setting says */
+  if (PREFS.logFull) [...LOG_FULL.keys()].forEach(k => { if (k.startsWith("logExchange")) LOG_FULL.delete(k); });
   const atkDead = deathCosts(units, true), defDead = deathCosts(units, false);
 
   const el = document.getElementById("results");
@@ -3038,9 +3098,7 @@ function render(result, atkRaw, defRaw, bonus){
 
       <div class="log-head" style="margin-top:18px">
         <h3>Deaths</h3>
-        <span class="spacer"></span>
-        <span class="badge badge-danger">Attackers −${money(atkDead.hire + atkDead.gear + atkDead.craftBits)}</span>
-        <span class="badge badge-info">Defenders −${money(defDead.hire + defDead.gear + defDead.craftBits)}</span>
+        ${diedCount(atkDead, defDead)}
       </div>
       ${deathsGrid(atkDead, defDead, "death")}
 
@@ -4302,10 +4360,20 @@ document.addEventListener("mouseover", e=>{
     const html = TIPS.get(d.tipKey);
     if (!html) return;
     tipEl.innerHTML = html;
+  } else if (d.tipLeft !== undefined && !PREFS.plainHover){
+    /* a unit that lost troops: as it went in, greyed, and as it stands now */
+    const now = +d.tipLeft;
+    tipEl.innerHTML = `<div class="tip-dual">
+      <div class="tip-was">${tipHTML(d.tipT, d.tipW, d.tipA, d.tipSize, d.tipTrain)}</div>
+      <div class="tip-now">${now > 0 ? tipHTML(d.tipT, d.tipW, d.tipA, now, d.tipTrain)
+        : `<div class="tip-gone">DESTROYED</div>`}</div>
+    </div>`;
+    tipEl.classList.add("tip-wide");
   } else {
     tipEl.innerHTML = tipHTML(d.tipT, d.tipW, d.tipA,
       d.tipSize !== undefined ? d.tipSize : null, d.tipTrain);
   }
+  if (!d.tipLeft || PREFS.plainHover || d.tipKey) tipEl.classList.remove("tip-wide");
   tipEl.style.display = "block";
   moveTip(e);
 });
@@ -5831,6 +5899,12 @@ function applySolution(i, alsoRun){
 
 /* ---- wiring ------------------------------------------------------- */
 document.getElementById("btnSolve").addEventListener("click", runSolver);
+document.getElementById("btnSolveClear").addEventListener("click", ()=>{
+  if (solveBusy) return;                     // Stop is the button for a running search
+  document.getElementById("solveOut").innerHTML = "";
+  solveLast = null;
+  document.getElementById("solveProg").style.display = "none";
+});
 document.getElementById("btnSolveStop").addEventListener("click", () => { solveHalt = true; });
 document.getElementById("btnSolveOpts").addEventListener("click", () => {
   const p = document.getElementById("solveOpts");
@@ -5928,9 +6002,9 @@ hkBox.addEventListener("change", syncHotkeys);
 const LS_LOG_OPTS = "warcalc.logOpts";
 {
   const o = store.get(LS_LOG_OPTS, {}) || {};
-  /* icons start on, everything else off */
+  /* icons and numbers start on, everything else off */
   [["logIcons", "icons", "log-icons", true], ["logBoth", "both", "log-both"],
-   ["logNames", "names", "log-names"], ["logNums", "nums", "log-nums"]].forEach(([id, k, cls, dflt])=>{
+   ["logNames", "names", "log-names"], ["logNums", "nums", "log-nums", true]].forEach(([id, k, cls, dflt])=>{
     const box = document.getElementById(id);
     box.checked = typeof o[k] === "boolean" ? o[k] : !!dflt;
     document.body.classList.toggle(cls, box.checked);
@@ -5942,6 +6016,32 @@ const LS_LOG_OPTS = "warcalc.logOpts";
     });
   });
 }
+/* the settings in the gear drawer. They take hold on the next thing drawn,
+   bar the icon order, which is a body class and so turns over at once */
+const LS_PREFS = "warcalc.prefs";
+{
+  const o = store.get(LS_PREFS, {}) || {};
+  Object.keys(PREFS).forEach(k => { if (typeof o[k] === "boolean") PREFS[k] = o[k]; });
+  document.body.classList.toggle("icons-wa", PREFS.iconsWA);
+  document.querySelectorAll("[data-pref]").forEach(box=>{
+    const k = box.dataset.pref;
+    box.checked = !!PREFS[k];
+    box.addEventListener("change", ()=>{
+      PREFS[k] = box.checked;
+      store.set(LS_PREFS, PREFS);
+      if (k === "iconsWA") document.body.classList.toggle("icons-wa", box.checked);
+    });
+  });
+}
+
+/* the two Total standing blocks of one battle or tick fold together */
+document.addEventListener("toggle", e=>{
+  const d = e.target;
+  if (!d.matches?.("details.surv-worth")) return;
+  const pair = d.closest(".grid2");
+  pair?.querySelectorAll("details.surv-worth").forEach(o => { if (o !== d && o.open !== d.open) o.open = d.open; });
+}, true);
+
 const LS_BC_NOGROUP = "warcalc.builderNoGroup";
 const bcBox = document.getElementById("bcNoGroup");
 bcBox.checked = store.get(LS_BC_NOGROUP, false) === true;
