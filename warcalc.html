@@ -198,6 +198,7 @@ body.log-names.log-nums .ref-num{display:inline}
 body.log-names #logNumsWrap{display:inline-flex}
 .ref-atk{color:#f17a77}
 .ref-def{color:#74cae3}
+.ref-size{color:#fff}
 
 #tip{
   position:fixed;z-index:999;display:none;pointer-events:none;
@@ -2407,7 +2408,7 @@ function tipAttrs(type, weapon, armor, size, training){
 function unitRef(u, gear){
   const ic = gear && gearImgSrc(gear) ? `<span class="ref-ic">${gearImg(gear)}</span>` : "";
   return `${ic}<span class="unit-ref ${u.attack_mission ? "ref-atk" : "ref-def"}"
-    ${tipAttrs(u.origType, u.weapon, u.armor, u.size, u.training)}><span class="ref-sys">${esc(u.name)}</span>${
+    ${tipAttrs(u.origType, u.weapon, u.armor, u.size, u.training)}><span class="ref-sys">${esc(u.name).replace(/size_\d+/, "<span class=\"ref-size\">$&</span>")}</span>${
     u.nick ? `<span class="ref-nick">${esc(u.nick)}<span class="ref-num">${esc(u.size)}</span></span>` : ""}</span>`;
 }
 
@@ -2854,8 +2855,8 @@ function exchangeLogBlock(units, log, bonus, id, ns){
         const A = units[l.aid], D = units[l.did];
         const bonusApplied = !!A.attack_mission && bonus === "Yes";
         const mk = regTip(dmgMathTip(A, D, l, bonusApplied), ns);
-        return `<div>${unitRef(A, A.weapon)} <span class="muted">(size <b>${A.size}</b>)</span> hit
-          ${unitRef(D, D.armor)} <span class="muted">(size <b>${D.size}</b>)</span>
+        return `<div>${unitRef(A, A.weapon)} hit
+          ${unitRef(D, D.armor)}
           for <b class="dmg-ref" data-tip-key="${mk}">${fmt(l.damage)}</b> damage
           <span class="muted">(<b>${l.hits}</b> hits)</span></div>`;
       }).join("") : '<div class="muted">No hits were exchanged.</div>'}</div>
