@@ -241,14 +241,16 @@ body.no-unspent .log .unspent{display:none}
    the swinger could have carried on its left and what the struck side
    could have worn on its right, each beside its own unit */
 #dmgPin{
-  position:fixed;z-index:998;display:none;
+  position:fixed;z-index:59;display:none;   /* under the F / G / H helpers (60 up) */
   background:var(--raised);border:1px solid var(--border);border-radius:4px;
   padding:10px 12px;box-shadow:0 10px 28px rgba(0,0,0,.65);
   max-width:calc(100vw - 16px);max-height:calc(100vh - 16px);overflow:auto;
 }
-#dmgPin .pin-cols{display:flex;gap:22px;align-items:stretch;flex-wrap:wrap}
-#dmgPin .pin-col{flex:0 0 auto;width:270px;position:relative}
-#dmgPin .pin-mid{width:230px}
+/* the three always sit side by side; on a narrow screen the compares give up
+   width first, and past that the window scrolls sideways */
+#dmgPin .pin-cols{display:flex;gap:22px;align-items:stretch;flex-wrap:nowrap}
+#dmgPin .pin-col{flex:0 1 auto;width:290px;min-width:250px;position:relative}
+#dmgPin .pin-mid{width:230px;flex-shrink:0}
 #dmgPin .pin-col + .pin-col::before{
   content:"";position:absolute;left:-11px;top:0;bottom:0;width:1px;background:var(--border-soft);
 }
@@ -273,7 +275,7 @@ body.no-unspent .log .unspent{display:none}
   font-size:11px;color:var(--text-dim);user-select:none}
 .m1-more:hover,.m1-more:hover .m1-ic{color:#fff}
 /* m1 again: the compares widen to show what each swap does to the bill */
-#dmgPin.pin-wide .cmp-armor,#dmgPin.pin-wide .cmp-weapon{width:440px}
+#dmgPin.pin-wide .cmp-armor,#dmgPin.pin-wide .cmp-weapon{width:440px;min-width:340px}
 .cmp-x{display:none}
 /* spare rows above and below share the height of a long list, so the
    left side sits packed together in the middle of its row */
@@ -322,6 +324,26 @@ body.no-unspent .log .unspent{display:none}
 .cmp-cost{grid-column:2 / span 2;font-size:11px}
 .cmp-cost .res-chip{font-size:11px}
 .cmp-cost .cmp-res{display:block}
+/* one piece's cost, in grey, under the whole stack's */
+.cmp-one{display:block;color:var(--text-dim);font-size:10px;margin-top:1px}
+.cmp-one > span{display:block}
+.cmp-one .res-icon{filter:grayscale(1);opacity:.7}
+.cmp-cur .cmp-one{color:var(--text-dim)}
+/* the weapon an armour row's dead take with them, greyed under the armour */
+.cmp-ic{display:flex;flex-direction:column;align-items:flex-start;gap:3px}
+.cmp-wpn .gear-img{filter:grayscale(.75)}
+#tip .w{color:#fff}
+#tip .mono-ic .res-icon{filter:grayscale(1)}
+#tip .tip-gear .gear-img{vertical-align:-3px;margin-right:4px}
+/* figures in the wide view explain themselves on hover */
+.has-ntip{cursor:help}
+.has-ntip:hover b,.has-ntip:hover .cx-chip{text-decoration:underline dotted}
+/* the title stays centred; its note hangs off to the right of it */
+#dmgPin .tt-wrap{position:relative}
+#dmgPin .tt-aside{position:absolute;left:100%;top:1px;margin-left:6px;white-space:nowrap;
+  font-size:10px;font-weight:400;color:var(--text-dim)}
+#dmgPin .pin-grip{cursor:move;user-select:none}
+#dmgPin.pin-dragging,#dmgPin.pin-dragging *{cursor:move;user-select:none}
 .cmp-dmg{grid-column:2 / span 2;font-size:12px;display:flex;justify-content:space-between;
   font-family:"SFMono-Regular",Menlo,Consolas,monospace}
 .cmp-cur{border:1px solid rgba(120,204,120,.45);border-radius:3px;padding:6px;margin:0 -7px 6px}
@@ -2704,14 +2726,89 @@ function gearCompare(kind, A, D, l, bonusApplied){
   };
   const nowLoss = lossOf(now);
   const resSub = (x, y) => { const o = addRes({}, x); addRes(o, y, -1); return o; };
-  const signed = (v, good) => !v ? `<b class="cmp-same">±0</b>`
-    : `<b class="${good(v) ? "cmp-up" : "cmp-down"}">${v > 0 ? "+" : "−"}${money(Math.abs(v))}</b>`;
-  /* one resource to a line; with no `good` they are plain amounts, not changes */
-  const chips = (res, good) => RES_ORDER.filter(k => Math.round(res[k] || 0)).map(k=> good
-    ? `<span class="cx-chip ${good(res[k]) ? "cmp-up" : "cmp-down"}">${resIcon(k)}${
-        res[k] > 0 ? "+" : "−"}${money(Math.abs(res[k]))}</span>`
-    : `<span class="cx-chip">${resIcon(k)}${money(res[k])}</span>`).join("");
+  const sgn = v => !v ? "±0" : (v > 0 ? "+" : "−") + money(Math.abs(v));
   const less = v => v < 0, more = v => v > 0;
+
+  /* ---- the working behind each figure, for its hover card ----
+     `res` picks one resource; without it the figure is in bits */
+  const piece = isW ? "weapon" : "suit";
+  const unitOf = res => res ? `${resIcon(res)} ${esc(RESOURCES[res]?.name || res)}` : "bits";
+  const kitUnit = (key, res) => res ? (gearCost(kind, key).res[res] || 0) : gearCost(kind, key).bits;
+  const perLoss = (key, res)=>{              // one dead troop, rebought with its kit
+    const a = isW ? Da : gearCost("armor", key);
+    return res ? (Dw.res[res] || 0) + (a.res[res] || 0) : hire(D) + Dw.bits + a.bits;
+  };
+  const perLossNote = (key, res)=>{
+    const a = isW ? D.armor : key;
+    const w = res ? (Dw.res[res] || 0) : Dw.bits, ar = res ? (gearCost("armor", a).res[res] || 0) : gearCost("armor", a).bits;
+    return (res ? "" : `raise ${money(hire(D))} + `) +
+      `${esc(label(D.weapon))} ${money(w)} + ${esc(label(a))} ${money(ar)}`;
+  };
+  const tr = (a, b, cls) => `<tr${cls ? ` class="${cls}"` : ""}><td>${a}</td><td class="n">${b}</td></tr>`;
+  const tipTitle = (r, what, res) => `<div class="tip-title">${esc(label(r.key))}${
+    r === now ? "" : ` <span class="muted">instead of</span> ${esc(label(now.key))}`} — ${what}</div>
+    ${res === false ? "" : `<div class="small muted" style="margin:2px 0 6px">in ${unitOf(res)}</div>`}`;
+
+  const kitRows = (r, res)=>{
+    const u1 = kitUnit(r.key, res), u0 = kitUnit(now.key, res);
+    if (r === now) return tr(`${esc(label(r.key))} <span class="muted">per ${piece}</span>`, money(u1)) +
+      tr(`<span class="muted">× ${money(n)} ${piece}s</span>`, money(u1 * n), "tot");
+    return tr(`${esc(label(r.key))} <span class="muted">per ${piece}</span>`, money(u1)) +
+      tr(`${esc(label(now.key))} <span class="muted">per ${piece}</span>`, money(u0)) +
+      tr(`difference <span class="muted">× ${money(n)} ${piece}s</span>`, sgn((u1 - u0) * n), "tot");
+  };
+  const lossRows = (r, res)=>{
+    const verb = isW ? "killed" : "dead";
+    const one = x => { const k = dead(x), per = perLoss(x.key, res);
+      return tr(`${esc(label(x.key))}: ${money(k)} ${verb} <span class="muted">× ${money(per)}</span>`, money(k * per)) +
+        `<tr><td colspan="2" class="muted small" style="padding-left:12px">each: ${perLossNote(x.key, res)}</td></tr>`; };
+    if (r === now) return one(now);
+    return one(r) + one(now) + tr("difference", sgn(dead(r) * perLoss(r.key, res) - dead(now) * perLoss(now.key, res)), "tot");
+  };
+  const deadNote = "";
+  const tipKit = (r, res) => tipTitle(r, "kit", res) + `<table class="tip-math">${kitRows(r, res)}</table>`;
+  const tipLoss = (r, res) => tipTitle(r, isW ? "enemy troops killed" : "troops lost", res) +
+    `<table class="tip-math">${lossRows(r, res)}</table>` + deadNote;
+  const tipKills = r => tipTitle(r, "troops killed", false) +
+    `<table class="tip-math">${[r, now].filter((x, i) => !i || r !== now).map(x =>
+      tr(`${esc(label(x.key))}: ${money(x.dmg)} dmg`, `${money(dead(x))} killed`)).join("")}${
+      r === now ? "" : tr("difference", sgn(dead(r) - dead(now)), "tot")}</table>` + deadNote;
+  /* the net card: both pieces with the weapon they sit beside, what the
+     stack's worth costs, then the dead each leaves behind */
+  const tipNet = (r, res)=>{
+    const ico = res ? resIcon(res) : BIT;
+    const amt = (v, mono) => `(<span class="${mono ? "mono-ic" : ""}">${ico}</span> ${money(v)})`;
+    const wv = res ? (Dw.res[res] || 0) : Dw.bits;             // the weapon beside each suit
+    const a1 = kitUnit(r.key, res), a0 = kitUnit(now.key, res);
+    const t1 = (a1 + wv) * n, t0 = (a0 + wv) * n;
+    const per = (x, a, t) => tr(`${esc(label(x.key))} per`,
+      `<b class="w">${money(a + wv)}</b> <span class="muted">(×${money(n)} = ${money(t)})</span>`);
+    const deadRow = x=>{
+      const k = dead(x), p1 = perLoss(x.key, res);
+      return tr(`<span class="tip-gear">${gearImg(x.key)}</span>${esc(label(x.key))}: ${money(k)} dead
+        <span class="muted">× ${money(p1)}</span> ${ico}`, money(k * p1));
+    };
+    const lossD = dead(r) * perLoss(r.key, res) - dead(now) * perLoss(now.key, res);
+    return `<div data-tip-bg="#1c2531"><div class="tip-title">${amt(a1)} ${esc(label(r.key))}
+        <span class="muted">vs</span> ${amt(a0)} ${esc(label(now.key))} ${ico}</div>
+      <div class="small" style="margin:6px 0 2px">Including weapon${wv ? ` <span class="muted">${amt(wv, true)}</span>` : ""}</div>
+      <table class="tip-math">${per(r, a1, t1)}${per(now, a0, t0)}
+        ${tr(`difference <span class="muted">${money(t1)} − ${money(t0)}</span>`, sgn(t1 - t0), "tot")}</table>
+      <div class="small" style="margin:8px 0 2px">Killed${res ? "" : ` <span class="muted">(each also re-raised for ${money(hire(D))})</span>`}</div>
+      <table class="tip-math">${deadRow(r)}${deadRow(now)}${tr("difference", sgn(lossD), "tot")}</table>
+      <table class="tip-math" style="margin-top:8px">${tr("Equipment", sgn(t1 - t0))}${tr("+ troops lost", sgn(lossD))}${
+        tr("net", sgn(t1 - t0 + lossD), "tot")}</table></div>`;
+  };
+  const tipBg = isW ? "#321f27" : "#1c2531";
+  const tipped = (html, tip) => `<span class="has-ntip" data-tip-key="${regTip(
+    tip.startsWith("<div data-tip-bg") ? tip : `<div data-tip-bg="${tipBg}">${tip}</div>`, "pin")}">${html}</span>`;
+
+  const signed = (v, good, tip) => tipped(!v ? `<b class="cmp-same">±0</b>`
+    : `<b class="${good(v) ? "cmp-up" : "cmp-down"}">${sgn(v)}</b>`, tip);
+  /* one resource to a line; with no `good` they are plain amounts, not changes */
+  const chips = (res, good, tip) => RES_ORDER.filter(k => Math.round(res[k] || 0)).map(k=> tipped(good
+    ? `<span class="cx-chip ${good(res[k]) ? "cmp-up" : "cmp-down"}">${resIcon(k)}${sgn(res[k])}</span>`
+    : `<span class="cx-chip">${resIcon(k)}${money(res[k])}</span>`, tip(k))).join("");
   const line = (k, html, cls, res) => `<div class="${cls || ""}"><div class="cx-line"><span class="cx-k">${k}</span>${html}</div>${
     res ? `<div class="cx-res">${res}</div>` : ""}</div>`;
 
@@ -2721,17 +2818,29 @@ function gearCompare(kind, A, D, l, bonusApplied){
   const extra = (r, isCur)=>{
     const L = lossOf(r);
     if (isCur) return isW
-      ? line("kit", `<b>${money(r.bits)}</b>`) +
-        line("kills", `<b>${money(L.k)}</b>${troops}`) +
-        line("", `<b>${money(L.bits)}</b>`, "", chips(L.res))
+      ? line("kit", tipped(`<b>${money(r.bits)}</b>`, tipKit(r, null))) +
+        line("kills", tipped(`<b>${money(L.k)}</b>`, tipKills(r)) + troops) +
+        line("", tipped(`<b>${money(L.bits)}</b>`, tipLoss(r, null)), "", chips(L.res, null, k => tipLoss(r, k)))
       : line("net", `<b class="cmp-same">±0</b>`);
     const kitB = r.bits - now.bits, kitR = resSub(r.res, now.res);
     const lossB = L.bits - nowLoss.bits, lossR = resSub(L.res, nowLoss.res);
-    if (isW) return line("kit", signed(kitB, less), "", chips(kitR, less)) +
-      line("kills", signed(L.k - nowLoss.k, more) + troops) +
-      line("", signed(lossB, more), "", chips(lossR, more));
-    return line("net", signed(kitB + lossB, less), "", chips(addRes(addRes({}, kitR), lossR), less));
+    if (isW) return line("kit", signed(kitB, less, tipKit(r, null)), "", chips(kitR, less, k => tipKit(r, k))) +
+      line("kills", signed(L.k - nowLoss.k, more, tipKills(r)) + troops) +
+      line("", signed(lossB, more, tipLoss(r, null)), "", chips(lossR, more, k => tipLoss(r, k)));
+    return line("net", signed(kitB + lossB, less, tipNet(r, null)), "",
+      chips(addRes(addRes({}, kitR), lossR), less, k => tipNet(r, k)));
   };
+
+  /* what one piece costs, greyed, under what the stack's worth costs */
+  const oneOf = key=>{
+    const c = gearCost(kind, key);
+    return `<span class="cmp-one"><span>[1x] ${money(c.bits)}</span>${
+      Object.keys(c.res).length ? `<span class="cmp-res">${resChips(c.res)}</span>` : ""}</span>`;
+  };
+  /* armour rows carry the struck unit's weapon too, greyed, since the dead
+     take it with them */
+  const icons = key => isW ? gearImg(key)
+    : `${gearImg(key)}<span class="cmp-wpn">${gearImg(U.weapon)}</span>`;
 
   const row = (r, isCur)=>{
     let delta = "";
@@ -2742,10 +2851,10 @@ function gearCompare(kind, A, D, l, bonusApplied){
         !d ? "±0" : (d > 0 ? "+" : "−") + money(Math.abs(d))}</span>`;
     }
     return `<div class="cmp-row${isCur ? " cmp-cur" : ""}">
-      <span class="cmp-ic">${gearImg(r.key)}</span>
+      <span class="cmp-ic">${icons(r.key)}</span>
       <span class="cmp-name">${esc(label(r.key))}</span>
       <span class="cmp-stat">${isW ? "" : "×"}${fmt(r.stat)}</span>
-      <span class="cmp-cost"><span class="bits">${money(r.bits)}</span><span class="cmp-res">${resChips(r.res)}</span></span>
+      <span class="cmp-cost"><span class="bits">${money(r.bits)}</span><span class="cmp-res">${resChips(r.res)}</span>${oneOf(r.key)}</span>
       <span class="cmp-dmg"><span>${money(r.dmg)} dmg</span>${delta}</span>
       <div class="cmp-x">${extra(r, isCur)}</div>
     </div>`;
@@ -2754,7 +2863,8 @@ function gearCompare(kind, A, D, l, bonusApplied){
   /* Scrounged is the fallback, not a choice, so it always goes last */
   const others = pool.filter(k => k !== cur)
     .sort((a, b) => !!SCROUNGED[a] - !!SCROUNGED[b]).map(calc);
-  return `<div class="tip-title">${isW ? "Weapon" : "Armour"} Compare</div>
+  return `<div class="tip-title pin-grip"><span class="tt-wrap">${isW ? "Weapon Compare"
+      : `Armour Compare<span class="tt-aside">(+ attached weapon)</span>`}</span></div>
     <div class="cmp-tag">Equipped</div>
     ${row(now, true)}
     ${others.length ? others.map(r => row(r, false)).join("")
@@ -2776,6 +2886,7 @@ function pinUnit(U){
 }
 
 function dmgPinHTML(A, D, l, bonusApplied){
+  clearTips("pin");
   return `<button class="pin-close" title="Close (Esc)">×</button>
     <div class="pin-cols">
       <div class="pin-col cmp-weapon">${gearCompare("weapon", A, D, l, bonusApplied)}</div>
@@ -4650,6 +4761,8 @@ document.addEventListener("mouseover", e=>{
       d.tipSize !== undefined ? d.tipSize : null, d.tipTrain);
   }
   if (!d.tipLeft || PREFS.plainHover || d.tipKey) tipEl.classList.remove("tip-wide");
+  const bg = tipEl.querySelector("[data-tip-bg]");         // a card can ask for its panel's colour
+  tipEl.style.background = bg ? bg.dataset.tipBg : "";
   tipEl.style.display = "block";
   moveTip(e);
 });
@@ -4720,9 +4833,55 @@ document.addEventListener("click", e=>{
     return;
   }
   if (pinEl.style.display !== "block") return;
-  if (e.target.closest?.(".pin-close") || !pinEl.contains(e.target)) closePin();
+  if (e.target.closest?.(".pin-close")) return closePin();
+  /* a click elsewhere puts the small one away; the expanded one stays
+     until its × or Esc, and the F / G / H helpers never close it */
+  if (!pinEl.contains(e.target) && !pinEl.classList.contains("pin-wide") &&
+      !e.target.closest?.(".ovl")) closePin();
 });
-addEventListener("keydown", e=>{ if (e.key === "Escape" && pinEl.style.display === "block") closePin(); });
+/* Esc closes a helper first if one is open (it claims the key), then this */
+addEventListener("keydown", e=>{
+  if (e.key === "Escape" && !e.defaultPrevented && pinEl.style.display === "block") closePin();
+});
+
+/* drag it anywhere: press on any bare part of it and move. A press that
+   barely moves is still a click, so the buttons and figures keep working. */
+(function dragPin(){
+  let start = null, dx = 0, dy = 0, moved = false;
+  pinEl.addEventListener("pointerdown", e=>{
+    if (e.button !== 0 || e.target.closest(".pin-close,.m1-more")) return;
+    const r = pinEl.getBoundingClientRect();
+    start = {x:e.clientX, y:e.clientY, id:e.pointerId};
+    dx = e.clientX - r.left; dy = e.clientY - r.top; moved = false;
+  });
+  pinEl.addEventListener("pointermove", e=>{
+    if (!start) return;
+    if (!moved){
+      if (Math.abs(e.clientX - start.x) + Math.abs(e.clientY - start.y) < 4) return;
+      moved = true;
+      pinEl.setPointerCapture(start.id);
+      pinEl.classList.add("pin-dragging");
+      tipEl.style.display = "none";
+    }
+    const r = pinEl.getBoundingClientRect();
+    pinEl.style.left = Math.max(4 - r.width + 60, Math.min(e.clientX - dx, innerWidth  - 60)) + "px";
+    pinEl.style.top  = Math.max(4, Math.min(e.clientY - dy, innerHeight - 40)) + "px";
+  });
+  const drop = e=>{
+    if (!start) return;
+    if (moved){
+      try{ pinEl.releasePointerCapture(start.id); }catch(err){}
+      pinEl.classList.remove("pin-dragging");
+      /* the click that ends a drag is not a click on whatever is under it */
+      const eat = ev=>{ ev.stopPropagation(); ev.preventDefault(); };
+      addEventListener("click", eat, true);
+      setTimeout(()=>removeEventListener("click", eat, true), 0);
+    }
+    start = null;
+  };
+  pinEl.addEventListener("pointerup", drop);
+  pinEl.addEventListener("pointercancel", drop);
+})();
 
 /* boot */
 (function checkStorage(){
