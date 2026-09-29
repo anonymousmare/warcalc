@@ -794,6 +794,11 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .slip-cols > div:empty{display:none}
 .slip-gear{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0 28px}
 .slip .gs-got{cursor:help;border-bottom:1px dotted currentColor}
+.slip-gear-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0 3px}
+.slip-gear-head .slip-sub{margin:0}
+.slip-gear-head .bp-btn.txt-btn{font-size:11px}
+.slip-chk{display:inline-flex;align-items:center;gap:5px;margin:0;font-size:11px;color:var(--ink);opacity:.75;cursor:pointer}
+.slip-chk input{width:auto;margin:0}
 /* hover to focus: every ticket sits back until the pointer is on it */
 .gs-focus .slip{filter:brightness(.5) saturate(.55);transition:filter .12s}
 .gs-focus .slip:hover,.gs-focus .slip:has(.slip-pop){filter:none}
@@ -6383,7 +6388,7 @@ const gs = (()=>{
   const obj = v => v && typeof v === "object" && !Array.isArray(v) ? v : {};
   return {stock: obj(o.stock), prod: obj(o.prod), resv: obj(o.resv),
           comps: Array.isArray(o.comps) ? o.comps : [], colors: obj(o.colors), wide: o.wide === true, upx: GS_TICKS,
-          focus: o.focus !== false, chartOff: Array.isArray(o.chartOff) ? o.chartOff : [],
+          focus: o.focus !== false, gearAll: o.gearAll === true, chartOff: Array.isArray(o.chartOff) ? o.chartOff : [],
           reader: Object.assign({res: true}, obj(o.reader))};    // every visit opens on the x6 view
 })();
 const gsSave = () => store.set(LS_GRAND, gs);
@@ -6628,8 +6633,22 @@ function gsGearTotalsHTML(comps){
       `Got ${have.toLocaleString("en-US")} stockpiled`, "gs")}">(${build.toLocaleString("en-US")})</span>` : "";
     return gsRow(`${gearImg(k)} ${esc(gsShort(k))}`, need[k].toLocaleString("en-US") + tip);
   });
-  return rows.length ? `<div class="slip-cut"></div><div class="slip-sub">Equipment</div>
-      <div class="slip-gear">${rows.join("")}</div>` : "";
+  if (!rows.length) return "";
+  /* the builder's build line for the lot — less what the reserves already
+     hold, unless the box says to build everything */
+  const items = GS_GEAR.map(k=>{
+    const n = gs.gearAll ? need[k] || 0 : Math.max(0, (need[k] || 0) - Math.floor(gsNum(gs.resv[k])));
+    return n > 0 ? `${bq(label(k))}:${n}` : "";
+  }).filter(Boolean);
+  const line = items.length ? `build ${items.join(" ")}` : "";
+  return `<div class="slip-cut"></div>
+      <div class="slip-gear-head"><div class="slip-sub">Equipment</div>
+        ${line ? `<button class="bp-btn txt-btn u-builder" title="Copy the army-builder line that builds this gear"
+          data-units-copy="${esc(line)}">Builder Gear Copy</button>`
+          : `<span class="small" style="opacity:.6">all covered by the stockpile</span>`}
+        <label class="slip-chk"><input type="checkbox" data-gs-gearall${gs.gearAll ? " checked" : ""}>
+          Don't account for stockpiled equipment</label></div>
+      <div class="slip-gear">${rows.join("")}</div>`;
 }
 
 /* ---- the reader ----
@@ -6889,6 +6908,12 @@ document.addEventListener("click", e=>{
   renderGrand();
 });
 
+document.addEventListener("change", e=>{
+  if (!e.target.matches?.("[data-gs-gearall]")) return;
+  gs.gearAll = e.target.checked;
+  gsSave();
+  renderGrand();
+});
 gsEl("gsFocus").addEventListener("change", ()=>{
   gs.focus = gsEl("gsFocus").checked;
   gsSave();
