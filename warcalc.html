@@ -206,6 +206,7 @@ body.log-names.log-nums .ref-num{display:inline}
 body.log-names #logNumsWrap{display:inline-flex}
 .log .overkill{color:#e2c760;border-bottom:none}
 .log .overkill b{color:#e2c760}
+body.no-overkill .log .overkill{display:none}
 .ref-atk{color:#f17a77}
 .ref-def{color:#74cae3}
 .ref-size{color:#fff}
@@ -1009,6 +1010,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
     <label class="hk-toggle"><input type="checkbox" data-pref="iconsWA"> Use icons always shows in order of weapon-armour</label>
     <label class="hk-toggle"><input type="checkbox" data-pref="plainHover"> Disable expanded unit-hover view (for damaged units)</label>
     <label class="hk-toggle"><input type="checkbox" data-pref="cardSlash"> Slashes instead of newline for unit card weapon+armor</label>
+    <label class="hk-toggle"><input type="checkbox" data-pref="noOverkill"> Hide overkill damage and unspent hits</label>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:10px;
               border-top:1px solid var(--border-soft)">
@@ -2928,7 +2930,7 @@ const LOG_FULL = new Map();          // remembers the choice across re-renders
 
 /* the settings in the gear drawer; filled from storage at boot */
 let PREFS = {standOpen:false, deathsOpen:false, casOpen:false, logFull:true,
-             iconsWA:false, plainHover:false, cardSlash:false};
+             iconsWA:false, plainHover:false, cardSlash:false, noOverkill:false};
 
 /* an exchange log with no choice made opens full when the setting says so */
 const logIsFull = id => LOG_FULL.has(id) ? LOG_FULL.get(id)
@@ -2963,9 +2965,11 @@ function stallsNote(stalls){
   return stalls.length ? `<div class="note warn"><strong>${stalls.length} matchup(s) did nothing.</strong></div>` : "";
 }
 
-/* damage piled onto units past the point they were wiped out, read off the
-   finished result (simulate() is left exactly as it is). Only the fight that
-   ends the battle — one side wiped — gets the line, and only if there is any. */
+/* damage piled onto units past the point they were wiped out, and the hits
+   each unit still had in hand when it ran out of things to shoot, both read
+   off the finished result (simulate() is left exactly as it is). Only the
+   fight that ends the battle — one side wiped — gets the lines, and only if
+   there is anything to say. */
 function overkillLine(units){
   const all = Object.values(units);
   const wiped = inv => all.filter(u => !!u.attack_mission === inv).every(u => u.dead);
@@ -2973,9 +2977,14 @@ function overkillLine(units){
   const over = inv => round6(all.filter(u => !!u.attack_mission !== inv && u.dead)
     .reduce((s, u) => s + Math.max(0, u.damage - u.size), 0));
   const atk = over(true), def = over(false);          // dealt BY attackers / defenders
-  if (atk <= 0 && def <= 0) return "";
-  return `<div class="overkill">Overkill damage${atk > 0 ? ` — Attackers dealt <b>${fmt(atk)}</b> extra` : ""}${
-    def > 0 ? `${atk > 0 ? " ·" : " —"} Defenders dealt <b>${fmt(def)}</b> extra` : ""}</div>`;
+  const idle = all.filter(u => u.hits > 0);
+  const lines = [];
+  if (atk > 0 || def > 0)
+    lines.push(`Overkill damage${atk > 0 ? ` — Attackers dealt <b>${fmt(atk)}</b> extra` : ""}${
+      def > 0 ? `${atk > 0 ? " ·" : " —"} Defenders dealt <b>${fmt(def)}</b> extra` : ""}`);
+  if (idle.length)
+    lines.push(`Unspent hits — ${idle.map(u => `${unitRef(u)} <b>${u.hits.toLocaleString("en-US")}</b>`).join(" · ")}`);
+  return lines.length ? `<div class="overkill">${lines.join("<br>")}</div>` : "";
 }
 
 function exchangeLogBlock(units, log, bonus, id, ns, tail){
@@ -6056,14 +6065,15 @@ const LS_LOG_OPTS = "warcalc.logOpts";
   });
 }
 /* the settings in the gear drawer. They take hold on the next thing drawn,
-   bar the icon order and the card slashes, which are body classes and so
-   turn over at once */
+   bar the icon order, the card slashes and the overkill line, which are body
+   classes and so turn over at once */
 const LS_PREFS = "warcalc.prefs";
 {
   const o = store.get(LS_PREFS, {}) || {};
   Object.keys(PREFS).forEach(k => { if (typeof o[k] === "boolean") PREFS[k] = o[k]; });
   document.body.classList.toggle("icons-wa", PREFS.iconsWA);
   document.body.classList.toggle("card-slash", PREFS.cardSlash);
+  document.body.classList.toggle("no-overkill", PREFS.noOverkill);
   document.querySelectorAll("[data-pref]").forEach(box=>{
     const k = box.dataset.pref;
     box.checked = !!PREFS[k];
@@ -6072,6 +6082,7 @@ const LS_PREFS = "warcalc.prefs";
       store.set(LS_PREFS, PREFS);
       if (k === "iconsWA") document.body.classList.toggle("icons-wa", box.checked);
       if (k === "cardSlash") document.body.classList.toggle("card-slash", box.checked);
+      if (k === "noOverkill") document.body.classList.toggle("no-overkill", box.checked);
     });
   });
 }
