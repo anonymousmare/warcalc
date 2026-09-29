@@ -115,12 +115,17 @@ tbody tr:last-child{border-bottom:none}
 .col-weapon{width:150px}
 .col-armor{width:130px}
 .col-size{width:72px}
-.col-train{width:50px}
+.col-train{width:44px}
 .force-table .uname{width:100%}
 /* the default training for new rows, tucked beside the unit count */
-.barracks{display:inline-flex;align-items:center;gap:5px;margin:0 0 0 8px;
+.barracks{display:inline-flex;align-items:center;gap:4px;margin:0 0 0 6px;
   font-size:11px;font-weight:400;color:var(--text-dim);text-transform:none;letter-spacing:0}
-.barracks input{width:44px;padding:1px 4px;font-size:11px}
+.barracks input{width:30px;padding:1px 3px;font-size:11px;-moz-appearance:textfield;appearance:textfield}
+.barracks input::-webkit-inner-spin-button,.barracks input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+/* training is two digits at most, so its box drops the spinner and keeps the room */
+.force-table .training{padding-left:4px;padding-right:2px;-moz-appearance:textfield;appearance:textfield}
+.force-table .training::-webkit-inner-spin-button,
+.force-table .training::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .col-del{width:34px}
 
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
@@ -787,6 +792,8 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .slip-wide .slip-name{padding:0}
 .slip-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px 28px}
 .slip-cols > div:empty{display:none}
+.slip-gear{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0 28px}
+.slip .gs-got{cursor:help;border-bottom:1px dotted currentColor}
 /* hover to focus: every ticket sits back until the pointer is on it */
 .gs-focus .slip{filter:brightness(.5) saturate(.55);transition:filter .12s}
 .gs-focus .slip:hover,.gs-focus .slip:has(.slip-pop){filter:none}
@@ -1562,6 +1569,14 @@ let rowSeq = 0;
 /* the Barracks box beside each side's count: the training a new row starts at */
 const barracksOf = side =>
   clampInt(document.querySelector(`[data-barracks="${side}"]`)?.value, 0, 20);
+/* a Barracks level that came in with an import or a preset; anything that is
+   not a level leaves the box as it is */
+function setBarracks(side, n){
+  const el = document.querySelector(`[data-barracks="${side}"]`);
+  if (!el || n == null || n === "" || isNaN(parseInt(n, 10))) return;
+  el.value = clampInt(n, 0, 20);
+  scheduleSave();
+}
 document.querySelectorAll("[data-barracks]").forEach(el=>{
   el.addEventListener("input", ()=>{ if (el.value !== "" && +el.value > 20) el.value = 20; scheduleSave(); });
   el.addEventListener("change", ()=>{ el.value = clampInt(el.value, 0, 20); scheduleSave(); });
@@ -3018,11 +3033,12 @@ function sizeParts(n){
 
 /* built back to front: the last unit goes in first, so the first unit is
    the first one to come back out */
-function encodeArmy(units){
+function encodeArmy(units, barracks){
   const front = (units || []).filter(u => !u.reserve);
   const reinf = (units || []).filter(u =>  u.reserve);
   return encodeStacks(front) + (reinf.length ? "_" + encodeStacks(reinf) : "")
-       + encodeNames(front.concat(reinf));
+       + encodeNames(front.concat(reinf))
+       + (barracks == null ? "" : "~" + clampInt(barracks, 0, 20));   // the side's Barracks level
 }
 
 /* unit names ride after a ".", only when a unit has one: the names in stack
@@ -3060,7 +3076,9 @@ function encodeStacks(units){
 }
 
 function decodeArmy(code){
-  const [stacks, names, more] = String(code).split(".");
+  const [body, brk, tail] = String(code).split("~");
+  if (tail !== undefined || (brk !== undefined && !/^\d{1,2}$/.test(brk))) throw new Error("not a code");
+  const [stacks, names, more] = body.split(".");
   if (more !== undefined) throw new Error("not a code");
   const [front, reinf, extra] = stacks.split("_");
   if (extra !== undefined) throw new Error("not a code");
@@ -3069,6 +3087,7 @@ function decodeArmy(code){
   if (names) decodeNames(names).forEach((n, i) => {
     if (units[i] && n.trim()) units[i].name = n.trim().slice(0, 40);
   });
+  if (brk !== undefined) units.barracks = clampInt(brk, 0, 20);   // rides on the list, not in it
   return units;
 }
 
@@ -3088,18 +3107,19 @@ function decodeStacks(code){
   return out;
 }
 
-const encodeBattle = (atk, def, bonus) =>
-  "+" + encodeArmy(atk) + (bonus === "No" ? "=" : "-") + encodeArmy(def);
+const encodeBattle = (atk, def, bonus, brk) =>
+  "+" + encodeArmy(atk, brk?.attacker) + (bonus === "No" ? "=" : "-") + encodeArmy(def, brk?.defender);
+const barracksBoth = () => ({attacker: barracksOf("attacker"), defender: barracksOf("defender")});
 
-const RE_ARMY_CODE   = /^(?=.)[0-9A-Za-z]*(_[0-9A-Za-z]+)?(\.[0-9A-Za-z]+)?$/;
-const RE_BATTLE_CODE = /^\+([0-9A-Za-z]*(?:_[0-9A-Za-z]+)?(?:\.[0-9A-Za-z]+)?)([-=])([0-9A-Za-z]*(?:_[0-9A-Za-z]+)?(?:\.[0-9A-Za-z]+)?)$/;
+const RE_ARMY_CODE   = /^(?=.)[0-9A-Za-z]*(_[0-9A-Za-z]+)?(\.[0-9A-Za-z]+)?(~\d{1,2})?$/;
+const RE_BATTLE_CODE = /^\+([0-9A-Za-z]*(?:_[0-9A-Za-z]+)?(?:\.[0-9A-Za-z]+)?(?:~\d{1,2})?)([-=])([0-9A-Za-z]*(?:_[0-9A-Za-z]+)?(?:\.[0-9A-Za-z]+)?(?:~\d{1,2})?)$/;
 
 /* null when the text is not a battle code at all */
 function decodeBattle(code){
   const m = RE_BATTLE_CODE.exec(code);
   if (!m) return null;
   try{
-    return {attacker: decodeArmy(m[1] || "0"),
+    return {attacker: decodeArmy(m[1] || "0"),     // each list may carry .barracks
             defender: decodeArmy(m[3] || "0"),
             bonus: m[2] === "=" ? "No" : "Yes"};
   }catch(e){ return null; }
@@ -3227,7 +3247,7 @@ function crunchDiff(want, units){
    query string so the "+" that opens the attackers stays a "+". */
 
 const battleFragment = () => encodeBattle(packSide("attacker"), packSide("defender"),
-                                          document.getElementById("defBonus").value);
+                                          document.getElementById("defBonus").value, barracksBoth());
 const battleLink = () => location.href.split("#")[0] + "#" + battleFragment();
 
 /* takes a whole url, a bare fragment, or a bare battle code */
@@ -3326,6 +3346,7 @@ function loadFromHash(){
 
 /* drop a decoded list onto a side, minding who may field alicorns */
 function addUnits(side, units){
+  setBarracks(side, units?.barracks);
   let skipped = 0;
   (units || []).forEach(u=>{
     if (side === "attacker" && u.type === "Alicorns"){ skipped++; return; }
@@ -3353,14 +3374,18 @@ function parsePresetJSON(text){
   }, typeof u.name === "string" && u.name.trim() ? {name: u.name.trim().slice(0, 40)} : {},
      u.reserve === true ? {reserve:true} : {});
   const units = a => (Array.isArray(a) ? a : []).filter(u => u && typeof u === "object").map(unit);
+  const obj = v => v && typeof v === "object" && !Array.isArray(v) ? v : {};
   if (Array.isArray(data)) return {armies: {"pasted": units(data)}, battles: {}};
   const armies  = data.armyPresets   || (data.kind === "armyPresets"   ? data.presets : null) || {};
   const battles = data.battlePresets || (data.kind === "battlePresets" ? data.presets : null) || {};
   const out = {armies: {}, battles: {}};
-  Object.entries(armies).forEach(([n, v]) => { out.armies[n] = units(v); });
+  const brk = obj(data.armyBarracks);
+  const withBrk = (list, n) => { if (n != null) list.barracks = n; return list; };
+  Object.entries(armies).forEach(([n, v]) => { out.armies[n] = withBrk(units(v), brk[n]); });
   Object.entries(battles).forEach(([n, b]) => {
     if (b && typeof b === "object")
-      out.battles[n] = {attacker: units(b.attacker), defender: units(b.defender), bonus: b.bonus};
+      out.battles[n] = {attacker: withBrk(units(b.attacker), obj(b.barracks).attacker),
+                        defender: withBrk(units(b.defender), obj(b.barracks).defender), bonus: b.bonus};
   });
   if (!Object.keys(out.armies).length && !Object.keys(out.battles).length)
     return {error: "No army or battle presets found in that JSON."};
@@ -3454,6 +3479,17 @@ function importRows(side){
       }
     }
     if (!added){ alert("Nothing matched the expected format. Each unit block must end with a Training: line."); return; }
+    /* the long form opens with the side's Barracks level; a battle's has one
+       a side, and the side being imported to picks its own */
+    const want = side === "attacker" ? "ATTACKERS" : "DEFENDERS";
+    let sect = null, brk = null;
+    lines.forEach(l=>{
+      const h = /^===\s*(ATTACKERS|DEFENDERS)\s*===/i.exec(l.trim());
+      if (h){ sect = h[1].toUpperCase(); return; }
+      const m = /^\s*Barracks:\s*(\d+)/i.exec(l);
+      if (m && (brk === null || sect === want)) brk = m[1];
+    });
+    setBarracks(side, brk);
     ta.value = "";
   } catch(e){
     console.error(e);
@@ -3564,6 +3600,7 @@ const packSide = side => readSide(side).map(u=>Object.assign({
   u.nick ? {name:u.nick} : {}, u.reserve ? {reserve:true} : {}));
 
 function setSide(side, units){
+  setBarracks(side, units?.barracks);
   document.getElementById(side === "attacker" ? "tbodyAttacker" : "tbodyDefender").innerHTML = "";
   (units || []).forEach(u=>{
     if (side === "attacker" && u.type === "Alicorns") return;   // attackers can't field them
@@ -3604,6 +3641,20 @@ function restoreAutosave(){
 
 /* ---- army presets (shared pool, loadable into either side) ---- */
 const getArmies  = () => store.get(LS_ARMY, {});
+/* each army preset's Barracks level, kept beside the presets so the presets
+   themselves stay plain unit lists */
+const LS_ABRK = "warcalc.armyBarracks";
+const getArmyBarracks = () => { const m = store.get(LS_ABRK, {}); return m && typeof m === "object" ? m : {}; };
+function setArmyBarracks(name, n, rename){
+  const m = getArmyBarracks();
+  if (rename !== undefined){ if (name in m) m[rename] = m[name]; delete m[name]; }
+  else if (n == null) delete m[name];
+  else m[name] = clampInt(n, 0, 20);
+  store.set(LS_ABRK, m);
+}
+/* the levels for a set of army presets, for an export */
+const barracksFor = names => Object.fromEntries(Object.entries(getArmyBarracks())
+  .filter(([n]) => names.includes(n)));
 const getBattles = () => store.get(LS_BATL, {});
 const getMarks   = () => { const m = store.get(LS_MARK, []); return Array.isArray(m) ? m : []; };
 const setMarks   = m => store.set(LS_MARK, m);
@@ -3680,6 +3731,7 @@ function saveArmyPreset(side){
   if (all[name] && !confirm(`Overwrite "${name}"?`)) return;
   all[name] = units;
   if (!store.set(LS_ARMY, all)) alert("Could not save — this browser is blocking local storage.");
+  setArmyBarracks(name, barracksOf(side));
   refreshPresetSelects();
   document.querySelectorAll("[data-ap-sel]").forEach(sel=>{ sel.value = name; });
   renderMarks();
@@ -3691,6 +3743,7 @@ function loadArmyPreset(side){
   if (!name){ alert("Pick a preset first."); return; }
   const units = getArmies()[name];
   if (!units) return;
+  setBarracks(side, getArmyBarracks()[name]);
   setSide(side, units);
 }
 
@@ -3707,6 +3760,7 @@ function updateArmyPreset(side, btn){
   if (!confirm(`Update army preset "${name}" with the current ${sideWord}? The saved version is replaced.`)) return;
   all[name] = units;
   if (!store.set(LS_ARMY, all)){ alert("Could not save \u2014 this browser is blocking local storage."); return; }
+  setArmyBarracks(name, barracksOf(side));
   flashOk(btn, "Updated");
 }
 
@@ -3719,6 +3773,7 @@ function deleteArmyPreset(side){
   const all = getArmies();
   delete all[name];
   store.set(LS_ARMY, all);
+  setArmyBarracks(name, null);
   setMarks(getMarks().filter(n => n !== name));
   refreshPresetSelects();
 }
@@ -3735,6 +3790,7 @@ function renameArmyPreset(side){
   all[next] = all[name];
   delete all[name];
   if (!store.set(LS_ARMY, all)){ alert("Could not save — this browser is blocking local storage."); return; }
+  setArmyBarracks(name, null, next);
   const marks = getMarks();
   const i = marks.indexOf(name);
   if (i >= 0){ marks[i] = next; setMarks(marks); }
@@ -3750,7 +3806,7 @@ function saveBattlePreset(){
   const all = getBattles();
   if (all[name] && !confirm(`Overwrite "${name}"?`)) return;
   all[name] = {attacker: packSide("attacker"), defender: packSide("defender"),
-               bonus: document.getElementById("defBonus").value};
+               bonus: document.getElementById("defBonus").value, barracks: barracksBoth()};
   if (!store.set(LS_BATL, all)) alert("Could not save — this browser is blocking local storage.");
   refreshPresetSelects();
   document.getElementById("bpSel").value = name;
@@ -3761,6 +3817,8 @@ function loadBattlePreset(){
   if (!name){ alert("Pick a battle first."); return; }
   const b = getBattles()[name];
   if (!b) return;
+  setBarracks("attacker", b.barracks?.attacker);
+  setBarracks("defender", b.barracks?.defender);
   setSide("attacker", b.attacker);
   setSide("defender", b.defender);
   if (b.bonus) document.getElementById("defBonus").value = b.bonus;
@@ -3774,7 +3832,7 @@ function updateBattlePreset(btn){
   if (!all[name]) return;
   if (!confirm(`Update battle preset "${name}" with the current battle? The saved version is replaced.`)) return;
   all[name] = {attacker: packSide("attacker"), defender: packSide("defender"),
-               bonus: document.getElementById("defBonus").value};
+               bonus: document.getElementById("defBonus").value, barracks: barracksBoth()};
   if (!store.set(LS_BATL, all)){ alert("Could not save \u2014 this browser is blocking local storage."); return; }
   flashOk(btn, "Updated");
 }
@@ -3840,7 +3898,8 @@ async function copyText(text){
 async function copyComposition(side, btn, longForm){
   const units = packSide(side);
   if (!units.length){ alert("Nothing to copy — that side is empty."); return; }
-  const text = longForm ? compText(units) : encodeArmy(units);
+  const text = longForm ? `Barracks: ${barracksOf(side)}\n\n${compText(units)}`
+                        : encodeArmy(units, barracksOf(side));
   if (await copyText(text)) flashOk(btn, "Copied");
   else alert("This browser would not let the page reach the clipboard.");
 }
@@ -3850,8 +3909,9 @@ async function copyBattleCode(btn, longForm){
   if (!atk.length && !def.length){ alert("Nothing to copy — both sides are empty."); return; }
   const bonus = document.getElementById("defBonus").value;
   const text = longForm
-    ? `=== ATTACKERS ===\n\n${compText(atk)}\n\n=== DEFENDERS ===\n\n${compText(def)}`
-    : encodeBattle(atk, def, bonus);
+    ? `=== ATTACKERS ===\n\nBarracks: ${barracksOf("attacker")}\n\n${compText(atk)}\n\n`
+      + `=== DEFENDERS ===\n\nBarracks: ${barracksOf("defender")}\n\n${compText(def)}`
+    : encodeBattle(atk, def, bonus, barracksBoth());
   if (await copyText(text)) flashOk(btn, "Copied");
   else alert("This browser would not let the page reach the clipboard.");
 }
@@ -3888,13 +3948,14 @@ function exportArmyComposition(side){
   const name = (prompt("Name this army composition:",
     sel && sel.value ? sel.value : (side === "attacker" ? "attackers" : "defenders")) || "").trim();
   if (!name) return;
-  downloadJSON({kind:"armyPresets", armyPresets:{[name]: units}},
+  downloadJSON({kind:"armyPresets", armyPresets:{[name]: units},
+                armyBarracks:{[name]: barracksOf(side)}},
                `warcalc-army-${safeFile(name)}-${stamp()}.json`);
 }
 
 function exportBattle(){
   const battle = {attacker: packSide("attacker"), defender: packSide("defender"),
-                  bonus: document.getElementById("defBonus").value};
+                  bonus: document.getElementById("defBonus").value, barracks: barracksBoth()};
   if (!battle.attacker.length && !battle.defender.length){
     alert("Nothing to export — both sides are empty."); return;
   }
@@ -3911,6 +3972,7 @@ function deleteAllArmyPresets(){
   if (!n){ alert("There are no army presets to delete."); return; }
   if (!confirm(`Delete all ${n} army preset${n === 1 ? "" : "s"}? This cannot be undone.`)) return;
   store.set(LS_ARMY, {});
+  store.set(LS_ABRK, {});
   setMarks([]);
   refreshPresetSelects();
 }
@@ -3939,6 +4001,8 @@ function importJSON(text){
       let name = n;
       while (all[name] && JSON.stringify(all[name]) !== JSON.stringify(v)) name += " (imported)";
       all[name] = v; added++;
+      const brk = data.armyBarracks && data.armyBarracks[n];
+      if (brk != null) setArmyBarracks(name, brk);
     });
     store.set(LS_ARMY, all);
   }
@@ -4039,11 +4103,13 @@ toolsBtn.addEventListener("click", ()=>{
 });
 
 document.getElementById("expArmies").addEventListener("click", ()=>
-  downloadJSON({kind:"armyPresets", armyPresets:getArmies()}, `warcalc-armies-${stamp()}.json`));
+  downloadJSON({kind:"armyPresets", armyPresets:getArmies(),
+                armyBarracks:barracksFor(Object.keys(getArmies()))}, `warcalc-armies-${stamp()}.json`));
 document.getElementById("expBattles").addEventListener("click", ()=>
   downloadJSON({kind:"battlePresets", battlePresets:getBattles()}, `warcalc-battles-${stamp()}.json`));
 document.getElementById("expAll").addEventListener("click", ()=>
-  downloadJSON({kind:"warcalcPresets", armyPresets:getArmies(), battlePresets:getBattles()},
+  downloadJSON({kind:"warcalcPresets", armyPresets:getArmies(),
+                armyBarracks:barracksFor(Object.keys(getArmies())), battlePresets:getBattles()},
                `warcalc-presets-${stamp()}.json`));
 
 document.getElementById("impBtn").addEventListener("click", ()=>
@@ -4062,7 +4128,7 @@ document.getElementById("delAllBattles").addEventListener("click", deleteAllBatt
 
 document.getElementById("wipeSaves").addEventListener("click", ()=>{
   if (!confirm("Delete the autosave and every saved preset in this browser? This cannot be undone.")) return;
-  [LS_KEY, LS_ARMY, LS_BATL, LS_MARK].forEach(k=>store.del(k));
+  [LS_KEY, LS_ARMY, LS_BATL, LS_MARK, LS_ABRK].forEach(k=>store.del(k));
   refreshPresetSelects();
   alert("Cleared.");
 });
@@ -6543,7 +6609,26 @@ function gsTotal(comps, bills, t){
         <div>${gsStockHTML(t)}</div>
         <div>${gsUpkeepHTML(t)}</div>
       </div>
+      ${gsGearTotalsHTML(comps)}
     </div>`;
+}
+
+/* every piece of gear the picked armies carry, all told; with some of it in
+   the reserve stockpile, the part still to build follows in brackets */
+function gsGearTotalsHTML(comps){
+  const need = {};
+  comps.forEach(c => c.units.forEach(u => [u.weapon, u.armor].forEach(k=>{
+    if (k && !SCROUNGED[k]) need[k] = (need[k] || 0) + gsNum(u.size);
+  })));
+  const rows = GS_GEAR.filter(k => need[k] > 0).map(k=>{
+    const have = Math.floor(gsNum(gs.resv[k]));
+    const build = Math.max(0, need[k] - have);
+    const tip = have > 0 ? ` <span class="pc gs-got" data-tip-key="${regTip(
+      `Got ${have.toLocaleString("en-US")} stockpiled`, "gs")}">(${build.toLocaleString("en-US")})</span>` : "";
+    return gsRow(`${gearImg(k)} ${esc(gsShort(k))}`, need[k].toLocaleString("en-US") + tip);
+  });
+  return rows.length ? `<div class="slip-cut"></div><div class="slip-sub">Equipment</div>
+      <div class="slip-gear">${rows.join("")}</div>` : "";
 }
 
 /* ---- the reader ----
