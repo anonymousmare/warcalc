@@ -1730,6 +1730,20 @@ const BIT = "฿";
 
 const money = n => Math.round(n).toLocaleString("en-US");
 
+/* a big bits figure cut down to three figures, always rounded up:
+   300k, 99.5mil, 1.17bil */
+function shortBits(n){
+  const a = Math.abs(n), sign = n < 0 ? "−" : "";
+  for (const [u, suf] of [[1e9, "bil"], [1e6, "mil"], [1e3, "k"]]){
+    if (a < u) continue;
+    const x = a / u, dec = x >= 100 ? 0 : x >= 10 ? 1 : 2;
+    const y = Math.ceil(x * 10 ** dec - 1e-9) / 10 ** dec;
+    if (y >= 1000 && u < 1e9) return sign + shortBits(u * 1000);   // 999.6k rounds up to 1mil
+    return sign + String(+y.toFixed(dec)) + suf;
+  }
+  return sign + money(a);
+}
+
 const RESOURCES = {
   copper:    {name:"Copper",          icon:"https://i.imgur.com/TWh8Vg9.png"},
   tungsten:  {name:"Tungsten",        icon:"https://i.imgur.com/1c5PwQO.png"},
@@ -2906,6 +2920,8 @@ function gearCompare(kind, A, D, l, bonusApplied){
     ? `<span class="cx-chip ${good(res[k]) ? "cmp-up" : "cmp-down"}">${resIcon(k)}${sgn(res[k])}${
         act ? `<span class="cx-act">(${money(act[k] || 0)})</span>` : ""}</span>`
     : `<span class="cx-chip">${resIcon(k)}${money(res[k])}</span>`, tip(k))).join("");
+  /* the bits figure's own amount, short, in the grey brackets */
+  const actBits = v => `<span class="cx-act">(${shortBits(v)})</span>`;
   const line = (k, html, cls, res) => `<div class="${cls || ""}"><div class="cx-line"><span class="cx-k">${k}</span>${html}</div>${
     res ? `<div class="cx-res">${res}</div>` : ""}</div>`;
 
@@ -2929,8 +2945,8 @@ function gearCompare(kind, A, D, l, bonusApplied){
     const kitB = r.bits - now.bits, kitR = resSub(r.res, now.res);
     const lossB = L.bits - nowLoss.bits, lossR = resSub(L.res, nowLoss.res);
     if (isW) return line("kills", signed(L.k - nowLoss.k, more, tipWKills(r)) + troops) +
-      line("", signed(lossB, more, tipWorth(r, null)), "", chips(lossR, more, k => tipWorth(r, k), L.res));
-    return line("net", signed(lossB, less, tipNet(r, null)), "", chips(lossR, less, k => tipNet(r, k), L.res));
+      line("", signed(lossB, more, tipWorth(r, null)) + actBits(L.bits), "", chips(lossR, more, k => tipWorth(r, k), L.res));
+    return line("net", signed(lossB, less, tipNet(r, null)) + actBits(L.bits), "", chips(lossR, less, k => tipNet(r, k), L.res));
   };
 
   /* ---- armour: the stack sized to the hits. One that falls could be
@@ -2994,7 +3010,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
     const xr = RES_ORDER.reduce((o, k)=>{ const v = plan(r, E, k); if (v) o[k] = v; return o; }, {});
     return `<div class="sz${word === "skim" ? " sz-skim" : word === "raise" ? " sz-raise" : " sz-par"}"><div class="sz-k"><span class="${cls}">${word}</span>
         <b class="sz-n ${cls}">${E ? (E > 0 ? "+" : "−") + money(Math.abs(E)) : "±0"}</b><span class="cx-act sz-act">(${money(S + E)})</span></div>
-      <div class="sz-v"><div class="cx-line">${signed(plan(r, E, null), less, tipPlan(r, E, kind, null))}</div>
+      <div class="sz-v"><div class="cx-line">${signed(plan(r, E, null), less, tipPlan(r, E, kind, null))}${actBits((S + E) * perLoss(r.key, null))}</div>
         <div class="cx-res">${chips(xr, less, k => tipPlan(r, E, kind, k), stackRes(S + E, k => perLoss(r.key, k)))}${
           upkChips(E, less, S + E)}</div></div></div>`;
   };
@@ -3037,7 +3053,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
     const X = A.size + E;                      // the swinging stack, resized
     return `<div class="sz${kind === "raise" ? " sz-raise" : " sz-par"}"><div class="sz-k"><span class="${cls}">${kind}</span>
         <b class="sz-n ${cls}">${E ? (up ? "+" : "−") + money(Math.abs(E)) : "±0"}</b><span class="cx-act sz-act">(${money(X)})</span></div>
-      <div class="sz-v"><div class="cx-line">${signed(planW(r, E, null), less, tipWPlan(r, E, null, kind))}</div>
+      <div class="sz-v"><div class="cx-line">${signed(planW(r, E, null), less, tipWPlan(r, E, null, kind))}${actBits(X * perA(r.key, null))}</div>
         <div class="cx-res">${chips(xr, less, k => tipWPlan(r, E, k, kind), stackRes(X, k => perA(r.key, k)))}${
           upkChips(E, less, X, upkA)}</div></div></div>`;
   };
