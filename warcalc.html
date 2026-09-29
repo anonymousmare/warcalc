@@ -326,7 +326,7 @@ body.log-icons .gear-ic{display:inline-flex}
 .tick-divider{
   display:flex;align-items:center;gap:14px;
   margin:30px 0;color:rgba(255,255,255,.78);
-  font-size:15px;line-height:14px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;
+  font-size:21px;line-height:14px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
   list-style:none;cursor:pointer;
 }
 .tick-divider::-webkit-details-marker{display:none}
@@ -2690,10 +2690,9 @@ function chainBattles(atkRows, defRows, bonus){
   return {ticks, stop, error};
 }
 
-/* how many troops each side lost, for the Deaths heading */
+/* how many troops both sides lost, for the Deaths heading */
 const diedCount = (a, d) =>
-  `<span class="cost-n"><b>${(a.troops + d.troops).toLocaleString("en-US")}</b> troop${a.troops + d.troops === 1 ? "" : "s"} died
-    <span class="ref-atk">${a.troops.toLocaleString("en-US")}</span> / <span class="ref-def">${d.troops.toLocaleString("en-US")}</span></span>`;
+  `<span class="cost-n"><b>${(a.troops + d.troops).toLocaleString("en-US")}</b> troop${a.troops + d.troops === 1 ? "" : "s"} died</span>`;
 
 /* how many troops a side still has standing, for the Total standing heading */
 const leftCount = n =>
