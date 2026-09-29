@@ -3489,6 +3489,15 @@ function importRows(side){
                   training: parseInt(lines[i].split(":")[1].trim(),10)};
         }
         unit.training = Math.min(20, Math.max(0, unit.training || 0));
+        /* the line above the type is the unit's own name, as the game's
+           army page copies out; group headings sit apart, each followed by
+           an "Owned by" line, so they never land here. warcalc's own long
+           form puts a Type_Weapon_Armor key there instead — not a name. */
+        const nl = (lines[i - (unit.type === "Alicorns" ? 3 : 5)] || "").trim();
+        if (nl && !/^(Owned by |===|(Size|Training|Name|Reinforcement|Barracks):)/i.test(nl)
+            && nl !== `${unit.type}_${unit.weapon}_${unit.armor}`
+            && nl.replace(/^\d+_/, "") !== `${unit.weapon}_${unit.armor}`)
+          unit.name = nl.replace(/\s+/g, " ").slice(0, 50);
         /* the optional tail lines, in either order */
         for (let j = i + 1; j <= i + 2 && j < lines.length; j++){
           const nm = /^\s*Name:\s*(.*)$/i.exec(lines[j]);
