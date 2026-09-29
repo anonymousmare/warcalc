@@ -345,19 +345,12 @@ body.log-icons .gear-ic{display:inline-flex}
 .tick-divider .reinf{font-size:11px;letter-spacing:.06em;text-transform:none;font-weight:600;color:#e2c760}
 .chain-wrap:first-of-type > .tick-divider{margin-top:14px}
 .chain-wrap:not([open]) > .tick-divider{margin-bottom:0}
-/* each tick's rule and number wear that tick's colour; folded, a darker shade of it */
-.chain-wrap.tone-a{--tone:226,199,96}
-.chain-wrap.tone-b{--tone:92,168,226}
-.chain-wrap.tone-c{--tone:162,116,226}
-.chain-wrap > .tick-divider{color:rgb(var(--tone))}
-.chain-wrap > .tick-divider::before,.chain-wrap > .tick-divider::after{background:rgba(var(--tone),.5)}
-.chain-wrap > .tick-divider .caret{color:rgba(var(--tone),.7)}
-.chain-wrap > .tick-divider:hover{color:rgb(var(--tone));filter:brightness(1.2)}
-.chain-wrap:not([open]) > .tick-divider{color:rgba(var(--tone),.42)}
+/* a folded tick's rule and number go dark */
+.chain-wrap:not([open]) > .tick-divider{color:rgba(255,255,255,.34)}
 .chain-wrap:not([open]) > .tick-divider::before,
-.chain-wrap:not([open]) > .tick-divider::after{background:rgba(var(--tone),.22)}
-.chain-wrap:not([open]) > .tick-divider .caret{color:rgba(var(--tone),.42)}
-.chain-wrap:not([open]) > .tick-divider:hover{color:rgba(var(--tone),.65);filter:none}
+.chain-wrap:not([open]) > .tick-divider::after{background:rgba(255,255,255,.14)}
+.chain-wrap:not([open]) > .tick-divider .caret{color:rgba(255,255,255,.34)}
+.chain-wrap:not([open]) > .tick-divider:hover{color:rgba(255,255,255,.6)}
 /* the closing rule after the last tick is a marker only, not a fold */
 .tick-divider.tick-end{cursor:default;margin-bottom:22px}
 .tick-divider.tick-end:hover{color:rgba(255,255,255,.78)}
@@ -2728,7 +2721,7 @@ function chainTickBlock(k, cum){
   const n = k.tick + 1;                             // the shown battle is tick 1
   const r = k.res;
   const all = Object.values(r.units);
-  return `<details class="chain-wrap ${TICK_TONES[(k.tick - 1) % TICK_TONES.length]}" id="chainTick${n}" open>
+  return `<details class="chain-wrap" id="chainTick${n}" open>
     <summary class="tick-divider"><span class="caret"></span>Tick ${n}${n === 2 && reserveCount()
       ? `<span class="reinf">+${reserveCount()} reinforcement${reserveCount() === 1 ? "" : "s"}</span>` : ""}</summary>
     <div class="chain-tick ${TICK_TONES[(k.tick - 1) % TICK_TONES.length]}">
