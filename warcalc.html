@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Warcalc 1.6 — CLOP</title>
+<title>Warcalc 1.65 — CLOP</title>
 <style>
 :root{
   --bg:#272b30;
@@ -654,7 +654,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
   background:var(--sunken);border:1px solid var(--border-soft);border-radius:4px;padding:3px 4px 3px 6px;
 }
 .gs-in input,.gs-ritem input{
-  width:86px;padding:2px 4px;font-size:12px;text-align:right;
+  width:104px;padding:2px 4px;font-size:12px;text-align:right;
   font-family:"SFMono-Regular",Menlo,Consolas,monospace;
 }
 .gs-bit{display:inline-block;width:16px;text-align:center;color:#fff;font-weight:600;font-size:13px;line-height:16px}
@@ -679,11 +679,18 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .gs-rgrp{display:flex;gap:8px;align-items:flex-start;padding:4px 0;border-top:1px solid rgba(0,0,0,.35)}
 .gs-rgrp:first-child{border-top:none}
 .gs-rgrp > .gs-rtype{flex:0 0 66px;font-size:12px;font-weight:600;padding-top:3px}
-.gs-ritems{display:flex;flex-wrap:wrap;gap:4px 12px;flex:1 1 auto}
-.gs-ritem{display:inline-flex;align-items:center;gap:5px;margin:0;font-size:12px;color:var(--text)}
+/* fixed-width cells so the columns line up group to group, a faint rule between them */
+.gs-ritems{display:grid;grid-template-columns:repeat(auto-fill,226px);gap:4px 0;flex:1 1 auto}
+.gs-ritem{display:inline-flex;align-items:center;gap:5px;margin:0;font-size:12px;color:var(--text);
+  padding:0 9px;border-left:1px solid rgba(0,0,0,.4)}
 .gs-ritem .gear-img{flex:0 0 32px}
-.gs-ritem .g-name{width:112px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.gs-ritem input{width:62px}
+.gs-ritem .g-name{flex:1 1 auto;min-width:0;text-align:right;font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gs-ritem input{width:70px;flex:0 0 auto}
+
+.gs-io{display:flex;gap:5px;margin-top:8px}
+.gs-io-text{width:100%;min-height:260px;resize:vertical;box-sizing:border-box;
+  font:12px/1.5 "SFMono-Regular",Menlo,Consolas,monospace}
 
 .gs-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding-bottom:10px;margin-bottom:12px;
   border-bottom:1px solid var(--border-soft)}
@@ -735,13 +742,13 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .slip-u2 .g{display:flex;align-items:center;gap:4px;min-width:0}
 .slip-u2 .g.none{opacity:.45}
 .slip-u2 .gn{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.slip-u2 .gear-img{flex:0 0 32px}
+.slip .gear-img{flex:0 0 auto;width:auto;max-width:32px}
+.slip-u2 .g{gap:3px}
 .slip-u2 .g.none .gear-img{display:none}
 .slip-l{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:1px 0}
 .slip-l > span:first-child{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;display:inline-flex;align-items:center;gap:5px;
   min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .slip-l .v{text-align:right;white-space:nowrap}
-.slip-l .gear-img{flex:0 0 32px}
 .slip-tot{font-weight:700;font-size:13px;margin:2px 0 3px;padding:3px 0;color:#fff;
   border-top:1px solid color-mix(in srgb,var(--ink) 22%,transparent);
   border-bottom:1px solid color-mix(in srgb,var(--ink) 22%,transparent)}
@@ -764,12 +771,40 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .slip-wide .slip-name{padding:0}
 .slip-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px 28px}
 .slip-cols > div:empty{display:none}
+/* hover to focus: every ticket sits back until the pointer is on it */
+.gs-focus .slip{filter:brightness(.5) saturate(.55);transition:filter .12s}
+.gs-focus .slip:hover,.gs-focus .slip:has(.slip-pop){filter:none}
+
+/* who eats what: one 100% bar per resource, split by army */
+.gs-chart:empty{display:none}
+.gs-chart{margin-bottom:24px}
+.gs-chart-bar{display:flex;gap:4px 10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.gs-rtog{display:inline-flex;align-items:center;gap:4px;padding:3px 6px;cursor:pointer;
+  background:var(--sunken);border:1px solid var(--border-soft);border-radius:4px;color:var(--text);font-size:11px}
+.gs-rtog:hover{border-color:var(--text-dim)}
+.gs-rtog.off{opacity:.35}
+.gs-rtog .up{font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em}
+.gs-legend{display:flex;gap:4px 14px;flex-wrap:wrap;font-size:12px;margin-bottom:10px}
+.gs-legend span{display:inline-flex;align-items:center;gap:5px}
+.gs-legend i{width:10px;height:10px;border-radius:2px;display:inline-block}
+.gs-crow{display:grid;grid-template-columns:210px 1fr;gap:12px;align-items:center;padding:3px 0}
+.gs-crow.all{padding-bottom:9px;margin-bottom:5px;border-bottom:1px solid var(--border-soft)}
+.gs-clab{display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap;overflow:hidden}
+.gs-clab .v{margin-left:auto;color:var(--text-dim);font:11px "SFMono-Regular",Menlo,Consolas,monospace}
+.gs-cbar{display:flex;gap:2px;height:20px}
+.gs-seg{min-width:3px;border-radius:2px;display:flex;align-items:center;justify-content:center;overflow:hidden;
+  font:600 10px/1 "SFMono-Regular",Menlo,Consolas,monospace;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.6)}
+.gs-seg:first-child{border-radius:4px 2px 2px 4px}
+.gs-seg:last-child{border-radius:2px 4px 4px 2px}
+.gs-seg:only-child{border-radius:4px}
+.gs-seg:hover{filter:brightness(1.2)}
+@media (max-width:700px){.gs-crow{grid-template-columns:1fr;gap:3px}}
 </style>
 </head>
 <body>
 
 <div class="tabstrip">
-  <span class="tab-brand">Warcalc 1.6<button class="caret-btn" id="btnTools"
+  <span class="tab-brand">Warcalc 1.65<button class="caret-btn" id="btnTools"
     title="Import / export presets" aria-expanded="false">›</button></span>
   <button class="tab active" data-tab="battle">Battle</button>
   <button class="tab" data-tab="counter">Counters</button>
@@ -1119,6 +1154,10 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
     <div>
       <div class="gs-h">Stockpile</div>
       <div class="gs-inputs" id="gsStock"></div>
+      <div class="gs-io">
+        <button type="button" class="btn btn-xs" id="gsExport">Export</button>
+        <button type="button" class="btn btn-xs" id="gsImport">Import</button>
+      </div>
     </div>
     <div>
       <div class="gs-h">Production / turn</div>
@@ -1140,11 +1179,13 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
       <div class="gs-comps" id="gsComps"></div>
       <span class="spacer"></span>
       <label class="hk-toggle" for="gsWide"><input type="checkbox" id="gsWide"> Full width</label>
+      <label class="hk-toggle" for="gsFocus"><input type="checkbox" id="gsFocus"> Hover to focus</label>
     </div>
     <div id="gsOut"></div>
   </div>
 
   <div class="gs-total" id="gsTotal"></div>
+  <div class="panel gs-chart" id="gsChart"></div>
 </div>
 
 <div id="tip"></div>
@@ -6144,9 +6185,9 @@ fillCounterTypes();
 
 const LS_GRAND = "warcalc.grand";
 const GS_TICKS = 6;                                   // turns produced per war tick
-const GS_STOCK = ["apples","coffee","gems","copper","composites","machinery",
+const GS_STOCK = ["apples","coffee","gems","gasoline","copper","composites","machinery",
                   "vehicle","precision","plastics","tungsten","bits"];
-const GS_PROD  = ["apples","coffee","gems","gasoline","bits","copper"];
+const GS_PROD  = ["apples","coffee","gems","gasoline","bits"];
 const GS_STRIP = ["apples","coffee","gems","gasoline"];
 const GS_COST  = ["bits","copper","tungsten","plastics","machinery","vehicle","precision","composites"];
 const GS_UPKEEP = ["apples","coffee","gems","gasoline"];
@@ -6157,21 +6198,41 @@ const gs = (()=>{
   const o = s && typeof s === "object" ? s : {};
   const obj = v => v && typeof v === "object" && !Array.isArray(v) ? v : {};
   return {stock: obj(o.stock), prod: obj(o.prod), resv: obj(o.resv),
-          comps: Array.isArray(o.comps) ? o.comps : [], colors: obj(o.colors), wide: o.wide === true, upx: GS_TICKS};    // every visit opens on the x6 view
+          comps: Array.isArray(o.comps) ? o.comps : [], colors: obj(o.colors), wide: o.wide === true, upx: GS_TICKS,
+          focus: o.focus !== false, chartOff: Array.isArray(o.chartOff) ? o.chartOff : []};    // every visit opens on the x6 view
 })();
 const gsSave = () => store.set(LS_GRAND, gs);
-const gsNum  = v => Math.max(0, Number(v) || 0);
+const gsNum  = v => Math.max(0, Number(String(v ?? "").replace(/,/g, "")) || 0);
 const gsEl   = id => document.getElementById(id);
 
 const gsIcon = k => k === "bits"
   ? `<span class="gs-bit" title="Bits">${BIT}</span>` : resIcon(k);
 const gsName = k => k === "bits" ? "Bits" : (RESOURCES[k]?.name || k);
 const gsFmt  = n => (Math.round(n * 100) / 100).toLocaleString("en-US");
+const gsVal  = v => v ? gsFmt(v) : "";
+
+/* the number boxes carry thousands commas; they are put back as you type,
+   keeping the caret after the same digit */
+function gsCommas(el){
+  const raw = el.value, at = el.selectionStart ?? raw.length;
+  const digitsBefore = raw.slice(0, at).replace(/[^\d.]/g, "").length;
+  let clean = raw.replace(/[^\d.]/g, "");
+  const dot = clean.indexOf(".");
+  if (dot >= 0) clean = clean.slice(0, dot + 1) + clean.slice(dot + 1).replace(/\./g, "");
+  const [whole, frac] = clean.split(".");
+  const out = (whole ? Number(whole).toLocaleString("en-US") : (frac != null ? "0" : "")) +
+              (frac != null ? "." + frac : "");
+  if (out === raw) return;
+  el.value = out;
+  let seen = 0, pos = 0;
+  while (pos < out.length && seen < digitsBefore){ if (/[\d.]/.test(out[pos])) seen++; pos++; }
+  try{ el.setSelectionRange(pos, pos); }catch(e){}
+}
 
 function gsInputs(boxId, bucket, keys){
   gsEl(boxId).innerHTML = keys.map(k=>`<label class="gs-in" title="${esc(gsName(k))}">${gsIcon(k)}
-      <input type="number" min="0" step="any" data-gs-bucket="${bucket}" data-gs-key="${k}"
-        value="${gs[bucket][k] ? esc(gs[bucket][k]) : ""}" placeholder="0"></label>`).join("");
+      <input type="text" inputmode="decimal" autocomplete="off" data-gs-bucket="${bucket}" data-gs-key="${k}"
+        value="${gsVal(gs[bucket][k])}" placeholder="0"></label>`).join("");
 }
 
 function gsStrip(){
@@ -6184,9 +6245,9 @@ function gsReserves(){
     const items = g.gear.filter(k => kind === "weapon" ? k in WEAPON_COST : k in ARMOR_COST);
     return `<div class="gs-rgrp"><span class="gs-rtype t-${g.type.toLowerCase()}">${esc(g.type)}</span>
       <div class="gs-ritems">${items.map(k=>`<label class="gs-ritem">${gearImg(k)}
-        <span class="g-name">${esc(label(k))}</span>
-        <input type="number" min="0" step="1" data-gs-bucket="resv" data-gs-key="${esc(k)}"
-          value="${gs.resv[k] ? esc(gs.resv[k]) : ""}" placeholder="0"></label>`).join("")}</div></div>`;
+        <span class="g-name t-${g.type.toLowerCase()}">${esc(label(k))}</span>
+        <input type="text" inputmode="numeric" autocomplete="off" data-gs-bucket="resv" data-gs-key="${esc(k)}"
+          value="${gsVal(gs.resv[k])}" placeholder="0"></label>`).join("")}</div></div>`;
   }).join("");
   gsEl("gsResW").innerHTML = col("weapon");
   gsEl("gsResA").innerHTML = col("armor");
@@ -6367,6 +6428,145 @@ function gsTotal(comps, bills, t){
     </div>`;
 }
 
+/* ---- who eats what ----
+   one 100% bar per resource, split by army, with an overall bar that
+   averages each army's share over the resources switched on */
+const GS_SERIES = ["#3987e5","#d95926","#199e70","#c98500","#d55181","#008300","#9085e9","#e66767"];
+const GS_OTHER  = "#6b6f75";
+const GS_CHART  = GS_COST.map(k => ({id: k, k, up: false}))
+  .concat(GS_UPKEEP.map(k => ({id: "up:" + k, k, up: true})));
+
+function gsChart(comps, bills){
+  if (comps.length < 2) return "";
+  /* colour follows the army's place in the pick order; past eight they share an "Other" */
+  const series = comps.slice(0, 8).map((c, i) => ({name: c.name, color: GS_SERIES[i], idx: [i]}));
+  if (comps.length > 8) series.push({name: `Other (${comps.length - 8})`, color: GS_OTHER,
+    idx: comps.slice(8).map((_, j) => j + 8)});
+  const amt = (r, i) => (r.up ? bills[i].upkeep[r.k] : bills[i].res[r.k]) || 0;
+  const live = GS_CHART.filter(r => bills.some((_, i) => amt(r, i) > 0));
+  if (!live.length) return "";
+  const on = live.filter(r => !gs.chartOff.includes(r.id));
+
+  const rows = on.map(r=>{
+    const vals = series.map(s => s.idx.reduce((a, i) => a + amt(r, i), 0));
+    const tot = vals.reduce((a, b) => a + b, 0);
+    return {r, vals, tot, shares: vals.map(v => tot ? v / tot : 0)};
+  });
+  const overall = series.map((_, j) => rows.length ? rows.reduce((a, row) => a + row.shares[j], 0) / rows.length : 0);
+
+  const bar = (shares, tipFor) => `<div class="gs-cbar">${series.map((s, j)=>{
+    const p = shares[j];
+    if (!(p > 0)) return "";
+    const pc = p * 100;
+    const txt = pc >= 7 ? (pc < 1 ? "<1" : Math.round(pc)) + "%" : "";
+    return `<div class="gs-seg" style="flex:${p} 1 0;background:${s.color}" data-tip-key="${regTip(tipFor(s, j, pc), "gs")}">${txt}</div>`;
+  }).join("")}</div>`;
+  const pct = pc => pc < 1 ? "<1%" : Math.round(pc) + "%";
+
+  const lines = rows.map(row=>`<div class="gs-crow">
+      <div class="gs-clab">${gsIcon(row.r.k)} ${esc(gsName(row.r.k))}${row.r.up ? ` <span class="small muted">upkeep</span>` : ""}
+        <span class="v">${money(row.tot)}</span></div>
+      ${bar(row.shares, (s, j, pc) => `<b>${esc(s.name)}</b><br>${gsIcon(row.r.k)} ${money(row.vals[j])}
+        of ${money(row.tot)} · ${pct(pc)}`)}
+    </div>`).join("");
+
+  const toggles = live.map(r=>`<button type="button" class="gs-rtog${gs.chartOff.includes(r.id) ? " off" : ""}"
+      data-gs-chart="${r.id}" title="${esc(gsName(r.k))}${r.up ? " upkeep" : ""}">${gsIcon(r.k)}${r.up ? `<span class="up">up</span>` : ""}</button>`).join("");
+
+  return `<div class="gs-h">Who eats what</div>
+    <div class="gs-chart-bar">${toggles}</div>
+    <div class="gs-legend">${series.map(s=>`<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join("")}</div>
+    ${rows.length ? `<div class="gs-crow all"><div class="gs-clab"><b>Overall</b>
+        <span class="v">avg of ${rows.length}</span></div>
+      ${bar(overall, (s, j, pc) => `<b>${esc(s.name)}</b><br>${pct(pc)} average share over the
+        ${rows.length} resource${rows.length === 1 ? "" : "s"} switched on`)}</div>${lines}`
+      : `<div class="small muted">Every resource is switched off — click an icon to bring it back.</div>`}`;
+}
+
+/* ---- stockpile in and out, as plain "Name: amount" lines ---- */
+function gsExportText(){
+  const sec = (title, bucket, keys) => [title].concat(keys.map(k => `${gsName(k)}: ${gsFmt(gsNum(gs[bucket][k]))}`));
+  return sec("Stockpile", "stock", GS_STOCK).concat([""], sec("Production / turn", "prod", GS_PROD)).join("\n");
+}
+
+/* a section a paste names replaces that section; a paste with no headings is the stockpile */
+function gsImportText(txt){
+  const byName = k => [gsName(k), k].map(s => s.toLowerCase().replace(/[^a-z]/g, ""));
+  let bucket = "stock", keys = GS_STOCK, n = 0;
+  const seen = {};
+  const bad = [];
+  txt.split(/\r?\n/).forEach(line=>{
+    const l = line.trim();
+    if (!l) return;
+    if (/^production/i.test(l)){ bucket = "prod"; keys = GS_PROD; return; }
+    if (/^stock/i.test(l)){ bucket = "stock"; keys = GS_STOCK; return; }
+    const m = l.match(/^(.+?)\s*[:=]\s*([\d,.\s]*)$/);
+    const want = m && m[1].toLowerCase().replace(/[^a-z]/g, "");
+    const k = m && keys.find(k => byName(k).includes(want));
+    if (!k){ bad.push(l); return; }
+    if (!seen[bucket]){ seen[bucket] = true; gs[bucket] = {}; }
+    const v = gsNum(m[2].replace(/\s/g, ""));
+    if (v) gs[bucket][k] = v;
+    n++;
+  });
+  return {n, bad};
+}
+
+function gsModal(title, bodyHTML, footHTML){
+  closeModal();
+  const wrap = document.createElement("div");
+  wrap.className = "modal-wrap";
+  wrap.id = "modalWrap";
+  wrap.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(title)}">
+    <div class="modal-head"><h2>${esc(title)}</h2></div>
+    <div class="modal-body">${bodyHTML}</div>
+    <div class="modal-foot">${footHTML}</div></div>`;
+  document.body.appendChild(wrap);
+  wrap.addEventListener("click", e=>{ if (e.target === wrap || e.target.closest("[data-modal-close]")) closeModal(); });
+  return wrap;
+}
+
+function gsShowExport(){
+  const w = gsModal("Export stockpile",
+    `<textarea class="gs-io-text" id="gsIoText" readonly spellcheck="false"></textarea>`,
+    `<span class="small muted" id="gsIoMsg"></span><span class="spacer"></span>
+     <button class="btn btn-xs btn-primary" id="gsIoCopy">Copy</button>
+     <button class="btn btn-xs" data-modal-close>Close</button>`);
+  const ta = w.querySelector("#gsIoText");
+  ta.value = gsExportText();
+  ta.select();
+  w.querySelector("#gsIoCopy").addEventListener("click", ()=>{
+    ta.select();
+    const done = ()=>{ w.querySelector("#gsIoMsg").textContent = "Copied."; };
+    if (navigator.clipboard?.writeText) navigator.clipboard.writeText(ta.value).then(done, ()=>{ document.execCommand("copy"); done(); });
+    else { document.execCommand("copy"); done(); }
+  });
+}
+
+function gsShowImport(){
+  const w = gsModal("Import stockpile",
+    `<div class="small muted" style="margin-bottom:6px">Paste an exported stockpile. Sections it names are
+       replaced; anything else is left alone.</div>
+     <textarea class="gs-io-text" id="gsIoText" spellcheck="false" placeholder="Stockpile\nApples: 1,200\n…"></textarea>`,
+    `<span class="small muted" id="gsIoMsg"></span><span class="spacer"></span>
+     <button class="btn btn-xs btn-primary" id="gsIoGo">Import</button>
+     <button class="btn btn-xs" data-modal-close>Cancel</button>`);
+  const ta = w.querySelector("#gsIoText");
+  ta.focus();
+  w.querySelector("#gsIoGo").addEventListener("click", ()=>{
+    const r = gsImportText(ta.value);
+    if (!r.n){ w.querySelector("#gsIoMsg").textContent = "Nothing in there I could read."; return; }
+    gsSave();
+    gsInputs("gsStock", "stock", GS_STOCK);
+    gsInputs("gsProd", "prod", GS_PROD);
+    gsStrip();
+    renderGrand();
+    if (r.bad.length) w.querySelector("#gsIoMsg").textContent =
+      `Imported ${r.n}; skipped ${r.bad.length} line${r.bad.length === 1 ? "" : "s"}: ${r.bad.slice(0, 3).join(" · ")}`;
+    else closeModal();
+  });
+}
+
 function renderGrand(){
   clearTips("gs");
   const comps = gsComps();
@@ -6374,9 +6574,12 @@ function renderGrand(){
   GS_GEAR.forEach(k=>{ resvLeft[k] = Math.floor(gsNum(gs.resv[k])); });
   const bills = comps.map(c => gsBill(c.units, resvLeft));
   gsEl("gsWide").checked = gs.wide;
+  gsEl("gsFocus").checked = gs.focus;
+  gsEl("viewGrand").classList.toggle("gs-focus", gs.focus);
   gsEl("gsOut").innerHTML = comps.length
     ? `<div class="gs-slips${gs.wide ? " wide" : ""}">${comps.map((c, i) => gsSlip(c, bills[i])).join("")}</div>` : "";
   gsEl("gsTotal").innerHTML = comps.length ? gsTotal(comps, bills, gsMerge(bills)) : "";
+  gsEl("gsChart").innerHTML = gsChart(comps, bills);
 }
 
 /* ---- grand strategy wiring ---- */
@@ -6391,6 +6594,7 @@ gsEl("gsReserves").addEventListener("toggle", ()=>
 gsEl("viewGrand").addEventListener("input", e=>{
   const i = e.target.closest("[data-gs-bucket]");
   if (!i) return;
+  gsCommas(i);
   const v = gsNum(i.value);
   if (v) gs[i.dataset.gsBucket][i.dataset.gsKey] = v;
   else delete gs[i.dataset.gsBucket][i.dataset.gsKey];
@@ -6422,6 +6626,14 @@ gsEl("viewGrand").addEventListener("click", e=>{
     renderGrand();
     return;
   }
+  const tog = e.target.closest("[data-gs-chart]");
+  if (tog){
+    const id = tog.dataset.gsChart, i = gs.chartOff.indexOf(id);
+    if (i >= 0) gs.chartOff.splice(i, 1); else gs.chartOff.push(id);
+    gsSave();
+    renderGrand();
+    return;
+  }
   if (e.target.closest("[data-gs-upx]")){
     gs.upx = gs.upx === 1 ? GS_TICKS : 1;
     gsSave();
@@ -6437,6 +6649,14 @@ document.addEventListener("click", e=>{
   gsPicker = null;
   renderGrand();
 });
+
+gsEl("gsFocus").addEventListener("change", ()=>{
+  gs.focus = gsEl("gsFocus").checked;
+  gsSave();
+  renderGrand();
+});
+gsEl("gsExport").addEventListener("click", gsShowExport);
+gsEl("gsImport").addEventListener("click", gsShowImport);
 
 gsEl("gsWide").addEventListener("change", ()=>{
   gs.wide = gsEl("gsWide").checked;
