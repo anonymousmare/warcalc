@@ -3030,16 +3030,16 @@ function gearCompare(kind, A, D, l, bonusApplied){
   const planW = (r, E, res) => E * perA(r.key, res) + swapW(r, res);
   /* kind "parity": match the equipped weapon's damage; kind "raise": wipe the
      struck stack outright, for a weapon that falls short of it */
-  const needFor = (r, kind) => kind === "raise" ? hitsTo(r.ph, D.size) : hitsFor(r);
+  const needFor = (r, kind) => kind === "raise" || kind === "skim" ? hitsTo(r.ph, D.size) : hitsFor(r);
   const tipWPlan = (r, E, res, kind)=>{
     const ico = res ? resIcon(res) : BIT, p1 = perA(r.key, res), up = E > 0, need = needFor(r, kind);
-    const head = kind === "raise"
-      ? `${esc(label(r.key))} deals ${money(r.dmg)} of the ${money(D.size)} standing · needs ${money(need)} hits × ${fmt(round3(r.ph))}
-         to kill them all · has ${money(H)} · <b class="cmp-down">+${money(E)}</b>`
+    const head = kind === "raise" || kind === "skim"
+      ? `${esc(label(r.key))} deals ${money(r.dmg)} against ${money(D.size)} · needs ${money(need)} hits × ${fmt(round3(r.ph))}
+         to kill them all · has ${money(H)} · <b class="${up ? "cmp-down" : "cmp-up"}">${up ? "+" : "−"}${money(Math.abs(E))}</b>`
       : `${esc(label(now.key))} deals ${money(K)} · ${esc(label(r.key))} needs ${money(need)} hits × ${fmt(round3(r.ph))} · has ${money(H)} ·
          <b class="cmp-par">${up ? "+" : "−"}${money(Math.abs(E))}</b>`;
     return `<div data-tip-bg="${tipBg}"><div class="tip-title">${esc(label(r.key))}, ${
-        kind === "raise" ? "raised to wipe them" : up ? "raised to match" : "cut to match"} ${ico}</div>
+        kind === "raise" ? "raised to wipe them" : kind === "skim" ? "skimmed, still wiping them" : up ? "raised to match" : "cut to match"} ${ico}</div>
       <div class="small muted" style="margin:4px 0 6px">${head}</div>
       <table class="tip-math">${r === now ? "" : tr(`swap the ${money(A.size)} to ${esc(label(r.key))} <span class="muted">(${money(kitUnit(r.key, res))} − ${money(kitUnit(now.key, res))} each)</span>`, sgn(swapW(r, res)))}
         ${E ? tr(`${up ? "raise" : "skim"} ${money(Math.abs(E))} <span class="muted">× ${money(p1)}</span> ${ico}
@@ -3048,31 +3048,49 @@ function gearCompare(kind, A, D, l, bonusApplied){
         ${tr("total", sgn(planW(r, E, res)), "tot")}</table></div>`;
   };
   const wBlock = (r, E, kind)=>{
-    const up = E >= 0, cls = kind === "raise" ? "cmp-down" : "cmp-par";
+    const up = E >= 0, cls = kind === "raise" ? "cmp-down" : kind === "skim" ? "cmp-up" : "cmp-par";
     const xr = RES_ORDER.reduce((o, k)=>{ const v = planW(r, E, k); if (v) o[k] = v; return o; }, {});
     const X = A.size + E;                      // the swinging stack, resized
-    return `<div class="sz${kind === "raise" ? " sz-raise" : " sz-par"}"><div class="sz-k"><span class="${cls}">${kind}</span>
+    return `<div class="sz${kind === "raise" ? " sz-raise" : kind === "skim" ? " sz-skim" : " sz-par"}"><div class="sz-k"><span class="${cls}">${kind}</span>
         <b class="sz-n ${cls}">${E ? (up ? "+" : "−") + money(Math.abs(E)) : "±0"}</b><span class="cx-act sz-act">(${money(X)})</span></div>
       <div class="sz-v"><div class="cx-line">${signed(planW(r, E, null), less, tipWPlan(r, E, null, kind))}${actBits(X * perA(r.key, null))}</div>
         <div class="cx-res">${chips(xr, less, k => tipWPlan(r, E, k, kind), stackRes(X, k => perA(r.key, k)))}${
           upkChips(E, less, X, upkA)}</div></div></div>`;
   };
+  /* the equipped weapon's own army: what it cost to raise and kit, and its upkeep */
+  const tipWBase = res=>{
+    const ico = res ? resIcon(res) : BIT, per = perA(now.key, res);
+    return `<div data-tip-bg="${tipBg}"><div class="tip-title">${esc(label(now.key))}, as fielded ${ico}</div>
+      <table class="tip-math" style="margin-top:6px">${tr(`${money(A.size)} <span class="muted">× ${money(per)}</span> ${ico}
+        <div class="small muted">each: ${res ? "" : `raise ${money(hire(A))} + `}${esc(label(now.key))} ${money(res ? (gearCost("weapon", now.key).res[res] || 0) : gearCost("weapon", now.key).bits)}
+          ${PIN_WITH_ARM ? `+ ${esc(label(A.armor))} ${money(res ? (Aa.res[res] || 0) : Aa.bits)}` : ""}</div>`, money(A.size * per), "tot")}</table></div>`;
+  };
+  const wBase = ()=>{
+    const xr = RES_ORDER.reduce((o, k)=>{ const v = A.size * perA(now.key, k); if (v) o[k] = v; return o; }, {});
+    const upk = Object.keys(upkA).filter(k => upkA[k]).map(k=>
+      `<span class="cx-chip cx-upk">${resIcon(k)}${money(A.size * upkA[k])}<span class="muted">/12h</span></span>`).join("");
+    return `<div class="sz"><div class="sz-k"><span class="muted">base</span>
+        <b class="sz-n">${money(A.size)}</b></div>
+      <div class="sz-v"><div class="cx-line">${tipped(`<b>${money(A.size * perA(now.key, null))}</b>`, tipWBase(null))}</div>
+        <div class="cx-res">${chips(xr, null, k => tipWBase(k))}${upk}</div></div></div>`;
+  };
   const wparCol = r=>{
     if (!isW) return "";
-    let out = "";
-    /* raise: a weapon that leaves some of the struck stack standing */
-    if (r.dmg < D.size){
-      const need = needFor(r, "raise");
-      if (isFinite(need) && need > H) out += wBlock(r, need - H, "raise");
-      else if (!isFinite(need)) out += `<span class="muted small">can't wipe them</span>`;
-    }
+    let out = r === now ? wBase() : "";
+    const gap = () => out ? `<div class="sz-gap"></div>` : "";
+    /* raise: a weapon that leaves some of the struck stack standing;
+       skim: one that wipes them with hits to spare */
+    const need = needFor(r, "raise");
+    if (!isFinite(need)) out += gap() + `<span class="muted small">can't wipe them</span>`;
+    else if (need > H) out += gap() + wBlock(r, need - H, "raise");
+    else if (need < H) out += gap() + wBlock(r, need - H, "skim");
     /* parity, either sign: a better weapon needing fewer troops is the whole
        point of the column, so it is never tucked away as a skim. Even at ±0
        the swap itself still costs. */
     if (K && r !== now){
-      const need = hitsFor(r);
-      if (!isFinite(need)) out += (out ? `<div class="sz-gap"></div>` : "") + `<span class="muted small">can't match</span>`;
-      else out += (out ? `<div class="sz-gap"></div>` : "") + wBlock(r, need - H, "parity");
+      const need = hitsFor(r);   // parity
+      if (!isFinite(need)) out += gap() + `<span class="muted small">can't match</span>`;
+      else out += gap() + wBlock(r, need - H, "parity");
     }
     return out;
   };
@@ -3148,7 +3166,7 @@ function pinUnit(U, swings){
   return `<div class="pin-unit ${atk ? "side-atk" : "side-def"}">
     <span class="pu-name" title="${esc(name)}">${esc(name)}</span>
     <span class="pu-size">${Number(U.size).toLocaleString("en-US")}</span>
-    ${buildSprite(U.origType, U.weapon, U.armor, true)}
+    ${buildSprite(U.origType, U.weapon, U.armor, true, {size: U.size, training: U.training, left: U.remaining})}
     <span class="pu-gear${swings ? "" : " pu-off"}">${esc(label(U.weapon))}</span>
     <span class="pu-gear${swings ? " pu-off" : ""}">${esc(label(U.armor))}</span>
     <span class="pu-train">training ${esc(U.training)}</span>
