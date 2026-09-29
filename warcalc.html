@@ -253,6 +253,8 @@ body.no-unspent .log .unspent{display:none}
 #dmgPin .pin-mid{width:230px;flex-shrink:0;display:flex;flex-direction:column}
 /* whatever height the side panels leave under the prompt, the picture fills;
    with none left over it takes none */
+/* the compares stack their rows so a picture can take what is left at the foot */
+#dmgPin .cmp-weapon,#dmgPin .cmp-armor{display:flex;flex-direction:column}
 #dmgPin .pin-art{flex:1 1 0;min-height:0;position:relative;margin-top:10px}
 #dmgPin .pin-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center bottom;
   pointer-events:none;user-select:none}
@@ -2702,6 +2704,9 @@ const M1_ICON = `<svg class="m1-ic" viewBox="0 0 16 22" width="9" height="12" ar
   <path d="M8 1.7A6.3 6.3 0 0 0 1.7 8V9H8z" fill="currentColor" opacity=".6"/>
   <path d="M8 1v8M1.2 9h13.6" stroke="currentColor" stroke-width="1.2"/></svg>`;
 
+/* invaders in red, defenders in blue, whichever of them is swinging */
+const sideCol = u => u.attack_mission ? "#f17a77" : "#74cae3";
+
 /* ---- hover math for a single exchange-log damage figure ---- */
 function dmgMathTip(A, D, l, bonusApplied){
   const vsDef = TYPES[D.type];        // what the attacker's weapon rates against
@@ -2716,12 +2721,12 @@ function dmgMathTip(A, D, l, bonusApplied){
 
   return `<div class="tip-title tip-title-m1">Damage breakdown ${M1_ICON}</div>
     <table class="tip-math" style="margin-top:6px">
-      <tr><td><span style="color:#f17a77">${esc(label(A.weapon))}</span>
+      <tr><td><span style="color:${sideCol(A)}">${esc(label(A.weapon))}</span>
               <span class="muted">vs ${cap(vsDef)}</span></td>
-          <td class="n" style="color:#f17a77">${fmt(base)}</td></tr>
-      <tr><td><span style="color:#74cae3">${esc(label(D.armor))}</span>
+          <td class="n" style="color:${sideCol(A)}">${fmt(base)}</td></tr>
+      <tr><td><span style="color:${sideCol(D)}">${esc(label(D.armor))}</span>
               <span class="muted">vs ${cap(vsAtk)}</span></td>
-          <td class="n" style="color:#74cae3">×${fmt(armv)}</td></tr>
+          <td class="n" style="color:${sideCol(D)}">×${fmt(armv)}</td></tr>
       <tr><td>training <span class="muted">${A.training} vs ${D.training}</span></td>
           <td class="n">×${fmt(round3(tMul))}</td></tr>
       ${bonusApplied ? `<tr><td>defender bonus</td><td class="n">×0.75</td></tr>` : ""}
@@ -3026,19 +3031,24 @@ function gearCompare(kind, A, D, l, bonusApplied){
           : `<button class="hold-tab" title="${PIN_HOLD ? "Hide" : "Show"} raise / skim">${PIN_HOLD ? "‹" : "›"}</button>`}
     ${row(now, true)}
     ${others.length ? others.map(r => row(r, false)).join("")
-      : `<div class="small muted">Nothing else this unit can ${isW ? "carry" : "wear"}.</div>`}`;
+      : `<div class="small muted">Nothing else this unit can ${isW ? "carry" : "wear"}.</div>`}
+    <div class="pin-art"><img src="https://derpicdn.net/img/view/${isW ? "2015/2/5/822141" : "2019/5/15/2039978"}.png"
+      alt="" onerror="this.parentNode.remove()"></div>`;
 }
 
 /* size on top, the sprite in its side's colour, then the kit and training */
-function pinUnit(U){
-  const atk = !!U.attack_mission;      // the swinger's weapon counts, the struck one's armour
+function pinUnit(U, swings){
+  /* the border and gear colours say which side it is on; which piece stays
+     lit says what it does in this exchange: the swinger's weapon counts,
+     the struck one's armour, whichever side either is on */
+  const atk = !!U.attack_mission;
   const name = U.nick || U.name;
   return `<div class="pin-unit ${atk ? "side-atk" : "side-def"}">
     <span class="pu-name" title="${esc(name)}">${esc(name)}</span>
     <span class="pu-size">${Number(U.size).toLocaleString("en-US")}</span>
     ${buildSprite(U.origType, U.weapon, U.armor, true)}
-    <span class="pu-gear${atk ? "" : " pu-off"}">${esc(label(U.weapon))}</span>
-    <span class="pu-gear${atk ? " pu-off" : ""}">${esc(label(U.armor))}</span>
+    <span class="pu-gear${swings ? "" : " pu-off"}">${esc(label(U.weapon))}</span>
+    <span class="pu-gear${swings ? " pu-off" : ""}">${esc(label(U.armor))}</span>
     <span class="pu-train">training ${esc(U.training)}</span>
     ${(()=>{ const u = (UNIT_COST[U.origType] || {upkeep:{}}).upkeep;   // the whole stack, per 12 hours
       const ks = RES_ORDER.filter(k => u[k]);
@@ -3053,7 +3063,7 @@ function dmgPinHTML(A, D, l, bonusApplied){
     <div class="pin-cols">
       <div class="pin-col cmp-weapon${PIN_WHOLD ? " hold-open" : ""}">${gearCompare("weapon", A, D, l, bonusApplied)}</div>
       <div class="pin-col pin-mid">${dmgMathTip(A, D, l, bonusApplied)}
-        <div class="pin-vs">${pinUnit(A)}<span class="pin-vs-word">vs</span>${pinUnit(D)}</div>
+        <div class="pin-vs">${pinUnit(A, true)}<span class="pin-vs-word">vs</span>${pinUnit(D, false)}</div>
         <div class="m1-more" title="Show what each swap costs or saves">${M1_ICON}<span class="m1-txt">m1 for compare</span></div>
         <div class="pin-art"><img src="https://derpicdn.net/img/view/2023/9/3/3193754.png" alt=""
           onerror="this.parentNode.remove()"></div></div>
