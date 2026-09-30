@@ -211,6 +211,14 @@ body.log-icons #logBothWrap,body.log-icons.log-both #logBothNamedWrap{display:in
 .log-opt.opt-yellow{color:#8f7830}
 .log-opt.opt-yellow:hover{color:#b09540}
 .log-opt.opt-yellow input{accent-color:#b8972a}
+.log-opt.opt-purple{color:#a58bd8}
+.log-opt.opt-purple:hover{color:#c0aaf0}
+.log-opt.opt-purple input{accent-color:#7453b8}
+/* Defender vertical align: the swinging half of every exchange takes the
+   width of the log's widest, so the ones struck line up down one edge */
+body.log-dalign .xlog{display:grid;grid-template-columns:max-content minmax(0,1fr);column-gap:.6em}
+body.log-dalign .xlog > *{grid-column:1 / -1}
+body.log-dalign .xlog > .xr{display:grid;grid-template-columns:subgrid;align-items:baseline}
 body.log-names .ref-nick{display:inline}
 body.log-names .unit-ref:has(.ref-nick) .ref-sys{display:none}
 /* Cleaner Exchange Log: "ACFU + Bigdog 40" in place of the system name;
@@ -1371,6 +1379,8 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
       <input type="checkbox" id="logTrain"> Show training</label>
     <label class="hk-toggle log-opt opt-yellow" for="logHits" id="logHitsWrap">
       <input type="checkbox" id="logHits"> Show hits and size changes</label>
+    <label class="hk-toggle log-opt opt-purple" for="logDAlign">
+      <input type="checkbox" id="logDAlign"> Defender vertical align</label>
     </div>
   </div>
 </div>
@@ -3776,7 +3786,7 @@ function exchangeLogBlock(units, log, bonus, id, ns, tail){
       <span class="spacer"></span>
       ${logToggle(id)}
     </div>
-    <div class="well log${logIsFull(id) ? " log-full" : ""}" id="${id}" style="--ammo-ch:${ammoCh}">${
+    <div class="well log xlog${logIsFull(id) ? " log-full" : ""}" id="${id}" style="--ammo-ch:${ammoCh}">${
       log.length ? log.map((l, i)=>{
         const A = units[l.aid], D = units[l.did];
         const bonusApplied = !!A.attack_mission && bonus === "Yes";
@@ -3792,10 +3802,10 @@ function exchangeLogBlock(units, log, bonus, id, ns, tail){
         const spent = log.slice(0, i).reduce((t, x) => t + (x.aid === l.aid ? x.hits : 0), 0);
         const standing = n => Math.max(0, D.size - Math.floor(round6(n)));
         const train = A.training !== D.training;
-        return `<div>${unitRef(A, A.weapon, true, {train, ammo: Math.max(0, A.size - spent), ammoAfter: Math.max(0, A.size - spent - l.hits)})} hit
-          ${unitRef(D, D.armor, false, {train, was: standing(before), now: standing(before + l.damage)})}
+        return `<div class="xr"><span class="xatk">${unitRef(A, A.weapon, true, {train, ammo: Math.max(0, A.size - spent), ammoAfter: Math.max(0, A.size - spent - l.hits)})} hit</span>
+          <span class="xdef">${unitRef(D, D.armor, false, {train, was: standing(before), now: standing(before + l.damage)})}
           for <b class="dmg-ref" data-tip-key="${mk}" data-pin-key="${mk}">${fmt(l.damage)}</b> damage
-          <span class="muted">(${l.hits} hits)</span></div>`;
+          <span class="muted">(${l.hits} hits)</span></span></div>`;
       }).join("") : '<div class="muted">No hits were exchanged.</div>'}${tail || ""}</div>
   </div>`;
 }
@@ -7008,12 +7018,13 @@ hkBox.addEventListener("change", syncHotkeys);
 const LS_LOG_OPTS = "warcalc.logOpts";
 {
   const o = store.get(LS_LOG_OPTS, {}) || {};
-  /* icons, numbers, the clean log and its training start on, everything else off */
+  /* icons, numbers, the clean log, its training and the defender line-up start on,
+   everything else off */
   [["logIcons", "icons", "log-icons", true], ["logBoth", "both", "log-both"],
    ["logBothNamed", "bothNamed", "log-both-named"],
    ["logNames", "names", "log-names"], ["logNums", "nums", "log-nums", true],
    ["logClean", "clean", "log-clean", true], ["logTrain", "train", "log-train", true],
-   ["logHits", "hits", "log-hits"]].forEach(([id, k, cls, dflt])=>{
+   ["logHits", "hits", "log-hits"], ["logDAlign", "dalign", "log-dalign", true]].forEach(([id, k, cls, dflt])=>{
     const box = document.getElementById(id);
     box.checked = typeof o[k] === "boolean" ? o[k] : !!dflt;
     document.body.classList.toggle(cls, box.checked);
