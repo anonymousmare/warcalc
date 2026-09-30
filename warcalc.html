@@ -216,9 +216,19 @@ body.log-icons #logBothWrap,body.log-icons.log-both #logBothNamedWrap{display:in
 .log-opt.opt-purple input{accent-color:#7453b8}
 /* Defender vertical align: the swinging half of every exchange takes the
    width of the log's widest, so the ones struck line up down one edge */
-body.log-dalign .xlog{display:grid;grid-template-columns:max-content minmax(0,1fr);column-gap:.6em}
+body.log-dalign .xlog{display:grid;grid-template-columns:max-content minmax(0,1fr)}
 body.log-dalign .xlog > *{grid-column:1 / -1}
 body.log-dalign .xlog > .xr{display:grid;grid-template-columns:subgrid;align-items:baseline}
+/* "hit" sits centred in whatever room the swinger leaves before the one struck */
+body.log-dalign .xlog .xatk{display:flex;align-items:baseline}
+body.log-dalign .xlog .xhit{flex:1;text-align:center;padding:0 .6em}
+/* every icon slot is as wide as the widest picture it can hold — weapons
+   run to 24px, armour to 32 — with the pictures pushed against the name,
+   so the names line up down the log whatever gear they carry */
+body.log-dalign .xlog .ref-one{width:32px;text-align:right}
+body.log-dalign .xlog .ref-one.ref-swing{width:24px}
+body.log-dalign .xlog .ref-both{width:58px;justify-content:flex-end}
+body.log-dalign:not(.icons-wa) .xlog .ref-both.ref-swing{justify-content:flex-start}
 body.log-names .ref-nick{display:inline}
 body.log-names .unit-ref:has(.ref-nick) .ref-sys{display:none}
 /* Cleaner Exchange Log: "ACFU + Bigdog 40" in place of the system name;
@@ -1704,7 +1714,7 @@ const label = k => LABELS[k] || k;
    on screen — a handful are filed under a spelling of their own */
 const PIC_BASE = "https://cloppenmanager.neocities.org/img/";
 const imgUrl = name => PIC_BASE + encodeURIComponent(name) + ".png";
-const IMG_FILE = {Nope:"NOPE", Ohno:"OhNo"};
+const IMG_FILE = {Nope:"NOPE"};
 const gearUrl = key => imgUrl(IMG_FILE[key] || label(key));
 
 /* portraits for every piece of gear, keyed the same way the defs are */
@@ -2788,7 +2798,7 @@ function unitRef(u, gear, swing, x){
   const img = k => k && gearImgSrc(k, true) ? fightImg(k) : "";
   const pair = img(u.weapon) + img(u.armor);
   const nm = u.nick ? " ref-named" : "";
-  const ic = (img(gear) ? `<span class="ref-ic ref-one${nm}">${img(gear)}</span>` : "") +
+  const ic = (img(gear) ? `<span class="ref-ic ref-one${swing ? " ref-swing" : ""}${nm}">${img(gear)}</span>` : "") +
              (pair ? `<span class="ref-ic ref-both${swing ? " ref-swing" : ""}${nm}">${pair}</span>` : "");
   x = x || {};
   const ammo = x.ammo != null
@@ -3802,7 +3812,7 @@ function exchangeLogBlock(units, log, bonus, id, ns, tail){
         const spent = log.slice(0, i).reduce((t, x) => t + (x.aid === l.aid ? x.hits : 0), 0);
         const standing = n => Math.max(0, D.size - Math.floor(round6(n)));
         const train = A.training !== D.training;
-        return `<div class="xr"><span class="xatk">${unitRef(A, A.weapon, true, {train, ammo: Math.max(0, A.size - spent), ammoAfter: Math.max(0, A.size - spent - l.hits)})} hit</span>
+        return `<div class="xr"><span class="xatk"><span class="xu">${unitRef(A, A.weapon, true, {train, ammo: Math.max(0, A.size - spent), ammoAfter: Math.max(0, A.size - spent - l.hits)})}</span> <span class="xhit">hit</span></span>
           <span class="xdef">${unitRef(D, D.armor, false, {train, was: standing(before), now: standing(before + l.damage)})}
           for <b class="dmg-ref" data-tip-key="${mk}" data-pin-key="${mk}">${fmt(l.damage)}</b> damage
           <span class="muted">(${l.hits} hits)</span></span></div>`;
