@@ -190,8 +190,10 @@ tr.reserve td.col-sprite::before{
 body.log-icons:not(.log-both) .ref-one{display:inline-block;vertical-align:-3px;margin-right:4px}
 body.log-icons.log-both:not(.log-both-named) .ref-both{display:inline-flex;gap:2px;vertical-align:-3px;margin-right:4px}
 /* Only for named units: both pieces on the named, the one in play on the rest */
-body.log-icons.log-both.log-both-named .ref-one:not(.ref-named){display:inline-block;vertical-align:-3px;margin-right:4px}
-body.log-icons.log-both.log-both-named .ref-both.ref-named{display:inline-flex;gap:2px;vertical-align:-3px;margin-right:4px}
+/* a name only counts while Use names is showing it */
+body.log-icons.log-both.log-both-named .ref-one:not(.ref-named),
+body.log-icons.log-both.log-both-named:not(.log-names) .ref-one{display:inline-block;vertical-align:-3px;margin-right:4px}
+body.log-icons.log-both.log-both-named.log-names .ref-both.ref-named{display:inline-flex;gap:2px;vertical-align:-3px;margin-right:4px}
 /* the one swinging reads armour then weapon, so the weapon sits against its
    name; the setting in the gear drawer puts it back to weapon first */
 body:not(.icons-wa) .ref-both.ref-swing{flex-direction:row-reverse}
@@ -229,14 +231,18 @@ body.log-clean.log-names:not(.log-nums) .unit-ref:has(.ref-nick) .ref-num{displa
 body.log-clean.log-hits .ref-num:has(.n-chg) .n-plain{display:none}
 body.log-clean.log-hits .ref-num .n-chg{display:inline}
 body.log-clean.log-hits.log-names:not(.log-nums) .unit-ref:has(.ref-nick) .ref-num:has(.n-chg){display:inline}
-.n-chg .n-was{color:#8a8f98}
-.n-chg .n-arr{color:#fff;margin:0 1px}
+.n-chg .n-was,.n-chg .n-arr{color:#5d6168}
+.n-chg .n-arr{margin:0 1px}
 /* Show training / hits: a yellow figure tucked against its icon */
 .ref-train,.ref-ammo{display:none;color:#8f7830;font-weight:600;white-space:nowrap}
-.ref-ammo .n-arr{color:#fff;margin:0 1px}
-.ref-ammo .n-was{color:#8a8f98}
+.ref-ammo .n-was,.ref-ammo .n-arr{color:#5d6168}
+.ref-ammo .n-arr{margin:0 1px}
 body.log-clean.log-train .ref-train{display:inline;margin-left:5px}
-body.log-clean.log-hits .ref-ammo{display:inline;margin-right:5px}
+/* the hits stand in a column of their own down the left, ruled off from the
+   exchange, as wide as the log's widest figure (--ammo-ch, set per log) */
+body.log-clean.log-hits .ref-ammo{display:inline-block;box-sizing:content-box;
+  width:calc(17px + var(--ammo-ch, 7) * 1ch + 1ch);font-variant-numeric:tabular-nums;
+  padding-right:6px;margin-right:7px;border-right:1px solid rgba(255,255,255,.14)}
 .ref-train img,.ref-ammo img{width:16px;height:16px;vertical-align:-3px;margin-right:1px;opacity:.33}
 #logNumsWrap,#logTrainWrap,#logHitsWrap{display:none}
 body.log-names #logNumsWrap{display:inline-flex}
@@ -3756,6 +3762,13 @@ function unspentLine(units){
 }
 
 function exchangeLogBlock(units, log, bonus, id, ns, tail){
+  /* the widest "before→after" hits figure, in digits, sizes the hits column */
+  const left = {};
+  const ammoCh = log.reduce((w, l)=>{
+    const A = units[l.aid], was = Math.max(0, A.size - (left[l.aid] || 0));
+    left[l.aid] = (left[l.aid] || 0) + l.hits;
+    return Math.max(w, money(was).length + money(Math.max(0, was - l.hits)).length);
+  }, 1);
   return `<div>
     <div class="log-head">
       <h3>Exchange log</h3>
@@ -3763,7 +3776,7 @@ function exchangeLogBlock(units, log, bonus, id, ns, tail){
       <span class="spacer"></span>
       ${logToggle(id)}
     </div>
-    <div class="well log${logIsFull(id) ? " log-full" : ""}" id="${id}">${
+    <div class="well log${logIsFull(id) ? " log-full" : ""}" id="${id}" style="--ammo-ch:${ammoCh}">${
       log.length ? log.map((l, i)=>{
         const A = units[l.aid], D = units[l.did];
         const bonusApplied = !!A.attack_mission && bonus === "Yes";
