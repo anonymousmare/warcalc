@@ -3163,11 +3163,18 @@ function gearCompare(kind, A, D, l, bonusApplied){
   const miniLog = (title, pick)=>{
     const us = l.unitsAll || {}, lg = l.logAll || [];
     const nm = u => `<span style="color:${sideCol(u)}">${esc(u.nick || u.name)}</span>`;
+    /* after each line: the swinger's hits still in hand, the struck stack still standing */
+    const spent = {}, taken = {};
     return `<div class="tip-title">${title}</div><div class="ml-box">${lg.map((x, j)=>{
-      if (!pick(x)) return "";
       const a = us[x.aid], d = us[x.did];
+      spent[x.aid] = (spent[x.aid] || 0) + x.hits;
+      taken[x.did] = (taken[x.did] || 0) + x.damage;
+      if (!pick(x)) return "";
+      const swings = Math.max(0, a.size - spent[x.aid]);
+      const standing = Math.max(0, d.size - Math.floor(round6(taken[x.did])));
       return `<div class="ml${j === l.logIdx ? " ml-cur" : ""}">${nm(a)} hit ${nm(d)} for <b class="w">${fmt(x.damage)}</b>
-        <span class="muted">(${money(x.hits)} hits)</span></div>`;
+        <span class="muted">(${money(x.hits)} hits)</span> → <b class="w">${money(swings)}</b> <span class="muted">swings left ·</span>
+        <b class="w">${money(standing)}</b> <span class="muted">standing</span></div>`;
     }).join("")}</div>`;
   };
   const warnOf = ()=>{
