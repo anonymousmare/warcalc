@@ -2888,7 +2888,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
     const ico = res ? resIcon(res) : BIT;
     const deadRow = x=>{
       const k = dead(x), p1 = perLoss(x.key, res);
-      return tr(`<span class="tip-gear">${gearImg(x.key)}</span>${esc(label(x.key))}: ${money(k)} dead
+      return tr(`${gearTag(x.key)}: ${money(k)} dead
         <span class="muted">× ${money(p1)}</span> ${ico}`, money(k * p1));
     };
     const lossD = dead(r) * perLoss(r.key, res) - dead(now) * perLoss(now.key, res);
@@ -2907,7 +2907,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
         `<div class="tl">${esc(label(x.key))}<span class="muted">›</span> ${ico} ${w_(money(kitUnit(x.key, res)))}</div>`).join("")}</div>
       <div class="tl-hr"></div>`}`;
   };
-  const wRow = (x, right, mid) => tr(`<span class="tip-gear">${gearImg(x.key)}</span>${esc(label(x.key))}: ${mid}`, right);
+  const wRow = (x, right, mid) => tr(`${gearTag(x.key)}: ${mid}`, right);
   const tipWKills = r => wTitle(r, false) + `<table class="tip-math" style="margin-top:6px">${
     [r, now].filter((x, i) => !i || r !== now).map(x =>
       wRow(x, `${money(dead(x))} killed`, `<b class="w">${money(x.dmg)}</b> dmg dealt`)).join("")}${
@@ -2915,7 +2915,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
   const tipWorth = (r, res)=>{
     const ico = res ? resIcon(res) : BIT, per = perLoss(r.key, res);
     return wTitle(r, res) +
-      `<div class="small" style="margin:6px 0 2px">Killed ${res ? `<span class="muted">(<span class="tip-gear">${gearImg(D.weapon)}</span>+ <span class="tip-gear">${gearImg(D.armor)}</span>)</span>` : ""}</div>
+      `<div class="small" style="margin:6px 0 2px">Killed ${res ? `<span class="muted">(<span class="gtag">${gearImg(D.weapon)}</span>+ <span class="gtag">${gearImg(D.armor)}</span>)</span>` : ""}</div>
       <table class="tip-math">${[r, now].filter((x, i) => !i || r !== now).map(x =>
         wRow(x, money(dead(x) * per), `${money(dead(x))} killed <span class="muted">× ${money(per)} =</span>`)).join("")}${
         r === now ? "" : tr("difference", sgn((dead(r) - dead(now)) * per), "tot")}</table>`;
@@ -2946,7 +2946,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
     const ico = res ? resIcon(res) : BIT, per = perLoss(now.key, res), k = dead(now);
     return `<div class="tip-title">${esc(label(now.key))}, as fought ${ico}</div>
       <div class="small" style="margin:6px 0 2px">Killed${res ? "" : ` <span class="muted">(raise ${money(hire(D))} each, with their kit)</span>`}</div>
-      <table class="tip-math">${tr(`<span class="tip-gear">${gearImg(now.key)}</span>${esc(label(now.key))}: ${money(k)} dead
+      <table class="tip-math">${tr(`${gearTag(now.key)}: ${money(k)} dead
         <span class="muted">× ${money(per)}</span> ${ico}`, money(k * per), "tot")}</table>`;
   };
   const extra = (r, isCur)=>{
