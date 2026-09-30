@@ -2898,11 +2898,14 @@ function gearCompare(kind, A, D, l, bonusApplied){
   };
 
   /* weapon cards: the swing and what it brings down, laid out like the net card */
+  /* equipped vs hypothetical, then what one of each takes of this resource */
   const wTitle = (r, res)=>{
     const ico = res === false ? "" : res ? resIcon(res) : BIT;
-    const amt = key => res === false ? "" : `(${ico} ${money(kitUnit(key, res))}) `;
-    return `<div class="tip-title">${amt(r.key)}${esc(label(r.key))}${r === now ? ""
-      : ` <span class="muted">vs</span> ${amt(now.key)}${esc(label(now.key))}`} ${ico}</div>`;
+    const pair = r === now ? [now] : [now, r];
+    return `<div class="tip-title">${pair.map(x => gearTag(x.key)).join(` <span class="muted">vs</span> `)}</div>${
+      res === false ? "" : `<div style="margin-top:5px">${pair.map(x =>
+        `<div class="tl">${esc(label(x.key))}<span class="muted">›</span> ${ico} ${w_(money(kitUnit(x.key, res)))}</div>`).join("")}</div>
+      <div class="tl-hr"></div>`}`;
   };
   const wRow = (x, right, mid) => tr(`<span class="tip-gear">${gearImg(x.key)}</span>${esc(label(x.key))}: ${mid}`, right);
   const tipWKills = r => wTitle(r, false) + `<table class="tip-math" style="margin-top:6px">${
