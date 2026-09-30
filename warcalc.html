@@ -2824,9 +2824,8 @@ function gearCompare(kind, A, D, l, bonusApplied){
   const pool = (LOADOUTS[U.origType] || {})[isW ? "weapons" : "armor"] || [cur];
   const n = U.size;
 
-  /* every hit the swinger could have put into this stack: the ones that
-     landed, and if it fell, the ones that went elsewhere or went unused */
-  const H = PREFS.fullHits ? A.size : (l.potHits || l.hits);
+  /* the hits actually swung in this exchange, or the swinger's full size when asked */
+  const H = PREFS.fullHits ? A.size : l.hits;
   /* what the struck stack had standing when this exchange began, unless full sizes are asked for */
   const Sd = PREFS.fullHits ? D.size : Math.max(0, D.size - Math.floor(round6(l.prevTaken || 0)));
   const Dw = gearCost("weapon", D.weapon), Da = gearCost("armor", D.armor);
