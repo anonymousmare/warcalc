@@ -356,7 +356,9 @@ body.no-pin-art .pinbox .pin-art{display:none}
   font-size:11px;line-height:1.35;min-width:0;width:96px}
 .pin-unit .sprite{margin:3px 0 4px}
 /* name and size hold one line each, so both sprites start at the same height */
-.pin-unit .pu-name,.pin-unit .pu-size{height:15px;line-height:15px;white-space:nowrap}
+.pin-unit .pu-name,.pin-unit .pu-size,.pin-unit .pu-left{height:15px;line-height:15px;white-space:nowrap}
+.pin-unit .pu-was{color:var(--text-dim);font-weight:400}
+.pin-unit .pu-left{font-size:10px;color:#e2c760}
 .pin-unit .pu-name{max-width:100%;overflow:hidden;color:var(--text)}
 /* a name too long for the slot trails off into the background */
 .pin-unit .pu-name.pu-fade{text-align:left;align-self:stretch;
@@ -373,7 +375,7 @@ body.no-pin-art .pinbox .pin-art{display:none}
 .pin-unit .pu-upk{display:flex;flex-direction:column;align-items:center;margin-top:2px;font-size:11px}
 .pin-unit .pu-upk .muted{font-size:9px;margin-left:1px}
 .pin-vs-word{color:var(--text-dim);font-weight:700;font-size:12px;letter-spacing:.06em;
-  margin-top:50px;line-height:16px}
+  margin-top:65px;line-height:16px}
 .cmp-row{display:grid;grid-template-columns:auto 1fr auto;gap:2px 8px;align-items:center;
   padding:6px 0;border-top:1px solid var(--border-soft)}
 /* the icon sits beside the name and cost; under it, level with the damage, a DMG: label */
@@ -414,8 +416,6 @@ body.no-pin-art .pinbox .pin-art{display:none}
 .pinbox.pin-wide .pin-close2{display:block;position:static;align-self:center;margin-top:6px;font-size:18px}
 /* the wide view's own switches, under its second close */
 .pinbox .pin-opts{display:none}
-.pinbox .pin-hits{display:none}
-.pinbox.pin-wide .pin-hits{display:block;text-align:center;color:#e2c760;font-size:12px;margin:4px 0 -2px}
 .pinbox.pin-wide .pin-opts{display:flex;flex-direction:column;align-items:flex-start;align-self:center;gap:3px;
   margin-top:6px;font-size:11px;color:var(--text-dim)}
 .pinbox .pin-opts label{display:flex;align-items:center;gap:5px;cursor:pointer}
@@ -2826,6 +2826,8 @@ function gearCompare(kind, A, D, l, bonusApplied){
   /* every hit the swinger could have put into this stack: the ones that
      landed, and if it fell, the ones that went elsewhere or went unused */
   const H = PREFS.fullHits ? A.size : (l.potHits || l.hits);
+  /* what the struck stack had standing when this exchange began, unless full sizes are asked for */
+  const Sd = PREFS.fullHits ? D.size : Math.max(0, D.size - Math.floor(round6(l.prevTaken || 0)));
   const Dw = gearCost("weapon", D.weapon), Da = gearCost("armor", D.armor);
   /* the weapon the armour side carries with each suit, or nothing when
      the attached-weapon box is off */
@@ -2852,7 +2854,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
      more or less, then the two together. Weapon: the new kit, then the
      enemy troops and value that go down more or less. */
   const hire = u => (UNIT_COST[u.origType] || {hire:0}).hire;
-  const dead = r => Math.min(D.size, Math.floor(r.dmg));
+  const dead = r => Math.min(Sd, Math.floor(r.dmg));
   const lossOf = r=>{
     const k = dead(r);
     if (isW) return {k, bits: k * (hire(D) + Dw.bits + Da.bits),
@@ -2969,7 +2971,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
      standing, parity is what it takes for this piece to match it. Each is
      the troops raised (or not) in full kit, with their upkeep; the hits all
      still kill, so a bigger stack only burns more. */
-  const S = D.size;
+  const S = Sd;
   const upk = (UNIT_COST[D.origType] || {upkeep:{}}).upkeep;
   const survivors = r => Math.max(0, S - dead(r));
   /* re-equipping the troops already there with this piece; nothing on the equipped row */
@@ -3055,7 +3057,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
   const planW = (r, E, res) => E * perA(r.key, res) + swapW(r, res);
   /* kind "parity": match the equipped weapon's damage; kind "raise": wipe the
      struck stack outright, for a weapon that falls short of it */
-  const needFor = (r, kind) => kind === "raise" || kind === "skim" ? hitsTo(r.ph, D.size) : hitsFor(r);
+  const needFor = (r, kind) => kind === "raise" || kind === "skim" ? hitsTo(r.ph, Sd) : hitsFor(r);
   const tipWPlan = (r, E, res, kind)=>{
     const ico = res ? resIcon(res) : BIT, p1 = perA(r.key, res), up = E > 0, need = needFor(r, kind);
     const wpn = r2 => phLine(r2.key, r2.stat, D.armor, D.arm[TYPES[A.type]], r2.ph);
@@ -3064,7 +3066,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
     const work = kind === "parity"
       ? wpn(now) + tl(`${fmt(round3(now.ph))} × ${money(H)} hits = ${w_(money(K))} damage`) + tlHr +
         wpn(r) + tl(`${money(K)} / ${fmt(round3(r.ph))} = ${w_(money(need))}${approx(K, r.ph, need)} hits`)
-      : wpn(r) + tl(`${money(D.size)} standing / ${fmt(round3(r.ph))} = ${w_(money(need))}${approx(D.size, r.ph, need)} hits`);
+      : wpn(r) + tl(`${money(Sd)} standing / ${fmt(round3(r.ph))} = ${w_(money(need))}${approx(Sd, r.ph, need)} hits`);
     return `<div data-tip-bg="${tipBg}">${title}<div style="margin-top:6px">${work}${
       tl(`${money(need)} − ${money(H)} = ${w_(nS(E))}`)}${tlHr}${
       costLines(E, p1, ico, r === now ? null : A.size, kitUnit(r.key, res), kitUnit(now.key, res), planW(r, E, res))}</div></div>`;
@@ -3160,7 +3162,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
 
   /* ---- the equipped row's warnings: hits already spent elsewhere, or a
      stack already hit before; each opens the exchanges behind it */
-  const miniLog = (title, pick)=>{
+  const miniLog = (title, pick, show)=>{
     const us = l.unitsAll || {}, lg = l.logAll || [];
     const nm = u => `<span style="color:${sideCol(u)}">${esc(u.nick || u.name)}</span>`;
     /* after each line: the swinger's hits still in hand, the struck stack still standing */
@@ -3173,8 +3175,9 @@ function gearCompare(kind, A, D, l, bonusApplied){
       const swings = Math.max(0, a.size - spent[x.aid]);
       const standing = Math.max(0, d.size - Math.floor(round6(taken[x.did])));
       return `<div class="ml${j === l.logIdx ? " ml-cur" : ""}">${nm(a)} hit ${nm(d)} for <b class="w">${fmt(x.damage)}</b>
-        <span class="muted">(${money(x.hits)} hits)</span> → <b class="w">${money(swings)}</b> <span class="muted">swings left ·</span>
-        <b class="w">${money(standing)}</b> <span class="muted">standing</span></div>`;
+        <span class="muted">(${money(x.hits)} hits)</span> → ${show === "swings"
+          ? `<b class="w">${money(swings)}</b> <span class="muted">swings left</span>`
+          : `<b class="w">${money(standing)}</b> <span class="muted">standing</span>`}</div>`;
     }).join("")}</div>`;
   };
   const warnOf = ()=>{
@@ -3182,11 +3185,11 @@ function gearCompare(kind, A, D, l, bonusApplied){
     if (isW){
       if (PREFS.fullHits || H >= A.size) return "";
       return `<span class="cmp-warn" data-tip-key="${regTip(`<div data-tip-bg="${tipBg}">${
-        miniLog(`${esc(A.nick || A.name)}'s swings`, x => x.aid === l.aid)}</div>`, PIN_NS)}">Using ${money(H)} hits of ${money(A.size)} total!</span>`;
+        miniLog(`${esc(A.nick || A.name)}'s swings`, x => x.aid === l.aid, "swings")}</div>`, PIN_NS)}">Using ${money(H)} hits of ${money(A.size)} total!</span>`;
     }
     if (!lg.some((x, j) => j < l.logIdx && x.did === l.did)) return "";
     return `<span class="cmp-warn" data-tip-key="${regTip(`<div data-tip-bg="${tipBg}">${
-      miniLog(`Hits on ${esc(D.nick || D.name)}`, x => x.did === l.did)}</div>`, PIN_NS)}">This unit was attacked earlier!</span>`;
+      miniLog(`Hits on ${esc(D.nick || D.name)}`, x => x.did === l.did, "standing")}</div>`, PIN_NS)}">This unit was attacked earlier!</span>`;
   };
 
   const row = (r, isCur)=>{
@@ -3203,8 +3206,8 @@ function gearCompare(kind, A, D, l, bonusApplied){
       <span class="cmp-stat">${isW ? "" : "×"}${fmt(r.stat)}</span>
       <span class="cmp-cost"><span class="bits">${money(r.bits)}</span><span class="cmp-res">${resChips(r.res)}</span>${oneOf(r.key)}</span>
       <span class="cmp-dmg-k">DMG:</span>
-      <span class="cmp-dmg"><span>${r.dmg >= D.size
-        ? `[${money(D.size)}] ${isW ? "dealt" : "taken"} <span class="muted">(${money(r.dmg)} total)</span>`
+      <span class="cmp-dmg"><span>${r.dmg >= Sd
+        ? `[${money(Sd)}] ${isW ? "dealt" : "taken"} <span class="muted">(${money(r.dmg)} total)</span>`
         : `${money(r.dmg)} ${isW ? "dealt" : "taken"}`}</span>${delta}</span>
       <div class="cmp-x">${extra(r, isCur)}</div>
       ${isW ? `<div class="cmp-wpar">${wparCol(r)}</div>` : `<div class="cmp-hold">${sizeCol(r)}</div>`}
@@ -3232,7 +3235,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
 }
 
 /* size on top, the sprite in its side's colour, then the kit and training */
-function pinUnit(U, swings){
+function pinUnit(U, swings, now){
   /* the border and gear colours say which side it is on; which piece stays
      lit says what it does in this exchange: the swinger's weapon counts,
      the struck one's armour, whichever side either is on */
@@ -3240,7 +3243,9 @@ function pinUnit(U, swings){
   const name = U.nick || U.name;
   return `<div class="pin-unit ${atk ? "side-atk" : "side-def"}">
     <span class="pu-name" title="${esc(name)}">${esc(name)}</span>
-    <span class="pu-size">${Number(U.size).toLocaleString("en-US")}</span>
+    <span class="pu-size">${swings || now == null || now >= U.size ? money(U.size)
+      : `<span class="pu-was">${money(U.size)}</span> → ${money(now)}`}</span>
+    <span class="pu-left">${swings && now != null ? `${money(now)} <span class="muted">swings left</span>` : "&nbsp;"}</span>
     ${buildSprite(U.origType, U.weapon, U.armor, true, {size: U.size, training: U.training})}
     <span class="pu-gear${swings ? "" : " pu-off"}">${esc(label(U.weapon))}</span>
     <span class="pu-gear${swings ? " pu-off" : ""}">${esc(label(U.armor))}</span>
@@ -3257,9 +3262,9 @@ function dmgPinHTML(A, D, l, bonusApplied){
   return `<button class="pin-close" title="Close (Esc)">×</button>
     <div class="pin-cols">
       <div class="pin-col cmp-weapon ${A.attack_mission ? "bg-inv" : "bg-def"}${PIN_WHOLD ? " hold-open" : ""}">${gearCompare("weapon", A, D, l, bonusApplied)}</div>
-      <div class="pin-col pin-mid">${dmgMathTip(A, D, l, bonusApplied,
-        `<div class="pin-hits">${money(PREFS.fullHits ? A.size : (l.potHits || l.hits))} ${PREFS.fullHits ? "hits (full stack)" : "hits left"}</div>`)}
-        <div class="pin-vs">${pinUnit(A, true)}<span class="pin-vs-word">vs</span>${pinUnit(D, false)}</div>
+      <div class="pin-col pin-mid">${dmgMathTip(A, D, l, bonusApplied)}
+        <div class="pin-vs">${pinUnit(A, true, l.potHits || l.hits)}<span class="pin-vs-word">vs</span>${
+          pinUnit(D, false, Math.max(0, D.size - Math.floor(round6(l.prevTaken || 0))))}</div>
         <div class="m1-more" title="Show what each swap costs or saves">${M1_ICON}<span class="m1-txt">m1 for compare</span></div>
         <button class="pin-close pin-close2" title="Close (Esc)">×</button>
         <div class="pin-opts">
@@ -3268,7 +3273,7 @@ function dmgPinHTML(A, D, l, bonusApplied){
           <label><input type="checkbox" data-pref="hideSkim"${PREFS.hideSkim ? " checked" : ""}> Hide skim</label>
           <label><input type="checkbox" data-pref="hideRaise"${PREFS.hideRaise ? " checked" : ""}> Hide raise</label>
           <label><input type="checkbox" data-pref="hidePar"${PREFS.hidePar ? " checked" : ""}> Hide parity</label>
-          <label class="opt-sep"><input type="checkbox" data-pref="fullHits"${PREFS.fullHits ? " checked" : ""}> Full stack's hits, not hits left</label>
+          <label class="opt-sep"><input type="checkbox" data-pref="fullHits"${PREFS.fullHits ? " checked" : ""}> Use full unit sizes instead of real</label>
         </div>
         <div class="pin-art"><img src="https://derpicdn.net/img/2023/9/3/3193754/thumb.png" alt=""
           onerror="this.parentNode.remove()"></div></div>
@@ -3721,7 +3726,9 @@ function exchangeLogBlock(units, log, bonus, id, ns, tail){
            swung after this, and whatever it never got to swing, would have
            come down on this stack too had it lasted */
         const after = log.slice(i + 1).reduce((t, x) => t + (x.aid === l.aid ? x.hits : 0), 0);
-        const lp = {...l, potHits: l.hits + after + Math.max(0, A.hits || 0), logIdx: i, logAll: log, unitsAll: units};
+        const before = log.slice(0, i).reduce((t, x) => t + (x.did === l.did ? x.damage : 0), 0);
+        const lp = {...l, potHits: l.hits + after + Math.max(0, A.hits || 0), prevTaken: before,
+                    logIdx: i, logAll: log, unitsAll: units};
         PINS.set(mk, ()=>dmgPinHTML(A, D, lp, bonusApplied));
         return `<div>${unitRef(A, A.weapon, true)} hit
           ${unitRef(D, D.armor)}
