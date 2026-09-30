@@ -206,8 +206,8 @@ body.log-icons #logBothWrap,body.log-icons.log-both #logBothNamedWrap{display:in
 .log-opt.opt-blue{color:#6fa8dc}
 .log-opt.opt-blue:hover{color:#94c2ec}
 .log-opt.opt-blue input{accent-color:#3b78b5}
-.log-opt.opt-yellow{color:#d9bd4f}
-.log-opt.opt-yellow:hover{color:#f0d66a}
+.log-opt.opt-yellow{color:#b89a3e}
+.log-opt.opt-yellow:hover{color:#d4b44f}
 .log-opt.opt-yellow input{accent-color:#b8972a}
 body.log-names .ref-nick{display:inline}
 body.log-names .unit-ref:has(.ref-nick) .ref-sys{display:none}
@@ -233,10 +233,12 @@ body.log-clean.log-hits.log-names:not(.log-nums) .unit-ref:has(.ref-nick) .ref-n
 .n-chg .n-was{color:#8a8f98}
 .n-chg .n-arr{color:#fff;margin:0 1px}
 /* Show training / hits: a yellow figure tucked against its icon */
-.ref-train,.ref-ammo{display:none;color:#e2c760;font-weight:600;white-space:nowrap}
+.ref-train,.ref-ammo{display:none;color:#b89a3e;font-weight:600;white-space:nowrap}
+.ref-ammo .n-arr{color:#fff;margin:0 1px}
+.ref-ammo .n-was{color:#8a8f98}
 body.log-clean.log-train .ref-train{display:inline;margin-left:5px}
 body.log-clean.log-hits .ref-ammo{display:inline;margin-right:5px}
-.ref-train img,.ref-ammo img{width:16px;height:16px;vertical-align:-3px;margin-right:1px}
+.ref-train img,.ref-ammo img{width:16px;height:16px;vertical-align:-3px;margin-right:1px;opacity:.75}
 #logNumsWrap,#logTrainWrap,#logHitsWrap{display:none}
 body.log-names #logNumsWrap{display:inline-flex}
 body.log-clean #logTrainWrap,body.log-clean #logHitsWrap{display:inline-flex}
@@ -2764,8 +2766,9 @@ function tipAttrs(type, weapon, armor, size, training){
    armor swaps that for both pieces, armour first on the one swinging. */
 const TRAIN_IMG = imgUrl("Training"), AMMO_IMG = imgUrl("Ammo");
 /* `x`, from an exchange, adds what the clean log can show beside the unit:
-   train — its training, when the two sides' differ; ammo — the hits it
-   still had going in; was/now — its size before and after being struck */
+   train — its training, when the two sides' differ; ammo/ammoAfter — the
+   hits it had going in and coming out; was/now — its size before and after
+   being struck */
 function unitRef(u, gear, swing, x){
   const img = k => k && gearImgSrc(k, true) ? fightImg(k) : "";
   const pair = img(u.weapon) + img(u.armor);
@@ -2774,14 +2777,15 @@ function unitRef(u, gear, swing, x){
              (pair ? `<span class="ref-ic ref-both${swing ? " ref-swing" : ""}${nm}">${pair}</span>` : "");
   x = x || {};
   const ammo = x.ammo != null
-    ? `<span class="ref-ammo"><img src="${AMMO_IMG}" alt="" title="Hits left">${money(x.ammo)}</span>` : "";
+    ? `<span class="ref-ammo"><img src="${AMMO_IMG}" alt="" title="Hits left"><span class="n-was">${money(x.ammo)}</span><span class="n-arr">→</span>${money(x.ammoAfter)}</span>` : "";
   const chg = x.was != null
     ? `<span class="n-chg">(<span class="n-was">${money(x.was)}</span><span class="n-arr">→</span>${money(x.now)})</span>` : "";
   return `${ammo}${ic}<span class="unit-ref ${u.attack_mission ? "ref-atk" : "ref-def"}"
     ${tipAttrs(u.origType, u.weapon, u.armor, u.size, u.training)}><span class="ref-sys">${esc(u.name).replace(/size_\d+/, "<span class=\"ref-size\">$&</span>")}</span><span class="ref-kit">${
     esc(label(u.weapon))} + ${esc(label(u.armor))}</span>${
     u.nick ? `<span class="ref-nick">${esc(u.nick)}</span>` : ""}${
-    x.train ? `<span class="ref-train"><img src="${TRAIN_IMG}" alt="" title="Training">${esc(u.training)}</span>` : ""}<span class="ref-num"><span class="n-plain">${esc(u.size)}</span>${chg}</span></span>`;
+    ""}<span class="ref-num"><span class="n-plain">${esc(u.size)}</span>${chg}</span>${
+    x.train ? `<span class="ref-train"><img src="${TRAIN_IMG}" alt="" title="Training">${esc(u.training)}</span>` : ""}</span>`;
 }
 
 /* whether the armour side counts the weapon each suit is worn with: it is
@@ -3776,7 +3780,7 @@ function exchangeLogBlock(units, log, bonus, id, ns, tail){
         const spent = log.slice(0, i).reduce((t, x) => t + (x.aid === l.aid ? x.hits : 0), 0);
         const standing = n => Math.max(0, D.size - Math.floor(round6(n)));
         const train = A.training !== D.training;
-        return `<div>${unitRef(A, A.weapon, true, {train, ammo: Math.max(0, A.size - spent)})} hit
+        return `<div>${unitRef(A, A.weapon, true, {train, ammo: Math.max(0, A.size - spent), ammoAfter: Math.max(0, A.size - spent - l.hits)})} hit
           ${unitRef(D, D.armor, false, {train, was: standing(before), now: standing(before + l.damage)})}
           for <b class="dmg-ref" data-tip-key="${mk}" data-pin-key="${mk}">${fmt(l.damage)}</b> damage
           <span class="muted">(${l.hits} hits)</span></div>`;
