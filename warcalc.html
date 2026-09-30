@@ -263,6 +263,12 @@ body.log-clean.log-names:not(.log-nums) .unit-ref:has(.ref-nick) .ref-num{displa
 body.log-clean.log-hits .ref-num:has(.n-chg) .n-plain{display:none}
 body.log-clean.log-hits .ref-num .n-chg{display:inline}
 body.log-clean.log-hits.log-names:not(.log-nums) .unit-ref:has(.ref-nick) .ref-num:has(.n-chg){display:inline}
+/* Attacker dmg leftwards: the swinger's size goes in front of its name. The
+   size is written twice and this picks which one shows; both copies obey
+   the rules above about when a size shows at all */
+.ref-num.ref-lead{margin:0 4px 0 0}
+body:not(.log-alead) .ref-num.ref-lead,
+body.log-alead .unit-ref.ref-swinger > .ref-num:not(.ref-lead){display:none !important}
 .n-chg .n-was,.n-chg .n-arr{color:#5d6168}
 .n-chg .n-arr{margin:0 1px}
 /* Show training / hits: a yellow figure tucked against its icon */
@@ -1400,6 +1406,8 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
       <input type="checkbox" id="logNums"> Numbers with names?</label>
     <label class="hk-toggle log-opt opt-yellow" for="logClean">
       <input type="checkbox" id="logClean"> Cleaner Exchange Log</label>
+    <label class="hk-toggle log-opt opt-yellow" for="logALead">
+      <input type="checkbox" id="logALead"> Attacker dmg leftwards</label>
     <label class="hk-toggle log-opt opt-yellow" for="logTrain" id="logTrainWrap">
       <input type="checkbox" id="logTrain"> Show training</label>
     <label class="hk-toggle log-opt opt-yellow" for="logHits" id="logHitsWrap">
@@ -2822,8 +2830,9 @@ function unitRef(u, gear, swing, x){
     ? `<span class="ref-ammo"><img src="${AMMO_IMG}" alt="" title="Hits left"><span class="n-was">${money(x.ammo)}</span><span class="n-arr">→</span>${money(x.ammoAfter)}</span>` : "";
   const chg = x.was != null
     ? `<span class="n-chg">(<span class="n-was">${money(x.was)}</span><span class="n-arr">→</span>${money(x.now)})</span>` : "";
-  return `${ammo}${ic}<span class="unit-ref ${u.attack_mission ? "ref-atk" : "ref-def"}"
-    ${tipAttrs(u.origType, u.weapon, u.armor, u.size, u.training)}><span class="ref-sys">${esc(u.name).replace(/size_\d+/, "<span class=\"ref-size\">$&</span>")}</span><span class="ref-kit">${
+  return `${ammo}${ic}<span class="unit-ref ${u.attack_mission ? "ref-atk" : "ref-def"}${swing ? " ref-swinger" : ""}"
+    ${tipAttrs(u.origType, u.weapon, u.armor, u.size, u.training)}><span class="ref-sys">${esc(u.name).replace(/size_\d+/, "<span class=\"ref-size\">$&</span>")}</span>${
+    swing ? `<span class="ref-num ref-lead">${esc(u.size)}</span>` : ""}<span class="ref-kit">${
     esc(label(u.weapon))} + ${esc(label(u.armor))}</span>${
     u.nick ? `<span class="ref-nick">${esc(u.nick)}</span>` : ""}${
     ""}<span class="ref-num"><span class="n-plain">${esc(u.size)}</span>${chg}</span>${
@@ -7045,11 +7054,12 @@ hkBox.addEventListener("change", syncHotkeys);
 const LS_LOG_OPTS = "warcalc.logOpts";
 {
   const o = store.get(LS_LOG_OPTS, {}) || {};
-  /* icons, numbers, the clean log and its training start on, everything else off */
+  /* icons, numbers, the clean log, its training and the swinger's size in
+   front start on, everything else off */
   [["logIcons", "icons", "log-icons", true], ["logBoth", "both", "log-both"],
    ["logBothNamed", "bothNamed", "log-both-named"],
    ["logNames", "names", "log-names"], ["logNums", "nums", "log-nums", true],
-   ["logClean", "clean", "log-clean", true], ["logTrain", "train", "log-train", true],
+   ["logClean", "clean", "log-clean", true], ["logALead", "alead", "log-alead", true], ["logTrain", "train", "log-train", true],
    ["logHits", "hits", "log-hits"], ["logDAlign", "dalign", "log-dalign"],
    ["logDDmg", "ddmg", "log-ddmg"]].forEach(([id, k, cls, dflt])=>{
     const box = document.getElementById(id);
