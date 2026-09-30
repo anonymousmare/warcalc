@@ -216,16 +216,22 @@ body.log-icons #logBothWrap,body.log-icons.log-both #logBothNamedWrap{display:in
 .log-opt.opt-purple input{accent-color:#7453b8}
 /* Defender vertical align (off to start): the swinging half of every exchange takes the
    width of the log's widest, so the ones struck line up down one edge */
-body.log-dalign .xlog{display:grid;grid-template-columns:max-content max-content max-content minmax(0,1fr)}
+body.log-dalign .xlog{display:grid;grid-template-columns:max-content minmax(0,1fr)}
 body.log-dalign .xlog > *{grid-column:1 / -1}
 body.log-dalign .xlog > .xr{display:grid;grid-template-columns:subgrid;align-items:baseline}
-/* the columns say who hit whom, so "hit" goes; its room stays as a gap */
+/* the columns say who hit whom, so "hit" goes; its room stays as a gap,
+   ruled across in the swinger's colour, stopping 10px short of either unit */
 body.log-dalign .xlog .xatk{display:flex;align-items:baseline}
-body.log-dalign .xlog .xhit{flex:1;min-width:calc(1.2em + 40px);font-size:0}
-/* and the damage takes a column of its own, "for" dropped, at
-   least 30px clear of the one struck */
-body.log-dalign .xlog .xfor{display:none}
-body.log-dalign .xlog .xdmg{padding-left:30px}
+body.log-dalign .xlog .xhit{flex:1;min-width:40px;font-size:0;align-self:stretch;display:flex;align-items:center}
+body.log-dalign .xlog .xhit::after{content:"";flex:1;height:1px;margin:0 10px;opacity:.33}
+body.log-dalign .xlog .xr-atk .xhit::after{background:#f17a77}
+body.log-dalign .xlog .xr-def .xhit::after{background:#74cae3}
+/* Align damage too: the damage takes a column of its own, "for" dropped,
+   at least 30px clear of the one struck */
+body.log-dalign.log-ddmg .xlog{grid-template-columns:max-content max-content minmax(0,1fr)}
+body.log-dalign.log-ddmg .xlog .xrest{display:contents}
+body.log-dalign.log-ddmg .xlog .xfor{display:none}
+body.log-dalign.log-ddmg .xlog .xdmg{padding-left:30px}
 /* every icon slot is as wide as the widest picture it can hold — weapons
    run to 24px, armour to 32 — so the names line up down the log whatever
    gear they carry, and each picture sits centred in its own slot */
@@ -268,7 +274,8 @@ body.log-clean.log-hits .ref-ammo{display:inline-block;box-sizing:content-box;
   width:calc(17px + var(--ammo-ch, 7) * 1ch + 1ch);font-variant-numeric:tabular-nums;
   padding-right:6px;margin-right:7px;border-right:1px solid rgba(255,255,255,.14)}
 .ref-train img,.ref-ammo img{width:16px;height:16px;vertical-align:-3px;margin-right:1px;opacity:.33}
-#logNumsWrap,#logTrainWrap,#logHitsWrap{display:none}
+#logNumsWrap,#logTrainWrap,#logHitsWrap,#logDDmgWrap{display:none}
+body.log-dalign #logDDmgWrap{display:inline-flex}
 body.log-names #logNumsWrap{display:inline-flex}
 body.log-clean #logTrainWrap,body.log-clean #logHitsWrap{display:inline-flex}
 .log .unspent{color:#e2c760;border-bottom:none}
@@ -1397,6 +1404,8 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
       <input type="checkbox" id="logHits"> Show hits and size changes</label>
     <label class="hk-toggle log-opt opt-purple" for="logDAlign">
       <input type="checkbox" id="logDAlign"> Defender vertical align</label>
+    <label class="hk-toggle log-opt opt-purple" for="logDDmg" id="logDDmgWrap">
+      <input type="checkbox" id="logDDmg"> Align damage too</label>
     </div>
   </div>
 </div>
@@ -3818,10 +3827,10 @@ function exchangeLogBlock(units, log, bonus, id, ns, tail){
         const spent = log.slice(0, i).reduce((t, x) => t + (x.aid === l.aid ? x.hits : 0), 0);
         const standing = n => Math.max(0, D.size - Math.floor(round6(n)));
         const train = A.training !== D.training;
-        return `<div class="xr"><span class="xatk"><span class="xu">${unitRef(A, A.weapon, true, {train, ammo: Math.max(0, A.size - spent), ammoAfter: Math.max(0, A.size - spent - l.hits)})}</span> <span class="xhit">hit</span></span>
-          <span class="xdef">${unitRef(D, D.armor, false, {train, was: standing(before), now: standing(before + l.damage)})}</span>
+        return `<div class="xr ${A.attack_mission ? "xr-atk" : "xr-def"}"><span class="xatk"><span class="xu">${unitRef(A, A.weapon, true, {train, ammo: Math.max(0, A.size - spent), ammoAfter: Math.max(0, A.size - spent - l.hits)})}</span> <span class="xhit">hit</span></span>
+          <span class="xrest"><span class="xdef">${unitRef(D, D.armor, false, {train, was: standing(before), now: standing(before + l.damage)})}</span>
           <span class="xdmg"><span class="xfor">for&nbsp;</span><b class="dmg-ref" data-tip-key="${mk}" data-pin-key="${mk}">${fmt(l.damage)}</b> damage
-          <span class="muted">(${l.hits} hits)</span></span></div>`;
+          <span class="muted">(${l.hits} hits)</span></span></span></div>`;
       }).join("") : '<div class="muted">No hits were exchanged.</div>'}${tail || ""}</div>
   </div>`;
 }
@@ -7039,7 +7048,8 @@ const LS_LOG_OPTS = "warcalc.logOpts";
    ["logBothNamed", "bothNamed", "log-both-named"],
    ["logNames", "names", "log-names"], ["logNums", "nums", "log-nums", true],
    ["logClean", "clean", "log-clean", true], ["logTrain", "train", "log-train", true],
-   ["logHits", "hits", "log-hits"], ["logDAlign", "dalign", "log-dalign"]].forEach(([id, k, cls, dflt])=>{
+   ["logHits", "hits", "log-hits"], ["logDAlign", "dalign", "log-dalign"],
+   ["logDDmg", "ddmg", "log-ddmg"]].forEach(([id, k, cls, dflt])=>{
     const box = document.getElementById(id);
     box.checked = typeof o[k] === "boolean" ? o[k] : !!dflt;
     document.body.classList.toggle(cls, box.checked);
