@@ -206,15 +206,40 @@ body.log-icons #logBothWrap,body.log-icons.log-both #logBothNamedWrap{display:in
 .log-opt.opt-blue{color:#6fa8dc}
 .log-opt.opt-blue:hover{color:#94c2ec}
 .log-opt.opt-blue input{accent-color:#3b78b5}
+.log-opt.opt-yellow{color:#d9bd4f}
+.log-opt.opt-yellow:hover{color:#f0d66a}
+.log-opt.opt-yellow input{accent-color:#b8972a}
 body.log-names .ref-nick{display:inline}
 body.log-names .unit-ref:has(.ref-nick) .ref-sys{display:none}
-/* Numbers with names: the unit's size after its name, dimmed so the name leads */
+/* Cleaner Exchange Log: "ACFU + Bigdog 40" in place of the system name;
+   a unit's own name still wins when Use names is on */
+.ref-kit{display:none}
+body.log-clean .ref-sys{display:none}
+body.log-clean .ref-kit{display:inline}
+body.log-clean.log-names .unit-ref:has(.ref-nick) .ref-kit{display:none}
+/* Numbers with names: the unit's size after its name, dimmed so the name leads.
+   The clean log always carries it, unless a name stands in and the box is off */
 .ref-num{display:none;margin-left:4px;font-weight:500}
-body.log-names.log-nums .ref-num{display:inline}
+body.log-names.log-nums .unit-ref:has(.ref-nick) .ref-num,
+body.log-clean .ref-num{display:inline}
+body.log-clean.log-names:not(.log-nums) .unit-ref:has(.ref-nick) .ref-num{display:none}
 .ref-atk .ref-num{color:#a8514f}
 .ref-def .ref-num{color:#4f8a9c}
-#logNumsWrap{display:none}
+/* Show hits and size changes: the one struck reads (before→after) */
+.ref-num .n-chg{display:none}
+body.log-clean.log-hits .ref-num:has(.n-chg) .n-plain{display:none}
+body.log-clean.log-hits .ref-num .n-chg{display:inline}
+body.log-clean.log-hits.log-names:not(.log-nums) .unit-ref:has(.ref-nick) .ref-num:has(.n-chg){display:inline}
+.n-chg .n-was{color:#8a8f98}
+.n-chg .n-arr{color:#fff;margin:0 1px}
+/* Show training / hits: a yellow figure tucked against its icon */
+.ref-train,.ref-ammo{display:none;color:#e2c760;font-weight:600;white-space:nowrap}
+body.log-clean.log-train .ref-train{display:inline;margin-left:5px}
+body.log-clean.log-hits .ref-ammo{display:inline;margin-right:5px}
+.ref-train img,.ref-ammo img{width:16px;height:16px;vertical-align:-3px;margin-right:1px}
+#logNumsWrap,#logTrainWrap,#logHitsWrap{display:none}
 body.log-names #logNumsWrap{display:inline-flex}
+body.log-clean #logTrainWrap,body.log-clean #logHitsWrap{display:inline-flex}
 .log .unspent{color:#e2c760;border-bottom:none}
 .log .unspent b{color:#e2c760}
 body.no-unspent .log .unspent{display:none}
@@ -1333,6 +1358,12 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
       <input type="checkbox" id="logNames"> Use names</label>
     <label class="hk-toggle log-opt opt-blue" for="logNums" id="logNumsWrap">
       <input type="checkbox" id="logNums"> Numbers with names?</label>
+    <label class="hk-toggle log-opt opt-yellow" for="logClean">
+      <input type="checkbox" id="logClean"> Cleaner Exchange Log</label>
+    <label class="hk-toggle log-opt opt-yellow" for="logTrain" id="logTrainWrap">
+      <input type="checkbox" id="logTrain"> Show training</label>
+    <label class="hk-toggle log-opt opt-yellow" for="logHits" id="logHitsWrap">
+      <input type="checkbox" id="logHits"> Show hits and size changes</label>
     </div>
   </div>
 </div>
@@ -2731,15 +2762,26 @@ function tipAttrs(type, weapon, armor, size, training){
    which shows. `gear`, when given, is the piece whose icon Use icons puts in
    front — the swinger's weapon, the one struck's armour; Show weapon and
    armor swaps that for both pieces, armour first on the one swinging. */
-function unitRef(u, gear, swing){
+const TRAIN_IMG = imgUrl("Training"), AMMO_IMG = imgUrl("Ammo");
+/* `x`, from an exchange, adds what the clean log can show beside the unit:
+   train — its training, when the two sides' differ; ammo — the hits it
+   still had going in; was/now — its size before and after being struck */
+function unitRef(u, gear, swing, x){
   const img = k => k && gearImgSrc(k, true) ? fightImg(k) : "";
   const pair = img(u.weapon) + img(u.armor);
   const nm = u.nick ? " ref-named" : "";
   const ic = (img(gear) ? `<span class="ref-ic ref-one${nm}">${img(gear)}</span>` : "") +
              (pair ? `<span class="ref-ic ref-both${swing ? " ref-swing" : ""}${nm}">${pair}</span>` : "");
-  return `${ic}<span class="unit-ref ${u.attack_mission ? "ref-atk" : "ref-def"}"
-    ${tipAttrs(u.origType, u.weapon, u.armor, u.size, u.training)}><span class="ref-sys">${esc(u.name).replace(/size_\d+/, "<span class=\"ref-size\">$&</span>")}</span>${
-    u.nick ? `<span class="ref-nick">${esc(u.nick)}<span class="ref-num">${esc(u.size)}</span></span>` : ""}</span>`;
+  x = x || {};
+  const ammo = x.ammo != null
+    ? `<span class="ref-ammo"><img src="${AMMO_IMG}" alt="" title="Hits left">${money(x.ammo)}</span>` : "";
+  const chg = x.was != null
+    ? `<span class="n-chg">(<span class="n-was">${money(x.was)}</span><span class="n-arr">→</span>${money(x.now)})</span>` : "";
+  return `${ammo}${ic}<span class="unit-ref ${u.attack_mission ? "ref-atk" : "ref-def"}"
+    ${tipAttrs(u.origType, u.weapon, u.armor, u.size, u.training)}><span class="ref-sys">${esc(u.name).replace(/size_\d+/, "<span class=\"ref-size\">$&</span>")}</span><span class="ref-kit">${
+    esc(label(u.weapon))} + ${esc(label(u.armor))}</span>${
+    u.nick ? `<span class="ref-nick">${esc(u.nick)}</span>` : ""}${
+    x.train ? `<span class="ref-train"><img src="${TRAIN_IMG}" alt="" title="Training">${esc(u.training)}</span>` : ""}<span class="ref-num"><span class="n-plain">${esc(u.size)}</span>${chg}</span></span>`;
 }
 
 /* whether the armour side counts the weapon each suit is worn with: it is
@@ -3171,7 +3213,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
       if (!pick(x)) return "";
       const swings = Math.max(0, a.size - spent[x.aid]);
       const standing = Math.max(0, d.size - Math.floor(round6(taken[x.did])));
-      return `<div class="ml${j === l.logIdx ? " ml-cur" : ""}">${unitRef(a, a.weapon, true)} hit ${unitRef(d, d.armor)} for <b class="w">${fmt(x.damage)}</b>
+      return `<div class="ml${j === l.logIdx ? " ml-cur" : ""}">${unitRef(a, a.weapon, true, {train: a.training !== d.training})} hit ${unitRef(d, d.armor, false, {train: a.training !== d.training})} for <b class="w">${fmt(x.damage)}</b>
         <span class="muted">(${money(x.hits)} hits)</span> → ${show === "swings"
           ? `<b class="w">${money(swings)}</b> <span class="muted">swings left</span>`
           : `<b class="w">${money(standing)}</b> <span class="muted">standing</span>`}</div>`;
@@ -3731,8 +3773,11 @@ function exchangeLogBlock(units, log, bonus, id, ns, tail){
         const lp = {...l, potHits: l.hits + after + Math.max(0, A.hits || 0), prevTaken: before,
                     logIdx: i, logAll: log, unitsAll: units};
         PINS.set(mk, ()=>dmgPinHTML(A, D, lp, bonusApplied));
-        return `<div>${unitRef(A, A.weapon, true)} hit
-          ${unitRef(D, D.armor)}
+        const spent = log.slice(0, i).reduce((t, x) => t + (x.aid === l.aid ? x.hits : 0), 0);
+        const standing = n => Math.max(0, D.size - Math.floor(round6(n)));
+        const train = A.training !== D.training;
+        return `<div>${unitRef(A, A.weapon, true, {train, ammo: Math.max(0, A.size - spent)})} hit
+          ${unitRef(D, D.armor, false, {train, was: standing(before), now: standing(before + l.damage)})}
           for <b class="dmg-ref" data-tip-key="${mk}" data-pin-key="${mk}">${fmt(l.damage)}</b> damage
           <span class="muted">(${l.hits} hits)</span></div>`;
       }).join("") : '<div class="muted">No hits were exchanged.</div>'}${tail || ""}</div>
@@ -6947,10 +6992,12 @@ hkBox.addEventListener("change", syncHotkeys);
 const LS_LOG_OPTS = "warcalc.logOpts";
 {
   const o = store.get(LS_LOG_OPTS, {}) || {};
-  /* icons and numbers start on, everything else off */
+  /* icons, numbers, the clean log and its training start on, everything else off */
   [["logIcons", "icons", "log-icons", true], ["logBoth", "both", "log-both"],
    ["logBothNamed", "bothNamed", "log-both-named"],
-   ["logNames", "names", "log-names"], ["logNums", "nums", "log-nums", true]].forEach(([id, k, cls, dflt])=>{
+   ["logNames", "names", "log-names"], ["logNums", "nums", "log-nums", true],
+   ["logClean", "clean", "log-clean", true], ["logTrain", "train", "log-train", true],
+   ["logHits", "hits", "log-hits"]].forEach(([id, k, cls, dflt])=>{
     const box = document.getElementById(id);
     box.checked = typeof o[k] === "boolean" ? o[k] : !!dflt;
     document.body.classList.toggle(cls, box.checked);
