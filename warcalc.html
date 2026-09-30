@@ -332,6 +332,12 @@ body.no-pin-art .pinbox .pin-art{display:none}
 .tl .gear-img{vertical-align:-3px}
 .tl.tot{border-top:1px solid var(--border-soft);margin-top:3px;padding-top:3px}
 .tl-hr{border-top:1px solid rgba(255,255,255,.09);margin:5px 0}
+.cmp-warn{grid-column:1 / -1;justify-self:end;font-size:10px;color:#e2c760;cursor:help;
+  border-bottom:1px dotted currentColor;margin-top:2px;line-height:1.3}
+.pinbox.pin-wide .cmp-warn{grid-row:6}
+.ml-box{margin-top:6px;font-size:12px}
+.ml{padding:2px 4px;white-space:nowrap}
+.ml-cur{background:rgba(226,199,96,.14);border-left:2px solid #e2c760}
 .cx-hits{margin-left:auto;color:var(--text-dim);font-size:10px}
 .cx-act{color:var(--text-dim);font-size:9.5px;margin-left:3px}
 .sz-act{margin-left:0;font-family:"SFMono-Regular",Menlo,Consolas,monospace}
@@ -3152,6 +3158,30 @@ function gearCompare(kind, A, D, l, bonusApplied){
   const icons = key => isW ? (PIN_WITH_ARM ? `${gearImg(key)}<span class="cmp-wpn">${gearImg(A.armor)}</span>` : gearImg(key))
     : PIN_WITH_WPN ? `${gearImg(key)}<span class="cmp-wpn">${gearImg(U.weapon)}</span>` : gearImg(key);
 
+  /* ---- the equipped row's warnings: hits already spent elsewhere, or a
+     stack already hit before; each opens the exchanges behind it */
+  const miniLog = (title, pick)=>{
+    const us = l.unitsAll || {}, lg = l.logAll || [];
+    const nm = u => `<span style="color:${sideCol(u)}">${esc(u.nick || u.name)}</span>`;
+    return `<div class="tip-title">${title}</div><div class="ml-box">${lg.map((x, j)=>{
+      if (!pick(x)) return "";
+      const a = us[x.aid], d = us[x.did];
+      return `<div class="ml${j === l.logIdx ? " ml-cur" : ""}">${nm(a)} hit ${nm(d)} for <b class="w">${fmt(x.damage)}</b>
+        <span class="muted">(${money(x.hits)} hits)</span></div>`;
+    }).join("")}</div>`;
+  };
+  const warnOf = ()=>{
+    const lg = l.logAll || [];
+    if (isW){
+      if (PREFS.fullHits || H >= A.size) return "";
+      return `<span class="cmp-warn" data-tip-key="${regTip(`<div data-tip-bg="${tipBg}">${
+        miniLog(`${esc(A.nick || A.name)}'s swings`, x => x.aid === l.aid)}</div>`, PIN_NS)}">Using ${money(H)} hits of ${money(A.size)} total!</span>`;
+    }
+    if (!lg.some((x, j) => j < l.logIdx && x.did === l.did)) return "";
+    return `<span class="cmp-warn" data-tip-key="${regTip(`<div data-tip-bg="${tipBg}">${
+      miniLog(`Hits on ${esc(D.nick || D.name)}`, x => x.did === l.did)}</div>`, PIN_NS)}">This unit was attacked earlier!</span>`;
+  };
+
   const row = (r, isCur)=>{
     let delta = "";
     if (!isCur){
@@ -3171,6 +3201,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
         : `${money(r.dmg)} ${isW ? "dealt" : "taken"}`}</span>${delta}</span>
       <div class="cmp-x">${extra(r, isCur)}</div>
       ${isW ? `<div class="cmp-wpar">${wparCol(r)}</div>` : `<div class="cmp-hold">${sizeCol(r)}</div>`}
+      ${isCur ? warnOf() : ""}
     </div>`;
   };
 
@@ -3683,7 +3714,7 @@ function exchangeLogBlock(units, log, bonus, id, ns, tail){
            swung after this, and whatever it never got to swing, would have
            come down on this stack too had it lasted */
         const after = log.slice(i + 1).reduce((t, x) => t + (x.aid === l.aid ? x.hits : 0), 0);
-        const lp = {...l, potHits: l.hits + after + Math.max(0, A.hits || 0)};
+        const lp = {...l, potHits: l.hits + after + Math.max(0, A.hits || 0), logIdx: i, logAll: log, unitsAll: units};
         PINS.set(mk, ()=>dmgPinHTML(A, D, lp, bonusApplied));
         return `<div>${unitRef(A, A.weapon, true)} hit
           ${unitRef(D, D.armor)}
