@@ -227,11 +227,13 @@ body.log-dalign .xlog .xhit::after{content:"";flex:1;height:1px;margin:0 10px;op
 body.log-dalign .xlog .xr-atk .xhit::after{background:#f17a77}
 body.log-dalign .xlog .xr-def .xhit::after{background:#74cae3}
 /* Align damage too: the damage takes a column of its own, "for" dropped,
-   at least 30px clear of the one struck */
+   at least 30px clear of the one struck, with a grey rule across the gap */
 body.log-dalign.log-ddmg .xlog{grid-template-columns:max-content max-content minmax(0,1fr)}
 body.log-dalign.log-ddmg .xlog .xrest{display:contents}
 body.log-dalign.log-ddmg .xlog .xfor{display:none}
-body.log-dalign.log-ddmg .xlog .xdmg{padding-left:30px}
+body.log-dalign.log-ddmg .xlog .xdef{display:flex;align-items:center}
+body.log-dalign.log-ddmg .xlog .xdef::after{content:"";flex:1;min-width:10px;height:1px;margin:0 10px;
+  align-self:center;background:#8a8f98;opacity:.33}
 /* every icon slot is as wide as the widest picture it can hold — weapons
    run to 24px, armour to 32 — so the names line up down the log whatever
    gear they carry, and each picture sits centred in its own slot */
@@ -3828,7 +3830,7 @@ function exchangeLogBlock(units, log, bonus, id, ns, tail){
         const standing = n => Math.max(0, D.size - Math.floor(round6(n)));
         const train = A.training !== D.training;
         return `<div class="xr ${A.attack_mission ? "xr-atk" : "xr-def"}"><span class="xatk"><span class="xu">${unitRef(A, A.weapon, true, {train, ammo: Math.max(0, A.size - spent), ammoAfter: Math.max(0, A.size - spent - l.hits)})}</span> <span class="xhit">hit</span></span>
-          <span class="xrest"><span class="xdef">${unitRef(D, D.armor, false, {train, was: standing(before), now: standing(before + l.damage)})}</span>
+          <span class="xrest"><span class="xdef"><span class="xdu">${unitRef(D, D.armor, false, {train, was: standing(before), now: standing(before + l.damage)})}</span></span>
           <span class="xdmg"><span class="xfor">for&nbsp;</span><b class="dmg-ref" data-tip-key="${mk}" data-pin-key="${mk}">${fmt(l.damage)}</b> damage
           <span class="muted">(${l.hits} hits)</span></span></span></div>`;
       }).join("") : '<div class="muted">No hits were exchanged.</div>'}${tail || ""}</div>
