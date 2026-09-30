@@ -330,9 +330,11 @@ body.no-pin-art .pinbox .pin-art{display:none}
 .cmp-par{color:#e2c760}
 .tl{font-size:12px;padding:1px 0;white-space:nowrap}
 .tl .gear-img{vertical-align:-3px}
+.gtag{white-space:nowrap}
+.gtag .gear-img{width:auto;max-width:32px;vertical-align:-3px;margin-right:3px;object-position:center}
 .tl.tot{border-top:1px solid var(--border-soft);margin-top:3px;padding-top:3px}
 .tl-hr{border-top:1px solid rgba(255,255,255,.09);margin:5px 0}
-.cmp-warn{grid-column:1 / -1;justify-self:end;font-size:10px;color:#e2c760;cursor:help;
+.cmp-warn{grid-column:1 / -1;justify-self:end;margin-right:4px;font-size:10px;color:#e2c760;cursor:help;
   border-bottom:1px dotted currentColor;margin-top:2px;line-height:1.3}
 .pinbox.pin-wide .cmp-warn{grid-row:6}
 .ml-box{margin-top:6px;font-size:12px}
@@ -356,7 +358,9 @@ body.no-pin-art .pinbox .pin-art{display:none}
   font-size:11px;line-height:1.35;min-width:0;width:96px}
 .pin-unit .sprite{margin:3px 0 4px}
 /* name and size hold one line each, so both sprites start at the same height */
-.pin-unit .pu-name,.pin-unit .pu-size{height:15px;line-height:15px;white-space:nowrap}
+.pin-unit .pu-name,.pin-unit .pu-size,.pin-unit .pu-left{height:15px;line-height:15px;white-space:nowrap}
+.pin-unit .pu-was{color:var(--text-dim);font-weight:400}
+.pin-unit .pu-left{font-size:10px;color:#e2c760}
 .pin-unit .pu-name{max-width:100%;overflow:hidden;color:var(--text)}
 /* a name too long for the slot trails off into the background */
 .pin-unit .pu-name.pu-fade{text-align:left;align-self:stretch;
@@ -373,7 +377,7 @@ body.no-pin-art .pinbox .pin-art{display:none}
 .pin-unit .pu-upk{display:flex;flex-direction:column;align-items:center;margin-top:2px;font-size:11px}
 .pin-unit .pu-upk .muted{font-size:9px;margin-left:1px}
 .pin-vs-word{color:var(--text-dim);font-weight:700;font-size:12px;letter-spacing:.06em;
-  margin-top:50px;line-height:16px}
+  margin-top:65px;line-height:16px}
 .cmp-row{display:grid;grid-template-columns:auto 1fr auto;gap:2px 8px;align-items:center;
   padding:6px 0;border-top:1px solid var(--border-soft)}
 /* the icon sits beside the name and cost; under it, level with the damage, a DMG: label */
@@ -414,13 +418,12 @@ body.no-pin-art .pinbox .pin-art{display:none}
 .pinbox.pin-wide .pin-close2{display:block;position:static;align-self:center;margin-top:6px;font-size:18px}
 /* the wide view's own switches, under its second close */
 .pinbox .pin-opts{display:none}
-.pinbox .pin-hits{display:none}
-.pinbox.pin-wide .pin-hits{display:block;text-align:center;color:#e2c760;font-size:12px;margin:4px 0 -2px}
 .pinbox.pin-wide .pin-opts{display:flex;flex-direction:column;align-items:flex-start;align-self:center;gap:3px;
   margin-top:6px;font-size:11px;color:var(--text-dim)}
 .pinbox .pin-opts label{display:flex;align-items:center;gap:5px;cursor:pointer}
 .pinbox .pin-opts input{margin:0}
 .pinbox .pin-opts .opt-sep{margin-top:4px}
+.pinbox .pin-opts .opt-red{color:#f17a77}
 .pin-hover .pin-opts{display:none !important}
 body.hide-1x .cmp-one{display:none}
 body.hide-act .cx-act{display:none}
@@ -435,7 +438,7 @@ body.hide-skim .sz-gap:has(+ .sz-skim),body.hide-raise .sz-gap:has(+ .sz-raise){
 .cmp-cur{border:1px solid rgba(120,204,120,.45);border-radius:3px;padding:6px 2px;margin:0 -3px 6px}
 .cmp-cur .cmp-name,.cmp-cur .cmp-stat,.cmp-cur .cmp-cost .bits,.cmp-cur .cmp-dmg{color:#78cc78}
 .cmp-tag{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#78cc78;margin-bottom:2px}
-.cmp-up{color:#78cc78}.cmp-down{color:#f17a77}.cmp-same{color:var(--text-dim)}
+.cmp-up{color:#78cc78}.cmp-amb{color:#e2c760}.cmp-down{color:#f17a77}.cmp-same{color:var(--text-dim)}
 .tip-table{width:100%;border-top:1px solid var(--border-soft);padding-top:4px}
 .tip-table th{font-size:10px;padding:3px 4px}
 .tip-table td{font-size:12px;padding:1px 4px}
@@ -2823,9 +2826,10 @@ function gearCompare(kind, A, D, l, bonusApplied){
   const pool = (LOADOUTS[U.origType] || {})[isW ? "weapons" : "armor"] || [cur];
   const n = U.size;
 
-  /* every hit the swinger could have put into this stack: the ones that
-     landed, and if it fell, the ones that went elsewhere or went unused */
-  const H = PREFS.fullHits ? A.size : (l.potHits || l.hits);
+  /* the hits actually swung in this exchange, or the swinger's full size when asked */
+  const H = PREFS.fullHits ? A.size : l.hits;
+  /* what the struck stack had standing when this exchange began, unless full sizes are asked for */
+  const Sd = PREFS.fullHits ? D.size : Math.max(0, D.size - Math.floor(round6(l.prevTaken || 0)));
   const Dw = gearCost("weapon", D.weapon), Da = gearCost("armor", D.armor);
   /* the weapon the armour side carries with each suit, or nothing when
      the attached-weapon box is off */
@@ -2852,7 +2856,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
      more or less, then the two together. Weapon: the new kit, then the
      enemy troops and value that go down more or less. */
   const hire = u => (UNIT_COST[u.origType] || {hire:0}).hire;
-  const dead = r => Math.min(D.size, Math.floor(r.dmg));
+  const dead = r => Math.min(Sd, Math.floor(r.dmg));
   const lossOf = r=>{
     const k = dead(r);
     if (isW) return {k, bits: k * (hire(D) + Dw.bits + Da.bits),
@@ -2876,41 +2880,34 @@ function gearCompare(kind, A, D, l, bonusApplied){
     return res ? (Aw.res[res] || 0) + (a.res[res] || 0) : hire(D) + Aw.bits + a.bits;
   };
   const tr = (a, b, cls) => `<tr${cls ? ` class="${cls}"` : ""}><td>${a}</td><td class="n">${b}</td></tr>`;
-  /* the net card: both pieces with the weapon they sit beside and what the
-     stack costs to field, then the dead each leaves behind. Only the dead are
+  const gearTag = key => `<span class="gtag">${gearImg(key)}${esc(label(key))}</span>`;
+  /* the net card: the dead each piece leaves behind. Only the dead are
      spent: a survivor keeps its kit, and a dead one's kit was already bought
      in the fielding, so the net is what the fight burns and nothing more. */
   const tipNet = (r, res)=>{
     const ico = res ? resIcon(res) : BIT;
-    const amt = (v, mono) => `(<span class="${mono ? "mono-ic" : ""}">${ico}</span> ${money(v)})`;
-    const wv = res ? (Aw.res[res] || 0) : Aw.bits;             // the weapon beside each suit
-    const a1 = kitUnit(r.key, res), a0 = kitUnit(now.key, res);
-    const t1 = (a1 + wv) * n, t0 = (a0 + wv) * n;
-    const per = (x, a, t) => tr(`${esc(label(x.key))} per`,
-      `<b class="w">${money(a + wv)}</b> <span class="muted">(×${money(n)} = ${money(t)})</span>`);
     const deadRow = x=>{
       const k = dead(x), p1 = perLoss(x.key, res);
-      return tr(`<span class="tip-gear">${gearImg(x.key)}</span>${esc(label(x.key))}: ${money(k)} dead
+      return tr(`${gearTag(x.key)}: ${money(k)} dead
         <span class="muted">× ${money(p1)}</span> ${ico}`, money(k * p1));
     };
     const lossD = dead(r) * perLoss(r.key, res) - dead(now) * perLoss(now.key, res);
-    return `<div data-tip-bg="${tipBg}"><div class="tip-title">${amt(a1)} ${esc(label(r.key))}
-        <span class="muted">vs</span> ${amt(a0)} ${esc(label(now.key))} ${ico}</div>
-      <div class="small" style="margin:6px 0 2px">To field, ${PIN_WITH_WPN ? `including weapon${wv ? ` <span class="muted">${amt(wv, true)}</span>` : ""}` : "armour only"}</div>
-      <table class="tip-math">${per(r, a1, t1)}${per(now, a0, t0)}
-        ${tr(`difference <span class="muted">${money(t1)} − ${money(t0)}</span>`, sgn(t1 - t0), "tot")}</table>
+    return `<div data-tip-bg="${tipBg}"><div class="tip-title">${gearTag(r.key)} <span class="muted">vs</span> ${gearTag(now.key)} – ${ico}</div>
       <div class="small" style="margin:8px 0 2px">Killed${res ? "" : ` <span class="muted">(raise ${money(hire(D))} each, with their kit)</span>`}</div>
       <table class="tip-math">${deadRow(r)}${deadRow(now)}${tr("net", sgn(lossD), "tot")}</table></div>`;
   };
 
   /* weapon cards: the swing and what it brings down, laid out like the net card */
+  /* equipped vs hypothetical, then what one of each takes of this resource */
   const wTitle = (r, res)=>{
     const ico = res === false ? "" : res ? resIcon(res) : BIT;
-    const amt = key => res === false ? "" : `(${ico} ${money(kitUnit(key, res))}) `;
-    return `<div class="tip-title">${amt(r.key)}${esc(label(r.key))}${r === now ? ""
-      : ` <span class="muted">vs</span> ${amt(now.key)}${esc(label(now.key))}`} ${ico}</div>`;
+    const pair = r === now ? [now] : [now, r];
+    return `<div class="tip-title">${pair.map(x => gearTag(x.key)).join(` <span class="muted">vs</span> `)}</div>${
+      res === false ? "" : `<div style="margin-top:5px">${pair.map(x =>
+        `<div class="tl">${esc(label(x.key))}<span class="muted">›</span> ${ico} ${w_(money(kitUnit(x.key, res)))}</div>`).join("")}</div>
+      <div class="tl-hr"></div>`}`;
   };
-  const wRow = (x, right, mid) => tr(`<span class="tip-gear">${gearImg(x.key)}</span>${esc(label(x.key))}: ${mid}`, right);
+  const wRow = (x, right, mid) => tr(`${gearTag(x.key)}: ${mid}`, right);
   const tipWKills = r => wTitle(r, false) + `<table class="tip-math" style="margin-top:6px">${
     [r, now].filter((x, i) => !i || r !== now).map(x =>
       wRow(x, `${money(dead(x))} killed`, `<b class="w">${money(x.dmg)}</b> dmg dealt`)).join("")}${
@@ -2918,7 +2915,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
   const tipWorth = (r, res)=>{
     const ico = res ? resIcon(res) : BIT, per = perLoss(r.key, res);
     return wTitle(r, res) +
-      `<div class="small" style="margin:6px 0 2px">Killed ${res ? `<span class="muted">(<span class="tip-gear">${gearImg(D.weapon)}</span>+ <span class="tip-gear">${gearImg(D.armor)}</span>)</span>` : ""}</div>
+      `<div class="small" style="margin:6px 0 2px">Killed ${res ? `<span class="muted">(<span class="gtag">${gearImg(D.weapon)}</span>+ <span class="gtag">${gearImg(D.armor)}</span>)</span>` : ""}</div>
       <table class="tip-math">${[r, now].filter((x, i) => !i || r !== now).map(x =>
         wRow(x, money(dead(x) * per), `${money(dead(x))} killed <span class="muted">× ${money(per)} =</span>`)).join("")}${
         r === now ? "" : tr("difference", sgn((dead(r) - dead(now)) * per), "tot")}</table>`;
@@ -2926,12 +2923,14 @@ function gearCompare(kind, A, D, l, bonusApplied){
   const tipped = (html, tip) => `<span class="has-ntip" data-tip-key="${regTip(
     tip.startsWith("<div data-tip-bg") ? tip : `<div data-tip-bg="${tipBg}">${tip}</div>`, PIN_NS)}">${html}</span>`;
 
+  /* `good` may name a class outright instead of saying good or bad */
+  const tone = (good, v) => { const g = good(v); return typeof g === "string" ? g : g ? "cmp-up" : "cmp-down"; };
   const signed = (v, good, tip) => tipped(!v ? `<b class="cmp-same">±0</b>`
-    : `<b class="${good(v) ? "cmp-up" : "cmp-down"}">${sgn(v)}</b>`, tip);
+    : `<b class="${tone(good, v)}">${sgn(v)}</b>`, tip);
   /* one resource to a line; with no `good` they are plain amounts, not changes.
      `act`, when given, is the amount itself, shown small and grey after the change */
   const chips = (res, good, tip, act) => RES_ORDER.filter(k => Math.round(res[k] || 0)).map(k=> tipped(good
-    ? `<span class="cx-chip ${good(res[k]) ? "cmp-up" : "cmp-down"}">${resIcon(k)}${sgn(res[k])}${
+    ? `<span class="cx-chip ${tone(good, res[k])}">${resIcon(k)}${sgn(res[k])}${
         act ? `<span class="cx-act">(${money(act[k] || 0)})</span>` : ""}</span>`
     : `<span class="cx-chip">${resIcon(k)}${money(res[k])}</span>`, tip(k))).join("");
   /* the bits figure's own amount, short, in the grey brackets */
@@ -2947,20 +2946,22 @@ function gearCompare(kind, A, D, l, bonusApplied){
     const ico = res ? resIcon(res) : BIT, per = perLoss(now.key, res), k = dead(now);
     return `<div class="tip-title">${esc(label(now.key))}, as fought ${ico}</div>
       <div class="small" style="margin:6px 0 2px">Killed${res ? "" : ` <span class="muted">(raise ${money(hire(D))} each, with their kit)</span>`}</div>
-      <table class="tip-math">${tr(`<span class="tip-gear">${gearImg(now.key)}</span>${esc(label(now.key))}: ${money(k)} dead
+      <table class="tip-math">${tr(`${gearTag(now.key)}: ${money(k)} dead
         <span class="muted">× ${money(per)}</span> ${ico}`, money(k * per), "tot")}</table>`;
   };
   const extra = (r, isCur)=>{
     const L = lossOf(r);
     if (isCur) return isW
-      ? line("kills", tipped(`<b>${money(L.k)}</b>`, tipWKills(r)) + troops + `<span class="cx-hits">(${money(H)} hits)</span>`) +
+      ? line("kills", tipped(`<b>${money(L.k)}</b>`, tipWKills(r)) + troops + `<span class="cx-hits">(${money(l.hits)} hits)</span>`) +
         line("", tipped(`<b>${money(L.bits)}</b>`, tipWorth(r, null)), "", chips(L.res, null, k => tipWorth(r, k)))
       : line("loss<br>base", tipped(`<b>${money(L.bits)}</b>`, tipBase(null)), "", chips(L.res, null, k => tipBase(k)));
     const kitB = r.bits - now.bits, kitR = resSub(r.res, now.res);
     const lossB = L.bits - nowLoss.bits, lossR = resSub(L.res, nowLoss.res);
     if (isW) return line("kills", signed(L.k - nowLoss.k, more, tipWKills(r)) + troops) +
       line("", signed(lossB, more, tipWorth(r, null)) + actBits(L.bits), "", chips(lossR, more, k => tipWorth(r, k), L.res));
-    return line("net", signed(lossB, less, tipNet(r, null)) + actBits(L.bits), "", chips(lossR, less, k => tipNet(r, k), L.res));
+    /* a saving on a stack that is wiped out anyway is no clear win: yellow, not green */
+    const netTone = r.dmg >= Sd ? (v => v < 0 ? "cmp-amb" : false) : less;
+    return line("net", signed(lossB, netTone, tipNet(r, null)) + actBits(L.bits), "", chips(lossR, netTone, k => tipNet(r, k), L.res));
   };
 
   /* ---- armour: the stack sized to the hits. One that falls could be
@@ -2969,7 +2970,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
      standing, parity is what it takes for this piece to match it. Each is
      the troops raised (or not) in full kit, with their upkeep; the hits all
      still kill, so a bigger stack only burns more. */
-  const S = D.size;
+  const S = Sd;
   const upk = (UNIT_COST[D.origType] || {upkeep:{}}).upkeep;
   const survivors = r => Math.max(0, S - dead(r));
   /* re-equipping the troops already there with this piece; nothing on the equipped row */
@@ -2996,8 +2997,8 @@ function gearCompare(kind, A, D, l, bonusApplied){
   const nS = v => v > 0 ? "+" + money(v) : v < 0 ? "−" + money(-v) : "0";
   const w_ = v => `<b class="w">${v}</b>`;
   /* weapon (stat) vs armour (×stat), with training and the bonus if they apply */
-  const phLine = (wKey, wStat, aKey, aStat, ph) => tl(`<span class="tip-gear">${gearImg(wKey)}</span>${esc(label(wKey))} (${w_(fmt(wStat))})
-    <span class="muted">vs</span> <span class="tip-gear">${gearImg(aKey)}</span>${esc(label(aKey))} (×${w_(fmt(aStat))})${
+  const phLine = (wKey, wStat, aKey, aStat, ph) => tl(`${gearTag(wKey)} (${w_(fmt(wStat))})
+    <span class="muted">vs</span> ${gearTag(aKey)} (×${w_(fmt(aStat))})${
     Math.abs(tMul - 1) > 1e-9 ? ` × ${fmt(round3(tMul))} <span class="muted">training</span>` : ""}${
     bonusApplied ? ` × 0.75 <span class="muted">bonus</span>` : ""} = ${w_(fmt(round3(ph)))} dmg`);
   const approx = (T, ph, need) => Math.abs(T / ph - need) < 1e-9 ? "" : "~";
@@ -3008,8 +3009,9 @@ function gearCompare(kind, A, D, l, bonusApplied){
   const tipPlan = (r, E, kind, res)=>{
     const ico = res ? resIcon(res) : BIT, p1 = perLoss(r.key, res), up = E > 0, X = S + E;
     const arm = r2 => phLine(A.weapon, A.dmg[TYPES[D.type]], r2.key, r2.stat, r2.ph);
-    const title = `<div class="tip-title">${esc(label(r.key))}, ${
-      kind === "parity" ? (up ? "raised to match" : "cut to match") : up ? "raised" : "skimmed"} ${ico}</div>`;
+    const title = kind === "parity"
+      ? `<div class="tip-title">${gearTag(now.key)} <span class="muted">vs</span> ${gearTag(r.key)} – ${ico}</div>`
+      : `<div class="tip-title">${esc(label(r.key))}, ${up ? "raised" : "skimmed"} ${ico}</div>`;
     const work = kind === "parity"
       ? arm(now) + tl(`${fmt(round3(now.ph))} × ${money(soaked)} hits = ${w_(money(dmgAt(now, soaked)))} damage${
           survivors(now) ? `, ${w_(money(survivors(now)))} left` : ""}`) + tlHr +
@@ -3055,16 +3057,17 @@ function gearCompare(kind, A, D, l, bonusApplied){
   const planW = (r, E, res) => E * perA(r.key, res) + swapW(r, res);
   /* kind "parity": match the equipped weapon's damage; kind "raise": wipe the
      struck stack outright, for a weapon that falls short of it */
-  const needFor = (r, kind) => kind === "raise" || kind === "skim" ? hitsTo(r.ph, D.size) : hitsFor(r);
+  const needFor = (r, kind) => kind === "raise" || kind === "skim" ? hitsTo(r.ph, Sd) : hitsFor(r);
   const tipWPlan = (r, E, res, kind)=>{
     const ico = res ? resIcon(res) : BIT, p1 = perA(r.key, res), up = E > 0, need = needFor(r, kind);
     const wpn = r2 => phLine(r2.key, r2.stat, D.armor, D.arm[TYPES[A.type]], r2.ph);
-    const title = `<div class="tip-title">${esc(label(r.key))}, ${
-      kind === "raise" ? "raised to wipe them" : kind === "skim" ? "skimmed, still wiping them" : up ? "raised to match" : "cut to match"} ${ico}</div>`;
+    const title = kind === "parity"
+      ? `<div class="tip-title">${gearTag(now.key)} <span class="muted">vs</span> ${gearTag(r.key)} – ${ico}</div>`
+      : `<div class="tip-title">${esc(label(r.key))}, ${kind === "raise" ? "raised to wipe them" : "skimmed, still wiping them"} ${ico}</div>`;
     const work = kind === "parity"
       ? wpn(now) + tl(`${fmt(round3(now.ph))} × ${money(H)} hits = ${w_(money(K))} damage`) + tlHr +
         wpn(r) + tl(`${money(K)} / ${fmt(round3(r.ph))} = ${w_(money(need))}${approx(K, r.ph, need)} hits`)
-      : wpn(r) + tl(`${money(D.size)} standing / ${fmt(round3(r.ph))} = ${w_(money(need))}${approx(D.size, r.ph, need)} hits`);
+      : wpn(r) + tl(`${money(Sd)} standing / ${fmt(round3(r.ph))} = ${w_(money(need))}${approx(Sd, r.ph, need)} hits`);
     return `<div data-tip-bg="${tipBg}">${title}<div style="margin-top:6px">${work}${
       tl(`${money(need)} − ${money(H)} = ${w_(nS(E))}`)}${tlHr}${
       costLines(E, p1, ico, r === now ? null : A.size, kitUnit(r.key, res), kitUnit(now.key, res), planW(r, E, res))}</div></div>`;
@@ -3160,26 +3163,33 @@ function gearCompare(kind, A, D, l, bonusApplied){
 
   /* ---- the equipped row's warnings: hits already spent elsewhere, or a
      stack already hit before; each opens the exchanges behind it */
-  const miniLog = (title, pick)=>{
+  const miniLog = (title, pick, show)=>{
     const us = l.unitsAll || {}, lg = l.logAll || [];
-    const nm = u => `<span style="color:${sideCol(u)}">${esc(u.nick || u.name)}</span>`;
+    /* after each line: the swinger's hits still in hand, the struck stack still standing */
+    const spent = {}, taken = {};
     return `<div class="tip-title">${title}</div><div class="ml-box">${lg.map((x, j)=>{
-      if (!pick(x)) return "";
       const a = us[x.aid], d = us[x.did];
-      return `<div class="ml${j === l.logIdx ? " ml-cur" : ""}">${nm(a)} hit ${nm(d)} for <b class="w">${fmt(x.damage)}</b>
-        <span class="muted">(${money(x.hits)} hits)</span></div>`;
+      spent[x.aid] = (spent[x.aid] || 0) + x.hits;
+      taken[x.did] = (taken[x.did] || 0) + x.damage;
+      if (!pick(x)) return "";
+      const swings = Math.max(0, a.size - spent[x.aid]);
+      const standing = Math.max(0, d.size - Math.floor(round6(taken[x.did])));
+      return `<div class="ml${j === l.logIdx ? " ml-cur" : ""}">${unitRef(a, a.weapon, true)} hit ${unitRef(d, d.armor)} for <b class="w">${fmt(x.damage)}</b>
+        <span class="muted">(${money(x.hits)} hits)</span> → ${show === "swings"
+          ? `<b class="w">${money(swings)}</b> <span class="muted">swings left</span>`
+          : `<b class="w">${money(standing)}</b> <span class="muted">standing</span>`}</div>`;
     }).join("")}</div>`;
   };
   const warnOf = ()=>{
     const lg = l.logAll || [];
     if (isW){
-      if (PREFS.fullHits || H >= A.size) return "";
+      if (l.hits >= A.size) return "";
       return `<span class="cmp-warn" data-tip-key="${regTip(`<div data-tip-bg="${tipBg}">${
-        miniLog(`${esc(A.nick || A.name)}'s swings`, x => x.aid === l.aid)}</div>`, PIN_NS)}">Using ${money(H)} hits of ${money(A.size)} total!</span>`;
+        miniLog(`${esc(A.nick || A.name)}'s swings`, x => x.aid === l.aid, "swings")}</div>`, PIN_NS)}">Using ${money(l.hits)} hits of ${money(A.size)} total!</span>`;
     }
     if (!lg.some((x, j) => j < l.logIdx && x.did === l.did)) return "";
     return `<span class="cmp-warn" data-tip-key="${regTip(`<div data-tip-bg="${tipBg}">${
-      miniLog(`Hits on ${esc(D.nick || D.name)}`, x => x.did === l.did)}</div>`, PIN_NS)}">This unit was attacked earlier!</span>`;
+      miniLog(`Hits on ${esc(D.nick || D.name)}`, x => x.did === l.did, "standing")}</div>`, PIN_NS)}">This unit was attacked earlier!</span>`;
   };
 
   const row = (r, isCur)=>{
@@ -3196,8 +3206,8 @@ function gearCompare(kind, A, D, l, bonusApplied){
       <span class="cmp-stat">${isW ? "" : "×"}${fmt(r.stat)}</span>
       <span class="cmp-cost"><span class="bits">${money(r.bits)}</span><span class="cmp-res">${resChips(r.res)}</span>${oneOf(r.key)}</span>
       <span class="cmp-dmg-k">DMG:</span>
-      <span class="cmp-dmg"><span>${r.dmg >= D.size
-        ? `[${money(D.size)}] ${isW ? "dealt" : "taken"} <span class="muted">(${money(r.dmg)} total)</span>`
+      <span class="cmp-dmg"><span>${r.dmg >= Sd
+        ? `[${money(Sd)}] ${isW ? "dealt" : "taken"} <span class="muted">(${money(r.dmg)} total)</span>`
         : `${money(r.dmg)} ${isW ? "dealt" : "taken"}`}</span>${delta}</span>
       <div class="cmp-x">${extra(r, isCur)}</div>
       ${isW ? `<div class="cmp-wpar">${wparCol(r)}</div>` : `<div class="cmp-hold">${sizeCol(r)}</div>`}
@@ -3225,7 +3235,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
 }
 
 /* size on top, the sprite in its side's colour, then the kit and training */
-function pinUnit(U, swings){
+function pinUnit(U, swings, now){
   /* the border and gear colours say which side it is on; which piece stays
      lit says what it does in this exchange: the swinger's weapon counts,
      the struck one's armour, whichever side either is on */
@@ -3233,7 +3243,9 @@ function pinUnit(U, swings){
   const name = U.nick || U.name;
   return `<div class="pin-unit ${atk ? "side-atk" : "side-def"}">
     <span class="pu-name" title="${esc(name)}">${esc(name)}</span>
-    <span class="pu-size">${Number(U.size).toLocaleString("en-US")}</span>
+    <span class="pu-size">${swings || now == null || now >= U.size ? money(U.size)
+      : `<span class="pu-was">${money(U.size)}</span> → ${money(now)}`}</span>
+    <span class="pu-left">${swings && now != null ? `${money(now)} <span class="muted">swings left</span>` : "&nbsp;"}</span>
     ${buildSprite(U.origType, U.weapon, U.armor, true, {size: U.size, training: U.training})}
     <span class="pu-gear${swings ? "" : " pu-off"}">${esc(label(U.weapon))}</span>
     <span class="pu-gear${swings ? " pu-off" : ""}">${esc(label(U.armor))}</span>
@@ -3250,9 +3262,9 @@ function dmgPinHTML(A, D, l, bonusApplied){
   return `<button class="pin-close" title="Close (Esc)">×</button>
     <div class="pin-cols">
       <div class="pin-col cmp-weapon ${A.attack_mission ? "bg-inv" : "bg-def"}${PIN_WHOLD ? " hold-open" : ""}">${gearCompare("weapon", A, D, l, bonusApplied)}</div>
-      <div class="pin-col pin-mid">${dmgMathTip(A, D, l, bonusApplied,
-        `<div class="pin-hits">${money(PREFS.fullHits ? A.size : (l.potHits || l.hits))} ${PREFS.fullHits ? "hits (full stack)" : "hits left"}</div>`)}
-        <div class="pin-vs">${pinUnit(A, true)}<span class="pin-vs-word">vs</span>${pinUnit(D, false)}</div>
+      <div class="pin-col pin-mid">${dmgMathTip(A, D, l, bonusApplied)}
+        <div class="pin-vs">${pinUnit(A, true, l.potHits || l.hits)}<span class="pin-vs-word">vs</span>${
+          pinUnit(D, false, Math.max(0, D.size - Math.floor(round6(l.prevTaken || 0))))}</div>
         <div class="m1-more" title="Show what each swap costs or saves">${M1_ICON}<span class="m1-txt">m1 for compare</span></div>
         <button class="pin-close pin-close2" title="Close (Esc)">×</button>
         <div class="pin-opts">
@@ -3261,7 +3273,7 @@ function dmgPinHTML(A, D, l, bonusApplied){
           <label><input type="checkbox" data-pref="hideSkim"${PREFS.hideSkim ? " checked" : ""}> Hide skim</label>
           <label><input type="checkbox" data-pref="hideRaise"${PREFS.hideRaise ? " checked" : ""}> Hide raise</label>
           <label><input type="checkbox" data-pref="hidePar"${PREFS.hidePar ? " checked" : ""}> Hide parity</label>
-          <label class="opt-sep"><input type="checkbox" data-pref="fullHits"${PREFS.fullHits ? " checked" : ""}> Full stack's hits, not hits left</label>
+          <label class="opt-sep opt-red"><input type="checkbox" data-pref="fullHits"${PREFS.fullHits ? " checked" : ""}> Use full unit sizes instead of real</label>
         </div>
         <div class="pin-art"><img src="https://derpicdn.net/img/2023/9/3/3193754/thumb.png" alt=""
           onerror="this.parentNode.remove()"></div></div>
@@ -3714,7 +3726,9 @@ function exchangeLogBlock(units, log, bonus, id, ns, tail){
            swung after this, and whatever it never got to swing, would have
            come down on this stack too had it lasted */
         const after = log.slice(i + 1).reduce((t, x) => t + (x.aid === l.aid ? x.hits : 0), 0);
-        const lp = {...l, potHits: l.hits + after + Math.max(0, A.hits || 0), logIdx: i, logAll: log, unitsAll: units};
+        const before = log.slice(0, i).reduce((t, x) => t + (x.did === l.did ? x.damage : 0), 0);
+        const lp = {...l, potHits: l.hits + after + Math.max(0, A.hits || 0), prevTaken: before,
+                    logIdx: i, logAll: log, unitsAll: units};
         PINS.set(mk, ()=>dmgPinHTML(A, D, lp, bonusApplied));
         return `<div>${unitRef(A, A.weapon, true)} hit
           ${unitRef(D, D.armor)}
