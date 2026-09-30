@@ -1639,61 +1639,39 @@ const LABELS = {"Chem-LightBattery":"Chem-Light Battery",PropWash:"Prop Wash",St
   ScroungedArmor:"Scrounged Armor"};
 const label = k => LABELS[k] || k;
 
-/* portraits for every piece of gear, keyed the same way the defs are.
-   Scrounged has no picture of its own — it is whatever was lying around. */
-const WEAPON_IMG = {
-  "PRC-E6":            "https://i.imgur.com/9M0gWxP.png",
-  "PRC-E7":            "https://i.imgur.com/gB256Lg.png",
-  "PRC-E8":            "https://i.imgur.com/WQjufvT.png",
-  "ACFU":              "https://i.imgur.com/jOxAABg.png",
-  "ATFU":              "https://i.imgur.com/GOiknbp.png",
-  "APFU":              "https://i.imgur.com/Z3wmr34.png",
-  "AUFU":              "https://i.imgur.com/VqFNeAV.png",
-  "K9P":               "https://i.imgur.com/o8NCyt0.png",
-  "ELBO-GRS":          "https://i.imgur.com/5pn0ElS.png",
-  "Chem-LightBattery": "https://i.imgur.com/vwuuyq9.png",
-  "PropWash":          "https://i.imgur.com/rYEmCsB.png",
-  "SteamBucket":       "https://i.imgur.com/lhh4Yg1.png",
-  "CanopyLights":      "https://i.imgur.com/tesIIt8.png",
-  "LongStand":         "https://i.imgur.com/TXdGmd0.png",
-  "LongWeight":        "https://i.imgur.com/7MyPOKV.png",
-  "GridSquares":       "https://i.imgur.com/CZbdc3V.png",
-  "Shoreline":         "https://i.imgur.com/n8PklfK.png",
-  "WaterHammer":       "https://i.imgur.com/UnEL3yo.png",
-  "WaterlineEraser":   "https://i.imgur.com/sHpqfO2.png"
-};
+/* every picture lives on the neocities site, filed under the name shown
+   on screen — a handful are filed under a spelling of their own */
+const PIC_BASE = "https://cloppenmanager.neocities.org/img/";
+const imgUrl = name => PIC_BASE + encodeURIComponent(name) + ".png";
+const IMG_FILE = {Nope:"NOPE", Ohno:"OhNo"};
+const gearUrl = key => imgUrl(IMG_FILE[key] || label(key));
 
-const ARMOR_IMG = {
-  "Barding":    "https://i.imgur.com/f1h2gr0.png",
-  "Bigdog":     "https://i.imgur.com/NfYFs8E.png",
-  "Nope":       "https://i.imgur.com/HotA2gh.png",
-  "Trundle":    "https://i.imgur.com/xsc3kyE.png",
-  "Shepherd":   "https://i.imgur.com/ez3DlRu.png",
-  "Ohno":       "https://i.imgur.com/mxRljRn.png",
-  "Titan":      "https://i.imgur.com/LpRcKGC.png",
-  "Cooler":     "https://i.imgur.com/ixM7qD0.png",
-  "Wonder":     "https://i.imgur.com/KnmvPuL.png",
-  "Griffin":    "https://i.imgur.com/I0ikivG.png",
-  "Dragon":     "https://i.imgur.com/k3NyiMC.png",
-  "Hornshield": "https://i.imgur.com/uCs1HDi.png",
-  "Librarian":  "https://i.imgur.com/K3eAkLS.png",
-  "Shining":    "https://i.imgur.com/yBEBOCq.png",
-  "D2A":        "https://i.imgur.com/p4C9MmE.png",
-  "C-PON3":     "https://i.imgur.com/nFGLN50.png",
-  "Esohes":     "https://i.imgur.com/sHQoh1f.png",
-  "Shubidu":    "https://i.imgur.com/Byj989t.png"
-};
+/* portraits for every piece of gear, keyed the same way the defs are */
+const WEAPON_IMG = Object.fromEntries(["PRC-E6","PRC-E7","PRC-E8","ACFU","ATFU","APFU","AUFU",
+  "K9P","ELBO-GRS","Chem-LightBattery","PropWash","SteamBucket","CanopyLights",
+  "LongStand","LongWeight","GridSquares","Shoreline","WaterHammer","WaterlineEraser"].map(k => [k, gearUrl(k)]));
 
-const gearImgSrc = key => WEAPON_IMG[key] || ARMOR_IMG[key] || "";
+const ARMOR_IMG = Object.fromEntries(["Barding","Bigdog","Nope","Trundle","Shepherd","Ohno","Titan",
+  "Cooler","Wonder","Griffin","Dragon","Hornshield","Librarian","Shining","D2A",
+  "C-PON3","Esohes","Shubidu"].map(k => [k, gearUrl(k)]));
+
+/* Scrounged has a picture too, but it is whatever was lying around, not
+   gear anyone chose: it shows only where a fight is being read — the
+   exchange log and the compare cards — and never in a list, tally or copy */
+const SCROUNGED_IMG = {ScroungedWeapons: gearUrl("ScroungedWeapons"), ScroungedArmor: gearUrl("ScroungedArmor")};
+
+const gearImgSrc = (key, scr) => WEAPON_IMG[key] || ARMOR_IMG[key] || (scr && SCROUNGED_IMG[key]) || "";
 
 /* an empty slot of the same size keeps rows of pictures on one baseline
    even when a piece of gear has no portrait */
-function gearImg(key){
-  const src = gearImgSrc(key);
+function gearImg(key, scr){
+  const src = gearImgSrc(key, scr);
   if (!src) return `<span class="gear-img gear-img-none"></span>`;
   return `<img class="gear-img" src="${esc(src)}" alt="" loading="lazy"
     title="${esc(label(key))}" onerror="this.classList.add('gear-img-none');this.removeAttribute('src')">`;
 }
+/* the same, Scrounged included — for the fight views only */
+const fightImg = key => gearImg(key, true);
 
 /* weapondefs / armordefs, verbatim from tables_with_data.sql.
    ids 0 (Scrounged) are absent by design: the PHP treats id 0 as falsy
@@ -1764,20 +1742,22 @@ function shortBits(n){
 }
 
 const RESOURCES = {
-  copper:    {name:"Copper",          icon:"https://i.imgur.com/TWh8Vg9.png"},
-  tungsten:  {name:"Tungsten",        icon:"https://i.imgur.com/1c5PwQO.png"},
-  plastics:  {name:"Plastics",        icon:"https://i.imgur.com/Zi6VRsJ.png"},
-  gems:      {name:"Gems",            icon:"https://i.imgur.com/k6UcQYS.png"},
-  energy:    {name:"Energy",          icon:"https://i.imgur.com/euGAJaL.png"},
-  oil:       {name:"Oil",             icon:"https://i.imgur.com/zvueJJj.png"},
-  apples:    {name:"Apples",          icon:"https://i.imgur.com/2leAiCK.png"},
-  coffee:    {name:"Coffee",          icon:"https://i.imgur.com/LdolLL8.png"},
-  gasoline:  {name:"Gasoline",        icon:"https://i.imgur.com/itxPyNI.png"},
-  machinery: {name:"Machinery Parts", icon:"https://i.imgur.com/NVx5mLK.png"},
-  vehicle:   {name:"Vehicle Parts",   icon:"https://i.imgur.com/SaDikbH.png"},
-  precision: {name:"Precision Parts", icon:"https://i.imgur.com/IIdIWXQ.png"},
-  composites:{name:"Composites",      icon:"https://i.imgur.com/lFE7mIe.png"}
+  copper:    {name:"Copper",          icon:null},
+  tungsten:  {name:"Tungsten",        icon:null},
+  plastics:  {name:"Plastics",        icon:null},
+  gems:      {name:"Gems",            icon:null},
+  energy:    {name:"Energy",          icon:null},
+  oil:       {name:"Oil",             icon:null},
+  apples:    {name:"Apples",          icon:null},
+  coffee:    {name:"Coffee",          icon:null},
+  gasoline:  {name:"Gasoline",        icon:null},
+  machinery: {name:"Machinery Parts", icon:null},
+  vehicle:   {name:"Vehicle Parts",   icon:null},
+  precision: {name:"Precision Parts", icon:null},
+  composites:{name:"Composites",      icon:null}
 };
+RESOURCES.machinery.file = "Machine Parts";
+Object.values(RESOURCES).forEach(r => r.icon = imgUrl(r.file || r.name));
 const RES_ORDER = Object.keys(RESOURCES);
 
 /* crafted parts -> raw components + the bits the crafting step costs */
@@ -2739,7 +2719,7 @@ function tipAttrs(type, weapon, armor, size, training){
    front — the swinger's weapon, the one struck's armour; Show weapon and
    armor swaps that for both pieces, armour first on the one swinging. */
 function unitRef(u, gear, swing){
-  const img = k => k && gearImgSrc(k) ? gearImg(k) : "";
+  const img = k => k && gearImgSrc(k, true) ? fightImg(k) : "";
   const pair = img(u.weapon) + img(u.armor);
   const ic = (img(gear) ? `<span class="ref-ic ref-one">${img(gear)}</span>` : "") +
              (pair ? `<span class="ref-ic ref-both${swing ? " ref-swing" : ""}">${pair}</span>` : "");
@@ -2881,7 +2861,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
     return res ? (Aw.res[res] || 0) + (a.res[res] || 0) : hire(D) + Aw.bits + a.bits;
   };
   const tr = (a, b, cls) => `<tr${cls ? ` class="${cls}"` : ""}><td>${a}</td><td class="n">${b}</td></tr>`;
-  const gearTag = key => `<span class="gtag">${gearImg(key)}${esc(label(key))}</span>`;
+  const gearTag = key => `<span class="gtag">${fightImg(key)}${esc(label(key))}</span>`;
   /* the net card: the dead each piece leaves behind. Only the dead are
      spent: a survivor keeps its kit, and a dead one's kit was already bought
      in the fielding, so the net is what the fight burns and nothing more. */
@@ -2918,8 +2898,8 @@ function gearCompare(kind, A, D, l, bonusApplied){
     const ico = res ? resIcon(res) : BIT, per = perLoss(r.key, res);
     const pair = r === now ? [now] : [now, r];
     return wTitle(r, false) +
-      `<div class="tl" style="margin-top:5px"><span class="muted">each of theirs:</span> <span class="gtag">${gearImg(D.weapon)}</span>+ <span class="gtag">${
-        gearImg(D.armor)}</span>${res ? "" : ` <span class="muted">+ raise</span>`} = ${ico} ${w_(money(per))}</div><div class="tl-hr"></div>
+      `<div class="tl" style="margin-top:5px"><span class="muted">each of theirs:</span> <span class="gtag">${fightImg(D.weapon)}</span>+ <span class="gtag">${
+        fightImg(D.armor)}</span>${res ? "" : ` <span class="muted">+ raise</span>`} = ${ico} ${w_(money(per))}</div><div class="tl-hr"></div>
       ${pair.map(x => tl(`${esc(label(x.key))}<span class="muted">›</span> ${w_(money(dead(x)))} killed = ${ico} ${w_(money(dead(x) * per))}`)).join("")}${
         r === now ? "" : tl(`difference = ${ico} ${w_(sgn((dead(r) - dead(now)) * per))}`, "tot")}`;
   };
@@ -3161,8 +3141,8 @@ function gearCompare(kind, A, D, l, bonusApplied){
   };
   /* each row carries the other piece it is counted with, greyed: the
      struck unit's weapon under armour, the swinger's armour under weapons */
-  const icons = key => isW ? (PIN_WITH_ARM ? `${gearImg(key)}<span class="cmp-wpn">${gearImg(A.armor)}</span>` : gearImg(key))
-    : PIN_WITH_WPN ? `${gearImg(key)}<span class="cmp-wpn">${gearImg(U.weapon)}</span>` : gearImg(key);
+  const icons = key => isW ? (PIN_WITH_ARM ? `${fightImg(key)}<span class="cmp-wpn">${fightImg(A.armor)}</span>` : fightImg(key))
+    : PIN_WITH_WPN ? `${fightImg(key)}<span class="cmp-wpn">${fightImg(U.weapon)}</span>` : fightImg(key);
 
   /* ---- the equipped row's warnings: hits already spent elsewhere, or a
      stack already hit before; each opens the exchanges behind it */
