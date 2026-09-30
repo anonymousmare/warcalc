@@ -223,12 +223,14 @@ body.log-dalign .xlog > .xr{display:grid;grid-template-columns:subgrid;align-ite
 body.log-dalign .xlog .xatk{display:flex;align-items:baseline}
 body.log-dalign .xlog .xhit{flex:1;text-align:center;padding:0 .6em}
 /* every icon slot is as wide as the widest picture it can hold — weapons
-   run to 24px, armour to 32 — with the pictures pushed against the name,
-   so the names line up down the log whatever gear they carry */
-body.log-dalign .xlog .ref-one{width:32px;text-align:right}
+   run to 24px, armour to 32 — so the names line up down the log whatever
+   gear they carry, and each picture sits centred in its own slot */
+body.log-dalign .xlog .ref-one{width:32px;text-align:center}
 body.log-dalign .xlog .ref-one.ref-swing{width:24px}
-body.log-dalign .xlog .ref-both{width:58px;justify-content:flex-end}
-body.log-dalign:not(.icons-wa) .xlog .ref-both.ref-swing{justify-content:flex-start}
+body.log-dalign .xlog .ref-both{width:58px}
+/* the pair is always written weapon then armour, whichever way round it shows */
+body.log-dalign .xlog .ref-both .gear-img{width:24px;max-width:none;object-position:center}
+body.log-dalign .xlog .ref-both .gear-img + .gear-img{width:32px}
 body.log-names .ref-nick{display:inline}
 body.log-names .unit-ref:has(.ref-nick) .ref-sys{display:none}
 /* Cleaner Exchange Log: "ACFU + Bigdog 40" in place of the system name;
