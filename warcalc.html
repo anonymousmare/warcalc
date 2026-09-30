@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Warcalc 1.85 — CLOP</title>
+<title>Warcalc 1.86 — CLOP</title>
 <style>
 :root{
   --bg:#272b30;
@@ -263,6 +263,16 @@ body.log-clean.log-names:not(.log-nums) .unit-ref:has(.ref-nick) .ref-num{displa
 body.log-clean.log-hits .ref-num:has(.n-chg) .n-plain{display:none}
 body.log-clean.log-hits .ref-num .n-chg{display:inline}
 body.log-clean.log-hits.log-names:not(.log-nums) .unit-ref:has(.ref-nick) .ref-num:has(.n-chg){display:inline}
+/* Attacker dmg leftwards: the swinger's size goes in front of its name. The
+   size is written twice and this picks which one shows; both copies obey
+   the rules above about when a size shows at all */
+.ref-num.ref-lead{margin:0 4px 0 0;font-variant-numeric:tabular-nums}
+/* with the defenders lined up, the swinger's size is padded out to the
+   log's widest with figure spaces, so the names after it line up too */
+.lead-pad{display:none}
+body.log-dalign .xlog .lead-pad{display:inline}
+body:not(.log-alead) .ref-num.ref-lead,
+body.log-alead .unit-ref.ref-swinger > .ref-num:not(.ref-lead){display:none !important}
 .n-chg .n-was,.n-chg .n-arr{color:#5d6168}
 .n-chg .n-arr{margin:0 1px}
 /* Show training / hits: a yellow figure tucked against its icon */
@@ -1228,7 +1238,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 <body>
 
 <div class="tabstrip">
-  <span class="tab-brand">Warcalc 1.85<button class="gear-btn" id="btnTools"
+  <span class="tab-brand">Warcalc 1.86<button class="gear-btn" id="btnTools"
     title="Settings, import / export presets" aria-expanded="false"><svg viewBox="0 0 24 24"
     aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path
     d="M10.3 2.5h3.4l.5 2.6a7.6 7.6 0 0 1 2 1.2l2.5-.9 1.7 2.9-2 1.8a7.7 7.7 0 0 1 0 2.3l2 1.8-1.7 2.9-2.5-.9a7.6 7.6 0 0 1-2 1.2l-.5 2.6h-3.4l-.5-2.6a7.6 7.6 0 0 1-2-1.2l-2.5.9-1.7-2.9 2-1.8a7.7 7.7 0 0 1 0-2.3l-2-1.8 1.7-2.9 2.5.9a7.6 7.6 0 0 1 2-1.2z"/><circle
@@ -1400,6 +1410,8 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
       <input type="checkbox" id="logNums"> Numbers with names?</label>
     <label class="hk-toggle log-opt opt-yellow" for="logClean">
       <input type="checkbox" id="logClean"> Cleaner Exchange Log</label>
+    <label class="hk-toggle log-opt opt-yellow" for="logALead">
+      <input type="checkbox" id="logALead"> Attacker dmg leftwards</label>
     <label class="hk-toggle log-opt opt-yellow" for="logTrain" id="logTrainWrap">
       <input type="checkbox" id="logTrain"> Show training</label>
     <label class="hk-toggle log-opt opt-yellow" for="logHits" id="logHitsWrap">
@@ -2822,8 +2834,10 @@ function unitRef(u, gear, swing, x){
     ? `<span class="ref-ammo"><img src="${AMMO_IMG}" alt="" title="Hits left"><span class="n-was">${money(x.ammo)}</span><span class="n-arr">→</span>${money(x.ammoAfter)}</span>` : "";
   const chg = x.was != null
     ? `<span class="n-chg">(<span class="n-was">${money(x.was)}</span><span class="n-arr">→</span>${money(x.now)})</span>` : "";
-  return `${ammo}${ic}<span class="unit-ref ${u.attack_mission ? "ref-atk" : "ref-def"}"
-    ${tipAttrs(u.origType, u.weapon, u.armor, u.size, u.training)}><span class="ref-sys">${esc(u.name).replace(/size_\d+/, "<span class=\"ref-size\">$&</span>")}</span><span class="ref-kit">${
+  return `${ammo}${ic}<span class="unit-ref ${u.attack_mission ? "ref-atk" : "ref-def"}${swing ? " ref-swinger" : ""}"
+    ${tipAttrs(u.origType, u.weapon, u.armor, u.size, u.training)}><span class="ref-sys">${esc(u.name).replace(/size_\d+/, "<span class=\"ref-size\">$&</span>")}</span>${
+    swing ? `<span class="ref-num ref-lead">${x.leadW > String(u.size).length
+      ? `<span class="lead-pad">${"\u2007".repeat(x.leadW - String(u.size).length)}</span>` : ""}${esc(u.size)}</span>` : ""}<span class="ref-kit">${
     esc(label(u.weapon))} + ${esc(label(u.armor))}</span>${
     u.nick ? `<span class="ref-nick">${esc(u.nick)}</span>` : ""}${
     ""}<span class="ref-num"><span class="n-plain">${esc(u.size)}</span>${chg}</span>${
@@ -3806,6 +3820,7 @@ function exchangeLogBlock(units, log, bonus, id, ns, tail){
     left[l.aid] = (left[l.aid] || 0) + l.hits;
     return Math.max(w, money(was).length + money(Math.max(0, was - l.hits)).length);
   }, 1);
+  const leadW = log.reduce((w, l) => Math.max(w, String(units[l.aid].size).length), 1);
   return `<div>
     <div class="log-head">
       <h3>Exchange log</h3>
@@ -3829,7 +3844,7 @@ function exchangeLogBlock(units, log, bonus, id, ns, tail){
         const spent = log.slice(0, i).reduce((t, x) => t + (x.aid === l.aid ? x.hits : 0), 0);
         const standing = n => Math.max(0, D.size - Math.floor(round6(n)));
         const train = A.training !== D.training;
-        return `<div class="xr ${A.attack_mission ? "xr-atk" : "xr-def"}"><span class="xatk"><span class="xu">${unitRef(A, A.weapon, true, {train, ammo: Math.max(0, A.size - spent), ammoAfter: Math.max(0, A.size - spent - l.hits)})}</span> <span class="xhit">hit</span></span>
+        return `<div class="xr ${A.attack_mission ? "xr-atk" : "xr-def"}"><span class="xatk"><span class="xu">${unitRef(A, A.weapon, true, {train, leadW, ammo: Math.max(0, A.size - spent), ammoAfter: Math.max(0, A.size - spent - l.hits)})}</span> <span class="xhit">hit</span></span>
           <span class="xrest"><span class="xdef"><span class="xdu">${unitRef(D, D.armor, false, {train, was: standing(before), now: standing(before + l.damage)})}</span></span>
           <span class="xdmg"><span class="xfor">for&nbsp;</span><b class="dmg-ref" data-tip-key="${mk}" data-pin-key="${mk}">${fmt(l.damage)}</b> damage
           <span class="muted">(${l.hits} hits)</span></span></span></div>`;
@@ -7045,13 +7060,14 @@ hkBox.addEventListener("change", syncHotkeys);
 const LS_LOG_OPTS = "warcalc.logOpts";
 {
   const o = store.get(LS_LOG_OPTS, {}) || {};
-  /* icons, numbers, the clean log and its training start on, everything else off */
+  /* icons, numbers, the clean log, its training, the swinger's size in front
+   and the damage column start on, everything else off */
   [["logIcons", "icons", "log-icons", true], ["logBoth", "both", "log-both"],
    ["logBothNamed", "bothNamed", "log-both-named"],
    ["logNames", "names", "log-names"], ["logNums", "nums", "log-nums", true],
-   ["logClean", "clean", "log-clean", true], ["logTrain", "train", "log-train", true],
+   ["logClean", "clean", "log-clean", true], ["logALead", "alead", "log-alead", true], ["logTrain", "train", "log-train", true],
    ["logHits", "hits", "log-hits"], ["logDAlign", "dalign", "log-dalign"],
-   ["logDDmg", "ddmg", "log-ddmg"]].forEach(([id, k, cls, dflt])=>{
+   ["logDDmg", "ddmg", "log-ddmg", true]].forEach(([id, k, cls, dflt])=>{
     const box = document.getElementById(id);
     box.checked = typeof o[k] === "boolean" ? o[k] : !!dflt;
     document.body.classList.toggle(cls, box.checked);
