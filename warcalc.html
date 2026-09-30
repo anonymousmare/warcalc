@@ -337,6 +337,7 @@ body.no-pin-art .pinbox .pin-art{display:none}
 .cmp-warn{grid-column:1 / -1;justify-self:end;margin-right:4px;font-size:10px;color:#e2c760;cursor:help;
   border-bottom:1px dotted currentColor;margin-top:2px;line-height:1.3}
 .pinbox.pin-wide .cmp-warn{grid-row:6}
+.cmp-warn.cmp-warn-full{color:#f17a77}
 .ml-box{margin-top:6px;font-size:12px}
 .ml{padding:2px 4px;white-space:nowrap}
 .ml-cur{background:rgba(226,199,96,.14);border-left:2px solid #e2c760}
@@ -2912,13 +2913,15 @@ function gearCompare(kind, A, D, l, bonusApplied){
     [r, now].filter((x, i) => !i || r !== now).map(x =>
       wRow(x, `${money(dead(x))} killed`, `<b class="w">${money(x.dmg)}</b> dmg dealt`)).join("")}${
     r === now ? "" : tr("difference", sgn(dead(r) - dead(now)), "tot")}</table>`;
+  /* what each weapon takes out of the enemy, worked in the enemy's own worth */
   const tipWorth = (r, res)=>{
     const ico = res ? resIcon(res) : BIT, per = perLoss(r.key, res);
-    return wTitle(r, res) +
-      `<div class="small" style="margin:6px 0 2px">Killed ${res ? `<span class="muted">(<span class="gtag">${gearImg(D.weapon)}</span>+ <span class="gtag">${gearImg(D.armor)}</span>)</span>` : ""}</div>
-      <table class="tip-math">${[r, now].filter((x, i) => !i || r !== now).map(x =>
-        wRow(x, money(dead(x) * per), `${money(dead(x))} killed <span class="muted">× ${money(per)} =</span>`)).join("")}${
-        r === now ? "" : tr("difference", sgn((dead(r) - dead(now)) * per), "tot")}</table>`;
+    const pair = r === now ? [now] : [now, r];
+    return wTitle(r, false) +
+      `<div class="tl" style="margin-top:5px"><span class="muted">each of theirs:</span> <span class="gtag">${gearImg(D.weapon)}</span>+ <span class="gtag">${
+        gearImg(D.armor)}</span>${res ? "" : ` <span class="muted">+ raise</span>`} = ${ico} ${w_(money(per))}</div><div class="tl-hr"></div>
+      ${pair.map(x => tl(`${esc(label(x.key))}<span class="muted">›</span> ${w_(money(dead(x)))} killed = ${ico} ${w_(money(dead(x) * per))}`)).join("")}${
+        r === now ? "" : tl(`difference = ${ico} ${w_(sgn((dead(r) - dead(now)) * per))}`, "tot")}`;
   };
   const tipped = (html, tip) => `<span class="has-ntip" data-tip-key="${regTip(
     tip.startsWith("<div data-tip-bg") ? tip : `<div data-tip-bg="${tipBg}">${tip}</div>`, PIN_NS)}">${html}</span>`;
@@ -3182,6 +3185,10 @@ function gearCompare(kind, A, D, l, bonusApplied){
   };
   const warnOf = ()=>{
     const lg = l.logAll || [];
+    /* with full sizes on, the warning says so instead, in red */
+    if (PREFS.fullHits) return `<span class="cmp-warn cmp-warn-full" data-tip-key="${regTip(`<div data-tip-bg="${tipBg}">${
+      isW ? miniLog(`${esc(A.nick || A.name)}'s swings`, x => x.aid === l.aid, "swings")
+          : miniLog(`Hits on ${esc(D.nick || D.name)}`, x => x.did === l.did, "standing")}</div>`, PIN_NS)}">Using full size instead of actual</span>`;
     if (isW){
       if (l.hits >= A.size) return "";
       return `<span class="cmp-warn" data-tip-key="${regTip(`<div data-tip-bg="${tipBg}">${
