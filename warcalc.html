@@ -332,7 +332,7 @@ body.no-pin-art .pinbox .pin-art{display:none}
 .tl .gear-img{vertical-align:-3px}
 .tl.tot{border-top:1px solid var(--border-soft);margin-top:3px;padding-top:3px}
 .tl-hr{border-top:1px solid rgba(255,255,255,.09);margin:5px 0}
-.cmp-warn{grid-column:1 / -1;justify-self:end;font-size:10px;color:#e2c760;cursor:help;
+.cmp-warn{grid-column:1 / -1;justify-self:end;margin-right:4px;font-size:10px;color:#e2c760;cursor:help;
   border-bottom:1px dotted currentColor;margin-top:2px;line-height:1.3}
 .pinbox.pin-wide .cmp-warn{grid-row:6}
 .ml-box{margin-top:6px;font-size:12px}
@@ -421,6 +421,7 @@ body.no-pin-art .pinbox .pin-art{display:none}
 .pinbox .pin-opts label{display:flex;align-items:center;gap:5px;cursor:pointer}
 .pinbox .pin-opts input{margin:0}
 .pinbox .pin-opts .opt-sep{margin-top:4px}
+.pinbox .pin-opts .opt-red{color:#f17a77}
 .pin-hover .pin-opts{display:none !important}
 body.hide-1x .cmp-one{display:none}
 body.hide-act .cx-act{display:none}
@@ -2955,7 +2956,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
   const extra = (r, isCur)=>{
     const L = lossOf(r);
     if (isCur) return isW
-      ? line("kills", tipped(`<b>${money(L.k)}</b>`, tipWKills(r)) + troops + `<span class="cx-hits">(${money(H)} hits)</span>`) +
+      ? line("kills", tipped(`<b>${money(L.k)}</b>`, tipWKills(r)) + troops + `<span class="cx-hits">(${money(l.hits)} hits)</span>`) +
         line("", tipped(`<b>${money(L.bits)}</b>`, tipWorth(r, null)), "", chips(L.res, null, k => tipWorth(r, k)))
       : line("loss<br>base", tipped(`<b>${money(L.bits)}</b>`, tipBase(null)), "", chips(L.res, null, k => tipBase(k)));
     const kitB = r.bits - now.bits, kitR = resSub(r.res, now.res);
@@ -3164,7 +3165,6 @@ function gearCompare(kind, A, D, l, bonusApplied){
      stack already hit before; each opens the exchanges behind it */
   const miniLog = (title, pick, show)=>{
     const us = l.unitsAll || {}, lg = l.logAll || [];
-    const nm = u => `<span style="color:${sideCol(u)}">${esc(u.nick || u.name)}</span>`;
     /* after each line: the swinger's hits still in hand, the struck stack still standing */
     const spent = {}, taken = {};
     return `<div class="tip-title">${title}</div><div class="ml-box">${lg.map((x, j)=>{
@@ -3174,7 +3174,7 @@ function gearCompare(kind, A, D, l, bonusApplied){
       if (!pick(x)) return "";
       const swings = Math.max(0, a.size - spent[x.aid]);
       const standing = Math.max(0, d.size - Math.floor(round6(taken[x.did])));
-      return `<div class="ml${j === l.logIdx ? " ml-cur" : ""}">${nm(a)} hit ${nm(d)} for <b class="w">${fmt(x.damage)}</b>
+      return `<div class="ml${j === l.logIdx ? " ml-cur" : ""}">${unitRef(a, a.weapon, true)} hit ${unitRef(d, d.armor)} for <b class="w">${fmt(x.damage)}</b>
         <span class="muted">(${money(x.hits)} hits)</span> → ${show === "swings"
           ? `<b class="w">${money(swings)}</b> <span class="muted">swings left</span>`
           : `<b class="w">${money(standing)}</b> <span class="muted">standing</span>`}</div>`;
@@ -3183,9 +3183,9 @@ function gearCompare(kind, A, D, l, bonusApplied){
   const warnOf = ()=>{
     const lg = l.logAll || [];
     if (isW){
-      if (PREFS.fullHits || H >= A.size) return "";
+      if (l.hits >= A.size) return "";
       return `<span class="cmp-warn" data-tip-key="${regTip(`<div data-tip-bg="${tipBg}">${
-        miniLog(`${esc(A.nick || A.name)}'s swings`, x => x.aid === l.aid, "swings")}</div>`, PIN_NS)}">Using ${money(H)} hits of ${money(A.size)} total!</span>`;
+        miniLog(`${esc(A.nick || A.name)}'s swings`, x => x.aid === l.aid, "swings")}</div>`, PIN_NS)}">Using ${money(l.hits)} hits of ${money(A.size)} total!</span>`;
     }
     if (!lg.some((x, j) => j < l.logIdx && x.did === l.did)) return "";
     return `<span class="cmp-warn" data-tip-key="${regTip(`<div data-tip-bg="${tipBg}">${
@@ -3273,7 +3273,7 @@ function dmgPinHTML(A, D, l, bonusApplied){
           <label><input type="checkbox" data-pref="hideSkim"${PREFS.hideSkim ? " checked" : ""}> Hide skim</label>
           <label><input type="checkbox" data-pref="hideRaise"${PREFS.hideRaise ? " checked" : ""}> Hide raise</label>
           <label><input type="checkbox" data-pref="hidePar"${PREFS.hidePar ? " checked" : ""}> Hide parity</label>
-          <label class="opt-sep"><input type="checkbox" data-pref="fullHits"${PREFS.fullHits ? " checked" : ""}> Use full unit sizes instead of real</label>
+          <label class="opt-sep opt-red"><input type="checkbox" data-pref="fullHits"${PREFS.fullHits ? " checked" : ""}> Use full unit sizes instead of real</label>
         </div>
         <div class="pin-art"><img src="https://derpicdn.net/img/2023/9/3/3193754/thumb.png" alt=""
           onerror="this.parentNode.remove()"></div></div>
