@@ -266,7 +266,11 @@ body.log-clean.log-hits.log-names:not(.log-nums) .unit-ref:has(.ref-nick) .ref-n
 /* Attacker dmg leftwards: the swinger's size goes in front of its name. The
    size is written twice and this picks which one shows; both copies obey
    the rules above about when a size shows at all */
-.ref-num.ref-lead{margin:0 4px 0 0}
+.ref-num.ref-lead{margin:0 4px 0 0;font-variant-numeric:tabular-nums}
+/* with the defenders lined up, the swinger's size is padded out to the
+   log's widest with figure spaces, so the names after it line up too */
+.lead-pad{display:none}
+body.log-dalign .xlog .lead-pad{display:inline}
 body:not(.log-alead) .ref-num.ref-lead,
 body.log-alead .unit-ref.ref-swinger > .ref-num:not(.ref-lead){display:none !important}
 .n-chg .n-was,.n-chg .n-arr{color:#5d6168}
@@ -2832,7 +2836,8 @@ function unitRef(u, gear, swing, x){
     ? `<span class="n-chg">(<span class="n-was">${money(x.was)}</span><span class="n-arr">→</span>${money(x.now)})</span>` : "";
   return `${ammo}${ic}<span class="unit-ref ${u.attack_mission ? "ref-atk" : "ref-def"}${swing ? " ref-swinger" : ""}"
     ${tipAttrs(u.origType, u.weapon, u.armor, u.size, u.training)}><span class="ref-sys">${esc(u.name).replace(/size_\d+/, "<span class=\"ref-size\">$&</span>")}</span>${
-    swing ? `<span class="ref-num ref-lead">${esc(u.size)}</span>` : ""}<span class="ref-kit">${
+    swing ? `<span class="ref-num ref-lead">${x.leadW > String(u.size).length
+      ? `<span class="lead-pad">${"\u2007".repeat(x.leadW - String(u.size).length)}</span>` : ""}${esc(u.size)}</span>` : ""}<span class="ref-kit">${
     esc(label(u.weapon))} + ${esc(label(u.armor))}</span>${
     u.nick ? `<span class="ref-nick">${esc(u.nick)}</span>` : ""}${
     ""}<span class="ref-num"><span class="n-plain">${esc(u.size)}</span>${chg}</span>${
@@ -3815,6 +3820,7 @@ function exchangeLogBlock(units, log, bonus, id, ns, tail){
     left[l.aid] = (left[l.aid] || 0) + l.hits;
     return Math.max(w, money(was).length + money(Math.max(0, was - l.hits)).length);
   }, 1);
+  const leadW = log.reduce((w, l) => Math.max(w, String(units[l.aid].size).length), 1);
   return `<div>
     <div class="log-head">
       <h3>Exchange log</h3>
@@ -3838,7 +3844,7 @@ function exchangeLogBlock(units, log, bonus, id, ns, tail){
         const spent = log.slice(0, i).reduce((t, x) => t + (x.aid === l.aid ? x.hits : 0), 0);
         const standing = n => Math.max(0, D.size - Math.floor(round6(n)));
         const train = A.training !== D.training;
-        return `<div class="xr ${A.attack_mission ? "xr-atk" : "xr-def"}"><span class="xatk"><span class="xu">${unitRef(A, A.weapon, true, {train, ammo: Math.max(0, A.size - spent), ammoAfter: Math.max(0, A.size - spent - l.hits)})}</span> <span class="xhit">hit</span></span>
+        return `<div class="xr ${A.attack_mission ? "xr-atk" : "xr-def"}"><span class="xatk"><span class="xu">${unitRef(A, A.weapon, true, {train, leadW, ammo: Math.max(0, A.size - spent), ammoAfter: Math.max(0, A.size - spent - l.hits)})}</span> <span class="xhit">hit</span></span>
           <span class="xrest"><span class="xdef"><span class="xdu">${unitRef(D, D.armor, false, {train, was: standing(before), now: standing(before + l.damage)})}</span></span>
           <span class="xdmg"><span class="xfor">for&nbsp;</span><b class="dmg-ref" data-tip-key="${mk}" data-pin-key="${mk}">${fmt(l.damage)}</b> damage
           <span class="muted">(${l.hits} hits)</span></span></span></div>`;
@@ -7054,14 +7060,14 @@ hkBox.addEventListener("change", syncHotkeys);
 const LS_LOG_OPTS = "warcalc.logOpts";
 {
   const o = store.get(LS_LOG_OPTS, {}) || {};
-  /* icons, numbers, the clean log, its training and the swinger's size in
-   front start on, everything else off */
+  /* icons, numbers, the clean log, its training, the swinger's size in front
+   and the damage column start on, everything else off */
   [["logIcons", "icons", "log-icons", true], ["logBoth", "both", "log-both"],
    ["logBothNamed", "bothNamed", "log-both-named"],
    ["logNames", "names", "log-names"], ["logNums", "nums", "log-nums", true],
    ["logClean", "clean", "log-clean", true], ["logALead", "alead", "log-alead", true], ["logTrain", "train", "log-train", true],
    ["logHits", "hits", "log-hits"], ["logDAlign", "dalign", "log-dalign"],
-   ["logDDmg", "ddmg", "log-ddmg"]].forEach(([id, k, cls, dflt])=>{
+   ["logDDmg", "ddmg", "log-ddmg", true]].forEach(([id, k, cls, dflt])=>{
     const box = document.getElementById(id);
     box.checked = typeof o[k] === "boolean" ? o[k] : !!dflt;
     document.body.classList.toggle(cls, box.checked);
