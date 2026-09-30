@@ -206,8 +206,8 @@ body.log-icons #logBothWrap,body.log-icons.log-both #logBothNamedWrap{display:in
 .log-opt.opt-blue{color:#6fa8dc}
 .log-opt.opt-blue:hover{color:#94c2ec}
 .log-opt.opt-blue input{accent-color:#3b78b5}
-.log-opt.opt-yellow{color:#b89a3e}
-.log-opt.opt-yellow:hover{color:#d4b44f}
+.log-opt.opt-yellow{color:#8f7830}
+.log-opt.opt-yellow:hover{color:#b09540}
 .log-opt.opt-yellow input{accent-color:#b8972a}
 body.log-names .ref-nick{display:inline}
 body.log-names .unit-ref:has(.ref-nick) .ref-sys{display:none}
@@ -217,14 +217,13 @@ body.log-names .unit-ref:has(.ref-nick) .ref-sys{display:none}
 body.log-clean .ref-sys{display:none}
 body.log-clean .ref-kit{display:inline}
 body.log-clean.log-names .unit-ref:has(.ref-nick) .ref-kit{display:none}
-/* Numbers with names: the unit's size after its name, dimmed so the name leads.
+/* Numbers with names: the unit's size after its name, in white.
    The clean log always carries it, unless a name stands in and the box is off */
 .ref-num{display:none;margin-left:4px;font-weight:500}
 body.log-names.log-nums .unit-ref:has(.ref-nick) .ref-num,
 body.log-clean .ref-num{display:inline}
 body.log-clean.log-names:not(.log-nums) .unit-ref:has(.ref-nick) .ref-num{display:none}
-.ref-atk .ref-num{color:#a8514f}
-.ref-def .ref-num{color:#4f8a9c}
+.ref-num{color:#fff}
 /* Show hits and size changes: the one struck reads (before→after) */
 .ref-num .n-chg{display:none}
 body.log-clean.log-hits .ref-num:has(.n-chg) .n-plain{display:none}
@@ -233,12 +232,12 @@ body.log-clean.log-hits.log-names:not(.log-nums) .unit-ref:has(.ref-nick) .ref-n
 .n-chg .n-was{color:#8a8f98}
 .n-chg .n-arr{color:#fff;margin:0 1px}
 /* Show training / hits: a yellow figure tucked against its icon */
-.ref-train,.ref-ammo{display:none;color:#b89a3e;font-weight:600;white-space:nowrap}
+.ref-train,.ref-ammo{display:none;color:#8f7830;font-weight:600;white-space:nowrap}
 .ref-ammo .n-arr{color:#fff;margin:0 1px}
 .ref-ammo .n-was{color:#8a8f98}
 body.log-clean.log-train .ref-train{display:inline;margin-left:5px}
 body.log-clean.log-hits .ref-ammo{display:inline;margin-right:5px}
-.ref-train img,.ref-ammo img{width:16px;height:16px;vertical-align:-3px;margin-right:1px;opacity:.75}
+.ref-train img,.ref-ammo img{width:16px;height:16px;vertical-align:-3px;margin-right:1px;opacity:.33}
 #logNumsWrap,#logTrainWrap,#logHitsWrap{display:none}
 body.log-names #logNumsWrap{display:inline-flex}
 body.log-clean #logTrainWrap,body.log-clean #logHitsWrap{display:inline-flex}
