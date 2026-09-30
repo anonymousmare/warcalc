@@ -214,7 +214,7 @@ body.log-icons #logBothWrap,body.log-icons.log-both #logBothNamedWrap{display:in
 .log-opt.opt-purple{color:#a58bd8}
 .log-opt.opt-purple:hover{color:#c0aaf0}
 .log-opt.opt-purple input{accent-color:#7453b8}
-/* Defender vertical align: the swinging half of every exchange takes the
+/* Defender vertical align (off to start): the swinging half of every exchange takes the
    width of the log's widest, so the ones struck line up down one edge */
 body.log-dalign .xlog{display:grid;grid-template-columns:max-content minmax(0,1fr)}
 body.log-dalign .xlog > *{grid-column:1 / -1}
@@ -7028,13 +7028,12 @@ hkBox.addEventListener("change", syncHotkeys);
 const LS_LOG_OPTS = "warcalc.logOpts";
 {
   const o = store.get(LS_LOG_OPTS, {}) || {};
-  /* icons, numbers, the clean log, its training and the defender line-up start on,
-   everything else off */
+  /* icons, numbers, the clean log and its training start on, everything else off */
   [["logIcons", "icons", "log-icons", true], ["logBoth", "both", "log-both"],
    ["logBothNamed", "bothNamed", "log-both-named"],
    ["logNames", "names", "log-names"], ["logNums", "nums", "log-nums", true],
    ["logClean", "clean", "log-clean", true], ["logTrain", "train", "log-train", true],
-   ["logHits", "hits", "log-hits"], ["logDAlign", "dalign", "log-dalign", true]].forEach(([id, k, cls, dflt])=>{
+   ["logHits", "hits", "log-hits"], ["logDAlign", "dalign", "log-dalign"]].forEach(([id, k, cls, dflt])=>{
     const box = document.getElementById(id);
     box.checked = typeof o[k] === "boolean" ? o[k] : !!dflt;
     document.body.classList.toggle(cls, box.checked);
