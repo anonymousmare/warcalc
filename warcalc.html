@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Warcalc 1.86 — CLOP</title>
+<title>Warcalc 1.9 — CLOP</title>
 <style>
 :root{
   --bg:#272b30;
@@ -1252,7 +1252,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 <body>
 
 <div class="tabstrip">
-  <span class="tab-brand">Warcalc 1.86<button class="gear-btn" id="btnTools"
+  <span class="tab-brand">Warcalc 1.9<button class="gear-btn" id="btnTools"
     title="Settings, import / export presets" aria-expanded="false"><svg viewBox="0 0 24 24"
     aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path
     d="M10.3 2.5h3.4l.5 2.6a7.6 7.6 0 0 1 2 1.2l2.5-.9 1.7 2.9-2 1.8a7.7 7.7 0 0 1 0 2.3l2 1.8-1.7 2.9-2.5-.9a7.6 7.6 0 0 1-2 1.2l-.5 2.6h-3.4l-.5-2.6a7.6 7.6 0 0 1-2-1.2l-2.5.9-1.7-2.9 2-1.8a7.7 7.7 0 0 1 0-2.3l-2-1.8 1.7-2.9 2.5.9a7.6 7.6 0 0 1 2-1.2z"/><circle
@@ -1446,7 +1446,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 <!-- ============ IMPORT ============ -->
 <div class="panel" id="panelImport">
   <div class="panel-head"><h2>Import units</h2></div>
-  <textarea id="txtImport" spellcheck="false" placeholder="an army code &#8212; 3F3F&#10;a battle code &#8212; +3F3F-9kQw2&#10;&#10;or the long form:&#10;4_ACFU_Nope&#10;Cavalry&#10;ACFU&#10;Nope&#10;Size: 200&#10;Training: 20&#10;&#10;or preset JSON, as the Export buttons write it"></textarea>
+  <textarea id="txtImport" spellcheck="false" placeholder="an army code &#8212; 3F3F&#10;a battle code &#8212; +3F3F-9kQw2&#10;&#10;or the long form:&#10;4_ACFU_Nope&#10;Cavalry&#10;ACFU&#10;Nope&#10;Size: 200&#10;Training: 20&#10;&#10;or a whole nation page, copied off the screen&#10;&#10;or preset JSON, as the Export buttons write it"></textarea>
   <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
     <button class="btn btn-xs" id="btnImportAtk">Import to attackers</button>
     <button class="btn btn-xs" id="btnImportDef">Import to defenders</button>
@@ -4532,63 +4532,91 @@ function importRows(side){
   }
 
   if (!text.trim()) return;
-  const clean = s => String(s).trim().split(" ").join("");
   try{
-    const lines = text.split(/\r?\n|\r/);
-    let added = 0;
-    for (let i = 0; i < lines.length; i++){
-      if (i >= 4 && lines[i].indexOf("Training:") === 0){
-        let unit;
-        if (lines[i-2].trim() !== "Alicorns"){
-          unit = {type: clean(lines[i-4]), weapon: clean(lines[i-3]), armor: clean(lines[i-2]),
-                  size: parseInt(lines[i-1].split(":")[1].trim(),10),
-                  training: parseInt(lines[i].split(":")[1].trim(),10)};
-        } else {
-          unit = {type:"Alicorns", weapon:"ScroungedWeapons", armor:"ScroungedArmor",
-                  size: parseInt(lines[i-1].split(":")[1].trim(),10),
-                  training: parseInt(lines[i].split(":")[1].trim(),10)};
-        }
-        unit.training = Math.min(TRAIN_UNCAPPED, Math.max(0, unit.training || 0));
-        /* the line above the type is the unit's own name, as the game's
-           army page copies out; group headings sit apart, each followed by
-           an "Owned by" line, so they never land here. warcalc's own long
-           form puts a Type_Weapon_Armor key there instead — not a name. */
-        const nl = (lines[i - (unit.type === "Alicorns" ? 3 : 5)] || "").trim();
-        if (nl && !/^(Owned by |===|(Size|Training|Name|Reinforcement|Barracks):)/i.test(nl)
-            && nl !== `${unit.type}_${unit.weapon}_${unit.armor}`
-            && nl.replace(/^\d+_/, "") !== `${unit.weapon}_${unit.armor}`)
-          unit.name = nl.replace(/\s+/g, " ").slice(0, 50);
-        /* the optional tail lines, in either order */
-        for (let j = i + 1; j <= i + 2 && j < lines.length; j++){
-          const nm = /^\s*Name:\s*(.*)$/i.exec(lines[j]);
-          if (nm && nm[1].trim()) unit.name = nm[1].trim().slice(0, 50);
-          if (/^\s*Reinforcement:\s*yes/i.test(lines[j])) unit.reserve = true;
-        }
-        if (side === "attacker" && unit.type === "Alicorns"){
-          alert("Alicorns can only be fielded as defenders — skipping that entry.");
-          continue;
-        }
-        if (PREFS.stripNames) delete unit.name;
-        makeRow(side, unit); added++;
-      }
+    /* a pasted nation page (or warcalc's battle long form) carries both
+       sides under their own headings; this button takes its own half */
+    const sides = splitLongSides(text);
+    const part = sides ? sides[side] : text;
+    const {units, barracks} = parseLongForm(part);
+    if (!units.length){
+      alert(sides ? `There are no ${side === "attacker" ? "attackers" : "defenders"} in that paste.`
+                  : "Nothing matched the expected format. Each unit block must end with a Training: line.");
+      return;
     }
-    if (!added){ alert("Nothing matched the expected format. Each unit block must end with a Training: line."); return; }
-    /* the long form opens with the side's Barracks level; a battle's has one
-       a side, and the side being imported to picks its own */
-    const want = side === "attacker" ? "ATTACKERS" : "DEFENDERS";
-    let sect = null, brk = null;
-    lines.forEach(l=>{
-      const h = /^===\s*(ATTACKERS|DEFENDERS)\s*===/i.exec(l.trim());
-      if (h){ sect = h[1].toUpperCase(); return; }
-      const m = /^\s*Barracks:\s*(\d+)/i.exec(l);
-      if (m && (brk === null || sect === want)) brk = m[1];
-    });
-    setBarracks(side, brk);
+    const kept = noNames(units).filter(u => !(side === "attacker" && u.type === "Alicorns"));
+    if (kept.length < units.length)
+      alert("Alicorns can only be fielded as defenders — skipping that entry.");
+    kept.forEach(u => makeRow(side, u));
+    setBarracks(side, barracks);
+    refreshCounts();
     ta.value = "";
   } catch(e){
     console.error(e);
     alert("The import data was in an unexpected format.");
   }
+}
+
+/* the long form, one unit a block ending in its Training: line — warcalc's
+   own, or the game's army / nation page copied straight off the screen */
+function parseLongForm(text){
+  const clean = s => String(s).trim().split(" ").join("");
+  const lines = String(text).split(/\r?\n|\r/);
+  const units = [];
+  for (let i = 0; i < lines.length; i++){
+    if (i >= 4 && lines[i].trim().indexOf("Training:") === 0){
+      let unit;
+      if (lines[i-2].trim() !== "Alicorns"){
+        unit = {type: clean(lines[i-4]), weapon: clean(lines[i-3]), armor: clean(lines[i-2]),
+                size: parseInt(lines[i-1].split(":")[1].trim(),10),
+                training: parseInt(lines[i].split(":")[1].trim(),10)};
+      } else {
+        unit = {type:"Alicorns", weapon:"ScroungedWeapons", armor:"ScroungedArmor",
+                size: parseInt(lines[i-1].split(":")[1].trim(),10),
+                training: parseInt(lines[i].split(":")[1].trim(),10)};
+      }
+      unit.training = Math.min(TRAIN_UNCAPPED, Math.max(0, unit.training || 0));
+      /* the line above the type is the unit's own name, as the game's
+         army page copies out; group headings sit apart, each followed by
+         an "Owned by" line, so they never land here. warcalc's own long
+         form puts a Type_Weapon_Armor key there instead — not a name. */
+      const nl = (lines[i - (unit.type === "Alicorns" ? 3 : 5)] || "").trim();
+      if (nl && !/^(Owned by |===|(Size|Training|Name|Reinforcement|Barracks):)/i.test(nl)
+          && !RE_SIDE_HEAD.test(nl)
+          && nl !== `${unit.type}_${unit.weapon}_${unit.armor}`
+          && nl.replace(/^\d+_/, "") !== `${unit.weapon}_${unit.armor}`)
+        unit.name = nl.replace(/\s+/g, " ").slice(0, 50);
+      /* the optional tail lines, in either order */
+      for (let j = i + 1; j <= i + 2 && j < lines.length; j++){
+        const nm = /^\s*Name:\s*(.*)$/i.exec(lines[j]);
+        if (nm && nm[1].trim()) unit.name = nm[1].trim().slice(0, 50);
+        if (/^\s*Reinforcement:\s*yes/i.test(lines[j])) unit.reserve = true;
+      }
+      units.push(unit);
+    }
+  }
+  /* warcalc's long form opens with the side's Barracks level */
+  let barracks = null;
+  lines.forEach(l=>{
+    const m = /^\s*Barracks:\s*(\d+)/i.exec(l);
+    if (m && barracks === null) barracks = m[1];
+  });
+  return {units, barracks};
+}
+
+/* "Attackers" / "Defenders" alone on a line, as the nation page heads its
+   two lists, or warcalc's "=== ATTACKERS ===" */
+const RE_SIDE_HEAD = /^(?:===\s*)?(attackers|defenders)(?:\s*===)?$/i;
+
+/* cuts a paste at its side headings; null when it has none */
+function splitLongSides(text){
+  const out = {attacker: "", defender: ""};
+  let cur = null, found = false;
+  String(text).split(/\r?\n|\r/).forEach(l=>{
+    const h = RE_SIDE_HEAD.exec(l.trim());
+    if (h){ cur = /^a/i.test(h[1]) ? "attacker" : "defender"; found = true; return; }
+    if (cur) out[cur] += l + "\n";
+  });
+  return found ? out : null;
 }
 
 /* a battle code is the whole board, so it replaces both sides rather than
@@ -4611,6 +4639,23 @@ function importBattle(){
     setSide("defender", b.defender);
     if (b.bonus) document.getElementById("defBonus").value = b.bonus;
     scheduleSave();
+    return;
+  }
+  /* a pasted nation page: its Attackers and Defenders lists fill each side */
+  const sides = splitLongSides(ta.value);
+  if (sides){
+    const a = parseLongForm(sides.attacker), d = parseLongForm(sides.defender);
+    if (!a.units.length && !d.units.length){
+      alert("Found the Attackers / Defenders headings, but no units under them.");
+      return;
+    }
+    a.units.barracks = a.barracks; d.units.barracks = d.barracks;
+    ta.value = "";
+    setSide("attacker", noNames(a.units));
+    setSide("defender", noNames(d.units));
+    scheduleSave();
+    const ali = a.units.filter(u => u.type === "Alicorns").length;
+    if (ali) alert(`Alicorns can only be fielded as defenders — skipped ${ali}.`);
     return;
   }
   const sh = parseShareable(ta.value);
