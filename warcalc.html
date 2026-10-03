@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Warcalc 1.86 — CLOP</title>
+<title>Warcalc 1.9 — CLOP</title>
 <style>
 :root{
   --bg:#272b30;
@@ -163,6 +163,20 @@ tbody tr:last-child{border-bottom:none}
 }
 .reinf-sw button[data-reinf="1"]::after{width:1.5px;height:6px}
 .reinf-sw button:hover,.reinf-sw button.on{opacity:1}
+/* the same bare - and + beside the Tr heading step every row's training */
+.force-table th.col-train{position:relative}
+.tr-sw{position:absolute;left:24px;top:50%;transform:translateY(-50%);display:none;gap:3px;line-height:1}
+.force-table th.col-train:hover .tr-sw{display:flex}
+.tr-sw button{
+  all:unset;cursor:pointer;position:relative;width:12px;height:12px;opacity:.45;
+  border-radius:50%;background:rgba(120,126,134,.14);font-size:0;color:#d4d8dd;
+}
+.tr-sw button::before,.tr-sw button[data-step="1"]::after{
+  content:"";position:absolute;left:50%;top:50%;background:currentColor;
+  width:6px;height:1.5px;transform:translate(-50%,-50%);
+}
+.tr-sw button[data-step="1"]::after{width:1.5px;height:6px}
+.tr-sw button:hover{opacity:1}
 /* a reinforcement sits out tick 1: drained of colour and tabbed in a touch */
 tr.reserve .spriteSlot{display:block;transform:translateX(4px)}
 tr.reserve .spriteSlot .sprite{filter:grayscale(1);opacity:.8}
@@ -1238,7 +1252,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 <body>
 
 <div class="tabstrip">
-  <span class="tab-brand">Warcalc 1.86<button class="gear-btn" id="btnTools"
+  <span class="tab-brand">Warcalc 1.9<button class="gear-btn" id="btnTools"
     title="Settings, import / export presets" aria-expanded="false"><svg viewBox="0 0 24 24"
     aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path
     d="M10.3 2.5h3.4l.5 2.6a7.6 7.6 0 0 1 2 1.2l2.5-.9 1.7 2.9-2 1.8a7.7 7.7 0 0 1 0 2.3l2 1.8-1.7 2.9-2.5-.9a7.6 7.6 0 0 1-2 1.2l-.5 2.6h-3.4l-.5-2.6a7.6 7.6 0 0 1-2-1.2l-2.5.9-1.7-2.9 2-1.8a7.7 7.7 0 0 1 0-2.3l-2-1.8 1.7-2.9 2.5.9a7.6 7.6 0 0 1 2-1.2z"/><circle
@@ -1291,6 +1305,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
       <input type="checkbox" id="hkEnable" checked> Jump hotkeys (Q W E R)</label>
     <label class="hk-toggle" for="bcNoGroup">
       <input type="checkbox" id="bcNoGroup"> Don't group Builder Copy</label>
+    <label class="hk-toggle"><input type="checkbox" data-pref="stripNames"> Strip names from export/import</label>
   </div>
   <div class="set-grid" id="prefGrid">
     <label class="hk-toggle"><input type="checkbox" data-pref="standOpen"> Total standings always uncollapsed</label>
@@ -1344,7 +1359,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
     <table class="force-table">
       <thead><tr>
         <th class="col-sprite">Unit</th><th class="col-name">Name</th><th class="col-type">Type</th><th class="col-weapon">Weapon</th>
-        <th class="col-armor">Armor</th><th class="col-size">Size</th><th class="col-train" title="Training">Tr</th><th class="col-del"></th>
+        <th class="col-armor">Armor</th><th class="col-size">Size</th><th class="col-train" title="Training">Tr<span class="tr-sw"><button type="button" data-tr-step="attacker" data-step="-1" title="Whole army −1 training">−</button><button type="button" data-tr-step="attacker" data-step="1" title="Whole army +1 training">+</button></span></th><th class="col-del"></th>
       </tr></thead>
       <tbody id="tbodyAttacker"></tbody>
     </table>
@@ -1380,7 +1395,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
     <table class="force-table">
       <thead><tr>
         <th class="col-sprite">Unit</th><th class="col-name">Name</th><th class="col-type">Type</th><th class="col-weapon">Weapon</th>
-        <th class="col-armor">Armor</th><th class="col-size">Size</th><th class="col-train" title="Training">Tr</th><th class="col-del"></th>
+        <th class="col-armor">Armor</th><th class="col-size">Size</th><th class="col-train" title="Training">Tr<span class="tr-sw"><button type="button" data-tr-step="defender" data-step="-1" title="Whole army −1 training">−</button><button type="button" data-tr-step="defender" data-step="1" title="Whole army +1 training">+</button></span></th><th class="col-del"></th>
       </tr></thead>
       <tbody id="tbodyDefender"></tbody>
     </table>
@@ -1431,7 +1446,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 <!-- ============ IMPORT ============ -->
 <div class="panel" id="panelImport">
   <div class="panel-head"><h2>Import units</h2></div>
-  <textarea id="txtImport" spellcheck="false" placeholder="an army code &#8212; 3F3F&#10;a battle code &#8212; +3F3F-9kQw2&#10;&#10;or the long form:&#10;4_ACFU_Nope&#10;Cavalry&#10;ACFU&#10;Nope&#10;Size: 200&#10;Training: 20&#10;&#10;or preset JSON, as the Export buttons write it"></textarea>
+  <textarea id="txtImport" spellcheck="false" placeholder="an army code &#8212; 3F3F&#10;a battle code &#8212; +3F3F-9kQw2&#10;&#10;or the long form:&#10;4_ACFU_Nope&#10;Cavalry&#10;ACFU&#10;Nope&#10;Size: 200&#10;Training: 20&#10;&#10;or a whole nation page, copied off the screen&#10;&#10;or preset JSON, as the Export buttons write it"></textarea>
   <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
     <button class="btn btn-xs" id="btnImportAtk">Import to attackers</button>
     <button class="btn btn-xs" id="btnImportDef">Import to defenders</button>
@@ -2455,12 +2470,16 @@ function unitsBlock(rows, open, byTick){
     widest = Math.max(widest, t.length);
     return t;
   };
+  /* every type's headcount, one a line in sheet order, zeros included */
+  const typeCounts = UNIT_ORDER.map(g => head[g.type] || 0).join("&#10;");
   UNIT_ORDER.forEach(g=>{
     const n = head[g.type] || 0;
     const kept = g.gear.filter(k => (gear[k] || 0) > 0);
     if (!n && !kept.length) return;                  // a type nobody fielded
+    const tc = lines.length ? "" : `<button class="bp-btn u-copy u-types" data-units-copy="${typeCounts}"
+      title="Copy every unit type's total, one a line (Cavalry to Alicorns, zeros included)">${iconSvg("copy")}</button>`;
     lines.push(`<div class="gear-line gear-head"><span class="n mono">${count(n)}</span>` +
-      `<span class="g-name">${esc(g.type)}</span><span class="gear-img gear-img-none"></span></div>`);
+      `<span class="g-name">${esc(g.type)}${tc}</span><span class="gear-img gear-img-none"></span></div>`);
     kept.forEach(k=> lines.push(
       `<div class="gear-line"><span class="g-name">${esc(label(k))}</span>` +
       `<span class="n mono">${count(gear[k])}</span>${gearImg(k)}</div>`));
@@ -3761,7 +3780,7 @@ const LOG_FULL = new Map();          // remembers the choice across re-renders
 /* the settings in the gear drawer; filled from storage at boot */
 let PREFS = {standOpen:false, deathsOpen:false, casOpen:false, logFull:true,
              iconsWA:false, plainHover:false, cardSlash:false, noUnspent:false,
-             noPinArt:false, minDmg:false, hide1x:true, hideAct:false,
+             noPinArt:false, minDmg:false, stripNames:false, hide1x:true, hideAct:false,
              hideSkim:true, hideRaise:false, hidePar:false,
              fullHits:false};
 
@@ -3808,7 +3827,8 @@ function unspentLine(units){
   if (!wiped(true) && !wiped(false)) return "";
   const idle = all.filter(u => u.hits > 0);
   if (!idle.length) return "";
-  return `<div class="unspent">Unspent hits${idle.map(u =>
+  const total = idle.reduce((s, u) => s + u.hits, 0);
+  return `<div class="unspent">Unspent hits — <b>${total.toLocaleString("en-US")}</b>${idle.map(u =>
     `<span class="us-row">${unitRef(u)} — <b>${u.hits.toLocaleString("en-US")}</b></span>`).join("")}</div>`;
 }
 
@@ -4309,7 +4329,7 @@ function crunchDiff(want, units){
    defender second, either may be left empty. The fragment rather than a
    query string so the "+" that opens the attackers stays a "+". */
 
-const battleFragment = () => encodeBattle(packSide("attacker"), packSide("defender"),
+const battleFragment = () => encodeBattle(noNames(packSide("attacker")), noNames(packSide("defender")),
                                           document.getElementById("defBonus").value, barracksBoth());
 const battleLink = () => location.href.split("#")[0] + "#" + battleFragment();
 
@@ -4385,8 +4405,8 @@ function showCrunchReport(sides){
 
 /* ---- loading a link ---- */
 function applyShareable(sh){
-  setSide("attacker", sh.battle.attacker);
-  setSide("defender", sh.battle.defender);
+  setSide("attacker", noNames(sh.battle.attacker));
+  setSide("defender", noNames(sh.battle.defender));
   document.getElementById("defBonus").value = sh.battle.bonus;
   scheduleSave();
   showCrunchReport(sh.crunch);
@@ -4409,6 +4429,7 @@ function loadFromHash(){
 
 /* drop a decoded list onto a side, minding who may field alicorns */
 function addUnits(side, units){
+  units = noNames(units);
   setBarracks(side, units?.barracks);
   let skipped = 0;
   (units || []).forEach(u=>{
@@ -4511,62 +4532,91 @@ function importRows(side){
   }
 
   if (!text.trim()) return;
-  const clean = s => String(s).trim().split(" ").join("");
   try{
-    const lines = text.split(/\r?\n|\r/);
-    let added = 0;
-    for (let i = 0; i < lines.length; i++){
-      if (i >= 4 && lines[i].indexOf("Training:") === 0){
-        let unit;
-        if (lines[i-2].trim() !== "Alicorns"){
-          unit = {type: clean(lines[i-4]), weapon: clean(lines[i-3]), armor: clean(lines[i-2]),
-                  size: parseInt(lines[i-1].split(":")[1].trim(),10),
-                  training: parseInt(lines[i].split(":")[1].trim(),10)};
-        } else {
-          unit = {type:"Alicorns", weapon:"ScroungedWeapons", armor:"ScroungedArmor",
-                  size: parseInt(lines[i-1].split(":")[1].trim(),10),
-                  training: parseInt(lines[i].split(":")[1].trim(),10)};
-        }
-        unit.training = Math.min(TRAIN_UNCAPPED, Math.max(0, unit.training || 0));
-        /* the line above the type is the unit's own name, as the game's
-           army page copies out; group headings sit apart, each followed by
-           an "Owned by" line, so they never land here. warcalc's own long
-           form puts a Type_Weapon_Armor key there instead — not a name. */
-        const nl = (lines[i - (unit.type === "Alicorns" ? 3 : 5)] || "").trim();
-        if (nl && !/^(Owned by |===|(Size|Training|Name|Reinforcement|Barracks):)/i.test(nl)
-            && nl !== `${unit.type}_${unit.weapon}_${unit.armor}`
-            && nl.replace(/^\d+_/, "") !== `${unit.weapon}_${unit.armor}`)
-          unit.name = nl.replace(/\s+/g, " ").slice(0, 50);
-        /* the optional tail lines, in either order */
-        for (let j = i + 1; j <= i + 2 && j < lines.length; j++){
-          const nm = /^\s*Name:\s*(.*)$/i.exec(lines[j]);
-          if (nm && nm[1].trim()) unit.name = nm[1].trim().slice(0, 50);
-          if (/^\s*Reinforcement:\s*yes/i.test(lines[j])) unit.reserve = true;
-        }
-        if (side === "attacker" && unit.type === "Alicorns"){
-          alert("Alicorns can only be fielded as defenders — skipping that entry.");
-          continue;
-        }
-        makeRow(side, unit); added++;
-      }
+    /* a pasted nation page (or warcalc's battle long form) carries both
+       sides under their own headings; this button takes its own half */
+    const sides = splitLongSides(text);
+    const part = sides ? sides[side] : text;
+    const {units, barracks} = parseLongForm(part);
+    if (!units.length){
+      alert(sides ? `There are no ${side === "attacker" ? "attackers" : "defenders"} in that paste.`
+                  : "Nothing matched the expected format. Each unit block must end with a Training: line.");
+      return;
     }
-    if (!added){ alert("Nothing matched the expected format. Each unit block must end with a Training: line."); return; }
-    /* the long form opens with the side's Barracks level; a battle's has one
-       a side, and the side being imported to picks its own */
-    const want = side === "attacker" ? "ATTACKERS" : "DEFENDERS";
-    let sect = null, brk = null;
-    lines.forEach(l=>{
-      const h = /^===\s*(ATTACKERS|DEFENDERS)\s*===/i.exec(l.trim());
-      if (h){ sect = h[1].toUpperCase(); return; }
-      const m = /^\s*Barracks:\s*(\d+)/i.exec(l);
-      if (m && (brk === null || sect === want)) brk = m[1];
-    });
-    setBarracks(side, brk);
+    const kept = noNames(units).filter(u => !(side === "attacker" && u.type === "Alicorns"));
+    if (kept.length < units.length)
+      alert("Alicorns can only be fielded as defenders — skipping that entry.");
+    kept.forEach(u => makeRow(side, u));
+    setBarracks(side, barracks);
+    refreshCounts();
     ta.value = "";
   } catch(e){
     console.error(e);
     alert("The import data was in an unexpected format.");
   }
+}
+
+/* the long form, one unit a block ending in its Training: line — warcalc's
+   own, or the game's army / nation page copied straight off the screen */
+function parseLongForm(text){
+  const clean = s => String(s).trim().split(" ").join("");
+  const lines = String(text).split(/\r?\n|\r/);
+  const units = [];
+  for (let i = 0; i < lines.length; i++){
+    if (i >= 4 && lines[i].trim().indexOf("Training:") === 0){
+      let unit;
+      if (lines[i-2].trim() !== "Alicorns"){
+        unit = {type: clean(lines[i-4]), weapon: clean(lines[i-3]), armor: clean(lines[i-2]),
+                size: parseInt(lines[i-1].split(":")[1].trim(),10),
+                training: parseInt(lines[i].split(":")[1].trim(),10)};
+      } else {
+        unit = {type:"Alicorns", weapon:"ScroungedWeapons", armor:"ScroungedArmor",
+                size: parseInt(lines[i-1].split(":")[1].trim(),10),
+                training: parseInt(lines[i].split(":")[1].trim(),10)};
+      }
+      unit.training = Math.min(TRAIN_UNCAPPED, Math.max(0, unit.training || 0));
+      /* the line above the type is the unit's own name, as the game's
+         army page copies out; group headings sit apart, each followed by
+         an "Owned by" line, so they never land here. warcalc's own long
+         form puts a Type_Weapon_Armor key there instead — not a name. */
+      const nl = (lines[i - (unit.type === "Alicorns" ? 3 : 5)] || "").trim();
+      if (nl && !/^(Owned by |===|(Size|Training|Name|Reinforcement|Barracks):)/i.test(nl)
+          && !RE_SIDE_HEAD.test(nl)
+          && nl !== `${unit.type}_${unit.weapon}_${unit.armor}`
+          && nl.replace(/^\d+_/, "") !== `${unit.weapon}_${unit.armor}`)
+        unit.name = nl.replace(/\s+/g, " ").slice(0, 50);
+      /* the optional tail lines, in either order */
+      for (let j = i + 1; j <= i + 2 && j < lines.length; j++){
+        const nm = /^\s*Name:\s*(.*)$/i.exec(lines[j]);
+        if (nm && nm[1].trim()) unit.name = nm[1].trim().slice(0, 50);
+        if (/^\s*Reinforcement:\s*yes/i.test(lines[j])) unit.reserve = true;
+      }
+      units.push(unit);
+    }
+  }
+  /* warcalc's long form opens with the side's Barracks level */
+  let barracks = null;
+  lines.forEach(l=>{
+    const m = /^\s*Barracks:\s*(\d+)/i.exec(l);
+    if (m && barracks === null) barracks = m[1];
+  });
+  return {units, barracks};
+}
+
+/* "Attackers" / "Defenders" alone on a line, as the nation page heads its
+   two lists, or warcalc's "=== ATTACKERS ===" */
+const RE_SIDE_HEAD = /^(?:===\s*)?(attackers|defenders)(?:\s*===)?$/i;
+
+/* cuts a paste at its side headings; null when it has none */
+function splitLongSides(text){
+  const out = {attacker: "", defender: ""};
+  let cur = null, found = false;
+  String(text).split(/\r?\n|\r/).forEach(l=>{
+    const h = RE_SIDE_HEAD.exec(l.trim());
+    if (h){ cur = /^a/i.test(h[1]) ? "attacker" : "defender"; found = true; return; }
+    if (cur) out[cur] += l + "\n";
+  });
+  return found ? out : null;
 }
 
 /* a battle code is the whole board, so it replaces both sides rather than
@@ -4583,12 +4633,29 @@ function importBattle(){
     }
     const name = pickPresetName(names, "battles");
     if (!name) return;
-    const b = json.battles[name];
+    const b = noNamesBattle(json.battles[name]);
     ta.value = "";
     setSide("attacker", b.attacker);
     setSide("defender", b.defender);
     if (b.bonus) document.getElementById("defBonus").value = b.bonus;
     scheduleSave();
+    return;
+  }
+  /* a pasted nation page: its Attackers and Defenders lists fill each side */
+  const sides = splitLongSides(ta.value);
+  if (sides){
+    const a = parseLongForm(sides.attacker), d = parseLongForm(sides.defender);
+    if (!a.units.length && !d.units.length){
+      alert("Found the Attackers / Defenders headings, but no units under them.");
+      return;
+    }
+    a.units.barracks = a.barracks; d.units.barracks = d.barracks;
+    ta.value = "";
+    setSide("attacker", noNames(a.units));
+    setSide("defender", noNames(d.units));
+    scheduleSave();
+    const ali = a.units.filter(u => u.type === "Alicorns").length;
+    if (ali) alert(`Alicorns can only be fielded as defenders — skipped ${ali}.`);
     return;
   }
   const sh = parseShareable(ta.value);
@@ -4938,6 +5005,20 @@ function deleteBattlePreset(){
   refreshPresetSelects();
 }
 
+/* "Strip names from export/import": every way a roster leaves or enters the
+   page drops the unit names on the way through. A list keeps its .barracks */
+function noNames(units){
+  if (!PREFS.stripNames || !Array.isArray(units)) return units;
+  const out = units.map(u => { if (!u || typeof u !== "object") return u;
+    const {name, ...rest} = u; return rest; });
+  if (units.barracks != null) out.barracks = units.barracks;
+  return out;
+}
+const noNamesBattle = b => b && typeof b === "object"
+  ? Object.assign({}, b, {attacker: noNames(b.attacker), defender: noNames(b.defender)}) : b;
+const noNamesEach = (map, f) => map && typeof map === "object"
+  ? Object.fromEntries(Object.entries(map).map(([k, v]) => [k, f(v)])) : map;
+
 /* ---- clipboard ----
    the block importRows() parses: a name line, then type / weapon / armor,
    then the two labelled numbers */
@@ -4971,7 +5052,7 @@ async function copyText(text){
 /* a plain click gives the short code, shift gives the long readable block
    the original page used */
 async function copyComposition(side, btn, longForm){
-  const units = packSide(side);
+  const units = noNames(packSide(side));
   if (!units.length){ alert("Nothing to copy — that side is empty."); return; }
   const text = longForm ? `Barracks: ${barracksOf(side)}\n\n${compText(units)}`
                         : encodeArmy(units, barracksOf(side));
@@ -4980,7 +5061,7 @@ async function copyComposition(side, btn, longForm){
 }
 
 async function copyBattleCode(btn, longForm){
-  const atk = packSide("attacker"), def = packSide("defender");
+  const atk = noNames(packSide("attacker")), def = noNames(packSide("defender"));
   if (!atk.length && !def.length){ alert("Nothing to copy — both sides are empty."); return; }
   const bonus = document.getElementById("defBonus").value;
   const text = longForm
@@ -5017,7 +5098,7 @@ const safeFile = n => (String(n || "").replace(/[^A-Za-z0-9._-]+/g, "-")
 
 /* ---- exporting one thing rather than the whole drawer ---- */
 function exportArmyComposition(side){
-  const units = packSide(side);
+  const units = noNames(packSide(side));
   if (!units.length){ alert("Nothing to export — that side is empty."); return; }
   const sel = document.querySelector(`[data-ap-sel="${side}"]`);
   const name = (prompt("Name this army composition:",
@@ -5029,7 +5110,7 @@ function exportArmyComposition(side){
 }
 
 function exportBattle(){
-  const battle = {attacker: packSide("attacker"), defender: packSide("defender"),
+  const battle = {attacker: noNames(packSide("attacker")), defender: noNames(packSide("defender")),
                   bonus: document.getElementById("defBonus").value, barracks: barracksBoth()};
   if (!battle.attacker.length && !battle.defender.length){
     alert("Nothing to export — both sides are empty."); return;
@@ -5065,8 +5146,8 @@ function importJSON(text){
   try{ data = JSON.parse(text); }
   catch(e){ alert("That file isn't valid JSON."); return; }
 
-  const armies  = data.armyPresets   || (data.kind === "armyPresets"   ? data.presets : null);
-  const battles = data.battlePresets || (data.kind === "battlePresets" ? data.presets : null);
+  const armies  = noNamesEach(data.armyPresets   || (data.kind === "armyPresets"   ? data.presets : null), noNames);
+  const battles = noNamesEach(data.battlePresets || (data.kind === "battlePresets" ? data.presets : null), noNamesBattle);
   if (!armies && !battles){ alert("No presets found in that file."); return; }
 
   let added = 0;
@@ -5110,6 +5191,17 @@ document.querySelectorAll("[data-clear]").forEach(b=>
 document.getElementById("btnImportAtk").addEventListener("click", ()=>importRows("attacker"));
 document.getElementById("btnImportDef").addEventListener("click", ()=>importRows("defender"));
 document.getElementById("btnImportBattle").addEventListener("click", importBattle);
+
+/* the - and + by a side's Tr heading move every row's training one step */
+document.querySelectorAll("[data-tr-step]").forEach(b=>
+  b.addEventListener("click", ()=>{
+    const side = b.dataset.trStep, step = +b.dataset.step;
+    document.querySelectorAll(`#tbody${side === "attacker" ? "Attacker" : "Defender"} .training`)
+      .forEach(el=>{
+        el.value = clampInt(+el.value + step, 0, trainCap(side));
+        el.dispatchEvent(new Event("change"));
+      });
+  }));
 
 /* --- army presets --- */
 document.querySelectorAll("[data-ap-save]").forEach(b=>
@@ -5178,13 +5270,14 @@ toolsBtn.addEventListener("click", ()=>{
 });
 
 document.getElementById("expArmies").addEventListener("click", ()=>
-  downloadJSON({kind:"armyPresets", armyPresets:getArmies(),
+  downloadJSON({kind:"armyPresets", armyPresets:noNamesEach(getArmies(), noNames),
                 armyBarracks:barracksFor(Object.keys(getArmies()))}, `warcalc-armies-${stamp()}.json`));
 document.getElementById("expBattles").addEventListener("click", ()=>
-  downloadJSON({kind:"battlePresets", battlePresets:getBattles()}, `warcalc-battles-${stamp()}.json`));
+  downloadJSON({kind:"battlePresets", battlePresets:noNamesEach(getBattles(), noNamesBattle)}, `warcalc-battles-${stamp()}.json`));
 document.getElementById("expAll").addEventListener("click", ()=>
-  downloadJSON({kind:"warcalcPresets", armyPresets:getArmies(),
-                armyBarracks:barracksFor(Object.keys(getArmies())), battlePresets:getBattles()},
+  downloadJSON({kind:"warcalcPresets", armyPresets:noNamesEach(getArmies(), noNames),
+                armyBarracks:barracksFor(Object.keys(getArmies())),
+                battlePresets:noNamesEach(getBattles(), noNamesBattle)},
                `warcalc-presets-${stamp()}.json`));
 
 document.getElementById("impBtn").addEventListener("click", ()=>
