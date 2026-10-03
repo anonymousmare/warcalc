@@ -163,6 +163,20 @@ tbody tr:last-child{border-bottom:none}
 }
 .reinf-sw button[data-reinf="1"]::after{width:1.5px;height:6px}
 .reinf-sw button:hover,.reinf-sw button.on{opacity:1}
+/* the same bare - and + beside the Tr heading step every row's training */
+.force-table th.col-train{position:relative}
+.tr-sw{position:absolute;left:24px;top:50%;transform:translateY(-50%);display:none;gap:3px;line-height:1}
+.force-table th.col-train:hover .tr-sw{display:flex}
+.tr-sw button{
+  all:unset;cursor:pointer;position:relative;width:12px;height:12px;opacity:.45;
+  border-radius:50%;background:rgba(120,126,134,.14);font-size:0;color:#d4d8dd;
+}
+.tr-sw button::before,.tr-sw button[data-step="1"]::after{
+  content:"";position:absolute;left:50%;top:50%;background:currentColor;
+  width:6px;height:1.5px;transform:translate(-50%,-50%);
+}
+.tr-sw button[data-step="1"]::after{width:1.5px;height:6px}
+.tr-sw button:hover{opacity:1}
 /* a reinforcement sits out tick 1: drained of colour and tabbed in a touch */
 tr.reserve .spriteSlot{display:block;transform:translateX(4px)}
 tr.reserve .spriteSlot .sprite{filter:grayscale(1);opacity:.8}
@@ -1291,6 +1305,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
       <input type="checkbox" id="hkEnable" checked> Jump hotkeys (Q W E R)</label>
     <label class="hk-toggle" for="bcNoGroup">
       <input type="checkbox" id="bcNoGroup"> Don't group Builder Copy</label>
+    <label class="hk-toggle"><input type="checkbox" data-pref="stripNames"> Strip names from export/import</label>
   </div>
   <div class="set-grid" id="prefGrid">
     <label class="hk-toggle"><input type="checkbox" data-pref="standOpen"> Total standings always uncollapsed</label>
@@ -1344,7 +1359,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
     <table class="force-table">
       <thead><tr>
         <th class="col-sprite">Unit</th><th class="col-name">Name</th><th class="col-type">Type</th><th class="col-weapon">Weapon</th>
-        <th class="col-armor">Armor</th><th class="col-size">Size</th><th class="col-train" title="Training">Tr</th><th class="col-del"></th>
+        <th class="col-armor">Armor</th><th class="col-size">Size</th><th class="col-train" title="Training">Tr<span class="tr-sw"><button type="button" data-tr-step="attacker" data-step="-1" title="Whole army −1 training">−</button><button type="button" data-tr-step="attacker" data-step="1" title="Whole army +1 training">+</button></span></th><th class="col-del"></th>
       </tr></thead>
       <tbody id="tbodyAttacker"></tbody>
     </table>
@@ -1380,7 +1395,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
     <table class="force-table">
       <thead><tr>
         <th class="col-sprite">Unit</th><th class="col-name">Name</th><th class="col-type">Type</th><th class="col-weapon">Weapon</th>
-        <th class="col-armor">Armor</th><th class="col-size">Size</th><th class="col-train" title="Training">Tr</th><th class="col-del"></th>
+        <th class="col-armor">Armor</th><th class="col-size">Size</th><th class="col-train" title="Training">Tr<span class="tr-sw"><button type="button" data-tr-step="defender" data-step="-1" title="Whole army −1 training">−</button><button type="button" data-tr-step="defender" data-step="1" title="Whole army +1 training">+</button></span></th><th class="col-del"></th>
       </tr></thead>
       <tbody id="tbodyDefender"></tbody>
     </table>
@@ -2455,12 +2470,16 @@ function unitsBlock(rows, open, byTick){
     widest = Math.max(widest, t.length);
     return t;
   };
+  /* every type's headcount, one a line in sheet order, zeros included */
+  const typeCounts = UNIT_ORDER.map(g => head[g.type] || 0).join("&#10;");
   UNIT_ORDER.forEach(g=>{
     const n = head[g.type] || 0;
     const kept = g.gear.filter(k => (gear[k] || 0) > 0);
     if (!n && !kept.length) return;                  // a type nobody fielded
+    const tc = lines.length ? "" : `<button class="bp-btn u-copy u-types" data-units-copy="${typeCounts}"
+      title="Copy every unit type's total, one a line (Cavalry to Alicorns, zeros included)">${iconSvg("copy")}</button>`;
     lines.push(`<div class="gear-line gear-head"><span class="n mono">${count(n)}</span>` +
-      `<span class="g-name">${esc(g.type)}</span><span class="gear-img gear-img-none"></span></div>`);
+      `<span class="g-name">${esc(g.type)}${tc}</span><span class="gear-img gear-img-none"></span></div>`);
     kept.forEach(k=> lines.push(
       `<div class="gear-line"><span class="g-name">${esc(label(k))}</span>` +
       `<span class="n mono">${count(gear[k])}</span>${gearImg(k)}</div>`));
@@ -3761,7 +3780,7 @@ const LOG_FULL = new Map();          // remembers the choice across re-renders
 /* the settings in the gear drawer; filled from storage at boot */
 let PREFS = {standOpen:false, deathsOpen:false, casOpen:false, logFull:true,
              iconsWA:false, plainHover:false, cardSlash:false, noUnspent:false,
-             noPinArt:false, minDmg:false, hide1x:true, hideAct:false,
+             noPinArt:false, minDmg:false, stripNames:false, hide1x:true, hideAct:false,
              hideSkim:true, hideRaise:false, hidePar:false,
              fullHits:false};
 
@@ -3808,7 +3827,8 @@ function unspentLine(units){
   if (!wiped(true) && !wiped(false)) return "";
   const idle = all.filter(u => u.hits > 0);
   if (!idle.length) return "";
-  return `<div class="unspent">Unspent hits${idle.map(u =>
+  const total = idle.reduce((s, u) => s + u.hits, 0);
+  return `<div class="unspent">Unspent hits — <b>${total.toLocaleString("en-US")}</b>${idle.map(u =>
     `<span class="us-row">${unitRef(u)} — <b>${u.hits.toLocaleString("en-US")}</b></span>`).join("")}</div>`;
 }
 
@@ -4309,7 +4329,7 @@ function crunchDiff(want, units){
    defender second, either may be left empty. The fragment rather than a
    query string so the "+" that opens the attackers stays a "+". */
 
-const battleFragment = () => encodeBattle(packSide("attacker"), packSide("defender"),
+const battleFragment = () => encodeBattle(noNames(packSide("attacker")), noNames(packSide("defender")),
                                           document.getElementById("defBonus").value, barracksBoth());
 const battleLink = () => location.href.split("#")[0] + "#" + battleFragment();
 
@@ -4385,8 +4405,8 @@ function showCrunchReport(sides){
 
 /* ---- loading a link ---- */
 function applyShareable(sh){
-  setSide("attacker", sh.battle.attacker);
-  setSide("defender", sh.battle.defender);
+  setSide("attacker", noNames(sh.battle.attacker));
+  setSide("defender", noNames(sh.battle.defender));
   document.getElementById("defBonus").value = sh.battle.bonus;
   scheduleSave();
   showCrunchReport(sh.crunch);
@@ -4409,6 +4429,7 @@ function loadFromHash(){
 
 /* drop a decoded list onto a side, minding who may field alicorns */
 function addUnits(side, units){
+  units = noNames(units);
   setBarracks(side, units?.barracks);
   let skipped = 0;
   (units || []).forEach(u=>{
@@ -4547,6 +4568,7 @@ function importRows(side){
           alert("Alicorns can only be fielded as defenders — skipping that entry.");
           continue;
         }
+        if (PREFS.stripNames) delete unit.name;
         makeRow(side, unit); added++;
       }
     }
@@ -4583,7 +4605,7 @@ function importBattle(){
     }
     const name = pickPresetName(names, "battles");
     if (!name) return;
-    const b = json.battles[name];
+    const b = noNamesBattle(json.battles[name]);
     ta.value = "";
     setSide("attacker", b.attacker);
     setSide("defender", b.defender);
@@ -4938,6 +4960,20 @@ function deleteBattlePreset(){
   refreshPresetSelects();
 }
 
+/* "Strip names from export/import": every way a roster leaves or enters the
+   page drops the unit names on the way through. A list keeps its .barracks */
+function noNames(units){
+  if (!PREFS.stripNames || !Array.isArray(units)) return units;
+  const out = units.map(u => { if (!u || typeof u !== "object") return u;
+    const {name, ...rest} = u; return rest; });
+  if (units.barracks != null) out.barracks = units.barracks;
+  return out;
+}
+const noNamesBattle = b => b && typeof b === "object"
+  ? Object.assign({}, b, {attacker: noNames(b.attacker), defender: noNames(b.defender)}) : b;
+const noNamesEach = (map, f) => map && typeof map === "object"
+  ? Object.fromEntries(Object.entries(map).map(([k, v]) => [k, f(v)])) : map;
+
 /* ---- clipboard ----
    the block importRows() parses: a name line, then type / weapon / armor,
    then the two labelled numbers */
@@ -4971,7 +5007,7 @@ async function copyText(text){
 /* a plain click gives the short code, shift gives the long readable block
    the original page used */
 async function copyComposition(side, btn, longForm){
-  const units = packSide(side);
+  const units = noNames(packSide(side));
   if (!units.length){ alert("Nothing to copy — that side is empty."); return; }
   const text = longForm ? `Barracks: ${barracksOf(side)}\n\n${compText(units)}`
                         : encodeArmy(units, barracksOf(side));
@@ -4980,7 +5016,7 @@ async function copyComposition(side, btn, longForm){
 }
 
 async function copyBattleCode(btn, longForm){
-  const atk = packSide("attacker"), def = packSide("defender");
+  const atk = noNames(packSide("attacker")), def = noNames(packSide("defender"));
   if (!atk.length && !def.length){ alert("Nothing to copy — both sides are empty."); return; }
   const bonus = document.getElementById("defBonus").value;
   const text = longForm
@@ -5017,7 +5053,7 @@ const safeFile = n => (String(n || "").replace(/[^A-Za-z0-9._-]+/g, "-")
 
 /* ---- exporting one thing rather than the whole drawer ---- */
 function exportArmyComposition(side){
-  const units = packSide(side);
+  const units = noNames(packSide(side));
   if (!units.length){ alert("Nothing to export — that side is empty."); return; }
   const sel = document.querySelector(`[data-ap-sel="${side}"]`);
   const name = (prompt("Name this army composition:",
@@ -5029,7 +5065,7 @@ function exportArmyComposition(side){
 }
 
 function exportBattle(){
-  const battle = {attacker: packSide("attacker"), defender: packSide("defender"),
+  const battle = {attacker: noNames(packSide("attacker")), defender: noNames(packSide("defender")),
                   bonus: document.getElementById("defBonus").value, barracks: barracksBoth()};
   if (!battle.attacker.length && !battle.defender.length){
     alert("Nothing to export — both sides are empty."); return;
@@ -5065,8 +5101,8 @@ function importJSON(text){
   try{ data = JSON.parse(text); }
   catch(e){ alert("That file isn't valid JSON."); return; }
 
-  const armies  = data.armyPresets   || (data.kind === "armyPresets"   ? data.presets : null);
-  const battles = data.battlePresets || (data.kind === "battlePresets" ? data.presets : null);
+  const armies  = noNamesEach(data.armyPresets   || (data.kind === "armyPresets"   ? data.presets : null), noNames);
+  const battles = noNamesEach(data.battlePresets || (data.kind === "battlePresets" ? data.presets : null), noNamesBattle);
   if (!armies && !battles){ alert("No presets found in that file."); return; }
 
   let added = 0;
@@ -5110,6 +5146,17 @@ document.querySelectorAll("[data-clear]").forEach(b=>
 document.getElementById("btnImportAtk").addEventListener("click", ()=>importRows("attacker"));
 document.getElementById("btnImportDef").addEventListener("click", ()=>importRows("defender"));
 document.getElementById("btnImportBattle").addEventListener("click", importBattle);
+
+/* the - and + by a side's Tr heading move every row's training one step */
+document.querySelectorAll("[data-tr-step]").forEach(b=>
+  b.addEventListener("click", ()=>{
+    const side = b.dataset.trStep, step = +b.dataset.step;
+    document.querySelectorAll(`#tbody${side === "attacker" ? "Attacker" : "Defender"} .training`)
+      .forEach(el=>{
+        el.value = clampInt(+el.value + step, 0, trainCap(side));
+        el.dispatchEvent(new Event("change"));
+      });
+  }));
 
 /* --- army presets --- */
 document.querySelectorAll("[data-ap-save]").forEach(b=>
@@ -5178,13 +5225,14 @@ toolsBtn.addEventListener("click", ()=>{
 });
 
 document.getElementById("expArmies").addEventListener("click", ()=>
-  downloadJSON({kind:"armyPresets", armyPresets:getArmies(),
+  downloadJSON({kind:"armyPresets", armyPresets:noNamesEach(getArmies(), noNames),
                 armyBarracks:barracksFor(Object.keys(getArmies()))}, `warcalc-armies-${stamp()}.json`));
 document.getElementById("expBattles").addEventListener("click", ()=>
-  downloadJSON({kind:"battlePresets", battlePresets:getBattles()}, `warcalc-battles-${stamp()}.json`));
+  downloadJSON({kind:"battlePresets", battlePresets:noNamesEach(getBattles(), noNamesBattle)}, `warcalc-battles-${stamp()}.json`));
 document.getElementById("expAll").addEventListener("click", ()=>
-  downloadJSON({kind:"warcalcPresets", armyPresets:getArmies(),
-                armyBarracks:barracksFor(Object.keys(getArmies())), battlePresets:getBattles()},
+  downloadJSON({kind:"warcalcPresets", armyPresets:noNamesEach(getArmies(), noNames),
+                armyBarracks:barracksFor(Object.keys(getArmies())),
+                battlePresets:noNamesEach(getBattles(), noNamesBattle)},
                `warcalc-presets-${stamp()}.json`));
 
 document.getElementById("impBtn").addEventListener("click", ()=>
