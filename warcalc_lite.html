@@ -520,20 +520,24 @@ const BIT = "฿";
 
 const money = n => Math.round(n).toLocaleString("en-US");
 
+/* resource icons live on the game's own site, filed under the name shown on screen */
+const ICON_BASE = "https://4clop.org/images/icons/";
+const iconUrl = name => ICON_BASE + encodeURIComponent(name) + ".png";
+
 const RESOURCES = {
-  copper:    {name:"Copper",          icon:"https://i.imgur.com/TWh8Vg9.png"},
-  tungsten:  {name:"Tungsten",        icon:"https://i.imgur.com/1c5PwQO.png"},
-  plastics:  {name:"Plastics",        icon:"https://i.imgur.com/Zi6VRsJ.png"},
-  gems:      {name:"Gems",            icon:"https://i.imgur.com/k6UcQYS.png"},
-  energy:    {name:"Energy",          icon:"https://i.imgur.com/euGAJaL.png"},
-  oil:       {name:"Oil",             icon:"https://i.imgur.com/zvueJJj.png"},
-  apples:    {name:"Apples",          icon:"https://i.imgur.com/2leAiCK.png"},
-  coffee:    {name:"Coffee",          icon:"https://i.imgur.com/LdolLL8.png"},
-  gasoline:  {name:"Gasoline",        icon:"https://i.imgur.com/82T1Csv.png"},
-  machinery: {name:"Machinery Parts", icon:"https://i.imgur.com/NVx5mLK.png"},
-  vehicle:   {name:"Vehicle Parts",   icon:"https://i.imgur.com/SaDikbH.png"},
-  precision: {name:"Precision Parts", icon:"https://i.imgur.com/IIdIWXQ.png"},
-  composites:{name:"Composites",      icon:"https://i.imgur.com/lFE7mIe.png"}
+  copper:    {name:"Copper",          icon:iconUrl("Copper")},
+  tungsten:  {name:"Tungsten",        icon:iconUrl("Tungsten")},
+  plastics:  {name:"Plastics",        icon:iconUrl("Plastics")},
+  gems:      {name:"Gems",            icon:iconUrl("Gems")},
+  energy:    {name:"Energy",          icon:iconUrl("Energy")},
+  oil:       {name:"Oil",             icon:iconUrl("Oil")},
+  apples:    {name:"Apples",          icon:iconUrl("Apples")},
+  coffee:    {name:"Coffee",          icon:iconUrl("Coffee")},
+  gasoline:  {name:"Gasoline",        icon:iconUrl("Gasoline")},
+  machinery: {name:"Machinery Parts", icon:iconUrl("Machinery Parts")},
+  vehicle:   {name:"Vehicle Parts",   icon:iconUrl("Vehicle Parts")},
+  precision: {name:"Precision Parts", icon:iconUrl("Precision Parts")},
+  composites:{name:"Composites",      icon:iconUrl("Composites")}
 };
 const RES_ORDER = Object.keys(RESOURCES);
 
