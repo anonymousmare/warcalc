@@ -2024,6 +2024,7 @@ function setSide(side, units){
   document.getElementById(side === "attacker" ? "tbodyAttacker" : "tbodyDefender").innerHTML = "";
   (units || []).forEach(u=>{
     if (side === "attacker" && u.type === "Alicorns") return;   // attackers can't field them
+    if (u.reserve) return;   // full-calc reinforcements sit out the one tick Lite resolves
     makeRow(side, u);
   });
   refreshCounts();
