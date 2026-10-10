@@ -7820,11 +7820,11 @@ function renderCounters(runs, base, secs){
     </div>`;
 
   ctrEl("ctrOut").querySelectorAll("[data-ctr-send]").forEach(b=>
-    b.addEventListener("click", ()=>sendCounterToBattle(b.dataset.ctrSend)));
+    b.addEventListener("click", ()=>sendCounterToBattle(b.dataset.ctrSend, b)));
 }
 
 /* add the answer to a side of the battle tab, and nothing more */
-function sendCounterToBattle(key){
+function sendCounterToBattle(key, btn){
   if (!ctrLast) return;
   const [mode, idx, side] = key.split(":");
   const r = ctrLast.runs[mode]?.results[+idx];
@@ -7832,6 +7832,12 @@ function sendCounterToBattle(key){
   makeRow(side, r.row);
   refreshCounts();
   scheduleSave();
+  if (btn){                                // a moment of "Added" so the click shows
+    clearTimeout(btn._added);
+    btn.dataset.label ??= btn.textContent;
+    btn.textContent = "Added";
+    btn._added = setTimeout(()=>{ btn.textContent = btn.dataset.label; }, 1000);
+  }
 }
 
 /* clicking any unit card loads that unit as the counter target, without
