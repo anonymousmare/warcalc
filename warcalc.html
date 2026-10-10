@@ -7823,7 +7823,7 @@ function renderCounters(runs, base, secs){
     b.addEventListener("click", ()=>sendCounterToBattle(b.dataset.ctrSend)));
 }
 
-/* drop the answer and its target onto the battle tab, ready to resolve */
+/* add the answer to a side of the battle tab, ready to resolve */
 function sendCounterToBattle(key){
   if (!ctrLast) return;
   const [mode, idx, to] = key.split(":");
@@ -7833,9 +7833,15 @@ function sendCounterToBattle(key){
   const o = run.opts;
   const side = to || o.side;
   const foeSide = side === "attacker" ? "defender" : "attacker";
-  setSide(side, [r.row]);
-  setSide(foeSide, [o.foe]);
-  document.getElementById("defBonus").value = o.bonus;
+  /* the answer joins whatever is already on that side; the target only
+     goes in when the other side is still empty */
+  const foeEmpty = !readSide(foeSide).length;
+  makeRow(side, r.row);
+  if (foeEmpty && !(foeSide === "attacker" && o.foe.type === "Alicorns")){
+    makeRow(foeSide, o.foe);
+    document.getElementById("defBonus").value = o.bonus;
+  }
+  refreshCounts();
   scheduleSave();
   showTab("battle");
   document.getElementById("btnRun").click();
