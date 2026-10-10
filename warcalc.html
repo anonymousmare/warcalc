@@ -7823,28 +7823,15 @@ function renderCounters(runs, base, secs){
     b.addEventListener("click", ()=>sendCounterToBattle(b.dataset.ctrSend)));
 }
 
-/* add the answer to a side of the battle tab, ready to resolve */
+/* add the answer to a side of the battle tab, and nothing more */
 function sendCounterToBattle(key){
   if (!ctrLast) return;
-  const [mode, idx, to] = key.split(":");
-  const run = ctrLast.runs[mode];
-  const r = run && run.results[+idx];
+  const [mode, idx, side] = key.split(":");
+  const r = ctrLast.runs[mode]?.results[+idx];
   if (!r) return;
-  const o = run.opts;
-  const side = to || o.side;
-  const foeSide = side === "attacker" ? "defender" : "attacker";
-  /* the answer joins whatever is already on that side; the target only
-     goes in when the other side is still empty */
-  const foeEmpty = !readSide(foeSide).length;
   makeRow(side, r.row);
-  if (foeEmpty && !(foeSide === "attacker" && o.foe.type === "Alicorns")){
-    makeRow(foeSide, o.foe);
-    document.getElementById("defBonus").value = o.bonus;
-  }
   refreshCounts();
   scheduleSave();
-  showTab("battle");
-  document.getElementById("btnRun").click();
 }
 
 /* clicking any unit card loads that unit as the counter target, without
