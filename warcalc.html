@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Warcalc 1.9 — CLOP</title>
+<title>CurioCalc 2.0 — CLOP</title>
 <style>
 :root{
   --bg:#272b30;
@@ -1259,7 +1259,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 <body>
 
 <div class="tabstrip">
-  <span class="tab-brand">Warcalc 1.9<button class="gear-btn" id="btnTools"
+  <span class="tab-brand">CurioCalc 2.0<button class="gear-btn" id="btnTools"
     title="Settings, import / export presets" aria-expanded="false"><svg viewBox="0 0 24 24"
     aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path
     d="M10.3 2.5h3.4l.5 2.6a7.6 7.6 0 0 1 2 1.2l2.5-.9 1.7 2.9-2 1.8a7.7 7.7 0 0 1 0 2.3l2 1.8-1.7 2.9-2.5-.9a7.6 7.6 0 0 1-2 1.2l-.5 2.6h-3.4l-.5-2.6a7.6 7.6 0 0 1-2-1.2l-2.5.9-1.7-2.9 2-1.8a7.7 7.7 0 0 1 0-2.3l-2-1.8 1.7-2.9 2.5.9a7.6 7.6 0 0 1 2-1.2z"/><circle
@@ -5220,7 +5220,7 @@ function exportArmyComposition(side){
   if (!name) return;
   downloadJSON({kind:"armyPresets", armyPresets:{[name]: units},
                 armyBarracks:{[name]: barracksOf(side)}},
-               `warcalc-army-${safeFile(name)}-${stamp()}.json`);
+               `curiocalc-army-${safeFile(name)}-${stamp()}.json`);
 }
 
 function exportBattle(){
@@ -5233,7 +5233,7 @@ function exportBattle(){
   const name = (prompt("Name this battle:", sel.value || "battle") || "").trim();
   if (!name) return;
   downloadJSON({kind:"battlePresets", battlePresets:{[name]: battle}},
-               `warcalc-battle-${safeFile(name)}-${stamp()}.json`);
+               `curiocalc-battle-${safeFile(name)}-${stamp()}.json`);
 }
 
 /* ---- bulk deletes ---- */
@@ -5385,14 +5385,14 @@ toolsBtn.addEventListener("click", ()=>{
 
 document.getElementById("expArmies").addEventListener("click", ()=>
   downloadJSON({kind:"armyPresets", armyPresets:noNamesEach(getArmies(), noNames),
-                armyBarracks:barracksFor(Object.keys(getArmies()))}, `warcalc-armies-${stamp()}.json`));
+                armyBarracks:barracksFor(Object.keys(getArmies()))}, `curiocalc-armies-${stamp()}.json`));
 document.getElementById("expBattles").addEventListener("click", ()=>
-  downloadJSON({kind:"battlePresets", battlePresets:noNamesEach(getBattles(), noNamesBattle)}, `warcalc-battles-${stamp()}.json`));
+  downloadJSON({kind:"battlePresets", battlePresets:noNamesEach(getBattles(), noNamesBattle)}, `curiocalc-battles-${stamp()}.json`));
 document.getElementById("expAll").addEventListener("click", ()=>
   downloadJSON({kind:"warcalcPresets", armyPresets:noNamesEach(getArmies(), noNames),
                 armyBarracks:barracksFor(Object.keys(getArmies())),
                 battlePresets:noNamesEach(getBattles(), noNamesBattle)},
-               `warcalc-presets-${stamp()}.json`));
+               `curiocalc-presets-${stamp()}.json`));
 
 document.getElementById("impBtn").addEventListener("click", ()=>
   document.getElementById("impFile").click());
