@@ -4051,7 +4051,7 @@ function survivorsGrid(all){
         <h3>${hd}</h3>
         <div class="surv-grid">${
           side.length ? side.map(u=>`<div class="surv-card ${cls}${u.dead ? " surv-dead" : ""}${u.fresh ? " surv-fresh" : ""}"
-              ${pickAttrs(u.origType, u.weapon, u.armor, u.remaining || u.size, u.training)}>
+              ${pickAttrs(u.origType, u.weapon, u.armor, u.size, u.training)}>
               ${buildSprite(u.origType, u.weapon, u.armor, true, {size:u.size, training:u.training,
                   left: u.remaining < u.size ? Math.max(0, u.remaining || 0) : null})}
               ${u.nick ? `<div class="small" style="margin-top:6px;font-weight:600;word-break:break-all">${esc(u.nick)}</div>` : ""}
@@ -7717,6 +7717,7 @@ function counterCard(r, i, o, mode){
   /* the absorb column is ranked on what it costs plus what it loses, so that
      is the number the card leads with — otherwise the order reads as noise */
   const headline = absorb ? r.metric + r.burned : r.metric;
+  const left = Math.max(0, r.size - r.lost);
   return `
     <div class="well" style="margin-bottom:12px">
       <div class="panel-head" style="margin-bottom:10px">
@@ -7726,49 +7727,60 @@ function counterCard(r, i, o, mode){
           ? `${money(r.metric)} raised + ${money(r.burned)} burned`
           : `${money(headline / o.foe.size)} each`}</span>
         <span class="spacer"></span>
-        <button class="btn btn-xs btn-warning" data-ctr-send="${mode}:${i}"
-          >Send to battle</button>
-      </div>
-      <div class="small muted" style="margin-bottom:9px">
-        ${r.size.toLocaleString("en-US")} troops ·
-        ${r.lost ? `${r.lost.toLocaleString("en-US")} of yours die` : "none of yours die"} ·
-        ${(r.left || 0).toLocaleString("en-US")} left standing
+        <span class="small muted">Send to:</span>
+        <button class="btn btn-xs btn-danger" data-ctr-send="${mode}:${i}:attacker">Attackers</button>
+        <button class="btn btn-xs btn-info" data-ctr-send="${mode}:${i}:defender">Defenders</button>
       </div>
       <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">
         <div class="surv-card ${absorb ? "surv-def" : "surv-atk"}" style="min-width:118px"
           ${pickAttrs(u.type, u.weapon, u.armor, r.size, u.training)}>
-          ${buildSprite(u.type, u.weapon, u.armor, true, {size:u.size, training:u.training})}
-          ${cardGear(u.weapon, u.armor)}
-          <div class="mono" style="margin-top:4px;font-size:15px"><b>${r.size.toLocaleString("en-US")}</b></div>
+          ${buildSprite(u.type, u.weapon, u.armor, true, {size:u.size, training:u.training,
+              left: r.lost ? left : null})}
+          <div class="small mono card-gear"><span>${esc(label(absorb ? u.armor : u.weapon))}</span></div>
+          <div class="mono" style="margin-top:4px;font-size:15px"><b>${left.toLocaleString("en-US")}</b>
+            <span class="muted small">/ ${r.size.toLocaleString("en-US")}</span></div>
           <div class="small muted mono">${esc(u.type)}</div>
+          ${r.lost ? `<span class="surv-lost">-${r.lost.toLocaleString("en-US")}</span>` : ""}
         </div>
         <div style="flex:1 1 220px;min-width:210px">
           <div class="cost-row"><span class="cost-label">Raise army</span>
             <span class="cost-val bits">${money(r.costs.hire)}</span></div>
           <div class="cost-row"><span class="cost-label">Equipment ${BIT}</span>
             <span class="cost-val bits">${money(r.costs.gearBits + r.costs.craftBits)}</span></div>
-          <div class="cost-row"><span class="cost-label">Raw resources</span>
-            <span class="cost-val">${resChips(r.costs.rawRes)}</span></div>
+          <div class="cost-row"><span class="cost-label">Resources</span>
+            <span class="cost-val">${resChips(r.costs.gearRes)}</span></div>
           <div class="cost-row"><span class="cost-label">Upkeep / 12 h</span>
             <span class="cost-val">${resChips(r.costs.upkeep)}</span></div>
           <div class="cost-row" style="margin-top:6px;padding-top:7px;border-top:1px solid rgba(0,0,0,.35)">
             <span class="cost-label" style="color:var(--text)">Total up front</span>
             <span class="cost-val bits" style="font-size:13px">${money(r.costs.total)}</span></div>
           ${satRow(r.size)}
-          <div class="cost-row"><span class="cost-label">Value burned</span>
-            <span class="cost-val bits">${money(r.burned)}
-              <span class="muted small">${r.lost.toLocaleString("en-US")} troops</span></span></div>
+          ${ctrPerTroop(u, o, absorb)}
         </div>
       </div>
     </div>`;
 }
 
+/* what one troop of the answer does to them, or how much of their punch it
+   soaks — the defender bonus, when it applies, shown as its own factor */
+function ctrPerTroop(u, o, absorb){
+  const f3 = x => (+x.toFixed(3)).toString();
+  const bonus = absorb ? o.bonusFoe : o.bonusOwn;
+  const raw = absorb ? hitDamage(solProfile(o.foe), solProfile(u), false)
+                     : hitDamage(solProfile(u), solProfile(o.foe), false);
+  const hit = bonus ? raw * 0.75 : raw;
+  const why = bonus ? `<span class="muted small">${f3(raw)} × 0.75 defender bonus</span>` : "";
+  if (!absorb)
+    return `<div class="cost-row"><span class="cost-label">1 does</span>
+      <span class="cost-val mono">${f3(hit)} ${why}</span></div>`;
+  return `<div class="cost-row"><span class="cost-label">1 absorbs</span>
+      <span class="cost-val mono">${hit > 0 ? f3(1 / hit) : "∞"} hits
+        <div class="muted small">theirs do ${f3(hit)} each${bonus ? ` (${f3(raw)} × 0.75 defender bonus)` : ""}</div></span></div>`;
+}
+
 function counterColumn(run, mode, base){
   const kill = mode === "kill";
-  const head = kill ? "Best way to kill them" : "Best way to absorb them";
-  const badge = kill
-    ? `<span class="badge badge-danger">you attack</span>`
-    : `<span class="badge badge-info">you defend</span>`;
+  const head = kill ? "Killing" : "Absorb";
 
   let body;
   if (!run && !kill && ctrAbsorbImpossible(base)){
@@ -7791,29 +7803,13 @@ function counterColumn(run, mode, base){
     <div class="panel">
       <div class="panel-head">
         <h2>${head}</h2>
-        <span class="spacer"></span>
-        ${badge}
       </div>
       ${body}
     </div>`;
 }
 
 function renderCounters(runs, base, secs){
-  const t = base.foe;
-  const sized = Object.keys(runs).reduce((s, k) => s + runs[k].candCount, 0);
   ctrEl("ctrOut").innerHTML = `
-    <div class="panel">
-      <div class="panel-head">
-        <h2>Both answers</h2>
-        <span class="spacer"></span>
-        <span class="badge">Defender bonus: ${esc(base.bonus)}</span>
-      </div>
-      <div class="small muted">
-        <b>${t.size.toLocaleString("en-US")} ${esc(t.type)}</b> ·
-        ${esc(label(t.weapon))} / ${esc(label(t.armor))} · training ${t.training} vs your
-        ${base.training} · ${sized} loadouts sized · ${secs.toFixed(1)}s
-      </div>
-    </div>
     <div class="ctr-split">
       ${counterColumn(runs.kill, "kill", base)}
       ${counterColumn(runs.absorb, "absorb", base)}
@@ -7826,13 +7822,14 @@ function renderCounters(runs, base, secs){
 /* drop the answer and its target onto the battle tab, ready to resolve */
 function sendCounterToBattle(key){
   if (!ctrLast) return;
-  const [mode, idx] = key.split(":");
+  const [mode, idx, to] = key.split(":");
   const run = ctrLast.runs[mode];
   const r = run && run.results[+idx];
   if (!r) return;
   const o = run.opts;
-  const foeSide = o.side === "attacker" ? "defender" : "attacker";
-  setSide(o.side, [r.row]);
+  const side = to || o.side;
+  const foeSide = side === "attacker" ? "defender" : "attacker";
+  setSide(side, [r.row]);
   setSide(foeSide, [o.foe]);
   document.getElementById("defBonus").value = o.bonus;
   scheduleSave();
@@ -8131,21 +8128,31 @@ function gsTotal(comps, bills, t){
     </div>`;
 }
 
-/* every piece of gear the picked armies carry, all told; with some of it in
-   the reserve stockpile, the part still to build follows in brackets */
+/* every piece of gear the picked armies carry. With some of it in the
+   reserve stockpile, the part still to build leads and the whole count follows
+   in brackets; with the box ticked the stockpile is ignored outright */
 function gsGearTotalsHTML(comps){
   const need = {};
   comps.forEach(c => c.units.forEach(u => [u.weapon, u.armor].forEach(k=>{
     if (k && !SCROUNGED[k]) need[k] = (need[k] || 0) + gsNum(u.size);
   })));
-  const rows = GS_GEAR.filter(k => need[k] > 0).map(k=>{
-    const have = Math.floor(gsNum(gs.resv[k]));
+  const haveOf = k => gs.gearAll ? 0 : Math.max(0, Math.floor(gsNum(gs.resv[k])));
+  const kept = GS_GEAR.filter(k => need[k] > 0);
+  const rows = kept.map(k=>{
+    const have = haveOf(k);
     const build = Math.max(0, need[k] - have);
     const tip = have > 0 ? ` <span class="pc gs-got" data-tip-key="${regTip(
-      `Got ${have.toLocaleString("en-US")} stockpiled`, "gs")}">(${build.toLocaleString("en-US")})</span>` : "";
-    return gsRow(`${gearImg(k)} ${esc(gsShort(k))}`, need[k].toLocaleString("en-US") + tip);
+      `Got ${have.toLocaleString("en-US")} stockpiled`, "gs")}">(${need[k].toLocaleString("en-US")})</span>` : "";
+    return gsRow(`${gearImg(k)} ${esc(gsShort(k))}`, build.toLocaleString("en-US") + tip);
   });
   if (!rows.length) return "";
+  /* a plain list to paste: what to build, and with a stockpile, how much of
+     the whole count it already covers */
+  const list = kept.map(k=>{
+    const have = Math.min(haveOf(k), need[k]);
+    return `${label(k)} **${(need[k] - have).toLocaleString("en-US")}**` +
+      (have > 0 ? ` (${have.toLocaleString("en-US")}/${need[k].toLocaleString("en-US")} Stockpiled)` : "");
+  }).join("\n");
   /* the builder's build line for the lot — less what the reserves already
      hold, unless the box says to build everything */
   const items = GS_GEAR.map(k=>{
@@ -8159,7 +8166,9 @@ function gsGearTotalsHTML(comps){
           data-units-copy="${esc(line)}">Builder Gear Copy</button>`
           : `<span class="small" style="opacity:.6">all covered by the stockpile</span>`}
         <label class="slip-chk"><input type="checkbox" data-gs-gearall${gs.gearAll ? " checked" : ""}>
-          Don't account for stockpiled equipment</label></div>
+          Don't account for stockpiled equipment</label>
+        <button class="bp-btn u-copy" title="Copy the equipment as a list"
+          data-units-copy="${esc(list).replace(/\n/g, "&#10;")}">${iconSvg("copy")}</button></div>
       <div class="slip-gear">${rows.join("")}</div>`;
 }
 
