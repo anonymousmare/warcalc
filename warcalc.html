@@ -901,6 +901,9 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .cost-drop > summary:before{content:"▸";display:inline-block;transition:transform .12s}
 .cost-drop[open] > summary:before{transform:rotate(90deg)}
 .cost-drop > summary:hover{color:#fff}
+/* the pretty-plan copy rides beside the heading, only while the costs are open */
+.cost-drop .plan-copy{display:none}
+.cost-drop[open] > summary .plan-copy{display:inline-flex}
 .cost-body{padding-top:8px}
 /* with reinforcements on the list the costs split by when they are paid */
 .cost-tabs{display:flex;gap:2px;margin:2px 0 6px;border-bottom:1px solid var(--border-soft)}
@@ -2295,7 +2298,8 @@ function renderCosts(side){
 
   el.innerHTML = `
     <details class="cost-drop"${openMain ? " open" : ""}>
-      <summary>Costs</summary>
+      <summary>Costs<button type="button" class="bp-btn plan-copy" data-plan-copy="${side}"
+        title="Copy the pretty plan (shift-click leaves out the upkeep over the whole fight)">${iconSvg("copy")}</button></summary>
       <div class="cost-body">
         ${tabBar}
         <div${tip(hireTipKey)}>
@@ -2524,6 +2528,112 @@ document.addEventListener("click", async e=>{
   e.preventDefault();                    // keep the click off the summary toggle
   e.stopPropagation();
   if (await copyText(b.dataset.unitsCopy)) flashOk(b, "Copied");
+  else alert("This browser would not let the page reach the clipboard.");
+});
+
+/* ---- the pretty plan: one side's whole order, dressed up for a chat ----
+   the army code, the roster, sat and bits, the builder gear line, and the
+   gear and upkeep as ANSI colour blocks. A plain click also fights the side
+   against whatever the other list holds, tick after tick, and adds the
+   upkeep for the whole fight (and a warning if the side is wiped out). */
+const ANSI = "\u001b";
+const PLAN_RGB = {
+  copper:"255;106;0", tungsten:"128;128;128", plastics:"0;255;33", machinery:"0;148;255",
+  vehicle:"255;89;89", precision:"195;66;255", composites:"255;255;255",
+  gems:"0;255;33", energy:"255;216;0", oil:"160;120;80",
+  apples:"255;89;89", coffee:"255;106;0", gasoline:"0;148;255"
+};
+const planHead = t =>
+  `${ANSI}[2;4;2m${ANSI}[7;40m${t}${ANSI}[0m${ANSI}[2;2m${ANSI}[4;2m${ANSI}[0m${ANSI}[7;2m`;
+const planKeys = res => RES_ORDER.filter(k => Math.round(res[k] || 0) > 0);
+/* names padded to the widest so every swatch and figure lines up */
+function planResLines(res, width){
+  return planKeys(res).map(k=>{
+    const name = RESOURCES[k].name, c = PLAN_RGB[k] || "255;255;255";
+    return `${ANSI}[38;2;${c}m${name}${ANSI}[0m${ANSI}[7;2m${" ".repeat(width - name.length + 1)}` +
+           `${ANSI}[48;2;${c}m ${ANSI}[0m${ANSI}[7;2m ${Math.round(res[k])}`;
+  }).join(" \n");
+}
+const planWidth = (...maps) =>
+  Math.max(0, ...maps.flatMap(m => planKeys(m).map(k => RESOURCES[k].name.length)));
+
+/* the side fought out against the other list the way Resolve battle and the
+   successive replay do it: the upkeep everyone starting a tick is billed,
+   summed over every tick, and whether the side is still standing at the end */
+function planFight(side){
+  const isAtk = side === "attacker";
+  const atkAll = readSide("attacker"), defAll = readSide("defender");
+  const foe = isAtk ? defAll : atkAll;
+  if (!foe.length || [...atkAll, ...defAll].some(u => u.size < 1)) return null;
+  const bonus = document.getElementById("defBonus").value;
+  const atk = atkAll.filter(u=>!u.reserve), def = defAll.filter(u=>!u.reserve);
+  const reinf = rows => rows.filter(u=>u.reserve).map(u => Object.assign({}, u, {fresh:true}));
+  let r1;
+  try { r1 = simulate(atk, def, bonus); } catch(e){ return null; }
+
+  const up = upkeepOf(isAtk ? atk : def);
+  const a0 = chainRows(r1.units, true).concat(reinf(atkAll));
+  const d0 = chainRows(r1.units, false).concat(reinf(defAll));
+  let ticks = 1, left = troopsOf(isAtk ? a0 : d0);
+  if (a0.length && d0.length){
+    const run = chainBattles(a0, d0, bonus);
+    run.ticks.forEach(k => addRes(up, isAtk ? k.upA : k.upD));
+    ticks += run.ticks.length;
+    if (run.ticks.length){
+      const last = run.ticks[run.ticks.length - 1];
+      left = isAtk ? last.atkLeft : last.defLeft;
+    }
+  }
+  return {up, ticks, lost: left <= 0};
+}
+
+function prettyPlan(side, noFight){
+  const rows = readSide(side);
+  if (!rows.some(u => u.size > 0)) return "";
+  const c = costsOf(rows);
+  const fence = (lang, body) => "```" + lang + "\n" + body + "\n```";
+  const out = ["`" + encodeArmy(noNames(packSide(side)), barracksOf(side)) + "`"];
+
+  /* the roster, a type's stacks together */
+  const order = [], byType = new Map();
+  rows.forEach(u=>{
+    const n = Math.max(0, u.size);
+    if (!n) return;
+    if (!byType.has(u.type)){ byType.set(u.type, []); order.push(u.type); }
+    byType.get(u.type).push(`${n.toLocaleString("en-US")} ${u.type} ${label(u.weapon)} + ${label(u.armor)}`);
+  });
+  out.push(fence("cs", order.map(t => byType.get(t).join("\n")).join("\n\n")));
+
+  const sat = satCost(troopTotal(rows));
+  out.push(fence("glsl", `☹ ${sat ? "-" + sat.toLocaleString("en-US") : 0} Sat\n\n` +
+    `₿ ${money(c.hire + c.gearBits + c.craftBits)}\n` +
+    ` ├── ${money(c.hire)} Raise\n` +
+    ` └── ${money(c.gearBits)} Equipment`));
+
+  out.push("`Nerd Stuff`");
+  const build = builderGearText(rows);
+  if (build) out.push(fence("prolog", build));
+
+  const fight = noFight ? null : planFight(side);
+  const total = fight && fight.ticks > 1 ? fight.up : null;
+  if (planKeys(c.gearRes).length)
+    out.push(fence("ansi", planResLines(c.gearRes, planWidth(c.gearRes))));
+  const w = planWidth(c.upkeep, total || {});        // both upkeep lists share one column
+  out.push(fence("ansi", planHead("Upkeep 12/h") + "\n" + planResLines(c.upkeep, w) +
+    (total ? "\n" + planHead("Upkeep Total") + "\n" + planResLines(total, w) : "")));
+  if (fight && fight.lost)
+    out.push(fence("ansi", `${ANSI}[7;41m${ANSI}[48;2;255;0;0mBATTLE LOSS?${ANSI}[0m${ANSI}[7;41m${ANSI}[0m`));
+  return out.join("\n");
+}
+
+document.addEventListener("click", async e=>{
+  const b = e.target.closest?.("[data-plan-copy]");
+  if (!b) return;
+  e.preventDefault();                    // keep the click off the Costs toggle
+  e.stopPropagation();
+  const text = prettyPlan(b.dataset.planCopy, e.shiftKey);
+  if (!text){ alert("Nothing to copy — that side is empty."); return; }
+  if (await copyText(text)) flashOk(b, "Copied");
   else alert("This browser would not let the page reach the clipboard.");
 });
 
