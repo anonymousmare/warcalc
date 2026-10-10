@@ -7820,25 +7820,24 @@ function renderCounters(runs, base, secs){
     </div>`;
 
   ctrEl("ctrOut").querySelectorAll("[data-ctr-send]").forEach(b=>
-    b.addEventListener("click", ()=>sendCounterToBattle(b.dataset.ctrSend)));
+    b.addEventListener("click", ()=>sendCounterToBattle(b.dataset.ctrSend, b)));
 }
 
-/* drop the answer and its target onto the battle tab, ready to resolve */
-function sendCounterToBattle(key){
+/* add the answer to a side of the battle tab, and nothing more */
+function sendCounterToBattle(key, btn){
   if (!ctrLast) return;
-  const [mode, idx, to] = key.split(":");
-  const run = ctrLast.runs[mode];
-  const r = run && run.results[+idx];
+  const [mode, idx, side] = key.split(":");
+  const r = ctrLast.runs[mode]?.results[+idx];
   if (!r) return;
-  const o = run.opts;
-  const side = to || o.side;
-  const foeSide = side === "attacker" ? "defender" : "attacker";
-  setSide(side, [r.row]);
-  setSide(foeSide, [o.foe]);
-  document.getElementById("defBonus").value = o.bonus;
+  makeRow(side, r.row);
+  refreshCounts();
   scheduleSave();
-  showTab("battle");
-  document.getElementById("btnRun").click();
+  if (btn){                                // a moment of "Added" so the click shows
+    clearTimeout(btn._added);
+    btn.dataset.label ??= btn.textContent;
+    btn.textContent = "Added";
+    btn._added = setTimeout(()=>{ btn.textContent = btn.dataset.label; }, 1000);
+  }
 }
 
 /* clicking any unit card loads that unit as the counter target, without
