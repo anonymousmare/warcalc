@@ -827,6 +827,10 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .ctr-split{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
 @media (max-width:1100px){.ctr-split{grid-template-columns:1fr}}
 .ctr-split > .panel{margin-bottom:0}
+.ctr-1x{margin-top:10px;padding-top:8px;border-top:1px solid rgba(0,0,0,.35);font-size:12px;
+  line-height:22px}
+.ctr-1x-lab{color:var(--text-dim);margin-right:10px}
+.ctr-1x .gear-img{width:18px;height:18px;display:inline-block;vertical-align:middle;margin:0 1px}
 
 /* ---------- top bar / presets ---------- */
 .topbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
@@ -7723,9 +7727,7 @@ function counterCard(r, i, o, mode){
       <div class="panel-head" style="margin-bottom:10px">
         <span class="ctr-rank${i === 0 ? " top" : ""}">${i + 1}</span>
         <span class="bits" style="font-size:15px">${money(headline)}</span>
-        <span class="small muted">${absorb
-          ? `${money(r.metric)} raised + ${money(r.burned)} burned`
-          : `${money(headline / o.foe.size)} each`}</span>
+        ${absorb ? "" : `<span class="small muted">${money(headline / o.foe.size)} each</span>`}
         <span class="spacer"></span>
         <span class="small muted">Send to:</span>
         <button class="btn btn-xs btn-danger" data-ctr-send="${mode}:${i}:attacker">Attackers</button>
@@ -7755,9 +7757,9 @@ function counterCard(r, i, o, mode){
             <span class="cost-label" style="color:var(--text)">Total up front</span>
             <span class="cost-val bits" style="font-size:13px">${money(r.costs.total)}</span></div>
           ${satRow(r.size)}
-          ${ctrPerTroop(u, o, absorb)}
         </div>
       </div>
+      ${ctrPerTroop(u, o, absorb)}
     </div>`;
 }
 
@@ -7766,16 +7768,18 @@ function counterCard(r, i, o, mode){
 function ctrPerTroop(u, o, absorb){
   const f3 = x => (+x.toFixed(3)).toString();
   const bonus = absorb ? o.bonusFoe : o.bonusOwn;
-  const raw = absorb ? hitDamage(solProfile(o.foe), solProfile(u), false)
-                     : hitDamage(solProfile(u), solProfile(o.foe), false);
+  const [src, dst] = absorb ? [o.foe, u] : [u, o.foe];
+  const S = buildUnit(Object.assign({name:""}, src), 1, true);
+  const D = buildUnit(Object.assign({name:""}, dst), 2, false);
+  const w = S.dmg[TYPES[D.type]], a = D.arm[TYPES[S.type]];
+  const raw = hitDamage(solProfile(src), solProfile(dst), false);
   const hit = bonus ? raw * 0.75 : raw;
-  const why = bonus ? `<span class="muted small">${f3(raw)} × 0.75 defender bonus</span>` : "";
-  if (!absorb)
-    return `<div class="cost-row"><span class="cost-label">1 does</span>
-      <span class="cost-val mono">${f3(hit)} ${why}</span></div>`;
-  return `<div class="cost-row"><span class="cost-label">1 absorbs</span>
-      <span class="cost-val mono">${hit > 0 ? f3(1 / hit) : "∞"} hits
-        <div class="muted small">theirs do ${f3(hit)} each${bonus ? ` (${f3(raw)} × 0.75 defender bonus)` : ""}</div></span></div>`;
+  /* a training gap scales every hit too, so it gets its own factor */
+  const tf = Math.pow(1.5, (S.training - D.training) / 20);
+  const gear = (k, v) => `${gearImg(k, true)} ${esc(label(k))} (${f3(v)})`;
+  let sum = `${gear(src.weapon, w)} vs ${gear(dst.armor, a)}${tf !== 1 ? ` × ${f3(tf)} training` : ""}`;
+  if (bonus) sum = `(${sum}) × 0.75`;
+  return `<div class="ctr-1x"><span class="ctr-1x-lab">1x</span>${sum} = <b class="mono">${f3(hit)}</b></div>`;
 }
 
 function counterColumn(run, mode, base){
