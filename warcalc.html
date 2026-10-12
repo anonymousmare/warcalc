@@ -1588,7 +1588,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
     </div>
     <div class="solve-grid">
       <div style="min-width:100%">
-        <label>Upkeep budget / 12 h</label>
+        <label>Upkeep budget for the whole fight</label>
         <div class="solve-budget" id="solveBudget"></div>
       </div>
     </div>
@@ -5994,8 +5994,8 @@ function makeContext(ownProfiles, foeProfiles, bonusOwn, bonusFoe, wantLosses, t
     sOwnSize: new Float64Array(K), sFoeSize: new Float64Array(M),
     sOwnHits: new Float64Array(K), sFoeHits: new Float64Array(M),
     sFoeDam:  new Float64Array(M), sOwnDam:  new Float64Array(K),
-    sOwnLost: new Float64Array(K),
-    sRes: {wipe:false, foeLeft:0, ownLost:null, ownLeft:null, ticksUsed:0, perTick:null}
+    sOwnLost: new Float64Array(K), sTroopTicks: new Float64Array(K),
+    sRes: {wipe:false, foeLeft:0, ownLost:null, ownLeft:null, ticksUsed:0, perTick:null, troopTicks:null}
   };
 }
 
@@ -6039,11 +6039,15 @@ function trySizes(sizes, ctx, wantLog){
   foeSize.set(ctx.foeSize);
   const ownLost = ctx.wantLosses ? (wantLog ? new Array(K).fill(0) : ctx.sOwnLost.fill(0)) : null;
   const perTick = wantLog ? [] : null;
+  /* troops of each stack standing at the start of every tick, summed: what
+     the upkeep over the whole fight is billed on */
+  const troopTicks = wantLog ? new Array(K).fill(0) : ctx.sTroopTicks.fill(0);
   let wipe = false, ticksUsed = 0, foeLeft = 0, ownLeft = 0;
 
   const skipOwnRun = !!ctx.skipOwnRun;
 
   for (let t = 1; t <= ctx.ticks; t++){
+    for (let i = 0; i < K; i++) troopTicks[i] += ownSize[i];
     if (!skipOwnRun){
       foeDam.fill(0);
       for (let i = 0; i < K; i++) ownHits[i] = ownSize[i];
@@ -6089,13 +6093,13 @@ function trySizes(sizes, ctx, wantLog){
 
   if (wantLog)
     return {wipe, foeLeft, ownLost, ownLeft: ctx.wantLosses ? ownLeft : null,
-            ticksUsed, perTick};
+            ticksUsed, perTick, troopTicks};
   /* the search only ever reads the verdict straight back out, so it is handed
      the same object every time rather than a fresh one a few million over */
   const r = ctx.sRes;
   r.wipe = wipe; r.foeLeft = foeLeft; r.ownLost = ownLost;
   r.ownLeft = ctx.wantLosses ? ownLeft : null;
-  r.ticksUsed = ticksUsed; r.perTick = null;
+  r.ticksUsed = ticksUsed; r.perTick = null; r.troopTicks = troopTicks;
   return r;
 }
 
@@ -6218,7 +6222,9 @@ function makeSolver(subset, foeProfiles, o){
     }
   }
 
-  /* the upkeep budget is a sum over the sizes too, so it is checked first */
+  /* the upkeep budget covers the whole fight, and the first tick alone bills
+     the full starting force — so the starting upkeep is a floor that needs no
+     battle; the rest is checked once the fight is fought out */
   const budgetKeys = Object.keys(o.budget || {});
   const upk = subset.map(c => (UNIT_COST[c.type] || {upkeep:{}}).upkeep || {});
   const overK = sz => {
@@ -6259,7 +6265,8 @@ function makeSolver(subset, foeProfiles, o){
       if (same) return val[slot] === 1;
     }
     sims++;
-    const ok = meets(trySizes(sz, fctx));
+    const res = trySizes(sz, fctx);
+    const ok = meets(res) && !(budgetKeys.length && T > 1 && overK(res.troopTicks));
     for (let i = 0; i < K; i++) keys[base + i] = sz[i];
     val[slot] = ok ? 1 : 2;
     gen[slot] = epoch;
@@ -6775,7 +6782,7 @@ function realCheck(ownRows, foeRows, side, bonus, goal, minSurv, ticks, budget){
     if (!foeKilled && !ownKilled) break;   // deadlock: every later tick repeats it
   }
 
-  const fits = !overBudget(ownRows, budget);
+  const fits = !Object.keys(budget || {}).some(k => (up[k] || 0) > budget[k] + 1e-9);
   return {wipe, left, lost, ticks: used || 1, log, up,
           ok: fits && (goal === "wipe" ? wipe : goal === "survive" ? left >= minSurv
                                                                    : wipe && left >= minSurv)};
@@ -6951,7 +6958,7 @@ function setupLean(){
 }
 
 /* ---- upkeep budget -------------------------------------------------
-   A ceiling on what the force eats every 12 hours, per resource; a blank
+   A ceiling on what the force eats over the whole fight, per resource; a blank
    box is no ceiling. Kept across visits like the lean. */
 const LS_BUDGET = "warcalc.solverBudget";
 const BUDGET_RES = RES_ORDER.filter(k =>
@@ -6967,7 +6974,8 @@ function readBudget(){
   return out;
 }
 
-/* the first resource a list of rows eats past its budget, or null */
+/* the first resource a list of rows eats past its budget in a single tick, or
+   null — a floor, since the first tick alone bills the whole starting force */
 function overBudget(rows, budget){
   const keys = Object.keys(budget || {});
   if (!keys.length) return null;
@@ -6979,7 +6987,7 @@ function setupBudget(){
   const box = document.getElementById("solveBudget");
   const saved = store.get(LS_BUDGET, null) || {};
   box.innerHTML = BUDGET_RES.map(k => `
-    <label title="Most ${esc(RESOURCES[k].name.toLowerCase())} the force may eat every 12 hours — leave blank for no limit">
+    <label title="Most ${esc(RESOURCES[k].name.toLowerCase())} the force may eat over the whole fight, every tick billed on the troops standing at its start — leave blank for no limit">
       ${resIcon(k)}
       <input type="number" min="0" step="1000" placeholder="no limit" data-solve-budget="${k}"
         value="${saved[k] != null ? esc(saved[k]) : ""}"></label>`).join("");
