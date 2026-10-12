@@ -5697,6 +5697,10 @@ const SOLVE_STACK_CAP = 5000000;
    willing to enumerate one by one before it switches to the beam search */
 const MAX_SOLVE_STACKS = 20;
 const EXHAUSTIVE_COMBO_CAP = 250000;
+/* beam order: cheapest first; subsets that found no answer (rank Infinity)
+   go last, the most promising floor first among them */
+const byRank = (a, b) => a.rank !== b.rank ? (a.rank < b.rank ? -1 : 1)
+                                           : (a.lb ?? a.rank) - (b.lb ?? b.rank) || 0;
 
 /* ---- nation leanings ----------------------------------------------
    Straight bits are the default and nothing below changes them. A nation
@@ -6398,6 +6402,31 @@ function seedSizes(subset, foeProfiles, o){
     const trial = sizes.map((s, k) => ({type: subset[k].type, size: s + (k === i ? add : 0)}));
     return !overBudget(trial, budget);
   };
+  /* the most of `want` extra troops stack i can take before the budget bites */
+  const room = (i, want) => {
+    let lo = 0, hi = want;
+    while (lo < hi){
+      const mid = Math.ceil((lo + hi) / 2);
+      if (fits(i, mid)) lo = mid; else hi = mid - 1;
+    }
+    return lo;
+  };
+  /* when no one stack fits the whole job, pour it into the cheapest stacks
+     in turn, each up to what the budget leaves it — need(i) is how many
+     troops stack i would take to do the job alone */
+  const spread = need => {
+    const order = [];
+    for (let i = 0; i < subset.length; i++) if (need(i) > 0) order.push(i);
+    order.sort((a, b) => need(a) * subset[a].wbits - need(b) * subset[b].wbits);
+    let left = 1;
+    for (const i of order){
+      const add = room(i, Math.ceil(left * need(i) - 1e-9));
+      sizes[i] += add;
+      left -= add / need(i);
+      if (left <= 1e-9) return true;
+    }
+    return false;
+  };
 
   const T = Math.max(1, o.ticks || 1);           // a troop that lives gets one hit per tick
   if (o.goal !== "survive"){                     // enough hits to kill each enemy stack
@@ -6409,8 +6438,8 @@ function seedSizes(subset, foeProfiles, o){
         const h = Math.max(1, Math.ceil(foeProfiles[j].size / ph / T));
         if (h * subset[i].wbits < bestCost && fits(i, h)){ bestCost = h * subset[i].wbits; best = i; bestHits = h; }
       }
-      if (best < 0) return null;
-      sizes[best] += bestHits;
+      if (best >= 0) sizes[best] += bestHits;
+      else if (!spread(i => subset[i].perHit[j] > 0 ? foeProfiles[j].size / subset[i].perHit[j] / T : 0)) return null;
     }
   }
 
@@ -6422,8 +6451,20 @@ function seedSizes(subset, foeProfiles, o){
       const need = Math.floor(dmg) + o.minSurvivors;
       if (need * subset[i].wbits < bestCost && fits(i, Math.max(0, need - sizes[i]))){ bestCost = need * subset[i].wbits; best = i; bestNeed = need; }
     }
-    if (best < 0) return null;
-    sizes[best] = Math.max(sizes[best], bestNeed);
+    if (best >= 0) sizes[best] = Math.max(sizes[best], bestNeed);
+    else {
+      /* troops already placed to kill count towards the bodies */
+      const need = i => {
+        let dmg = 0;
+        for (let j = 0; j < foeProfiles.length; j++) dmg += foeProfiles[j].size * subset[i].incoming[j];
+        return Math.floor(dmg) + o.minSurvivors;
+      };
+      const had = sizes.reduce((t, v, i) => t + v / need(i), 0);
+      if (had < 1){
+        const scale = 1 - had;
+        if (!spread(i => need(i) * scale)) return null;
+      }
+    }
   }
   return sizes;
 }
@@ -6489,6 +6530,15 @@ function* hardOptimize(subset, foeProfiles, o, solos, gridN, startSizes){
 }
 
 /* ================= driver ================= */
+/* what to say when the scan sized nothing — how hard it looked, and the
+   likeliest thing standing in the way */
+function noSolution(tried, o){
+  const n = tried.toLocaleString("en-US");
+  return Object.keys(o.budget || {}).length
+    ? `No solution found — ${n} mixes tried, and none of them could do it inside your upkeep budgets. Loosen a budget, or allow more unit types or stacks.`
+    : `No solution found — ${n} mixes tried, and none of them could do it under the size cap. Allow more unit types or stacks.`;
+}
+
 function* solveGen(opts, foeRows, bonusOwn, bonusFoe){
   const foeProfiles = foeRows.map(solProfile);
   const ticks = Math.max(1, opts.ticks || 1);
@@ -6502,7 +6552,11 @@ function* solveGen(opts, foeRows, bonusOwn, bonusFoe){
 
   let cands = buildCandidates(Object.assign({}, opts, {goal:o.goal}), foeProfiles, bonusOwn, bonusFoe);
   if (!cands.length){ yield {done:true, error:"None of the allowed unit types can be fielded here."}; return; }
-  cands = pruneCands(cands, o.wantLosses, needKill, opts.maxCandidates || 28);
+  /* under a budget a pricier type is not beaten by a cheaper one, since it
+     eats a different resource, so each type keeps its best loadout or two —
+     few enough that the scan can still try every mix */
+  cands = pruneCandsDeep(cands, o.wantLosses, needKill, opts.maxCandidates || 28,
+                         Object.keys(o.budget).length > 0, 2);
 
   if (needKill){
     const dead = [];
@@ -6602,7 +6656,9 @@ function* solveGen(opts, foeRows, bonusOwn, bonusFoe){
     }
     const subset = idxs.map(i => cands[i]);
     const q = quickOptimize(subset, foeProfiles, o);
-    if (!q) return null;
+    /* no answer here, but one more stack may be all it lacks — keep it to
+       grow from, behind every subset that did size */
+    if (!q) return {idxs, rank: Infinity, lb};
     const met = metricOf(q.sizes, subset, q.sv.result(q.sizes));
     if (met.score < bestMetric) bestMetric = met.score;
     const entry = {idxs, subset, sizes: q.sizes, met, rank: met.score};
@@ -6635,7 +6691,7 @@ function* solveGen(opts, foeRows, bonusOwn, bonusFoe){
       if (e) frontier.push(e);
       if ((i & 3) === 0) yield {phase:1, done:false, at:i / Math.max(1, cands.length), of:K, level:1, K, tried:considered};
     }
-    frontier.sort((a, b) => a.rank - b.rank);
+    frontier.sort(byRank);
     frontier = frontier.slice(0, width);
 
     for (let level = 2; level <= K && frontier.length; level++){
@@ -6656,14 +6712,14 @@ function* solveGen(opts, foeRows, bonusOwn, bonusFoe){
         if (ranOut) break;
       }
       if (!next.length || ranOut) break;
-      next.sort((a, b) => a.rank - b.rank);
+      next.sort(byRank);
       frontier = next.slice(0, width);
       /* another stack has to earn its place; two flat rounds and we stop */
-      flat = bestMetric < before * 0.995 ? 0 : flat + 1;
+      flat = bestMetric === Infinity || bestMetric < before * 0.995 ? 0 : flat + 1;
       if (flat >= 2) break;
     }
   }
-  if (!scored.length){ yield {done:true, error:"No solution found"}; return; }
+  if (!scored.length){ yield {done:true, error:noSolution(considered, o)}; return; }
 
   scored.sort((a, b) => a.met.score - b.met.score);
   const shortlist = scored.slice(0, opts.refine || 60);
@@ -6739,13 +6795,13 @@ function mulberry32(a){
    paper. The classic shortlist is kept whole, and each type's own best few
    ride along beside it — compared only against loadouts of their own type —
    so a resource the budget leaves room for always has something to spend it on. */
-function pruneCandsDeep(cands, useIncoming, usePerHit, maxKeep, budgetOn){
+function pruneCandsDeep(cands, useIncoming, usePerHit, maxKeep, budgetOn, perType = 5){
   const keep = pruneCands(cands, useIncoming, usePerHit, maxKeep);
   if (!budgetOn) return keep;
   const have = new Set(keep), byType = {};
   cands.forEach(c => (byType[c.type] ??= []).push(c));
   for (const g of Object.values(byType))
-    for (const c of pruneCands(g, useIncoming, usePerHit, 5)) if (!have.has(c)){ have.add(c); keep.push(c); }
+    for (const c of pruneCands(g, useIncoming, usePerHit, perType)) if (!have.has(c)){ have.add(c); keep.push(c); }
   return keep.sort((a, b) => a.wbits - b.wbits);
 }
 
@@ -6941,7 +6997,7 @@ function* deepSolveGen(opts, foeRows, bonusOwn, bonusFoe){
       const sc = scoreOf(q.sv, subset, q.sizes);
       if (sc < bestScore){ bestScore = sc; best = q.sizes; }
     }
-    if (!best) return null;
+    if (!best) return {idxs, rank: Infinity, lb};
     if (bestScore < bestMetric) bestMetric = bestScore;
     const entry = {idxs, subset, sizes: best, rank: bestScore};
     scored.push(entry);
@@ -6989,7 +7045,7 @@ function* deepSolveGen(opts, foeRows, bonusOwn, bonusFoe){
       yield {phase:1, done:false, at:i / Math.max(1, cands.length), of:K,
              msg:`${label1} — 1 of ${K} stacks · ${considered.toLocaleString("en-US")} tried`};
     }
-    frontier.sort((a, b) => a.rank - b.rank);
+    frontier.sort(byRank);
     frontier = frontier.slice(0, width);
     for (let level = 2; level <= K && frontier.length; level++){
       const before = bestMetric, next = [];
@@ -7009,15 +7065,15 @@ function* deepSolveGen(opts, foeRows, bonusOwn, bonusFoe){
         if (ranOut) break;
       }
       if (!next.length || ranOut) break;
-      next.sort((a, b) => a.rank - b.rank);
+      next.sort(byRank);
       frontier = next.slice(0, width);
-      flat = bestMetric < before * 0.995 ? 0 : flat + 1;
+      flat = bestMetric === Infinity || bestMetric < before * 0.995 ? 0 : flat + 1;
       if (flat >= 2) break;
     }
   }
 
   const found = scored.filter(s => s.sizes);
-  if (!found.length){ yield {done:true, error:"No solution found"}; return; }
+  if (!found.length){ yield {done:true, error:noSolution(considered, o)}; return; }
   found.sort((a, b) => a.rank - b.rank);
   const shortlist = found.slice(0, opts.refine || 30);
 
