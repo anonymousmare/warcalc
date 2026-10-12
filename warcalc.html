@@ -1534,9 +1534,12 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
           <option value="thorough">Thorough</option>
         </select>
       </div>
-      <div style="width:150px">
-        <label for="solveResVal">Raw resource &#3647; each</label>
-        <input type="number" id="solveResVal" min="0" step="1000" value="0">
+      <div style="width:190px">
+        <label for="solveAlgo">Search</label>
+        <select id="solveAlgo" title="Deep tries every mix of stacks from many directions and copes with tight upkeep budgets; Classic is the original search">
+          <option value="deep" selected>Deep (budget-aware)</option>
+          <option value="classic">Classic</option>
+        </select>
       </div>
     </div>
     <div class="solve-grid">
@@ -6706,6 +6709,424 @@ function* solveGen(opts, foeRows, bonusOwn, bonusFoe){
 }
 
 
+/* ================= deep search =================
+   The classic search seeds each subset with one stack per job and grows the
+   whole force by a fixed factor until it works. Under an upkeep budget that
+   breaks down: the seed piles everything onto the cheapest stack, that stack
+   hits its resource's ceiling first, and the growth can never shift the load
+   onto stacks that eat something else — so a force that fits comfortably
+   gets reported as impossible.
+   This one comes at it from every direction instead. A direction is a mix of
+   the subset's stacks; along it the force is scaled up until it does the job
+   (or the budget stops it), then bisected back down to the least that still
+   works. Many mixes — every stack on its own, the budget filled to the brim,
+   even spreads, random ones — so the shape of the answer is searched, not
+   assumed. The best few are polished by the same local search the classic
+   one uses, then kicked about and re-polished to get out of local minima. */
+
+/* small seeded generator, so the same battle searches the same way twice */
+function mulberry32(a){
+  return () => {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+/* Loadouts of different types eat different upkeep, so with a budget on one
+   type cannot always stand in for another however much better it looks on
+   paper. The classic shortlist is kept whole, and each type's own best few
+   ride along beside it — compared only against loadouts of their own type —
+   so a resource the budget leaves room for always has something to spend it on. */
+function pruneCandsDeep(cands, useIncoming, usePerHit, maxKeep, budgetOn){
+  const keep = pruneCands(cands, useIncoming, usePerHit, maxKeep);
+  if (!budgetOn) return keep;
+  const have = new Set(keep), byType = {};
+  cands.forEach(c => (byType[c.type] ??= []).push(c));
+  for (const g of Object.values(byType))
+    for (const c of pruneCands(g, useIncoming, usePerHit, 5)) if (!have.has(c)){ have.add(c); keep.push(c); }
+  return keep.sort((a, b) => a.wbits - b.wbits);
+}
+
+/* the scaling machinery for one subset, on top of a classic solver */
+function deepSizer(subset, foeProfiles, o){
+  const sv = makeSolver(subset, foeProfiles, o);
+  const K = subset.length, T = Math.max(1, o.ticks || 1);
+  const budget = o.budget || {}, bkeys = Object.keys(budget);
+  const upk = subset.map(c => (UNIT_COST[c.type] || {upkeep:{}}).upkeep || {});
+
+  /* where along a direction to start looking: the fewest troops that could
+     possibly land enough hits, or be left standing */
+  let lam0 = o.goal === "wipe" ? 1 : o.minSurvivors;
+  if (o.goal !== "survive"){
+    let hits = 0;
+    for (let j = 0; j < foeProfiles.length; j++){
+      let best = 0;
+      for (let i = 0; i < K; i++) best = Math.max(best, subset[i].perHit[j] || 0);
+      if (best > 0) hits += foeProfiles[j].size / best;
+    }
+    lam0 = Math.max(lam0, hits / T);
+  }
+
+  /* the furthest a direction (summing to 1) can be scaled before the first
+     tick's upkeep alone breaks the budget */
+  const lamMax = dir => {
+    let m = SOLVE_STACK_CAP;
+    for (const k of bkeys){
+      let use = 0;
+      for (let i = 0; i < K; i++) use += dir[i] * (upk[i][k] || 0);
+      if (use > 0) m = Math.min(m, budget[k] / use);
+    }
+    return m;
+  };
+  const at = (dir, lam) => dir.map(d => Math.floor(d * lam + 1e-9));
+
+  /* scale up along dir until it works, bisect back to the least that does,
+     then shave each stack on its own */
+  function probe(raw){
+    let s = 0;
+    for (const v of raw) s += Math.max(0, v);
+    if (!(s > 0)) return null;
+    const dir = raw.map(v => Math.max(0, v) / s);
+    const top = lamMax(dir);
+    if (!(top >= 1)) return null;
+    let lo = 0, lam = Math.min(top, Math.max(1, lam0));
+    while (!sv.feasible(at(dir, lam))){
+      if (lam >= top) return null;
+      lo = lam;
+      lam = Math.min(top, lam * 2);
+    }
+    let hi = lam;
+    while (hi - lo > Math.max(1, hi * 1e-4)){
+      const mid = (lo + hi) / 2;
+      if (sv.feasible(at(dir, mid))) hi = mid; else lo = mid;
+    }
+    const sizes = at(dir, hi);
+    const order = sizes.map((v, i) => i).sort((a, b) => sizes[b] * sv.bitsArr[b] - sizes[a] * sv.bitsArr[a]);
+    for (const i of order) if (sizes[i]) sv.tighten(sizes, i);
+    return sv.feasible(sizes) ? sizes : null;
+  }
+
+  /* the directions every subset is tried along: each stack alone, the
+     budget filled to the brim, an even spread of troops and of bits */
+  function baseDirs(){
+    const dirs = [];
+    for (let i = 0; i < K; i++) dirs.push(subset.map((c, k) => k === i ? 1 : 0));
+    if (K > 1){
+      dirs.push(subset.map(() => 1));
+      dirs.push(subset.map(c => 1 / c.wbits));
+      if (bkeys.length){
+        /* every budgeted resource split evenly between the stacks that eat
+           it; a stack that eats none of them gets the average */
+        const fill = new Array(K).fill(0);
+        for (const k of bkeys){
+          const users = [];
+          for (let i = 0; i < K; i++) if (upk[i][k]) users.push(i);
+          for (const i of users) fill[i] += budget[k] / users.length / upk[i][k];
+        }
+        const used = fill.filter(v => v > 0);
+        const avg = used.length ? used.reduce((a, b) => a + b, 0) / used.length : 1;
+        dirs.push(fill.map(v => v > 0 ? v : avg));
+      }
+    }
+    return dirs;
+  }
+
+  /* a random mix, often with a stack or two left out entirely */
+  function randomDir(rng){
+    const d = subset.map(() => -Math.log(1 - rng()) / subset[0].wbits);
+    for (let i = 0; i < K; i++) d[i] *= subset[0].wbits / subset[i].wbits * (0.25 + 1.5 * rng());
+    if (K > 1 && rng() < 0.4) d[Math.floor(rng() * K)] = 0;
+    return d;
+  }
+
+  return {sv, K, probe, baseDirs, randomDir, lamMax};
+}
+
+function* deepSolveGen(opts, foeRows, bonusOwn, bonusFoe){
+  const foeProfiles = foeRows.map(solProfile);
+  const ticks = Math.max(1, opts.ticks || 1);
+  const o = {
+    goal: opts.goal, minSurvivors: Math.max(1, opts.minSurvivors || 1),
+    bonusOwn, bonusFoe, ticks, budget: opts.budget || {},
+    wantLosses: ticks > 1 || opts.goal !== "wipe" || opts.objective !== "upfront"
+  };
+  const needKill = o.goal !== "survive";
+  const budgetOn = Object.keys(o.budget).length > 0;
+  const rng = mulberry32(0x5eed);
+
+  let cands = buildCandidates(Object.assign({}, opts, {goal:o.goal}), foeProfiles, bonusOwn, bonusFoe);
+  if (!cands.length){ yield {done:true, error:"None of the allowed unit types can be fielded here."}; return; }
+  /* over several ticks killing them is how you live through it, so even a
+     pure survival run keeps the loadouts that hit hard */
+  cands = pruneCandsDeep(cands, o.wantLosses, needKill || ticks > 1, opts.maxCandidates || 32, budgetOn);
+
+  if (needKill && foeProfiles.some((f, j) => !cands.some(c => c.perHit[j] > 0))){
+    yield {done:true, error:"Some enemy stacks take zero damage from every allowed loadout, so they cannot be killed."};
+    return;
+  }
+
+  const K = Math.min(opts.maxStacks, cands.length);
+
+  const killRate = cands.map(c => foeProfiles.map((f, j) => c.perHit[j] > 0 ? c.wbits / c.perHit[j] : Infinity));
+  const lowerBound = idxs => {
+    let lb = 0;
+    if (needKill){
+      for (let j = 0; j < foeProfiles.length; j++){
+        let best = Infinity;
+        for (const i of idxs) if (killRate[i][j] < best) best = killRate[i][j];
+        if (best === Infinity) return Infinity;
+        lb += foeProfiles[j].size * best / ticks;
+      }
+    }
+    if (o.goal !== "wipe"){
+      let dmg = 0;
+      for (let j = 0; j < foeProfiles.length; j++){
+        let least = Infinity;
+        for (const i of idxs) if (cands[i].incoming[j] < least) least = cands[i].incoming[j];
+        dmg += foeProfiles[j].size * least;
+      }
+      let cheapest = Infinity;
+      for (const i of idxs) if (cands[i].wbits < cheapest) cheapest = cands[i].wbits;
+      lb = Math.max(lb, Math.max(1, Math.floor(dmg) - idxs.length + o.minSurvivors) * cheapest);
+    }
+    return lb;
+  };
+
+  const pick = (a, b) => opts.objective === "upfront" ? a : opts.objective === "losses" ? b : a + b;
+  const metricOf = (sizes, subset, res) => {
+    let up = 0, burn = 0, wup = 0, wburn = 0;
+    for (let i = 0; i < sizes.length; i++){
+      up  += sizes[i] * subset[i].bits;
+      wup += sizes[i] * subset[i].wbits;
+      if (res && res.ownLost){
+        burn  += res.ownLost[i] * subset[i].bits;
+        wburn += res.ownLost[i] * subset[i].wbits;
+      }
+    }
+    return {up, burn, wup, m: pick(up, burn), score: pick(wup, wburn)};
+  };
+  /* ranking up front needs no battle; anything counting losses does */
+  const scoreOf = (sv, subset, sizes) =>
+    opts.objective === "upfront" ? sv.cost(sizes) : metricOf(sizes, subset, sv.result(sizes)).score;
+
+  /* ---- phase 1: every subset along its base directions ---- */
+  const scored = [], seenSub = new Set();
+  let bestMetric = Infinity, skipped = 0, considered = 0;
+
+  const scoreOne = idxs => {
+    const key = idxs.join(",");
+    if (seenSub.has(key)) return null;
+    seenSub.add(key);
+    considered++;
+    const lb = lowerBound(idxs);
+    if (opts.objective !== "losses" && lb >= bestMetric * (opts.slack || 1)){
+      skipped++;
+      return {idxs, rank: lb};
+    }
+    const subset = idxs.map(i => cands[i]);
+    const dz = deepSizer(subset, foeProfiles, o);
+    let best = null, bestScore = Infinity;
+    for (const d of dz.baseDirs()){
+      const s = dz.probe(d);
+      if (!s) continue;
+      const sc = scoreOf(dz.sv, subset, s);
+      if (sc < bestScore){ bestScore = sc; best = s; }
+    }
+    /* and the classic sizing beside them: where there is no budget to trip
+       over it is often the better shape, and it keeps the ranking honest */
+    const q = quickOptimize(subset, foeProfiles, o);
+    if (q){
+      const sc = scoreOf(q.sv, subset, q.sizes);
+      if (sc < bestScore){ bestScore = sc; best = q.sizes; }
+    }
+    if (!best) return null;
+    if (bestScore < bestMetric) bestMetric = bestScore;
+    const entry = {idxs, subset, sizes: best, rank: bestScore};
+    scored.push(entry);
+    return entry;
+  };
+
+  const subsetCount = (n, k) => {
+    let tot = 0, c = 1;
+    for (let i = 1; i <= k; i++){
+      c = c * (n - i + 1) / i;
+      tot += c;
+      if (tot > EXHAUSTIVE_COMBO_CAP) return Infinity;
+    }
+    return tot;
+  };
+  const exhaustive = subsetCount(cands.length, K) <= EXHAUSTIVE_COMBO_CAP;
+  const scanUntil = Date.now() + (opts.scanMs || 30000);
+  const label1 = "Sweeping every mix along its base directions";
+
+  if (exhaustive){
+    const combos = [];
+    const rec = (start, chosen) => {
+      if (chosen.length) combos.push(chosen.slice());
+      if (chosen.length === K) return;
+      for (let i = start; i < cands.length; i++){ chosen.push(i); rec(i + 1, chosen); chosen.pop(); }
+    };
+    rec(0, []);
+    /* most promising first, so running out of time cuts the long tail */
+    const lbs = new Map(combos.map(c => [c, lowerBound(c)]));
+    combos.sort((a, b) => lbs.get(a) - lbs.get(b) || a.length - b.length);
+    for (let n = 0; n < combos.length; n++){
+      scoreOne(combos[n]);
+      if ((n & 3) === 0){
+        yield {phase:1, done:false, at:n, of:combos.length,
+               msg:`${label1} — ${n.toLocaleString("en-US")} of ${combos.length.toLocaleString("en-US")}`};
+        if (Date.now() > scanUntil) break;
+      }
+    }
+  } else {
+    const width = Math.max(6, opts.beam || 20);
+    let frontier = [], flat = 0;
+    for (let i = 0; i < cands.length; i++){
+      const e = scoreOne([i]);
+      if (e) frontier.push(e);
+      yield {phase:1, done:false, at:i / Math.max(1, cands.length), of:K,
+             msg:`${label1} — 1 of ${K} stacks · ${considered.toLocaleString("en-US")} tried`};
+    }
+    frontier.sort((a, b) => a.rank - b.rank);
+    frontier = frontier.slice(0, width);
+    for (let level = 2; level <= K && frontier.length; level++){
+      const before = bestMetric, next = [];
+      const of = Math.max(1, frontier.length * cands.length);
+      let step = 0, ranOut = false;
+      for (const node of frontier){
+        for (let i = 0; i < cands.length; i++){
+          if (node.idxs.includes(i)) continue;
+          const e = scoreOne(node.idxs.concat(i).sort((a, b) => a - b));
+          if (e) next.push(e);
+          if ((++step & 3) === 0){
+            yield {phase:1, done:false, at: level - 1 + step / of, of:K,
+                   msg:`${label1} — up to ${level} of ${K} stacks · ${considered.toLocaleString("en-US")} tried`};
+            if (Date.now() > scanUntil){ ranOut = true; break; }
+          }
+        }
+        if (ranOut) break;
+      }
+      if (!next.length || ranOut) break;
+      next.sort((a, b) => a.rank - b.rank);
+      frontier = next.slice(0, width);
+      flat = bestMetric < before * 0.995 ? 0 : flat + 1;
+      if (flat >= 2) break;
+    }
+  }
+
+  const found = scored.filter(s => s.sizes);
+  if (!found.length){ yield {done:true, error:"No solution found"}; return; }
+  found.sort((a, b) => a.rank - b.rank);
+  const shortlist = found.slice(0, opts.refine || 30);
+
+  /* ---- phase 2: the shortlist from every direction, polished ---- */
+  const deadline = Date.now() + (opts.budgetMs || 30000);
+  const finals = [];
+  let refined = 0;
+  for (let n = 0; n < shortlist.length; n++){
+    const s = shortlist[n];
+    const msg = `Searching the shortlist from every angle — ${n + 1} of ${shortlist.length}`;
+    let best = s.sizes, bestScore = s.rank, dz = null;
+    if (Date.now() < deadline){
+      refined++;
+      dz = deepSizer(s.subset, foeProfiles, o);
+      const sv = dz.sv;
+      const consider = sizes => {
+        if (!sizes || !sv.feasible(sizes)) return false;
+        const sc = scoreOf(sv, s.subset, sizes);
+        if (sc < bestScore - 1e-9){ bestScore = sc; best = sizes.slice(); return true; }
+        return false;
+      };
+      /* many more directions than the scan could afford */
+      const pts = [];
+      const nd = (opts.dirs || 48) + 8 * s.subset.length;
+      for (let d = 0; d < nd && Date.now() < deadline; d++){
+        const p = dz.probe(dz.randomDir(rng));
+        if (p){ pts.push({p, c: sv.cost(p)}); consider(p); }
+        if ((d & 3) === 0) yield {phase:2, done:false, at:n, of:shortlist.length, msg};
+      }
+      /* the classic sizing as one more starting point, so this never does worse on a subset */
+      const q = quickOptimize(s.subset, foeProfiles, o);
+      if (q) consider(q.sizes);
+      yield {phase:2, done:false, at:n, of:shortlist.length, msg};
+
+      /* polish the best few starting points */
+      pts.push({p: best.slice(), c: sv.cost(best)});
+      pts.sort((a, b) => a.c - b.c);
+      for (const {p} of pts.slice(0, 3)){
+        if (Date.now() > deadline) break;
+        consider(sv.localMin(p, -1));
+        yield {phase:2, done:false, at:n, of:shortlist.length, msg};
+      }
+
+      /* then kick it about: shift troops from one stack onto another, or
+         shake the whole mix and scale it back to working, and re-polish */
+      const K2 = s.subset.length;
+      for (let r = 0; r < (opts.kicks || 30) && Date.now() < deadline; r++){
+        let trial;
+        if (K2 > 1 && rng() < 0.6){
+          const live = best.map((v, i) => i).filter(i => best[i] > 0);
+          const i = live[Math.floor(rng() * live.length)];
+          let j = Math.floor(rng() * (K2 - 1)); if (j >= i) j++;
+          const f = [0.1, 0.25, 0.5, 1][Math.floor(rng() * 4)];
+          trial = best.slice();
+          const moved = Math.ceil(trial[i] * f);
+          trial[i] -= moved;
+          trial[j] += Math.max(1, Math.round(moved * s.subset[i].wbits / s.subset[j].wbits));
+          trial = dz.probe(trial);
+        } else {
+          trial = dz.probe(best.map(v => (v + 1) * (0.5 + rng())));
+        }
+        if (trial){
+          const polished = sv.localMin(trial, -1);
+          consider(polished || trial);
+        }
+        yield {phase:2, done:false, at:n, of:shortlist.length, msg};
+      }
+
+      /* last, the classic search's own grid walk from the best found, so a
+         subset never comes out worse here than it would there */
+      if (Date.now() < deadline){
+        const h = yield* hardOptimize(s.subset, foeProfiles, o, null, opts.gridN || 40, best);
+        if (h) consider(h.sizes);
+      }
+    }
+    const sv = dz ? dz.sv : makeSolver(s.subset, foeProfiles, o);
+    const res = sv.result(best);
+    finals.push({subset: s.subset, sizes: best, met: metricOf(best, s.subset, res), res});
+  }
+
+  const liveCount = f => f.sizes.filter(s => s > 0).length;
+  finals.sort((a, b) => a.met.score - b.met.score || liveCount(a) - liveCount(b) || a.met.wup - b.met.wup);
+
+  const seen = new Set(), out = [];
+  for (const f of finals){
+    const live = [];
+    f.sizes.forEach((s, i) => { if (s > 0) live.push({c: f.subset[i], size: s,
+      lost: f.res.ownLost ? f.res.ownLost[i] : null}); });
+    if (!live.length) continue;
+    const key = live.map(l => `${l.c.type}|${l.c.weapon}|${l.c.armor}|${l.size}`).sort().join(";");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({live, upfront: f.met.up, burned: f.met.burn, metric: f.met.m, score: f.met.score,
+              wipes: f.res.wipe, left: f.res.ownLeft,
+              ticks: f.res.ticksUsed || 1, tickLog: f.res.perTick || null,
+              troops: live.reduce((s, l) => s + l.size, 0)});
+  }
+  yield {done:true, results: out.slice(0, 10), candCount: cands.length,
+         comboCount: considered, beam: !exhaustive, maxStacks: K,
+         skipped, refined, shortlisted: shortlist.length, deep: true};
+}
+
+/* how hard the deep search looks at each effort level */
+const DEEP_EFFORT = {
+  quick:    {maxCandidates:20, refine:12, dirs:24, kicks:15, gridN:20, slack:1,    budgetMs:10000,  beam:10, scanMs:10000},
+  normal:   {maxCandidates:32, refine:40, dirs:48, kicks:30, gridN:40, slack:1.02, budgetMs:40000,  beam:20, scanMs:40000},
+  thorough: {maxCandidates:48, refine:100, dirs:96, kicks:60, gridN:72, slack:1.25, budgetMs:150000, beam:32, scanMs:150000}
+};
+
 /* ---- effort presets ---------------------------------------------- */
 const SOLVE_EFFORT = {
   quick:    {maxCandidates:20, refine:20,  gridN:20, slack:1,    budgetMs:8000,   beam:10, scanMs:10000},
@@ -6998,7 +7419,9 @@ function readSolveOpts(){
   const side = document.getElementById("solveSide").value;
   const goal = document.getElementById("solveGoal").value;
   const objective = document.getElementById("solveMin").value;
-  const eff = SOLVE_EFFORT[document.getElementById("solveEffort").value] || SOLVE_EFFORT.normal;
+  const deep = document.getElementById("solveAlgo").value !== "classic";
+  const table = deep ? DEEP_EFFORT : SOLVE_EFFORT;
+  const eff = table[document.getElementById("solveEffort").value] || table.normal;
   const ticks = clampInt(document.getElementById("solveTicks").value, 1, 20);
   return Object.assign({
     side, goal, objective, ticks,
@@ -7008,7 +7431,7 @@ function readSolveOpts(){
     training: clampInt(document.getElementById("solveTrain").value, 0, 20),
     maxStacks: clampInt(document.getElementById("solveStacks").value, 1, MAX_SOLVE_STACKS),
     minSurvivors: Math.max(1, clampInt(document.getElementById("solveSurv").value, 1, 1e9)),
-    resValue: Math.max(0, parseFloat(document.getElementById("solveResVal").value) || 0),
+    algo: document.getElementById("solveAlgo").value === "classic" ? "classic" : "deep",
     /* over several ticks armour earns its keep even on a pure wipe: a troop
        that lives through this tick fires again in the next one */
     useArmor: ticks > 1 || goal !== "wipe" || objective !== "upfront"
@@ -7021,7 +7444,8 @@ function solveProgress(st){
                              : 55 + (st.at / Math.max(1, st.of)) * 42;
   document.getElementById("solveBar").style.width = pct.toFixed(1) + "%";
   document.getElementById("solveMsg").textContent =
-    st.phase !== 1 ? `Refining the shortlist — ${st.at + 1} of ${st.of}`
+    st.msg        ? st.msg
+    : st.phase !== 1 ? `Refining the shortlist — ${st.at + 1} of ${st.of}`
     : st.level    ? `Growing forces — up to ${st.level} of ${st.K} stacks · ${st.tried.toLocaleString("en-US")} combinations tried`
                   : `Sizing loadout combinations — ${Math.round(st.at).toLocaleString("en-US")} of ${st.of.toLocaleString("en-US")}`;
 }
@@ -7054,7 +7478,8 @@ async function runSolver(){
   const started = performance.now();
   let last = null, tick = performance.now();
   try {
-    for (const st of solveGen(opts, foeRows, bonusOwn, bonusFoe)){
+    const gen = opts.algo === "classic" ? solveGen : deepSolveGen;
+    for (const st of gen(opts, foeRows, bonusOwn, bonusFoe)){
       if (solveHalt) break;
       if (st && st.done) last = st;
       else if (st) solveProgress(st);
@@ -7248,6 +7673,7 @@ function renderSolutions(out, opts, bonus, secs){
     <div class="small muted" style="margin:10px 0 8px">
       Cheapest ${esc(sideWord)} found · ${out.candCount} loadouts survived pruning ·
       ${out.comboCount.toLocaleString("en-US")} combinations considered${out.beam ? ` (beam search, up to ${out.maxStacks} stacks)` : ""} ·
+      ${out.deep ? "deep search · " : ""}
       ${out.refined} of ${out.shortlisted} shortlisted forces deeply refined ·
       ${secs.toFixed(1)}s${opts.ticks > 1 ? ` · up to ${opts.ticks} ticks` : ""}
     </div>
@@ -7288,6 +7714,13 @@ document.getElementById("btnSolveOpts").addEventListener("click", () => {
   document.getElementById("btnSolveOpts").setAttribute("aria-expanded", open ? "true" : "false");
 });
 document.getElementById("solveSide").addEventListener("change", syncSolveSide);
+/* which search you trust is worth remembering between visits */
+(() => {
+  const sel = document.getElementById("solveAlgo");
+  const saved = store.get("warcalc.solverAlgo", null);
+  if (saved === "classic" || saved === "deep") sel.value = saved;
+  sel.addEventListener("change", () => store.set("warcalc.solverAlgo", sel.value));
+})();
 setupLean();
 setupBudget();
 syncSolveSide();
