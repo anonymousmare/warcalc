@@ -2356,7 +2356,7 @@ function renderCosts(side){
         })}
         ${unitsBlock(c.rows, openUnits, roster)}
         <div class="cost-row" style="margin-top:6px;padding-top:7px;border-top:1px solid rgba(0,0,0,.35)">
-          <span class="cost-label" style="color:var(--text)">Total up front</span>
+          <span class="cost-label" style="color:var(--text)">Total</span>
           <span class="cost-val bits" style="font-size:13px">${money(c.hire + c.gearBits + c.craftBits)}</span>
         </div>
         ${satRow(troopTotal(c.rows))}
@@ -7845,7 +7845,7 @@ function renderSolutions(out, opts, bonus, secs){
             <span class="cost-val">${resChips(sol.upTotal)}</span></div>` : ""}
           ${unitsBlock(rows)}
           <div class="cost-row" style="margin-top:6px;padding-top:7px;border-top:1px solid rgba(0,0,0,.35)">
-            <span class="cost-label" style="color:var(--text)">Total up front</span>
+            <span class="cost-label" style="color:var(--text)">Total</span>
             <span class="cost-val bits" style="font-size:13px">${money(c.total)}</span></div>
           ${satRow(troopTotal(rows))}
           <div class="cost-row"><span class="cost-label">Value burned</span>
@@ -8483,7 +8483,7 @@ function counterCard(r, i, o, mode){
           <div class="cost-row"><span class="cost-label">Upkeep / 12 h</span>
             <span class="cost-val">${resChips(r.costs.upkeep)}</span></div>
           <div class="cost-row" style="margin-top:6px;padding-top:7px;border-top:1px solid rgba(0,0,0,.35)">
-            <span class="cost-label" style="color:var(--text)">Total up front</span>
+            <span class="cost-label" style="color:var(--text)">Total</span>
             <span class="cost-val bits" style="font-size:13px">${money(r.costs.total)}</span></div>
           ${satRow(r.size)}
         </div>
