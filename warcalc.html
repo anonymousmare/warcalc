@@ -1002,6 +1002,10 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
   background:var(--sunken);border:1px solid var(--border-soft);border-radius:4px;padding:5px 8px}
 .solve-budget input{width:96px;margin:0;padding:2px 4px;font-size:12px;text-align:right;
   font-family:"SFMono-Regular",Menlo,Consolas,monospace}
+.solve-off{display:inline-flex;align-items:center;gap:6px;margin:0 0 10px;font-size:12px;color:var(--text);cursor:pointer}
+.solve-off input{width:auto;margin:0}
+.solve-limit-sets.off{opacity:.4}
+.solve-limits-note{text-transform:none;letter-spacing:0;font-weight:400;color:var(--text-dim)}
 .solve-nation{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .solve-nation .note-lean{flex:1 1 260px;min-width:200px}
 .solve-bar-outer{height:6px;background:var(--sunken);border:1px solid var(--border-soft);
@@ -1536,8 +1540,8 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
       </div>
       <div style="width:190px">
         <label for="solveAlgo">Search</label>
-        <select id="solveAlgo" title="Deep tries every mix of stacks from many directions and copes with tight upkeep budgets; Classic is the original search">
-          <option value="deep" selected>Deep (budget-aware)</option>
+        <select id="solveAlgo" title="Deep tries every mix of stacks from many directions and copes with tight limits; Classic is the original search">
+          <option value="deep" selected>Deep (limit-aware)</option>
           <option value="classic">Classic</option>
         </select>
       </div>
@@ -1591,8 +1595,18 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
     </div>
     <div class="solve-grid">
       <div style="min-width:100%">
-        <label>Upkeep budget for the whole fight</label>
-        <div class="solve-budget" id="solveBudget"></div>
+        <details class="cost-drop solve-limits" id="solveLimits">
+          <summary>Limits <span class="solve-limits-note" id="solveLimitsNote"></span></summary>
+          <div class="cost-body">
+            <label class="solve-off"><input type="checkbox" id="solveLimitsOff"> Turn every limit off</label>
+            <div class="solve-limit-sets" id="solveLimitSets">
+              <label>Battle upkeep budget</label>
+              <div class="solve-budget" id="solveBudget"></div>
+              <label style="margin-top:10px">Resources for equipment</label>
+              <div class="solve-budget" id="solveStock"></div>
+            </div>
+          </div>
+        </details>
       </div>
     </div>
   </div>
@@ -6163,6 +6177,8 @@ function buildCandidates(opts, foeProfiles, bonusOwn, bonusFoe){
     const lean = leanOf(opts.lean, type);
     set.weapons.forEach(w => set.armor.forEach(a => {
       if (!opts.useArmor && a !== "ScroungedArmor") return;
+      /* a loadout whose very first troop breaks a limit can never be fielded */
+      if (overCaps(capsFor([{type, weapon:w, armor:a}], opts), [1])) return;
       const cost = loadoutBits(type, w, a, opts.resValue);
       const p = solProfile({type, weapon:w, armor:a, size:1, training:opts.training});
       const perHit = foeProfiles.map(f => hitDamage(p, f, bonusOwn));
@@ -6273,29 +6289,22 @@ function makeSolver(subset, foeProfiles, o){
 
   /* the upkeep budget covers the whole fight, and the first tick alone bills
      the full starting force — so the starting upkeep is a floor that needs no
-     battle; the rest is checked once the fight is fought out */
-  const budgetKeys = Object.keys(o.budget || {});
-  const upk = subset.map(c => (UNIT_COST[c.type] || {upkeep:{}}).upkeep || {});
-  const overK = sz => {
-    for (const k of budgetKeys){
-      let used = 0;
-      for (let i = 0; i < K; i++) used += sz[i] * (upk[i][k] || 0);
-      if (used > o.budget[k] + 1e-9) return k;
-    }
-    return null;
-  };
-  /* growth cut back, stack by stack, to whatever each budget still has room for */
+     battle; the rest is checked once the fight is fought out. The equipment
+     stock is spent once, up front, so it is settled by the sizes alone. */
+  const caps = capsFor(subset, o), upCaps = caps.filter(c => c.upkeep);
+  const overK = sz => overCaps(caps, sz);
+  /* growth cut back, stack by stack, to whatever each limit still has room for */
   const fitBudget = (sz, prev) => {
-    for (const k of budgetKeys){
+    for (const cap of caps){
       let base = 0, grow = 0;
       for (let i = 0; i < K; i++){
-        const u = upk[i][k] || 0;
+        const u = cap.use[i];
         base += prev[i] * u; grow += Math.max(0, sz[i] - prev[i]) * u;
       }
-      if (base + grow <= o.budget[k] + 1e-9) continue;
-      const f = grow > 0 ? Math.max(0, (o.budget[k] - base) / grow) : 0;
+      if (base + grow <= cap.lim + 1e-9) continue;
+      const f = grow > 0 ? Math.max(0, (cap.lim - base) / grow) : 0;
       for (let i = 0; i < K; i++)
-        if (upk[i][k] && sz[i] > prev[i]) sz[i] = prev[i] + Math.floor((sz[i] - prev[i]) * f);
+        if (cap.use[i] && sz[i] > prev[i]) sz[i] = prev[i] + Math.floor((sz[i] - prev[i]) * f);
     }
     return sz;
   };
@@ -6304,7 +6313,7 @@ function makeSolver(subset, foeProfiles, o){
     let tot = 0;
     for (let i = 0; i < K; i++) tot += sz[i];
     if (tot < needBodies || tot * T < needHits) return false;
-    if (budgetKeys.length && overK(sz)) return false;
+    if (caps.length && overK(sz)) return false;
     let h = 2166136261;
     for (let i = 0; i < K; i++) h = Math.imul(h ^ (sz[i] | 0), 16777619);
     const slot = (h >>> 0) & mask, base = slot * stride;
@@ -6315,7 +6324,7 @@ function makeSolver(subset, foeProfiles, o){
     }
     sims++;
     const res = trySizes(sz, fctx);
-    const ok = meets(res) && !(budgetKeys.length && T > 1 && overK(res.troopTicks));
+    const ok = meets(res) && !(upCaps.length && T > 1 && overCaps(upCaps, res.troopTicks));
     for (let i = 0; i < K; i++) keys[base + i] = sz[i];
     val[slot] = ok ? 1 : 2;
     gen[slot] = epoch;
@@ -6416,11 +6425,11 @@ function makeSolver(subset, foeProfiles, o){
     let guard = 0;
     while (!feasible(sizes)){
       if (++guard > 60) return null;
-      if (budgetKeys.length && overK(sizes)) return null;      // already past the budget
+      if (caps.length && overK(sizes)) return null;      // already past a limit
       const prev = sizes;
       let tot = 0;
       sizes = sizes.map(s => Math.max(2, Math.ceil(s * 1.4) + 2));
-      if (budgetKeys.length){
+      if (caps.length){
         fitBudget(sizes, prev);
         if (sizes.every((v, i) => v === prev[i])) return null;  // nothing left to grow into
       }
@@ -6437,12 +6446,14 @@ function makeSolver(subset, foeProfiles, o){
 /* ---- seeds ---- */
 function seedSizes(subset, foeProfiles, o){
   const sizes = new Array(subset.length).fill(0);
-  /* a seed that already blows the upkeep budget can never be grown into an
-     answer, so each pick goes to the cheapest stack that still fits */
-  const budget = o.budget || {};
+  /* a seed that already breaks a limit can never be grown into an answer,
+     so each pick goes to the cheapest stack that still fits */
+  const caps = capsFor(subset, o);
   const fits = (i, add) => {
-    const trial = sizes.map((s, k) => ({type: subset[k].type, size: s + (k === i ? add : 0)}));
-    return !overBudget(trial, budget);
+    if (!caps.length) return true;
+    const trial = sizes.slice();
+    trial[i] += add;
+    return !overCaps(caps, trial);
   };
   /* the most of `want` extra troops stack i can take before the budget bites */
   const room = (i, want) => {
@@ -6533,7 +6544,7 @@ function soloSize(cand, foeProfiles, o){
 
 function* hardOptimize(subset, foeProfiles, o, solos, gridN, startSizes){
   const sv = makeSolver(subset, foeProfiles, o);
-  const K = subset.length;
+  const K = subset.length, caps = capsFor(subset, o);
   /* the scan already sized this subset, so start from what it found rather
      than paying for the whole local search a second time */
   const q = (startSizes && sv.feasible(startSizes)) ? {sizes: startSizes.slice()}
@@ -6555,7 +6566,7 @@ function* hardOptimize(subset, foeProfiles, o, solos, gridN, startSizes){
         while (!sv.feasible(trial)){
           if (++guard > 40){ trial = null; break; }
           trial = trial.map((s, k) => k === i ? s : Math.max(2, Math.ceil(s * 1.4) + 2));
-          if (overBudget(trial.map((s, k) => ({type: subset[k].type, size: s})), o.budget)){ trial = null; break; }
+          if (overCaps(caps, trial)){ trial = null; break; }
           if (trial.reduce((a, b) => a + b, 0) > SOLVE_STACK_CAP){ trial = null; break; }
         }
         if (!trial) continue;
@@ -6576,29 +6587,32 @@ function* hardOptimize(subset, foeProfiles, o, solos, gridN, startSizes){
    likeliest thing standing in the way */
 function noSolution(tried, o){
   const n = tried.toLocaleString("en-US");
-  return Object.keys(o.budget || {}).length
-    ? `No solution found — ${n} mixes tried, and none of them could do it inside your upkeep budgets. Loosen a budget, or allow more unit types or stacks.`
+  return limitsOn(o)
+    ? `No solution found — ${n} mixes tried, and none of them could do it inside your limits. Loosen a limit, or allow more unit types or stacks.`
     : `No solution found — ${n} mixes tried, and none of them could do it under the size cap. Allow more unit types or stacks.`;
 }
+const limitsOn = o => Object.keys(o.budget || {}).length + Object.keys(o.stock || {}).length > 0;
+const noLoadouts = o => limitsOn(o)
+  ? "None of the allowed unit types can be fielded inside your limits — not even one troop."
+  : "None of the allowed unit types can be fielded here.";
 
 function* solveGen(opts, foeRows, bonusOwn, bonusFoe){
   const foeProfiles = foeRows.map(solProfile);
   const ticks = Math.max(1, opts.ticks || 1);
   const o = {
     goal: opts.goal, minSurvivors: Math.max(1, opts.minSurvivors || 1),
-    bonusOwn, bonusFoe, ticks, budget: opts.budget || {},
+    bonusOwn, bonusFoe, ticks, budget: opts.budget || {}, stock: opts.stock || {},
     /* past one tick the losses drive the next tick, so they are never optional */
     wantLosses: ticks > 1 || opts.goal !== "wipe" || opts.objective !== "upfront"
   };
   const needKill = o.goal !== "survive";
 
   let cands = buildCandidates(Object.assign({}, opts, {goal:o.goal}), foeProfiles, bonusOwn, bonusFoe);
-  if (!cands.length){ yield {done:true, error:"None of the allowed unit types can be fielded here."}; return; }
-  /* under a budget a pricier type is not beaten by a cheaper one, since it
+  if (!cands.length){ yield {done:true, error:noLoadouts(o)}; return; }
+  /* under a limit a pricier loadout is not beaten by a cheaper one, since it
      eats a different resource, so each type keeps its best loadout or two —
      few enough that the scan can still try every mix */
-  cands = pruneCandsDeep(cands, o.wantLosses, needKill, opts.maxCandidates || 28,
-                         Object.keys(o.budget).length > 0, 2);
+  cands = pruneCandsDeep(cands, o.wantLosses, needKill, opts.maxCandidates || 28, limitsOn(o), 2);
 
   if (needKill){
     const dead = [];
@@ -6851,8 +6865,7 @@ function pruneCandsDeep(cands, useIncoming, usePerHit, maxKeep, budgetOn, perTyp
 function deepSizer(subset, foeProfiles, o){
   const sv = makeSolver(subset, foeProfiles, o);
   const K = subset.length, T = Math.max(1, o.ticks || 1);
-  const budget = o.budget || {}, bkeys = Object.keys(budget);
-  const upk = subset.map(c => (UNIT_COST[c.type] || {upkeep:{}}).upkeep || {});
+  const caps = capsFor(subset, o);
 
   /* where along a direction to start looking: the fewest troops that could
      possibly land enough hits, or be left standing */
@@ -6868,13 +6881,13 @@ function deepSizer(subset, foeProfiles, o){
   }
 
   /* the furthest a direction (summing to 1) can be scaled before the first
-     tick's upkeep alone breaks the budget */
+     tick's upkeep, or the equipment stock, breaks a limit */
   const lamMax = dir => {
     let m = SOLVE_STACK_CAP;
-    for (const k of bkeys){
+    for (const cap of caps){
       let use = 0;
-      for (let i = 0; i < K; i++) use += dir[i] * (upk[i][k] || 0);
-      if (use > 0) m = Math.min(m, budget[k] / use);
+      for (let i = 0; i < K; i++) use += dir[i] * cap.use[i];
+      if (use > 0) m = Math.min(m, cap.lim / use);
     }
     return m;
   };
@@ -6914,14 +6927,14 @@ function deepSizer(subset, foeProfiles, o){
     if (K > 1){
       dirs.push(subset.map(() => 1));
       dirs.push(subset.map(c => 1 / c.wbits));
-      if (bkeys.length){
-        /* every budgeted resource split evenly between the stacks that eat
+      if (caps.length){
+        /* every limited resource split evenly between the stacks that eat
            it; a stack that eats none of them gets the average */
         const fill = new Array(K).fill(0);
-        for (const k of bkeys){
+        for (const cap of caps){
           const users = [];
-          for (let i = 0; i < K; i++) if (upk[i][k]) users.push(i);
-          for (const i of users) fill[i] += budget[k] / users.length / upk[i][k];
+          for (let i = 0; i < K; i++) if (cap.use[i]) users.push(i);
+          for (const i of users) fill[i] += cap.lim / users.length / cap.use[i];
         }
         const used = fill.filter(v => v > 0);
         const avg = used.length ? used.reduce((a, b) => a + b, 0) / used.length : 1;
@@ -6947,18 +6960,17 @@ function* deepSolveGen(opts, foeRows, bonusOwn, bonusFoe){
   const ticks = Math.max(1, opts.ticks || 1);
   const o = {
     goal: opts.goal, minSurvivors: Math.max(1, opts.minSurvivors || 1),
-    bonusOwn, bonusFoe, ticks, budget: opts.budget || {},
+    bonusOwn, bonusFoe, ticks, budget: opts.budget || {}, stock: opts.stock || {},
     wantLosses: ticks > 1 || opts.goal !== "wipe" || opts.objective !== "upfront"
   };
   const needKill = o.goal !== "survive";
-  const budgetOn = Object.keys(o.budget).length > 0;
   const rng = mulberry32(0x5eed);
 
   let cands = buildCandidates(Object.assign({}, opts, {goal:o.goal}), foeProfiles, bonusOwn, bonusFoe);
-  if (!cands.length){ yield {done:true, error:"None of the allowed unit types can be fielded here."}; return; }
+  if (!cands.length){ yield {done:true, error:noLoadouts(o)}; return; }
   /* over several ticks killing them is how you live through it, so even a
      pure survival run keeps the loadouts that hit hard */
-  cands = pruneCandsDeep(cands, o.wantLosses, needKill || ticks > 1, opts.maxCandidates || 32, budgetOn);
+  cands = pruneCandsDeep(cands, o.wantLosses, needKill || ticks > 1, opts.maxCandidates || 32, limitsOn(o));
 
   if (needKill && foeProfiles.some((f, j) => !cands.some(c => c.perHit[j] > 0))){
     yield {done:true, error:"Some enemy stacks take zero damage from every allowed loadout, so they cannot be killed."};
@@ -7263,7 +7275,7 @@ function solveCosts(rows){
    With more than one tick allowed the replay keeps going: the survivors of each
    tick are the forces of the next, wiped stacks drop out, and the losses are
    totalled per starting stack. */
-function realCheck(ownRows, foeRows, side, bonus, goal, minSurv, ticks, budget){
+function realCheck(ownRows, foeRows, side, bonus, goal, minSurv, ticks, budget, stock){
   const T = Math.max(1, ticks || 1);
   const named = (rows, p) => rows.map((u, i) => ({type:u.type, weapon:u.weapon, armor:u.armor,
     size:u.size, training:u.training, name:p + i}));
@@ -7301,14 +7313,16 @@ function realCheck(ownRows, foeRows, side, bonus, goal, minSurv, ticks, budget){
     if (!foeKilled && !ownKilled) break;   // deadlock: every later tick repeats it
   }
 
-  const fits = !Object.keys(budget || {}).some(k => (up[k] || 0) > budget[k] + 1e-9);
+  const gear = solveCosts(ownRows).gearRes;
+  const fits = !Object.keys(budget || {}).some(k => (up[k] || 0) > budget[k] + 1e-9)
+            && !Object.keys(stock || {}).some(k => (gear[k] || 0) > stock[k] + 1e-9);
   return {wipe, left, lost, ticks: used || 1, log, up,
           ok: fits && (goal === "wipe" ? wipe : goal === "survive" ? left >= minSurv
                                                                    : wipe && left >= minSurv)};
 }
 
-function verifyAndRepair(rows, foeRows, side, bonus, goal, minSurv, deadline, ticks, lean, budget){
-  const check = () => realCheck(rows, foeRows, side, bonus, goal, minSurv, ticks, budget);
+function verifyAndRepair(rows, foeRows, side, bonus, goal, minSurv, deadline, ticks, lean, budget, stock){
+  const check = () => realCheck(rows, foeRows, side, bonus, goal, minSurv, ticks, budget, stock);
   /* which stack to top up, and which to shave first, is a question about
      what this nation can spare — so it is asked in leaned bits */
   const leaned = u => troopBits(u) * leanOf(lean, u.type);
@@ -7317,19 +7331,27 @@ function verifyAndRepair(rows, foeRows, side, bonus, goal, minSurv, deadline, ti
   let calls = 1, repaired = false;
 
   if (!v.ok){                                   // short by a hair — buy the cheapest fix
-    const cheap = rows.map((u, i) => i).sort((a, b) => leaned(rows[a]) - leaned(rows[b]))[0];
-    const base = rows[cheap].size;
-    let add = 1, hi = -1;
+    /* cheapest stack first; one already up against a limit cannot take the
+       extra troops, so the next cheapest gets its turn */
+    const order = rows.map((u, i) => i).sort((a, b) => leaned(rows[a]) - leaned(rows[b]));
+    let cheap = -1, base = 0, add = 1, hi = -1;
     repaired = true;
-    while (calls < 26 && Date.now() < deadline){       // double until it passes
-      rows[cheap].size = base + add;
-      v = check();
-      calls++;
-      if (v && v.ok){ hi = base + add; break; }
-      add *= 2;
-      if (base + add > SOLVE_STACK_CAP) break;
+    for (const at of order){
+      cheap = at; base = rows[at].size; add = 1;
+      const stop = calls + 26;
+      while (calls < stop && Date.now() < deadline){   // double until it passes
+        rows[cheap].size = base + add;
+        v = check();
+        calls++;
+        if (v && v.ok){ hi = base + add; break; }
+        add *= 2;
+        if (base + add > SOLVE_STACK_CAP) break;
+      }
+      if (hi >= 0) break;
+      rows[cheap].size = base;
+      if (calls > 80 || Date.now() > deadline) break;
     }
-    if (hi < 0){ rows[cheap].size = base; return {rows, v, calls, ok:false, repaired}; }
+    if (hi < 0){ v = check(); return {rows, v, calls, ok:false, repaired}; }
     let lo = base + (add >> 1);                        // last size known to fail
     while (lo + 1 < hi && calls < 70 && Date.now() < deadline){
       const mid = (lo + hi) >> 1;                      // then walk it back down
@@ -7476,41 +7498,102 @@ function setupLean(){
   paintLean(false);
 }
 
-/* ---- upkeep budget -------------------------------------------------
-   A ceiling on what the force eats over the whole fight, per resource; a blank
-   box is no ceiling. Kept across visits like the lean. */
+/* ---- limits --------------------------------------------------------
+   Ceilings per resource, of two kinds; a blank box is no ceiling, and one
+   checkbox sets them all aside without losing the numbers. Kept across
+   visits like the lean.
+   The battle upkeep budget is what the force eats over the whole fight.
+   The equipment resources are the stock its gear is built from, counted the
+   way the recipes call for them: a Precision Part is a Precision Part, not
+   the gems and copper it was crafted from. */
 const LS_BUDGET = "warcalc.solverBudget";
+const LS_STOCK = "warcalc.solverStock";
+const LS_LIMITS_OFF = "warcalc.solverLimitsOff";
 const BUDGET_RES = RES_ORDER.filter(k =>
   Object.values(UNIT_COST).some(uc => (uc.upkeep || {})[k]));
+const STOCK_RES = RES_ORDER.filter(k =>
+  [WEAPON_COST, ARMOR_COST].some(t => Object.values(t).some(g => (g.res || {})[k])));
 const solveBudgetBoxes = () => [...document.querySelectorAll("[data-solve-budget]")];
+const solveStockBoxes = () => [...document.querySelectorAll("[data-solve-stock]")];
+const limitsOff = () => !!document.getElementById("solveLimitsOff")?.checked;
 
-function readBudget(){
+/* what the boxes hold, whether or not the limits are switched on */
+function readLimitBoxes(boxes, key){
   const out = {};
-  solveBudgetBoxes().forEach(b => {
+  boxes.forEach(b => {
     const v = parseFloat(b.value);
-    if (b.value.trim() !== "" && isFinite(v) && v >= 0) out[b.dataset.solveBudget] = v;
+    if (b.value.trim() !== "" && isFinite(v) && v >= 0) out[b.dataset[key]] = v;
   });
   return out;
 }
+const readBudget = () => limitsOff() ? {} : readLimitBoxes(solveBudgetBoxes(), "solveBudget");
+const readStock  = () => limitsOff() ? {} : readLimitBoxes(solveStockBoxes(), "solveStock");
 
-/* the first resource a list of rows eats past its budget in a single tick, or
-   null — a floor, since the first tick alone bills the whole starting force */
-function overBudget(rows, budget){
-  const keys = Object.keys(budget || {});
-  if (!keys.length) return null;
-  const up = upkeepOf(rows);
-  return keys.find(k => (up[k] || 0) > budget[k] + 1e-9) || null;
+/* what one troop of a loadout takes out of the equipment stock */
+function gearUse(type, weapon, armor){
+  return addRes(addRes({}, gearCost("weapon", weapon).res), gearCost("armor", armor).res);
 }
 
-function setupBudget(){
-  const box = document.getElementById("solveBudget");
-  const saved = store.get(LS_BUDGET, null) || {};
-  box.innerHTML = BUDGET_RES.map(k => `
-    <label title="Most ${esc(RESOURCES[k].name.toLowerCase())} the force may eat over the whole fight, every tick billed on the troops standing at its start — leave blank for no limit">
-      ${resIcon(k)}
-      <input type="number" min="0" step="1000" placeholder="no limit" data-solve-budget="${k}"
-        value="${saved[k] != null ? esc(saved[k]) : ""}"></label>`).join("");
-  solveBudgetBoxes().forEach(b => b.addEventListener("change", () => store.set(LS_BUDGET, readBudget())));
+/* Every limit that is linear in the starting sizes, as one list: the first
+   tick's upkeep (a floor on the whole fight's, since that tick bills the whole
+   starting force) and the stock the gear is built from. use[i] is what one
+   troop of subset[i] takes. */
+function capsFor(subset, o){
+  const caps = [];
+  for (const k of Object.keys(o.budget || {})){
+    const use = subset.map(c => ((UNIT_COST[c.type] || {}).upkeep || {})[k] || 0);
+    if (use.some(v => v > 0)) caps.push({k, lim: o.budget[k], use, upkeep: true});
+  }
+  for (const k of Object.keys(o.stock || {})){
+    const use = subset.map(c => gearUse(c.type, c.weapon, c.armor)[k] || 0);
+    if (use.some(v => v > 0)) caps.push({k, lim: o.stock[k], use});
+  }
+  return caps;
+}
+/* the first cap these sizes break, or null */
+const overCaps = (caps, sizes) => {
+  for (const cap of caps){
+    let used = 0;
+    for (let i = 0; i < sizes.length; i++) used += sizes[i] * cap.use[i];
+    if (used > cap.lim + 1e-9) return cap.k;
+  }
+  return null;
+};
+
+/* the heading says how many limits are set, or that they are off */
+function paintLimits(){
+  const off = limitsOff();
+  const n = Object.keys(readLimitBoxes(solveBudgetBoxes(), "solveBudget")).length
+          + Object.keys(readLimitBoxes(solveStockBoxes(), "solveStock")).length;
+  document.getElementById("solveLimitSets").classList.toggle("off", off);
+  document.getElementById("solveLimitsNote").textContent =
+    off ? (n ? `· off (${n} set)` : "· off") : n ? `· ${n} set` : "· none";
+}
+
+function setupLimits(){
+  const boxes = (id, list, attr, saved, title) => {
+    document.getElementById(id).innerHTML = list.map(k => `
+      <label title="${esc(title(RESOURCES[k].name.toLowerCase()))} — leave blank for no limit">
+        ${resIcon(k)}
+        <input type="number" min="0" step="1000" placeholder="no limit" data-${attr}="${k}"
+          value="${saved[k] != null ? esc(saved[k]) : ""}"></label>`).join("");
+  };
+  boxes("solveBudget", BUDGET_RES, "solve-budget", store.get(LS_BUDGET, null) || {},
+        r => `Most ${r} the force may eat over the whole fight, every tick billed on the troops standing at its start`);
+  boxes("solveStock", STOCK_RES, "solve-stock", store.get(LS_STOCK, null) || {},
+        r => `Most ${r} the force's weapons and armour may take to build`);
+  const off = document.getElementById("solveLimitsOff");
+  off.checked = store.get(LS_LIMITS_OFF, false) === true;
+  solveBudgetBoxes().forEach(b => {
+    b.addEventListener("change", () => store.set(LS_BUDGET, readLimitBoxes(solveBudgetBoxes(), "solveBudget")));
+    b.addEventListener("input", paintLimits);
+  });
+  solveStockBoxes().forEach(b => {
+    b.addEventListener("change", () => store.set(LS_STOCK, readLimitBoxes(solveStockBoxes(), "solveStock")));
+    b.addEventListener("input", paintLimits);
+  });
+  off.addEventListener("change", () => { store.set(LS_LIMITS_OFF, off.checked); paintLimits(); });
+  paintLimits();
 }
 
 function readSolveOpts(){
@@ -7526,6 +7609,7 @@ function readSolveOpts(){
     types: solveTypeBoxes().filter(c => c.checked && !c.disabled).map(c => c.value),
     lean: readLean(),
     budget: readBudget(),
+    stock: readStock(),
     training: clampInt(document.getElementById("solveTrain").value, 0, TRAIN_UNCAPPED),
     maxStacks: clampInt(document.getElementById("solveStacks").value, 1, MAX_SOLVE_STACKS),
     minSurvivors: Math.max(1, clampInt(document.getElementById("solveSurv").value, 1, 1e9)),
@@ -7604,7 +7688,7 @@ async function runSolver(){
       if (Date.now() > deadline){
         const v = realCheck(sol.live.map(l => ({type:l.c.type, weapon:l.c.weapon, armor:l.c.armor,
           size:l.size, training:opts.training})), foeRows, opts.side, bonus, opts.goal,
-          opts.minSurvivors, opts.ticks, opts.budget);
+          opts.minSurvivors, opts.ticks, opts.budget, opts.stock);
         if (v){ sol.upTotal = v.up; sol.ticks = v.ticks; }
         keep.push(sol);
         continue;
@@ -7613,7 +7697,7 @@ async function runSolver(){
       const rows = sol.live.map(l => ({type:l.c.type, weapon:l.c.weapon, armor:l.c.armor,
                                        size:l.size, training:opts.training}));
       const fix = verifyAndRepair(rows, foeRows, opts.side, bonus, opts.goal,
-                                  opts.minSurvivors, deadline, opts.ticks, opts.lean, opts.budget);
+                                  opts.minSurvivors, deadline, opts.ticks, opts.lean, opts.budget, opts.stock);
       if (!fix || !fix.ok) continue;
       sol.live = fix.rows.map((u, i) => ({c:{type:u.type, weapon:u.weapon, armor:u.armor,
         bits: troopBits(u)}, size:u.size, lost: fix.v.lost[i] ?? 0}));
@@ -7752,6 +7836,9 @@ function renderSolutions(out, opts, bonus, secs){
             <span class="cost-val bits">${money(c.gearBits + c.craftBits)}</span></div>
           <div class="cost-row"><span class="cost-label">Raw resources</span>
             <span class="cost-val">${resChips(c.rawRes)}</span></div>
+          ${Object.keys(opts.stock || {}).length ? `<div class="cost-row" title="What the weapons and armour call for, parts as parts — the numbers the equipment limits are held to">
+            <span class="cost-label">Equipment parts</span>
+            <span class="cost-val">${resChips(c.gearRes)}</span></div>` : ""}
           <div class="cost-row"><span class="cost-label">Upkeep / 12 h</span>
             <span class="cost-val">${resChips(c.upkeep)}</span></div>
           ${(sol.ticks || 1) > 1 && sol.upTotal ? `<div class="cost-row"><span class="cost-label">Upkeep over ${sol.ticks} ticks</span>
@@ -7820,7 +7907,7 @@ document.getElementById("solveSide").addEventListener("change", syncSolveSide);
   sel.addEventListener("change", () => store.set("warcalc.solverAlgo", sel.value));
 })();
 setupLean();
-setupBudget();
+setupLimits();
 syncSolveSide();
 
 
