@@ -1514,7 +1514,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
     <div class="solve-grid">
       <div style="width:96px">
         <label for="solveTrain">Your training</label>
-        <input type="number" id="solveTrain" min="0" max="20" value="20">
+        <input type="number" id="solveTrain" min="0" max="9999" value="20">
       </div>
       <div style="width:96px">
         <label for="solveStacks">Max stacks</label>
@@ -1633,7 +1633,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
         </div>
         <div style="width:90px">
           <label for="ctrTrain">Training</label>
-          <input type="number" id="ctrTrain" min="0" max="20" value="20">
+          <input type="number" id="ctrTrain" min="0" max="9999" value="20">
         </div>
       </div>
     </div>
@@ -1645,7 +1645,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
       </div>
       <div style="width:96px">
         <label for="ctrMyTrain">Your training</label>
-        <input type="number" id="ctrMyTrain" min="0" max="20" value="20">
+        <input type="number" id="ctrMyTrain" min="0" max="9999" value="20">
       </div>
       <div>
         <button class="btn btn-warning" id="btnCounter" style="padding:7px 18px;font-size:14px">Find both answers</button>
@@ -2025,7 +2025,7 @@ function buildSprite(type, weapon, armor, big, meta){
 function pickAttrs(type, weapon, armor, size, training){
   return `data-ctr-pick="1" data-pick-type="${esc(type)}" data-pick-weapon="${esc(weapon)}"
     data-pick-armor="${esc(armor)}" data-pick-size="${Math.max(1, Math.round(size) || 1)}"
-    data-pick-train="${clampInt(training, 0, 20)}"`;
+    data-pick-train="${clampInt(training, 0, TRAIN_UNCAPPED)}"`;
 }
 
 function spriteMissing(img){
@@ -4180,6 +4180,12 @@ function render(result, atkRaw, defRaw, bonus){
    "front_reinforcements"; a code without one is all front line, exactly as
    codes read before reinforcements existed.
 
+   Training past 20 takes the wide form: the unit's "there is a unit here"
+   digit reads 0 instead of 1, and its training gets a field wide enough for
+   any level instead of 0 … 20. No code written before this ever put a 0 there
+   with anything left behind it, so every older code reads exactly as it did,
+   and an army that never passes 20 still writes the same code it always has.
+
    Base 62 rather than 64 on purpose: letters and digits survive markdown,
    URLs, chat clients and a double-click, and the eight-thousandths of a
    bit per character it gives up is cheaper than one mangled paste. */
@@ -4196,6 +4202,7 @@ KIT_TYPES.forEach(t => LOADOUTS[t].weapons.forEach(w =>
 const KIT_AT  = new Map(KITS.map((k, i) => [k.join("|"), i]));
 const R_KIT   = BigInt(KITS.length);      // 109 loadouts
 const R_TRAIN = 21n;                      // training 0 … 20
+const R_TRAIN_WIDE = BigInt(TRAIN_UNCAPPED + 1);   // training 0 … 9999, the wide form
 const R_CLASS = 4n;                       // which size bracket
 
 /* four size brackets, cheapest first, because most units are small */
@@ -4248,9 +4255,9 @@ function sizeParts(n){
 function encodeArmy(units, barracks){
   const front = (units || []).filter(u => !u.reserve);
   const reinf = (units || []).filter(u =>  u.reserve);
-  return encodeStacks(front) + (reinf.length ? "_" + encodeStacks(reinf) : "")
+  return encodeStacks(front, barracks) + (reinf.length ? "_" + encodeStacks(reinf, barracks) : "")
        + encodeNames(front.concat(reinf))
-       + (barracks == null ? "" : "~" + clampInt(barracks, 0, 20));   // the side's Barracks level
+       + (barracks == null ? "" : "~" + clampInt(barracks, 0, TRAIN_UNCAPPED));   // the side's Barracks level
 }
 
 /* unit names ride after a ".", only when a unit has one: the names in stack
@@ -4272,24 +4279,30 @@ function decodeNames(code){
   return new TextDecoder().decode(new Uint8Array(bytes)).split("\n");
 }
 
-function encodeStacks(units){
+/* Codes from before the wide form cut every level past 20 down to 20, so a
+   narrow 20 under a Barracks above 20 is read as one of those (see
+   decodeArmy). A real 20 under such a Barracks is written wide, so the two
+   can never be mistaken for each other. */
+function encodeStacks(units, barracks){
+  const brk = parseInt(barracks, 10) || 0;
   let v = 0n;
   for (let i = (units || []).length - 1; i >= 0; i--){
     const u = units[i];
     const {cls, off} = sizeParts(u.size);
-    const tr = Math.max(0, Math.min(20, parseInt(u.training, 10) || 0));
+    const tr = Math.max(0, Math.min(TRAIN_UNCAPPED, parseInt(u.training, 10) || 0));
+    const wide = tr > 20 || (tr === 20 && brk > 20);
     v = v * SIZE_CLASS[cls].radix + BigInt(off);
     v = v * R_CLASS + BigInt(cls);
-    v = v * R_TRAIN + BigInt(tr);
+    v = v * (wide ? R_TRAIN_WIDE : R_TRAIN) + BigInt(tr);
     v = v * R_KIT   + BigInt(kitIndex(u));
-    v = v * 2n + 1n;          // "there is a unit here" — without it an army
-  }                           // of one all-zero unit would encode as nothing
+    v = v * 2n + (wide ? 0n : 1n);   // "there is a unit here" — without it an army
+  }                                  // of one all-zero unit would encode as nothing
   return b62(v);
 }
 
 function decodeArmy(code){
   const [body, brk, tail] = String(code).split("~");
-  if (tail !== undefined || (brk !== undefined && !/^\d{1,2}$/.test(brk))) throw new Error("not a code");
+  if (tail !== undefined || (brk !== undefined && !/^\d{1,4}$/.test(brk))) throw new Error("not a code");
   const [stacks, names, more] = body.split(".");
   if (more !== undefined) throw new Error("not a code");
   const [front, reinf, extra] = stacks.split("_");
@@ -4299,7 +4312,15 @@ function decodeArmy(code){
   if (names) decodeNames(names).forEach((n, i) => {
     if (units[i] && n.trim()) units[i].name = n.trim().slice(0, 50);
   });
-  if (brk !== undefined) units.barracks = clampInt(brk, 0, 20);   // rides on the list, not in it
+  if (brk !== undefined) units.barracks = clampInt(brk, 0, TRAIN_UNCAPPED);   // rides on the list, not in it
+  /* an older code under a Barracks past 20 had every level past 20 cut to
+     20 on the way out; the Barracks level is the best guess at what they were */
+  let lifted = 0;
+  units.forEach(u => {
+    if (u.capped && units.barracks > 20){ u.training = units.barracks; lifted++; }
+    delete u.capped;
+  });
+  if (lifted) units.lifted = lifted;
   return units;
 }
 
@@ -4308,12 +4329,16 @@ function decodeStacks(code){
   const pop = r => { const d = Number(v % r); v /= r; return d; };
   const out = [];
   while (v > 0n){
-    if (!pop(2n)) break;                       // malformed tail, stop there
-    const [type, weapon, armor] = KITS[pop(R_KIT)];
-    const training = pop(R_TRAIN);
+    const wide = !pop(2n);
+    const kit = KITS[pop(R_KIT)];
+    if (!kit) break;                           // malformed tail, stop there
+    const [type, weapon, armor] = kit;
+    const training = pop(wide ? R_TRAIN_WIDE : R_TRAIN);
+    if (wide && training < 20) break;          // not something the wide form writes
     const cls = pop(R_CLASS);
-    out.push({type, weapon, armor, training,
-              size: SIZE_CLASS[cls].base + pop(SIZE_CLASS[cls].radix)});
+    out.push(Object.assign({type, weapon, armor, training,
+              size: SIZE_CLASS[cls].base + pop(SIZE_CLASS[cls].radix)},
+              !wide && training === 20 ? {capped: true} : {}));
     if (out.length > 4000) throw new Error("not a code");
   }
   return out;
@@ -4323,8 +4348,8 @@ const encodeBattle = (atk, def, bonus, brk) =>
   "+" + encodeArmy(atk, brk?.attacker) + (bonus === "No" ? "=" : "-") + encodeArmy(def, brk?.defender);
 const barracksBoth = () => ({attacker: barracksOf("attacker"), defender: barracksOf("defender")});
 
-const RE_ARMY_CODE   = /^(?=.)[0-9A-Za-z]*(_[0-9A-Za-z]+)?(\.[0-9A-Za-z]+)?(~\d{1,2})?$/;
-const RE_BATTLE_CODE = /^\+([0-9A-Za-z]*(?:_[0-9A-Za-z]+)?(?:\.[0-9A-Za-z]+)?(?:~\d{1,2})?)([-=])([0-9A-Za-z]*(?:_[0-9A-Za-z]+)?(?:\.[0-9A-Za-z]+)?(?:~\d{1,2})?)$/;
+const RE_ARMY_CODE   = /^(?=.)[0-9A-Za-z]*(_[0-9A-Za-z]+)?(\.[0-9A-Za-z]+)?(~\d{1,4})?$/;
+const RE_BATTLE_CODE = /^\+([0-9A-Za-z]*(?:_[0-9A-Za-z]+)?(?:\.[0-9A-Za-z]+)?(?:~\d{1,4})?)([-=])([0-9A-Za-z]*(?:_[0-9A-Za-z]+)?(?:\.[0-9A-Za-z]+)?(?:~\d{1,4})?)$/;
 
 /* null when the text is not a battle code at all */
 function decodeBattle(code){
@@ -4538,6 +4563,7 @@ function applyShareable(sh){
   setSide("defender", noNames(sh.battle.defender));
   document.getElementById("defBonus").value = sh.battle.bonus;
   scheduleSave();
+  liftedNote({attacking: sh.battle.attacker, defending: sh.battle.defender});
   showCrunchReport(sh.crunch);
 }
 
@@ -4555,6 +4581,19 @@ function loadFromHash(){
 /* ===================================================================
    6. IMPORT (same parser as the original page)
    =================================================================== */
+
+/* Codes copied before they could carry training past 20 cut every such level
+   to 20; decodeArmy reads those back at the side's Barracks level, and this
+   says so, since it is a guess the player should look over. */
+function liftedNote(lists){
+  const parts = Object.entries(lists)
+    .filter(([, l]) => l && l.lifted)
+    .map(([who, l]) => `${l.lifted} ${who} stack${l.lifted === 1 ? "" : "s"} at training ${l.barracks}`);
+  if (!parts.length) return;
+  alert("This code was copied before army codes could hold training past 20, so it cut those levels down to 20. "
+      + `They were read back at the Barracks level instead — ${parts.join(", ")}. `
+      + "Check the Training column, then copy a fresh code to replace the old one.");
+}
 
 /* drop a decoded list onto a side, minding who may field alicorns */
 function addUnits(side, units){
@@ -4645,6 +4684,7 @@ function importRows(side){
   const battle = decodeBattle(code);
   if (battle){
     if (!addUnits(side, battle[side])) alert("That code has nothing on that side.");
+    else liftedNote({[side === "attacker" ? "attacking" : "defending"]: battle[side]});
     ta.value = "";
     return;
   }
@@ -4656,6 +4696,7 @@ function importRows(side){
     catch(e){ alert("That is not an army code."); return; }
     if (!units.length){ alert("That code holds no units."); return; }
     addUnits(side, units);
+    liftedNote({[side === "attacker" ? "attacking" : "defending"]: units});
     ta.value = "";
     return;
   }
@@ -5141,6 +5182,7 @@ function noNames(units){
   const out = units.map(u => { if (!u || typeof u !== "object") return u;
     const {name, ...rest} = u; return rest; });
   if (units.barracks != null) out.barracks = units.barracks;
+  if (units.lifted) out.lifted = units.lifted;
   return out;
 }
 const noNamesBattle = b => b && typeof b === "object"
@@ -7484,7 +7526,7 @@ function readSolveOpts(){
     types: solveTypeBoxes().filter(c => c.checked && !c.disabled).map(c => c.value),
     lean: readLean(),
     budget: readBudget(),
-    training: clampInt(document.getElementById("solveTrain").value, 0, 20),
+    training: clampInt(document.getElementById("solveTrain").value, 0, TRAIN_UNCAPPED),
     maxStacks: clampInt(document.getElementById("solveStacks").value, 1, MAX_SOLVE_STACKS),
     minSurvivors: Math.max(1, clampInt(document.getElementById("solveSurv").value, 1, 1e9)),
     algo: document.getElementById("solveAlgo").value === "classic" ? "classic" : "deep",
@@ -8153,7 +8195,7 @@ function counterTarget(){
     weapon: ctrEl("ctrWeapon").value || "ScroungedWeapons",
     armor: ctrEl("ctrArmor").value || "ScroungedArmor",
     size: Math.max(1, clampInt(ctrEl("ctrSize").value, 1, 1e9)),
-    training: clampInt(ctrEl("ctrTrain").value, 0, 20)
+    training: clampInt(ctrEl("ctrTrain").value, 0, TRAIN_UNCAPPED)
   };
 }
 
@@ -8169,7 +8211,7 @@ function readCounterBase(){
     foe: counterTarget(),
     bonus: ctrEl("ctrBonus").value,
     bonusYes: ctrEl("ctrBonus").value === "Yes",
-    training: clampInt(ctrEl("ctrMyTrain").value, 0, 20)
+    training: clampInt(ctrEl("ctrMyTrain").value, 0, TRAIN_UNCAPPED)
   };
 }
 
@@ -8689,7 +8731,7 @@ function gsUnitHTML(raw){
   const gear = k => `<span class="g${SCROUNGED[k] ? " none" : ""}" title="${esc(label(k))}">${gearImg(k)}<span class="gn">${esc(gsShort(k))}</span></span>`;
   return `<div class="slip-u" ${tipAttrs(u.type, u.weapon, u.armor, n, u.training ?? 0)}>
       <div class="slip-u1"><span class="q">${n.toLocaleString("en-US")}</span><span class="nm">${esc(u.type)}</span>
-        <span class="tr">T${clampInt(u.training ?? 0, 0, 20)}</span></div>
+        <span class="tr">T${clampInt(u.training ?? 0, 0, TRAIN_UNCAPPED)}</span></div>
       <div class="slip-u2">${gear(u.weapon)}<span class="plus">+</span>${gear(u.armor)}</div></div>`;
 }
 
