@@ -1136,6 +1136,10 @@ details summary{cursor:pointer;color:var(--strong);font-size:13px;padding:2px 0}
 }
 .set-grid .hk-toggle{white-space:normal}
 .theme-pick select{width:auto;padding:1px 4px;font-size:12px}
+/* the horsewife roams the whole window on a clear pane that clicks fall
+   straight through, over the panels but under a modal and the tooltips */
+#horsewife{position:fixed;inset:0;width:100vw;height:100vh;border:0;margin:0;padding:0;z-index:940;
+  pointer-events:none;background:transparent;color-scheme:normal}
 /* ticket moss, as the Grand Strategy slips wear it */
 .btn-moss{background:var(--paper-moss);background-image:none;color:var(--ink-moss);border-color:rgba(var(--good-rgb),.28)}
 .battle-presets{display:flex;align-items:center;gap:4px;opacity:.45;transition:opacity .15s}
@@ -1615,6 +1619,8 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
   <div style="display:flex;gap:8px;flex-wrap:wrap">
     <label class="hk-toggle theme-pick" for="themeSel">Theme
       <select id="themeSel"></select></label>
+    <label class="hk-toggle theme-pick" for="wifeSel">Horsewife
+      <select id="wifeSel"></select></label>
     <span class="v-div">|</span>
     <button class="btn btn-xs btn-moss" id="expArmies">Export army presets (JSON)</button>
     <button class="btn btn-xs" id="expBattles">Export battle presets (JSON)</button>
@@ -9078,6 +9084,51 @@ const LS_THEME = "warcalc.theme";
   sel.innerHTML = Object.entries(THEMES).map(([k, n]) => `<option value="${k}">${n}</option>`).join("");
   sel.value = document.documentElement.dataset.theme || "grey";
   sel.addEventListener("change", ()=>store.set(LS_THEME, applyTheme(sel.value)));
+}
+/* a pony from Browser Ponies who walks about the page. The frame is made
+   afresh on every change: a new pony in the same frame would only join the
+   last one rather than replace her */
+const LS_WIFE = "warcalc.horsewife";
+const HORSEWIVES = ["Twilight Sparkle", "Rainbow Dash", "Pinkie Pie", "Rarity", "Applejack", "Fluttershy",
+  "Princess Celestia", "Princess Luna", "Nightmare Moon"];
+/* the site files the filly princesses first under the grown-ups' names, and
+   a name only ever means its first pony, so the grown-ups are handed over
+   here under one of their own: just their walking about, as the site has it */
+const HORSEWIFE_OWN = {
+  "Princess Celestia": {baseurl:"ponies/Princess%20Celestia/", ini:[
+    'Behavior,"stand",0.1,15,10,0,"stand_right.gif","stand_left.gif",MouseOver,"","","",False,0,0,"",True,"","","0,0","0,0",False,0,Fixed',
+    'Behavior,"walk",0.15,15,10,1,"walk_right.gif","walk_left.gif",Diagonal_horizontal,"","","",False,0,0,"",True,"","","0,0","0,0",False,0,Fixed',
+    'Behavior,"fly",0.15,15,10,1,"fly_right.gif","fly_left.gif",Diagonal_Vertical,"","","",False,0,0,"",True,"","","96,84","95,84",False,0,Fixed',
+    'Behavior,"scroll_arrive",0.15,3.2,3.2,0,"scroll_arrive_right.gif","scroll_arrive_left.gif",None,"","","",False,0,0,"",True,"","","96,100","95,100",False,0,Fixed']},
+  "Princess Luna": {baseurl:"ponies/Princess%20Luna/", ini:[
+    'Behavior,"stand",0.1,15,5,0,"luna_idle_right.gif","luna_idle_left.gif",MouseOver,"","","",False,0,0,"",True,,,"72,64","72,64",False,0',
+    'Behavior,"walk",0.15,10,5,1,"luna_walk_right.gif","luna_walk_left.gif",Diagonal_horizontal,"","","",False,0,0,"",True,,,"72,64","72,64",False,0',
+    'Behavior,"flight",0.1,8,4,2,"luna-flight-right.gif","luna-flight-left.gif",All,"","","",False,0,0,"",True,,,"72,68","72,68",False,0']}
+};
+function setHorsewife(name){
+  document.getElementById("horsewife")?.remove();
+  if (!HORSEWIVES.includes(name)) return "";
+  const f = document.createElement("iframe");
+  f.id = "horsewife";
+  f.title = name;
+  f.setAttribute("aria-hidden", "true");
+  f.tabIndex = -1;
+  f.src = "https://browser.pony.house/ponies-iframe.html#allowDemoController=false&allowDoubleClickControl=false"
+    + "&fadeDuration=500&volume=1&fps=25&speed=1&audioEnabled=false&dontSpeak=true&showFps=false"
+    + "&showLoadProgress=false&speakProbability=0.1&paddock=false&grass=false";
+  const own = HORSEWIFE_OWN[name];
+  const as = own ? name + " (grown)" : name;
+  if (own) f.src += "&ponies.length=1&ponies.0.baseurl=" + encodeURIComponent(own.baseurl)
+    + "&ponies.0.ini=" + encodeURIComponent([`Name,"${as}"`, 'Categories,"mares","alicorns"', ...own.ini].join("\n"));
+  f.src += "&spawn." + encodeURIComponent(as.toLowerCase()) + "=1";
+  document.body.appendChild(f);
+  return name;
+}
+{
+  const sel = document.getElementById("wifeSel");
+  sel.innerHTML = `<option value="">None</option>` + HORSEWIVES.map(n => `<option>${n}</option>`).join("");
+  sel.value = setHorsewife(store.get(LS_WIFE, ""));
+  sel.addEventListener("change", ()=>store.set(LS_WIFE, setHorsewife(sel.value)));
 }
 {
   const o = store.get(LS_PREFS, {}) || {};
