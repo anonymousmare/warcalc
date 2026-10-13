@@ -1435,6 +1435,9 @@ body.snaps-hidden .snap{display:none}
 .snap-body{overflow:auto;padding:6px;max-height:82vh;overscroll-behavior:contain}
 .snap.snap-folded .snap-body{display:none}
 .snap-root{margin:0 !important}
+/* a picked colour takes over the plain page and panel colour in it;
+   the darker wells and anything coloured of its own stay as they were */
+.snap.snap-painted,.snap.snap-painted .snap-plain{background:var(--paper)}
 /* a snapshot is a picture: its buttons and boxes do nothing */
 .snap-body :is(button,input,select,textarea,a,label){pointer-events:none}
 /* with shift held, the box a click would copy is marked */
@@ -10546,10 +10549,24 @@ function freezeKeys(root){
   });
 }
 
+/* the page's and the panels' own colour, as the browser reports it, so a
+   copy can tell which of its boxes are just plain background */
+function plainBgs(){
+  const probe = document.createElement("div");
+  document.body.appendChild(probe);
+  const out = new Set(["var(--raised)", "var(--bg)"].map(v=>{
+    probe.style.background = v;
+    return getComputedStyle(probe).backgroundColor;
+  }));
+  probe.remove();
+  return out;
+}
+
 function snapClone(src){
   const c = src.cloneNode(true);
   const all = n => [n, ...n.querySelectorAll("*")];
   const from = all(src), to = all(c);
+  const plain = plainBgs();
   to.forEach((n, i)=>{
     n.removeAttribute("id");
     n.removeAttribute("for");
@@ -10558,6 +10575,7 @@ function snapClone(src){
       if (a.name.startsWith("data-") && !SNAP_KEEP_DATA.test(a.name)) n.removeAttribute(a.name);
     });
     n.classList?.remove("snap-aim");
+    if (plain.has(getComputedStyle(from[i]).backgroundColor)) n.classList.add("snap-plain");
     /* what was typed or ticked is not in the markup, so carry it over */
     const f = from[i];
     if (/^(INPUT|TEXTAREA|SELECT)$/.test(f.tagName)){
@@ -10616,8 +10634,9 @@ function takeSnap(src){
   return el;
 }
 
-function paintSnap(el, id){
+function paintSnap(el, id, picked){
   const pc = GS_PAPER[id] || GS_PAPER[GS_PAPER_DEFAULT];
+  el.classList.toggle("snap-painted", !!picked);
   el.dataset.paper = GS_PAPER[id] ? id : GS_PAPER_DEFAULT;
   el.style.setProperty("--paper", pc.paper);
   el.style.setProperty("--ink", pc.ink);
@@ -10676,7 +10695,7 @@ function wireSnap(el){
       return;
     }
     const dot = t.closest("[data-snap-paper]");
-    if (dot){ paintSnap(el, dot.dataset.snapPaper); closeSnapPop(el); return; }
+    if (dot){ paintSnap(el, dot.dataset.snapPaper, true); closeSnapPop(el); return; }
     closeSnapPop(el);
     /* the page's own click handlers stay out of a picture; only a damage
        figure still opens its compare */
