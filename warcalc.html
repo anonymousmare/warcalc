@@ -10629,11 +10629,11 @@ function takeSnap(src){
   el.className = "snap";
   el.dataset.paper = GS_PAPER_DEFAULT;
   el.innerHTML = `<div class="snap-head">
-      <button type="button" class="snap-color" title="Colour"></button>
+      <button type="button" class="snap-color"></button>
       <span class="snap-name"></span>
       <span class="spacer"></span>
       <button type="button" class="snap-btn snap-fold">▾</button>
-      <button type="button" class="snap-btn snap-x" title="Close">×</button>
+      <button type="button" class="snap-btn snap-x">×</button>
     </div>
     <div class="snap-body"></div>`;
   const clone = snapClone(src);
