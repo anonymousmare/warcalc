@@ -5837,9 +5837,12 @@ function solProfile(row){
   const isAli = row.type === "Alicorns";
   const tn = isAli ? 5 : FORCE_TYPES[row.type];
   const es = effectiveStats(row.type, row.weapon, row.armor);
+  /* a reinforcement sits out the first tick and joins on the second, the
+     way the battle view brings it in */
   return {typeNum: tn, typeName: TYPES[tn], origType: row.type,
           weapon: row.weapon, armor: row.armor,
           training: row.training, size: row.size,
+          arrive: row.reserve ? 2 : 1,
           dmg: es.dmg, arm: es.arm};
 }
 
@@ -6045,10 +6048,21 @@ function makeContext(ownProfiles, foeProfiles, bonusOwn, bonusFoe, wantLosses, t
   const foeTypes = Int32Array.from(foe, u => u.typeNum);
   const foePools = poolCache(foe), ownPools = losses ? poolCache(own) : null;
 
+  /* The enemy's reinforcements are in every table from the start, but stand
+     at 0 until the tick they arrive. A stack of 0 fires nothing and soaks
+     nothing, and the pools are settled afresh every tick anyway, so until then
+     the fight runs exactly as if they were not there. runSolver hands them
+     over at the back of the list, where the battle view puts them when they
+     join, so a tie in who gets shot first settles the same way. */
+  const late = [];
+  foe.forEach((f, j) => { if (f.arrive > 1) late.push({j, at: f.arrive, size: f.size}); });
+
   return {
     own, foe, K, M, wantLosses: losses, ticks: T,
     MO, MF, ownTypes, foeTypes,
-    foeSize: Float64Array.from(foe, f => f.size),
+    foeSize: Float64Array.from(foe, f => f.arrive > 1 ? 0 : f.size),
+    foeLate: late.length ? late : null,
+    foeDue: late.reduce((s, r) => s + r.size, 0),
     ownBuckets: prunePlan(bucketPlan(own), ownTypes, foePools.pools),
     ownPoolCache: ownPools,
     foePoolCache: foePools,
@@ -6090,6 +6104,9 @@ function feasContext(ctx, goal){
    the dead are removed, exactly the order simulate() uses. Every tick after the
    first is that same arithmetic on the survivors, so the target pools have to be
    rebuilt each time — stack sizes decide targeting order.
+   Enemy reinforcements drop in at the start of the tick they arrive on, and
+   while any are still to come the enemy is not wiped and a quiet tick is not
+   a deadlock: they are counted among the enemy left.
    wantLog fills in the per-tick trace for the result card; the search itself
    runs this millions of times and skips it. */
 function trySizes(sizes, ctx, wantLog){
@@ -6107,10 +6124,16 @@ function trySizes(sizes, ctx, wantLog){
      the upkeep over the whole fight is billed on */
   const troopTicks = wantLog ? new Array(K).fill(0) : ctx.sTroopTicks.fill(0);
   let wipe = false, ticksUsed = 0, foeLeft = 0, ownLeft = 0;
+  let due = ctx.foeDue;                 // enemy troops still to arrive
 
   const skipOwnRun = !!ctx.skipOwnRun;
 
   for (let t = 1; t <= ctx.ticks; t++){
+    if (due){
+      const late = ctx.foeLate;
+      for (let r = 0; r < late.length; r++)
+        if (late[r].at === t){ foeSize[late[r].j] = late[r].size; due -= late[r].size; }
+    }
     for (let i = 0; i < K; i++) troopTicks[i] += ownSize[i];
     if (!skipOwnRun){
       foeDam.fill(0);
@@ -6147,12 +6170,13 @@ function trySizes(sizes, ctx, wantLog){
         ownLeft += ownSize[i];
       }
     } else for (let i = 0; i < K; i++) ownLeft += ownSize[i];
+    if (due) foeLeft += due;
 
     ticksUsed = t;
     if (perTick) perTick.push({tick:t, foeKilled, ownKilled, foeLeft, ownLeft});
     if (!foeLeft){ wipe = true; break; }
     if (!ownLeft) break;
-    if (!foeKilled && !ownKilled) break;   // deadlock: every later tick repeats it
+    if (!foeKilled && !ownKilled && !due) break;   // deadlock: every later tick repeats it
   }
 
   if (wantLog)
@@ -6275,16 +6299,20 @@ function makeSolver(subset, foeProfiles, o){
      bodies to soak cannot wipe them however it is arranged. And only the troops
      brought can be the ones left standing. Both are a sum over the sizes, and
      they throw out most of what the bisections probe on the low side without
-     fighting anything out. */
+     fighting anything out. Enemy reinforcements count among the bodies to
+     soak, and since nothing can hit them before they arrive, the hits that
+     kill them have to fit in the ticks after the first as well. */
   const T = ctx.ticks;
   const needBodies = o.goal === "wipe" ? 0 : o.minSurvivors;
-  let needHits = 0;
+  let needHits = 0, needLate = 0;
   if (o.goal !== "survive"){
     for (let j = 0; j < foeProfiles.length; j++){
       let best = 0;
       for (let i = 0; i < K; i++){ const v = subset[i].perHit[j]; if (v > best) best = v; }
       if (!(best > 0)){ needHits = Infinity; break; }
-      needHits += Math.ceil((foeProfiles[j].size - 1e-6) / best);
+      const n = Math.ceil((foeProfiles[j].size - 1e-6) / best);
+      needHits += n;
+      if (foeProfiles[j].arrive > 1) needLate += n;
     }
   }
 
@@ -6314,6 +6342,7 @@ function makeSolver(subset, foeProfiles, o){
     let tot = 0;
     for (let i = 0; i < K; i++) tot += sz[i];
     if (tot < needBodies || tot * T < needHits) return false;
+    if (needLate && tot * (T - 1) < needLate) return false;
     if (caps.length && overK(sz)) return false;
     let h = 2166136261;
     for (let i = 0; i < K; i++) h = Math.imul(h ^ (sz[i] | 0), 16777619);
@@ -6483,17 +6512,22 @@ function seedSizes(subset, foeProfiles, o){
   };
 
   const T = Math.max(1, o.ticks || 1);           // a troop that lives gets one hit per tick
+  /* the ticks a stack is there to be hit in, or to hit back in: an enemy
+     reinforcement misses every tick before it arrives */
+  const there = f => f.arrive > 1 ? T - f.arrive + 1 : T;
   if (o.goal !== "survive"){                     // enough hits to kill each enemy stack
     for (let j = 0; j < foeProfiles.length; j++){
+      const Tj = there(foeProfiles[j]);
+      if (Tj < 1) return null;
       let best = -1, bestCost = Infinity, bestHits = 0;
       for (let i = 0; i < subset.length; i++){
         const ph = subset[i].perHit[j];
         if (!(ph > 0)) continue;
-        const h = Math.max(1, Math.ceil(foeProfiles[j].size / ph / T));
+        const h = Math.max(1, Math.ceil(foeProfiles[j].size / ph / Tj));
         if (h * subset[i].wbits < bestCost && fits(i, h)){ bestCost = h * subset[i].wbits; best = i; bestHits = h; }
       }
       if (best >= 0) sizes[best] += bestHits;
-      else if (!spread(i => subset[i].perHit[j] > 0 ? foeProfiles[j].size / subset[i].perHit[j] / T : 0)) return null;
+      else if (!spread(i => subset[i].perHit[j] > 0 ? foeProfiles[j].size / subset[i].perHit[j] / Tj : 0)) return null;
     }
   }
 
@@ -6501,7 +6535,8 @@ function seedSizes(subset, foeProfiles, o){
     let best = -1, bestCost = Infinity, bestNeed = 0;
     for (let i = 0; i < subset.length; i++){
       let dmg = 0;
-      for (let j = 0; j < foeProfiles.length; j++) dmg += foeProfiles[j].size * subset[i].incoming[j];
+      for (let j = 0; j < foeProfiles.length; j++)
+        if (there(foeProfiles[j]) > 0) dmg += foeProfiles[j].size * subset[i].incoming[j];
       const need = Math.floor(dmg) + o.minSurvivors;
       if (need * subset[i].wbits < bestCost && fits(i, Math.max(0, need - sizes[i]))){ bestCost = need * subset[i].wbits; best = i; bestNeed = need; }
     }
@@ -6510,7 +6545,8 @@ function seedSizes(subset, foeProfiles, o){
       /* troops already placed to kill count towards the bodies */
       const need = i => {
         let dmg = 0;
-        for (let j = 0; j < foeProfiles.length; j++) dmg += foeProfiles[j].size * subset[i].incoming[j];
+        for (let j = 0; j < foeProfiles.length; j++)
+          if (there(foeProfiles[j]) > 0) dmg += foeProfiles[j].size * subset[i].incoming[j];
         return Math.floor(dmg) + o.minSurvivors;
       };
       const had = sizes.reduce((t, v, i) => t + v / need(i), 0);
@@ -6645,30 +6681,38 @@ function* solveGen(opts, foeRows, bonusOwn, bonusFoe){
   const exhaustive = subsetCount(cands.length, K) <= EXHAUSTIVE_COMBO_CAP;
 
   /* lower bounds — both are floors on any achievable cost for that subset.
-     Over T ticks a troop lands at most T hits, so the kill floor divides by T;
-     the damage the enemy deals in tick 1 lands whatever happens after, so the
-     survival floor is unchanged. */
+     Over T ticks a troop lands at most T hits, so the kill floor divides by T,
+     and the enemy's reinforcements, who can only be hit from tick 2, have to
+     be killed in T - 1. The damage the enemy deals in tick 1 lands whatever
+     happens after, and so does what their reinforcements fire the tick they
+     arrive, since the fight cannot end before then. */
   const killRate = cands.map(c => foeProfiles.map((f, j) => c.perHit[j] > 0 ? c.wbits / c.perHit[j] : Infinity));
   const lowerBound = idxs => {
     let lb = 0;
     if (needKill){
+      let late = 0;
       for (let j = 0; j < foeProfiles.length; j++){
         let best = Infinity;
         for (const i of idxs) if (killRate[i][j] < best) best = killRate[i][j];
         if (best === Infinity) return Infinity;
         lb += foeProfiles[j].size * best / ticks;
+        if (foeProfiles[j].arrive > 1) late += foeProfiles[j].size * best;
       }
+      if (late) lb = ticks > 1 ? Math.max(lb, late / (ticks - 1)) : Infinity;
     }
     if (o.goal !== "wipe"){
-      let dmg = 0;
+      let dmg = 0, dmgLate = 0;
       for (let j = 0; j < foeProfiles.length; j++){
         let least = Infinity;
         for (const i of idxs) if (cands[i].incoming[j] < least) least = cands[i].incoming[j];
-        dmg += foeProfiles[j].size * least;
+        if (!(foeProfiles[j].arrive > 1)) dmg += foeProfiles[j].size * least;
+        else if (foeProfiles[j].arrive <= ticks) dmgLate += foeProfiles[j].size * least;
       }
       let cheapest = Infinity;
       for (const i of idxs) if (cands[i].wbits < cheapest) cheapest = cands[i].wbits;
-      const need = Math.max(1, Math.floor(dmg) - idxs.length + o.minSurvivors);
+      /* every stack can shrug off a fraction of a troop each tick it is hit */
+      const need = dmgLate ? Math.max(1, Math.floor(dmg) + Math.floor(dmgLate) - 2 * idxs.length + o.minSurvivors)
+                           : Math.max(1, Math.floor(dmg) - idxs.length + o.minSurvivors);
       lb = Math.max(lb, need * cheapest);
     }
     return lb;
@@ -6869,16 +6913,22 @@ function deepSizer(subset, foeProfiles, o){
   const caps = capsFor(subset, o);
 
   /* where along a direction to start looking: the fewest troops that could
-     possibly land enough hits, or be left standing */
+     possibly land enough hits, or be left standing. Enemy reinforcements can
+     only be hit from the second tick on, so their share of the hits has to
+     fit in one tick fewer. */
   let lam0 = o.goal === "wipe" ? 1 : o.minSurvivors;
   if (o.goal !== "survive"){
-    let hits = 0;
+    let hits = 0, late = 0;
     for (let j = 0; j < foeProfiles.length; j++){
       let best = 0;
       for (let i = 0; i < K; i++) best = Math.max(best, subset[i].perHit[j] || 0);
-      if (best > 0) hits += foeProfiles[j].size / best;
+      if (best > 0){
+        hits += foeProfiles[j].size / best;
+        if (foeProfiles[j].arrive > 1) late += foeProfiles[j].size / best;
+      }
     }
     lam0 = Math.max(lam0, hits / T);
+    if (late && T > 1) lam0 = Math.max(lam0, late / (T - 1));
   }
 
   /* the furthest a direction (summing to 1) can be scaled before the first
@@ -6984,23 +7034,29 @@ function* deepSolveGen(opts, foeRows, bonusOwn, bonusFoe){
   const lowerBound = idxs => {
     let lb = 0;
     if (needKill){
+      let late = 0;
       for (let j = 0; j < foeProfiles.length; j++){
         let best = Infinity;
         for (const i of idxs) if (killRate[i][j] < best) best = killRate[i][j];
         if (best === Infinity) return Infinity;
         lb += foeProfiles[j].size * best / ticks;
+        if (foeProfiles[j].arrive > 1) late += foeProfiles[j].size * best;
       }
+      if (late) lb = ticks > 1 ? Math.max(lb, late / (ticks - 1)) : Infinity;
     }
     if (o.goal !== "wipe"){
-      let dmg = 0;
+      let dmg = 0, dmgLate = 0;
       for (let j = 0; j < foeProfiles.length; j++){
         let least = Infinity;
         for (const i of idxs) if (cands[i].incoming[j] < least) least = cands[i].incoming[j];
-        dmg += foeProfiles[j].size * least;
+        if (!(foeProfiles[j].arrive > 1)) dmg += foeProfiles[j].size * least;
+        else if (foeProfiles[j].arrive <= ticks) dmgLate += foeProfiles[j].size * least;
       }
       let cheapest = Infinity;
       for (const i of idxs) if (cands[i].wbits < cheapest) cheapest = cands[i].wbits;
-      lb = Math.max(lb, Math.max(1, Math.floor(dmg) - idxs.length + o.minSurvivors) * cheapest);
+      const need = dmgLate ? Math.max(1, Math.floor(dmg) + Math.floor(dmgLate) - 2 * idxs.length + o.minSurvivors)
+                           : Math.max(1, Math.floor(dmg) - idxs.length + o.minSurvivors);
+      lb = Math.max(lb, need * cheapest);
     }
     return lb;
   };
@@ -7951,20 +8007,27 @@ function solveCosts(rows){
    they really do the job.
    With more than one tick allowed the replay keeps going: the survivors of each
    tick are the forces of the next, wiped stacks drop out, and the losses are
-   totalled per starting stack. */
+   totalled per starting stack.
+   The enemy's reinforcements sit out tick 1 and join whoever is left of the
+   rest on tick 2, behind them in the list, the way the battle view brings
+   them in. Until they have, the enemy is not wiped, a quiet tick is not a
+   deadlock, and they count among the enemy left. */
 function realCheck(ownRows, foeRows, side, bonus, goal, minSurv, ticks, budget, stock){
   const T = Math.max(1, ticks || 1);
   const named = (rows, p) => rows.map((u, i) => ({type:u.type, weapon:u.weapon, armor:u.armor,
     size:u.size, training:u.training, name:p + i}));
   let own = ownRows.map((u, i) => Object.assign({}, u, {at:i}));
-  let foe = foeRows.map(u => Object.assign({}, u));
+  let foe = foeRows.filter(u => !u.reserve).map(u => Object.assign({}, u));
+  const reinf = foeRows.filter(u => u.reserve).map(u => Object.assign({}, u));
+  let due = reinf.reduce((s, u) => s + u.size, 0);
   const lost = ownRows.map(() => 0);
   const log = [];
   const up = {};                       // everyone standing at the start of a tick is billed for it
   let wipe = false, left = own.reduce((s, u) => s + u.size, 0), used = 0;
 
   for (let t = 1; t <= T; t++){
-    if (!own.length || !foe.length) break;
+    if (t === 2 && reinf.length){ foe = foe.concat(reinf); due = 0; }
+    if (!own.length || !(foe.length || due)) break;
     addRes(up, upkeepOf(own));
     let r;
     try {
@@ -7982,12 +8045,13 @@ function realCheck(ownRows, foeRows, side, bonus, goal, minSurv, ticks, budget, 
 
     own = own.map((u, i) => Object.assign({}, u, {size: ownUnits[i].remaining})).filter(u => u.size > 0);
     foe = foe.map((u, i) => Object.assign({}, u, {size: foeUnits[i].remaining})).filter(u => u.size > 0);
+    foeLeft += due;
 
     used = t;
     log.push({tick:t, foeKilled, ownKilled, foeLeft, ownLeft:left});
     if (!foeLeft){ wipe = true; break; }
     if (!left) break;
-    if (!foeKilled && !ownKilled) break;   // deadlock: every later tick repeats it
+    if (!foeKilled && !ownKilled && !due) break;   // deadlock: every later tick repeats it
   }
 
   const gear = solveCosts(ownRows).gearRes;
@@ -8313,13 +8377,21 @@ async function runSolver(){
   if (solveBusy) return;
   const opts = readSolveOpts();
   const foeSide = opts.side === "defender" ? "attacker" : "defender";
-  const foeRows = readSide(foeSide).filter(u=>!u.reserve);   // reinforcements miss the first tick
+  /* reinforcements miss the first tick and join the rest on the second, at the
+     back of the list — the order the battle view lines them up in, and the
+     order that settles any tie in who gets shot first */
+  const foeAll = readSide(foeSide);
+  const foeRows = foeAll.filter(u => !u.reserve).concat(foeAll.filter(u => u.reserve));
   if (!foeRows.length){
     alert(`Add some ${foeSide}s first — the solver needs something to solve against.`);
     return;
   }
   if (foeRows.some(u => u.size < 1)){ alert("Every unit on the fixed side needs a size of at least 1."); return; }
   if (!opts.types.length){ alert("Allow at least one unit type."); return; }
+  if (opts.goal !== "survive" && opts.ticks < 2 && foeRows.some(u => u.reserve)){
+    alert(`The ${foeSide}s' reinforcements only join on tick 2, so they cannot be wiped in one tick. Allow two ticks or more.`);
+    return;
+  }
 
   const bonus = document.getElementById("defBonus").value;
   const bonusYes = bonus === "Yes";
