@@ -495,7 +495,7 @@ tr.reserve td.col-sprite::before{
 .log div{padding:2px 0;border-bottom:1px solid rgba(var(--lo),.25)}
 .log b{color:var(--strong);font-weight:600}
 .unit-ref{font-weight:600;cursor:help;border-bottom:1px dotted currentColor}
-/* the exchange log's Use icons / Use names boxes, centred on the Resolve / Clear buttons */
+/* the exchange log's Use icons / Names boxes, centred on the Resolve / Clear buttons */
 .run-row{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
 .log-opt{margin:0}
 .ref-ic,.ref-nick{display:none}
@@ -503,7 +503,7 @@ tr.reserve td.col-sprite::before{
 body.log-icons:not(.log-both) .ref-one{display:inline-block;vertical-align:-3px;margin-right:4px}
 body.log-icons.log-both:not(.log-both-named) .ref-both{display:inline-flex;gap:2px;vertical-align:-3px;margin-right:4px}
 /* Only for named units: both pieces on the named, the one in play on the rest */
-/* a name only counts while Use names is showing it */
+/* a name only counts while Names is showing it */
 body.log-icons.log-both.log-both-named .ref-one:not(.ref-named),
 body.log-icons.log-both.log-both-named:not(.log-names) .ref-one{display:inline-block;vertical-align:-3px;margin-right:4px}
 body.log-icons.log-both.log-both-named.log-names .ref-both.ref-named{display:inline-flex;gap:2px;vertical-align:-3px;margin-right:4px}
@@ -539,7 +539,7 @@ body.log-dalign .xlog .xhit{flex:1;min-width:40px;font-size:0;align-self:stretch
 body.log-dalign .xlog .xhit::after{content:"";flex:1;height:1px;margin:0 10px;opacity:.33}
 body.log-dalign .xlog .xr-atk .xhit::after{background:var(--atk)}
 body.log-dalign .xlog .xr-def .xhit::after{background:var(--def)}
-/* Align damage too: the damage takes a column of its own, "for" dropped,
+/* Align damage: the damage takes a column of its own, "for" dropped,
    at least 30px clear of the one struck, with a grey rule across the gap */
 body.log-dalign.log-ddmg .xlog{grid-template-columns:max-content max-content minmax(0,1fr)}
 body.log-dalign.log-ddmg .xlog .xrest{display:contents}
@@ -558,8 +558,8 @@ body.log-dalign .xlog .ref-both .gear-img{width:24px;max-width:none;object-posit
 body.log-dalign .xlog .ref-both .gear-img + .gear-img{width:32px}
 body.log-names .ref-nick{display:inline}
 body.log-names .unit-ref:has(.ref-nick) .ref-sys{display:none}
-/* Cleaner Exchange Log: "ACFU + Bigdog 40" in place of the system name;
-   a unit's own name still wins when Use names is on */
+/* Clean Exchange Log: "ACFU + Bigdog 40" in place of the system name;
+   a unit's own name still wins when Names is on */
 .ref-kit{display:none}
 body.log-clean .ref-sys{display:none}
 body.log-clean .ref-kit{display:inline}
@@ -571,12 +571,12 @@ body.log-names.log-nums .unit-ref:has(.ref-nick) .ref-num,
 body.log-clean .ref-num{display:inline}
 body.log-clean.log-names:not(.log-nums) .unit-ref:has(.ref-nick) .ref-num{display:none}
 .ref-num{color:var(--strong)}
-/* Show hits and size changes: the one struck reads (before→after) */
+/* Hits and size change: the one struck reads (before→after) */
 .ref-num .n-chg{display:none}
 body.log-clean.log-hits .ref-num:has(.n-chg) .n-plain{display:none}
 body.log-clean.log-hits .ref-num .n-chg{display:inline}
 body.log-clean.log-hits.log-names:not(.log-nums) .unit-ref:has(.ref-nick) .ref-num:has(.n-chg){display:inline}
-/* Attacker dmg leftwards: the swinger's size goes in front of its name. The
+/* Atk dmg leftwards: the swinger's size goes in front of its name. The
    size is written twice and this picks which one shows; both copies obey
    the rules above about when a size shows at all */
 .ref-num.ref-lead{margin:0 4px 0 0;font-variant-numeric:tabular-nums}
@@ -1783,21 +1783,21 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
     <label class="hk-toggle log-opt opt-wine" for="logBothNamed" id="logBothNamedWrap">
       <input type="checkbox" id="logBothNamed"> Only for named units?</label>
     <label class="hk-toggle log-opt opt-blue" for="logNames">
-      <input type="checkbox" id="logNames"> Use names</label>
+      <input type="checkbox" id="logNames"> Names</label>
     <label class="hk-toggle log-opt opt-blue" for="logNums" id="logNumsWrap">
       <input type="checkbox" id="logNums"> Numbers with names?</label>
     <label class="hk-toggle log-opt opt-yellow" for="logClean">
-      <input type="checkbox" id="logClean"> Cleaner Exchange Log</label>
+      <input type="checkbox" id="logClean"> Clean Exchange Log</label>
     <label class="hk-toggle log-opt opt-yellow" for="logALead">
-      <input type="checkbox" id="logALead"> Attacker dmg leftwards</label>
+      <input type="checkbox" id="logALead"> Atk dmg leftwards</label>
     <label class="hk-toggle log-opt opt-yellow" for="logTrain" id="logTrainWrap">
       <input type="checkbox" id="logTrain"> Show training</label>
     <label class="hk-toggle log-opt opt-yellow" for="logHits" id="logHitsWrap">
-      <input type="checkbox" id="logHits"> Show hits and size changes</label>
+      <input type="checkbox" id="logHits"> Hits and size change</label>
     <label class="hk-toggle log-opt opt-purple" for="logDAlign">
       <input type="checkbox" id="logDAlign"> Defender vertical align</label>
     <label class="hk-toggle log-opt opt-purple" for="logDDmg" id="logDDmgWrap">
-      <input type="checkbox" id="logDDmg"> Align damage too</label>
+      <input type="checkbox" id="logDDmg"> Align damage</label>
     </div>
   </div>
 </div>
@@ -3324,7 +3324,7 @@ function tipAttrs(type, weapon, armor, size, training){
          (size != null ? ` data-tip-size="${esc(size)}" data-tip-train="${esc(training)}"` : "");
 }
 
-/* both the long name and the unit's own name go out; the Use names box picks
+/* both the long name and the unit's own name go out; the Names box picks
    which shows. `gear`, when given, is the piece whose icon Use icons puts in
    front — the swinger's weapon, the one struck's armour; Show weapon and
    armor swaps that for both pieces, armour first on the one swinging. */
