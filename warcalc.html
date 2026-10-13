@@ -1774,6 +1774,8 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
     <div class="run-row">
     <button class="btn btn-success" id="btnRun" style="padding:7px 22px;font-size:14px">Resolve battle</button>
     <button class="btn" id="btnClearResults" style="padding:7px 16px;font-size:14px">Clear</button>
+    <label class="hk-toggle log-opt" for="autoChain" title="Every battle resolved goes straight on to its successive battles">
+      <input type="checkbox" id="autoChain"> Auto-successive</label>
     <label class="hk-toggle log-opt" for="logIcons">
       <input type="checkbox" id="logIcons"> Use icons</label>
     <label class="hk-toggle log-opt opt-wine" for="logBoth" id="logBothWrap">
@@ -5861,6 +5863,7 @@ document.getElementById("btnRun").addEventListener("click", ()=>{
   try{
     render(simulate(atk, def, document.getElementById("defBonus").value), atk, def,
            document.getElementById("defBonus").value);
+    if (document.getElementById("autoChain").checked) toggleChain();
   } catch(e){
     document.getElementById("results").innerHTML =
       `<div class="panel"><div class="note warn"><strong>Resolution stopped.</strong> ${esc(e.message)}</div></div>`;
@@ -9107,6 +9110,18 @@ const LS_LOG_OPTS = "warcalc.logOpts";
       cur[k] = box.checked;
       store.set(LS_LOG_OPTS, cur);
     });
+  });
+}
+/* Auto-successive: Resolve battle carries straight on into Check successive
+   battles. Ticking it with a battle on screen opens that one's too */
+{
+  const box = document.getElementById("autoChain");
+  box.checked = (store.get(LS_LOG_OPTS, {}) || {}).autoChain === true;
+  box.addEventListener("change", ()=>{
+    const cur = store.get(LS_LOG_OPTS, {}) || {};
+    cur.autoChain = box.checked;
+    store.set(LS_LOG_OPTS, cur);
+    if (box.checked && !document.getElementById("chainOut")?.innerHTML) toggleChain();
   });
 }
 /* the settings in the gear drawer. They take hold on the next thing drawn,
