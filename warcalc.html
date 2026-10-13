@@ -497,6 +497,18 @@ tr.reserve td.col-sprite::before{
 .unit-ref{font-weight:600;cursor:help;border-bottom:1px dotted currentColor}
 /* the exchange log's Use icons / Names boxes, centred on the Resolve / Clear buttons */
 .run-row{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+/* the log's boxes fold into a gear beside Clear, one column, a rule between
+   each colour; the boxes a parent box opens sit indented under it */
+.run-opts{position:relative;display:inline-flex;align-items:center}
+.run-gear{padding:0 2px}
+.run-gear svg{width:24px;height:24px}
+.run-pop{display:none;position:absolute;top:calc(100% + 8px);left:-6px;z-index:50;
+  flex-direction:column;align-items:flex-start;gap:7px;padding:10px 14px 11px;
+  background:var(--raised);border:1px solid var(--border);border-radius:4px;box-shadow:0 8px 22px rgba(var(--lo),.55)}
+.run-opts.open .run-pop{display:flex}
+.run-sep{align-self:stretch;margin:2px 0;border:0;border-top:1px solid var(--border-soft)}
+#logBothWrap,#logNumsWrap,#logTrainWrap,#logHitsWrap,#logDDmgWrap{margin-left:18px}
+#logBothNamedWrap{margin-left:36px}
 .log-opt{margin:0}
 .ref-ic,.ref-nick{display:none}
 /* Use icons shows the piece in play; Show weapon and armor shows both, weapon first */
@@ -1774,30 +1786,43 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
     <div class="run-row">
     <button class="btn btn-success" id="btnRun" style="padding:7px 22px;font-size:14px">Resolve battle</button>
     <button class="btn" id="btnClearResults" style="padding:7px 16px;font-size:14px">Clear</button>
-    <label class="hk-toggle log-opt" for="autoChain" title="Every battle resolved goes straight on to its successive battles">
-      <input type="checkbox" id="autoChain"> Auto-successive</label>
-    <label class="hk-toggle log-opt" for="logIcons">
-      <input type="checkbox" id="logIcons"> Use icons</label>
-    <label class="hk-toggle log-opt opt-wine" for="logBoth" id="logBothWrap">
-      <input type="checkbox" id="logBoth"> Show weapon and armor</label>
-    <label class="hk-toggle log-opt opt-wine" for="logBothNamed" id="logBothNamedWrap">
-      <input type="checkbox" id="logBothNamed"> Only for named units?</label>
-    <label class="hk-toggle log-opt opt-blue" for="logNames">
-      <input type="checkbox" id="logNames"> Names</label>
-    <label class="hk-toggle log-opt opt-blue" for="logNums" id="logNumsWrap">
-      <input type="checkbox" id="logNums"> Numbers with names?</label>
-    <label class="hk-toggle log-opt opt-yellow" for="logClean">
-      <input type="checkbox" id="logClean"> Clean Exchange Log</label>
-    <label class="hk-toggle log-opt opt-yellow" for="logALead">
-      <input type="checkbox" id="logALead"> Atk dmg leftwards</label>
-    <label class="hk-toggle log-opt opt-yellow" for="logTrain" id="logTrainWrap">
-      <input type="checkbox" id="logTrain"> Show training</label>
-    <label class="hk-toggle log-opt opt-yellow" for="logHits" id="logHitsWrap">
-      <input type="checkbox" id="logHits"> Hits and size change</label>
-    <label class="hk-toggle log-opt opt-purple" for="logDAlign">
-      <input type="checkbox" id="logDAlign"> Defender vertical align</label>
-    <label class="hk-toggle log-opt opt-purple" for="logDDmg" id="logDDmgWrap">
-      <input type="checkbox" id="logDDmg"> Align damage</label>
+    <span class="run-opts" id="runOpts">
+    <button class="gear-btn run-gear" id="btnRunOpts" title="Exchange log options" aria-expanded="false"
+      aria-controls="runPop"><svg viewBox="0 0 24 24"
+    aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path
+    d="M10.3 2.5h3.4l.5 2.6a7.6 7.6 0 0 1 2 1.2l2.5-.9 1.7 2.9-2 1.8a7.7 7.7 0 0 1 0 2.3l2 1.8-1.7 2.9-2.5-.9a7.6 7.6 0 0 1-2 1.2l-.5 2.6h-3.4l-.5-2.6a7.6 7.6 0 0 1-2-1.2l-2.5.9-1.7-2.9 2-1.8a7.7 7.7 0 0 1 0-2.3l-2-1.8 1.7-2.9 2.5.9a7.6 7.6 0 0 1 2-1.2z"/><circle
+    cx="12" cy="12" r="3"/></svg></button>
+    <div class="run-pop" id="runPop" role="group" aria-label="Exchange log options">
+      <label class="hk-toggle log-opt" for="autoChain" title="Every battle resolved goes straight on to its successive battles">
+        <input type="checkbox" id="autoChain"> Auto-successive</label>
+      <hr class="run-sep">
+      <label class="hk-toggle log-opt" for="logIcons">
+        <input type="checkbox" id="logIcons"> Use icons</label>
+      <label class="hk-toggle log-opt opt-wine" for="logBoth" id="logBothWrap">
+        <input type="checkbox" id="logBoth"> Show weapon and armor</label>
+      <label class="hk-toggle log-opt opt-wine" for="logBothNamed" id="logBothNamedWrap">
+        <input type="checkbox" id="logBothNamed"> Only for named units?</label>
+      <hr class="run-sep">
+      <label class="hk-toggle log-opt opt-blue" for="logNames">
+        <input type="checkbox" id="logNames"> Names</label>
+      <label class="hk-toggle log-opt opt-blue" for="logNums" id="logNumsWrap">
+        <input type="checkbox" id="logNums"> Numbers with names?</label>
+      <hr class="run-sep">
+      <label class="hk-toggle log-opt opt-yellow" for="logClean">
+        <input type="checkbox" id="logClean"> Clean Exchange Log</label>
+      <label class="hk-toggle log-opt opt-yellow" for="logALead">
+        <input type="checkbox" id="logALead"> Atk dmg leftwards</label>
+      <label class="hk-toggle log-opt opt-yellow" for="logTrain" id="logTrainWrap">
+        <input type="checkbox" id="logTrain"> Show training</label>
+      <label class="hk-toggle log-opt opt-yellow" for="logHits" id="logHitsWrap">
+        <input type="checkbox" id="logHits"> Hits and size change</label>
+      <hr class="run-sep">
+      <label class="hk-toggle log-opt opt-purple" for="logDAlign">
+        <input type="checkbox" id="logDAlign"> Defender vertical align</label>
+      <label class="hk-toggle log-opt opt-purple" for="logDDmg" id="logDDmgWrap">
+        <input type="checkbox" id="logDDmg"> Align damage</label>
+    </div>
+    </span>
     </div>
   </div>
 </div>
@@ -9111,6 +9136,16 @@ const LS_LOG_OPTS = "warcalc.logOpts";
       store.set(LS_LOG_OPTS, cur);
     });
   });
+}
+/* the gear beside Clear opens the log's boxes; a click anywhere else, or
+   Escape, puts them away */
+{
+  const wrap = document.getElementById("runOpts"), btn = document.getElementById("btnRunOpts");
+  const show = on => { wrap.classList.toggle("open", on); btn.classList.toggle("open", on);
+                       btn.setAttribute("aria-expanded", on); };
+  btn.addEventListener("click", ()=>show(!wrap.classList.contains("open")));
+  document.addEventListener("click", e=>{ if (!wrap.contains(e.target)) show(false); });
+  document.addEventListener("keydown", e=>{ if (e.key === "Escape" && wrap.classList.contains("open")) show(false); });
 }
 /* Auto-successive: Resolve battle carries straight on into Check successive
    battles. Ticking it with a battle on screen opens that one's too */
