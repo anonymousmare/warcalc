@@ -10630,9 +10630,9 @@ function takeSnap(src){
   el.dataset.paper = GS_PAPER_DEFAULT;
   el.innerHTML = `<div class="snap-head">
       <button type="button" class="snap-color" title="Colour"></button>
-      <span class="snap-name" title="Double-click to name"></span>
+      <span class="snap-name"></span>
       <span class="spacer"></span>
-      <button type="button" class="snap-btn snap-fold" title="Collapse">▾</button>
+      <button type="button" class="snap-btn snap-fold">▾</button>
       <button type="button" class="snap-btn snap-x" title="Close">×</button>
     </div>
     <div class="snap-body"></div>`;
@@ -10660,7 +10660,6 @@ function foldSnap(el, folded){
   el.classList.toggle("snap-folded", folded);
   const b = el.querySelector(".snap-fold");
   b.textContent = folded ? "▸" : "▾";
-  b.title = folded ? "Expand" : "Collapse";
 }
 
 function closeSnapPop(el){
