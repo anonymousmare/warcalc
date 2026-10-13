@@ -1438,8 +1438,8 @@ body.snaps-hidden .snap{display:none}
 /* a picked colour takes over the plain page and panel colour in it;
    the darker wells and anything coloured of its own stay as they were */
 .snap.snap-painted,.snap.snap-painted .snap-plain{background:var(--paper)}
-/* a snapshot is a picture: its buttons and boxes do nothing */
-.snap-body :is(button,input,select,textarea,a,label){pointer-events:none}
+/* a snapshot is a picture: nothing in it hovers, folds or clicks */
+.snap-body *{pointer-events:none !important}
 /* with shift held, the box a click would copy is marked */
 .snap-aim{outline:1px dashed var(--warn) !important;outline-offset:1px;cursor:copy}
 .ref-table{width:100%}
@@ -9425,6 +9425,7 @@ const HELP_KEYS = [
   [["R"], "Import units"],
   ["Snapshots"],
   [["Shift", "click"], "Snapshot Box"],
+  [["Shift", "scroll"], "Pick a smaller / bigger box to snapshot"],
   [["Z"], "Hide / show every snapshot"],
   [["Shift", "Z"], "Collapse / uncollapse every snapshot"],
   [["Shift", "X"], "Close every snapshot"],
@@ -10490,7 +10491,8 @@ gsEl("gsWide").addEventListener("change", ()=>{
 
 /* ===================================================================
    11. SNAPSHOTS — shift-click any box (an Entire battle well, an upkeep
-       strip, a ticket…) and a frozen copy of it floats over the page.
+       strip, a ticket…) and a frozen copy of it floats over the page;
+       shift+scroll picks a smaller or bigger box first.
        It keeps the numbers it had when it was taken. Z hides them all,
        shift+Z folds them all, shift+X throws them all away.
    =================================================================== */
@@ -10499,11 +10501,11 @@ gsEl("gsWide").addEventListener("change", ()=>{
 const SNAP_PICK = ".well,.chain-upkeep,.slip,.panel,.note,.pinbox";
 /* a shift-click on these keeps its own meaning */
 const SNAP_SKIP = "button,a,input,select,textarea,label,option,.snap,.ovl,#tip,.hk-dock,.tabstrip";
-/* the data- hooks a frozen copy may keep: its hover cards and the look of a few rows.
-   The rest are handles the page's code goes looking for, and must not find in here. */
-const SNAP_KEEP_DATA = /^data-(tip-|pin-key$|reinf$|step$|log-toggle$|icon$)/;
+/* the data- hooks a frozen copy may keep, for the look of a few rows. The rest
+   are handles the page's code goes looking for, and must not find in here. */
+const SNAP_KEEP_DATA = /^data-(reinf|step|log-toggle|icon)$/;
 
-let snapAim = null, snapOver = null;
+let snapAim = null, snapOver = null, snapLadder = [];
 
 /* the box a shift-click on `el` would copy: the nearest named one, or the
    nearest that draws a box of its own and is big enough to be one */
@@ -10523,30 +10525,43 @@ function snapTarget(el){
   return null;
 }
 
+/* every box between the pointer and the tab it is on, smallest first: a
+   resource chip, its row, the well, the panel… A wrapper exactly the size of
+   the box inside it is the same box, so only the outer one is kept. */
+function snapRungs(el){
+  if (!el?.closest || el.closest(SNAP_SKIP)) return [];
+  const out = [];
+  let last = null;
+  for (let n = el; n && n !== document.body; n = n.parentElement){
+    if (/^view/.test(n.id)) break;                  // a whole tab is not a box
+    if (/^(TD|TH|TBODY|THEAD|TFOOT)$/.test(n.tagName)) continue;
+    const d = getComputedStyle(n).display;
+    if (d === "inline" || d === "contents" || d === "none") continue;
+    const r = n.getBoundingClientRect();
+    if (r.width < 40 || r.height < 14) continue;
+    if (last && Math.abs(r.width - last.width) < 2 && Math.abs(r.height - last.height) < 2)
+      out[out.length - 1] = n;
+    else out.push(n);
+    last = r;
+  }
+  return out;
+}
+
+/* shift held: aim at the usual box, or keep the one already aimed at while
+   the pointer stays inside it */
+function aimFrom(el){
+  snapLadder = snapRungs(el);
+  if (!snapLadder.length) return aimSnap(null);
+  if (snapAim && snapLadder.includes(snapAim)) return;
+  const t = snapTarget(el);
+  aimSnap(snapLadder.includes(t) ? t : snapLadder[0]);
+}
+
 function aimSnap(el){
   if (snapAim === el) return;
   snapAim?.classList.remove("snap-aim");
   snapAim = el;
   el?.classList.add("snap-aim");
-}
-
-/* the hover card and damage compare a copy points at are filed again under
-   keys of its own, so redrawing the page never takes them away */
-function freezeKeys(root){
-  const moved = new Map();
-  const refile = (old, map) => {
-    if (!moved.has(old)){
-      const k = "snapk" + (++tipSeq);
-      moved.set(old, k);
-      if (TIPS.has(old)) TIPS.set(k, TIPS.get(old));
-      if (PINS.has(old)) PINS.set(k, PINS.get(old));
-    }
-    return moved.get(old);
-  };
-  root.querySelectorAll("[data-tip-key],[data-pin-key]").forEach(n=>{
-    if (n.dataset.tipKey) n.dataset.tipKey = refile(n.dataset.tipKey);
-    if (n.dataset.pinKey) n.dataset.pinKey = refile(n.dataset.pinKey);
-  });
 }
 
 /* the page's and the panels' own colour, as the browser reports it, so a
@@ -10584,7 +10599,6 @@ function snapClone(src){
       n.tabIndex = -1;
     }
   });
-  freezeKeys(c);
   c.classList.add("snap-root");
   return c;
 }
@@ -10697,9 +10711,8 @@ function wireSnap(el){
     const dot = t.closest("[data-snap-paper]");
     if (dot){ paintSnap(el, dot.dataset.snapPaper, true); closeSnapPop(el); return; }
     closeSnapPop(el);
-    /* the page's own click handlers stay out of a picture; only a damage
-       figure still opens its compare */
-    if (!t.closest("[data-pin-key]")) e.stopPropagation();
+    /* the page's own click handlers stay out of a picture */
+    e.stopPropagation();
   });
   name.addEventListener("dblclick", e=>{ e.preventDefault(); editSnapName(name); });
 
@@ -10741,14 +10754,23 @@ document.addEventListener("pointerdown", e=>{
    stretching a text selection out to it */
 document.addEventListener("mouseover", e=>{
   snapOver = e.target;
-  aimSnap(e.shiftKey ? snapTarget(snapOver) : null);
+  if (e.shiftKey) aimFrom(snapOver); else aimSnap(null);
 });
+/* shift + scroll: up for the bigger box around it, down for a smaller one */
+addEventListener("wheel", e=>{
+  if (!e.shiftKey || !snapAim) return;
+  e.preventDefault();
+  const i = snapLadder.indexOf(snapAim), d = e.deltaY || e.deltaX;
+  const to = Math.max(0, Math.min(snapLadder.length - 1, i + (d < 0 ? 1 : -1)));
+  if (i >= 0 && d) aimSnap(snapLadder[to]);
+}, {passive:false});
 document.addEventListener("mousedown", e=>{
-  if (e.shiftKey && e.button === 0 && snapTarget(e.target)) e.preventDefault();
+  if (e.shiftKey && e.button === 0 && snapRungs(e.target).length) e.preventDefault();
 }, true);
 addEventListener("click", e=>{
   if (!e.shiftKey || e.button !== 0) return;
-  const src = snapTarget(e.target);
+  if (!snapAim || !snapAim.contains(e.target)) aimFrom(e.target);
+  const src = snapAim;
   if (!src) return;
   e.preventDefault();                 // a summary under it stays as it is
   e.stopPropagation();
@@ -10757,7 +10779,7 @@ addEventListener("click", e=>{
 }, true);
 
 addEventListener("keydown", e=>{
-  if (e.key === "Shift"){ if (!typingIn(document.activeElement)) aimSnap(snapTarget(snapOver)); return; }
+  if (e.key === "Shift"){ if (!e.repeat && !typingIn(document.activeElement)) aimFrom(snapOver); return; }
   if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
   if (typingIn(e.target) || typingIn(document.activeElement)) return;
   const key = String(e.key).toLowerCase();
