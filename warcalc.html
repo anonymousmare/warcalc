@@ -1441,9 +1441,15 @@ body.snaps-hidden .snap{display:none}
 /* a snapshot is a picture: nothing in it hovers, folds or clicks */
 .snap-body *{pointer-events:none !important}
 /* with shift held, the box a click would copy is marked: thick dashes laid over
-   a ring of the theme's strongest ink, so it reads on every theme's colours */
-.snap-aim{outline:2px dashed var(--warn) !important;outline-offset:1px;cursor:copy;
-  box-shadow:0 0 0 3px var(--strong) !important}
+   a solid ring, each theme picking a pair that stands off its own page */
+.snap-aim{--aim:var(--warn);--aim-ring:#fff;
+  outline:2px dashed var(--aim) !important;outline-offset:1px;cursor:copy;
+  box-shadow:0 0 0 3px var(--aim-ring) !important}
+[data-theme="white"] .snap-aim{--aim:#fff;--aim-ring:#2a6fb0}
+[data-theme="black"] .snap-aim{--aim:#2a9fd6;--aim-ring:#fff}
+[data-theme="optimal"] .snap-aim{--aim:#000;--aim-ring:#7ff3ff}
+[data-theme="applejack"] .snap-aim{--aim:#fff2d1;--aim-ring:#a73620}
+[data-theme="rainbow"] .snap-aim{--aim:#e8318a;--aim-ring:#ffe14d}
 .ref-table{width:100%}
 .ref-table + .ref-table{margin-top:16px}
 .ref-table th,.ref-table td{padding:2px 6px;font-size:11.5px;white-space:nowrap}
