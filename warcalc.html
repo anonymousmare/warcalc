@@ -9421,16 +9421,16 @@ const HELP_KEYS = [
   [["E"], "Survivors"],
   [["R"], "Import units"],
   ["Snapshots"],
-  [["Shift", "click"], "Snapshot the box under the pointer — a copy that keeps its numbers"],
+  [["Shift", "click"], "Snapshot Box"],
   [["Z"], "Hide / show every snapshot"],
+  [["Shift", "Z"], "Collapse / uncollapse every snapshot"],
   [["Shift", "X"], "Close every snapshot"],
-  [["double-click"], "Name, to label a snapshot (Enter keeps it, Esc backs out)"],
   ["Copy buttons"],
-  [["Shift", "click"], "Copy code: the long form. Copy plan: leaves out the whole fight's upkeep"]
+  [["Shift", "click"], "Copy army code = Conventional long form\nCopy plan = Excludes total upkeep"]
 ];
 const buildHelpRef = () => `<table class="help-table"><tbody>${HELP_KEYS.map(([k, what]) =>
   what === undefined ? `<tr class="help-grp"><td colspan="2">${esc(k)}</td></tr>`
-    : `<tr><td>${k.map(x => `<kbd>${esc(x)}</kbd>`).join(" + ")}</td><td>${esc(what)}</td></tr>`).join("")}</tbody></table>`;
+    : `<tr><td>${k.map(x => `<kbd>${esc(x)}</kbd>`).join(" + ")}</td><td>${esc(what).replace(/\n/g, "<br>")}</td></tr>`).join("")}</tbody></table>`;
 
 const REFS = {
   stats: {title:"Weapon & armor stats", width:540, build:()=>buildStatsRef()},
@@ -10489,7 +10489,7 @@ gsEl("gsWide").addEventListener("change", ()=>{
    11. SNAPSHOTS — shift-click any box (an Entire battle well, an upkeep
        strip, a ticket…) and a frozen copy of it floats over the page.
        It keeps the numbers it had when it was taken. Z hides them all,
-       shift+X throws them all away.
+       shift+Z folds them all, shift+X throws them all away.
    =================================================================== */
 
 /* the boxes worth lifting out whole; anything else boxed in also counts */
@@ -10623,6 +10623,13 @@ function paintSnap(el, id){
   el.style.setProperty("--ink", pc.ink);
 }
 
+function foldSnap(el, folded){
+  el.classList.toggle("snap-folded", folded);
+  const b = el.querySelector(".snap-fold");
+  b.textContent = folded ? "▸" : "▾";
+  b.title = folded ? "Expand" : "Collapse";
+}
+
 function closeSnapPop(el){
   el.querySelector(".snap-pop")?.remove();
   el.querySelector(".snap-color").classList.remove("open");
@@ -10656,13 +10663,7 @@ function wireSnap(el){
   el.addEventListener("click", e=>{
     const t = e.target;
     if (t.closest(".snap-x")){ el.remove(); return; }
-    if (t.closest(".snap-fold")){
-      const folded = el.classList.toggle("snap-folded");
-      const b = t.closest(".snap-fold");
-      b.textContent = folded ? "▸" : "▾";
-      b.title = folded ? "Expand" : "Collapse";
-      return;
-    }
+    if (t.closest(".snap-fold")) return foldSnap(el, !el.classList.contains("snap-folded"));
     if (t.closest(".snap-color")){
       if (el.querySelector(".snap-pop")) return closeSnapPop(el);
       const pop = document.createElement("div");
@@ -10741,10 +10742,14 @@ addEventListener("keydown", e=>{
   if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
   if (typingIn(e.target) || typingIn(document.activeElement)) return;
   const key = String(e.key).toLowerCase();
-  if (key === "z" && !e.shiftKey){
-    if (!document.querySelector(".snap")) return;
+  if (key === "z"){
+    const snaps = [...document.querySelectorAll(".snap")];
+    if (!snaps.length) return;
     e.preventDefault();
-    document.body.classList.toggle("snaps-hidden");
+    if (!e.shiftKey) return document.body.classList.toggle("snaps-hidden");
+    /* shift+Z folds them all, or opens them all once every one is folded */
+    const fold = snaps.some(s => !s.classList.contains("snap-folded"));
+    snaps.forEach(s => foldSnap(s, fold));
   } else if (key === "x" && e.shiftKey){
     e.preventDefault();
     document.querySelectorAll(".snap").forEach(s => s.remove());
