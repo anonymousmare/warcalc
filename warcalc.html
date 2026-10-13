@@ -10701,7 +10701,7 @@ function wireSnap(el){
       const pop = document.createElement("div");
       pop.className = "snap-pop";
       pop.innerHTML = Object.entries(GS_PAPER).map(([id, c])=>
-        `<button type="button" class="slip-dot${el.dataset.paper === id ? " on" : ""}" title="${id}"
+        `<button type="button" class="slip-dot${el.dataset.paper === id ? " on" : ""}"
            style="background:${c.paper}" data-snap-paper="${id}"></button>`).join("");
       head.appendChild(pop);
       t.closest(".snap-color").classList.add("open");
