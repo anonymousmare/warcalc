@@ -236,6 +236,10 @@
 [data-theme="applejack"] .btn{border-color:#7d562d;box-shadow:inset 0 1px 0 rgba(255,255,220,.35),0 2px 0 rgba(52,28,9,.3)}
 [data-theme="applejack"] .btn-success{border-color:#37491c}
 [data-theme="applejack"] .btn-danger{border-color:#64230f}
+/* the gear sprites are neon, drawn for a dark page: each sits on a patch of
+   barn wood in the log so it keeps its glow on the parchment. Drawn as a
+   shadow, so the log's spacing and alignment stay put */
+[data-theme="applejack"] .log .ref-ic{background:#3b2412;box-shadow:0 0 0 2px #3b2412;border-radius:2px;line-height:0}
 [data-theme="applejack"] ::selection{background:#c24a27;color:#fff2d1}
 
 /* ---- Rainbow Dash: sky, clouds and twenty percent cooler ---- */
@@ -296,6 +300,12 @@
 [data-theme="rainbow"] .log,[data-theme="rainbow"] .mono{font-weight:700}
 [data-theme="rainbow"] .btn{border-color:#4d8bdc;border-radius:6px;box-shadow:inset 1px 1px 0 rgba(255,255,255,.6)}
 [data-theme="rainbow"] input,[data-theme="rainbow"] select,[data-theme="rainbow"] textarea{border-color:#74aeea}
+/* the neon gear sprites sit on a patch of night sky in the log */
+[data-theme="rainbow"] .log .ref-ic{background:#0b2a5c;box-shadow:0 0 0 2px #0b2a5c;border-radius:2px;line-height:0}
+:is([data-theme="applejack"],[data-theme="rainbow"]) .log .ref-ic .gear-img{vertical-align:top}
+/* without its line box the slot is only as tall as the sprite, so it is
+   centred on the text by hand rather than dropped onto its baseline */
+:is([data-theme="applejack"],[data-theme="rainbow"]) .log .ref-ic{vertical-align:middle !important}
 [data-theme="rainbow"] ::selection{background:#ff4fc8;color:#fff}
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
@@ -1139,7 +1149,12 @@ details summary{cursor:pointer;color:var(--strong);font-size:13px;padding:2px 0}
 /* the horsewife roams the whole window on a clear pane that clicks fall
    straight through, over the panels but under a modal and the tooltips */
 #horsewife{position:fixed;inset:0;width:100vw;height:100vh;border:0;margin:0;padding:0;z-index:940;
-  pointer-events:none;background:transparent;color-scheme:normal}
+  pointer-events:none;background:transparent;color-scheme:normal;
+  /* she can't be clicked, so the pointer sees through her instead: an x-ray
+     that is nearly clear where it points and fades back out around it */
+  --mx:-999px;--my:-999px;
+  -webkit-mask-image:radial-gradient(circle at var(--mx) var(--my),rgba(0,0,0,.08) 0,rgba(0,0,0,.08) 18px,#000 130px);
+  mask-image:radial-gradient(circle at var(--mx) var(--my),rgba(0,0,0,.08) 0,rgba(0,0,0,.08) 18px,#000 130px)}
 /* ticket moss, as the Grand Strategy slips wear it */
 .btn-moss{background:var(--paper-moss);background-image:none;color:var(--ink-moss);border-color:rgba(var(--good-rgb),.28)}
 .battle-presets{display:flex;align-items:center;gap:4px;opacity:.45;transition:opacity .15s}
@@ -9123,6 +9138,19 @@ function setHorsewife(name){
   f.src += "&spawn." + encodeURIComponent(as.toLowerCase()) + "=1";
   document.body.appendChild(f);
   return name;
+}
+/* the x-ray follows the pointer; the pane lets every event through, so the
+   page hears the moves itself. Off the window it goes, the x-ray goes too */
+{
+  let x = -999, y = -999, queued = false;
+  const paint = ()=>{
+    queued = false;
+    const f = document.getElementById("horsewife");
+    if (f){ f.style.setProperty("--mx", x + "px"); f.style.setProperty("--my", y + "px"); }
+  };
+  const move = (nx, ny)=>{ x = nx; y = ny; if (!queued){ queued = true; requestAnimationFrame(paint); } };
+  document.addEventListener("pointermove", e => move(e.clientX, e.clientY), {passive:true});
+  document.documentElement.addEventListener("pointerleave", ()=>move(-999, -999));
 }
 {
   const sel = document.getElementById("wifeSel");
