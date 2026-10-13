@@ -806,14 +806,14 @@ body.no-pin-art .pinbox .pin-art{display:none}
 /* one piece's cost, in grey, under the whole stack's */
 .cmp-one{display:block;color:var(--text-dim);font-size:10px;margin-top:1px}
 .cmp-one > span{display:block}
-.cmp-one .res-icon{filter:saturate(.75);opacity:.7}
+.cmp-one .res-icon{filter:saturate(.75) var(--res-edge,);opacity:.7}
 .cmp-cur .cmp-one{color:var(--text-dim)}
 /* the weapon an armour row's dead take with them, greyed under the armour */
 .cmp-ic{display:flex;flex-direction:column;align-items:flex-start;gap:3px}
 .cmp-ic .gear-img{flex:none}
 .cmp-wpn .gear-img{filter:grayscale(.75)}
 #tip .w{color:var(--strong)}
-#tip .mono-ic .res-icon{filter:grayscale(1)}
+#tip .mono-ic .res-icon{filter:grayscale(1) var(--res-edge,)}
 #tip .tip-gear .gear-img{vertical-align:-3px;margin-right:4px}
 /* figures in the wide view explain themselves on hover */
 .has-ntip{cursor:help}
@@ -1210,7 +1210,17 @@ details summary{cursor:pointer;color:var(--strong);font-size:13px;padding:2px 0}
 .res-icon{
   width:16px;height:16px;display:inline-block;vertical-align:-4px;   /* centres a 16px icon on a 16px line */
   image-rendering:pixelated;image-rendering:crisp-edges;
+  filter:var(--res-edge,none);
 }
+/* the icons are drawn for a dark page and their white parts vanish on a pale
+   one: light themes ring each in a soft halo of their own dark ink. Rules that
+   set their own filter on an icon append var(--res-edge,) to keep it */
+:is([data-theme="white"],[data-theme="applejack"],[data-theme="rainbow"]){
+  --res-edge:drop-shadow(0 0 .6px rgba(var(--hi),.9)) drop-shadow(0 1px 1px rgba(var(--hi),.35))}
+/* White's ink is pure black, so it takes a lighter hand */
+[data-theme="white"]{--res-edge:drop-shadow(0 0 .5px rgba(0,0,0,.5)) drop-shadow(0 1px 1px rgba(0,0,0,.15))}
+/* Darker exchange log puts them back on a night page, where they need none */
+body.dark-log .well.log{--res-edge:opacity(1)}
 /* inline flow rather than flex: the spaces between the icon, the number and
    the next chip are real text, so selecting a row copies them too */
 .res-chip{display:inline-block;margin:0 7px 0 0;font-size:12px;white-space:nowrap;vertical-align:middle;line-height:16px}
