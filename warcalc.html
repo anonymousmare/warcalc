@@ -1540,8 +1540,9 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
       </div>
       <div style="width:190px">
         <label for="solveAlgo">Search</label>
-        <select id="solveAlgo" title="Deep tries every mix of stacks from many directions and copes with tight limits; Classic is the original search">
+        <select id="solveAlgo" title="Deep tries every mix of stacks from many directions and copes with tight limits. Cross-entropy draws mixes from every loadout and learns which belong together — best against enemies with several unit types and when losses count, and it uses all the time the effort level allows. Classic is the original search">
           <option value="deep" selected>Deep (limit-aware)</option>
+          <option value="ce">Cross-entropy (mixed enemies)</option>
           <option value="classic">Classic</option>
         </select>
       </div>
@@ -7230,6 +7231,682 @@ function* deepSolveGen(opts, foeRows, bonusOwn, bonusFoe){
          skipped, refined, shortlisted: shortlist.length, deep: true};
 }
 
+/* ================= cross-entropy search =================
+   Deep sweeps every subset in the order of a bound that only counts hits, and
+   to get through them at all it first cuts the loadouts down to a few dozen.
+   Against a mixed enemy that cut throws away the loadouts that win — a cheap
+   weapon whose only job is to make one stack shoot one enemy type first — and
+   on a goal that counts losses the bound sends the sweep the wrong way.
+   This search never cuts and never sweeps. It keeps a weight on every loadout
+   worth having, draws whole mixes in proportion to the weights, sizes each one
+   along the base directions, and moves the weights towards the loadouts the
+   best few draws actually fielded. After a few rounds the draws keep landing
+   in the same corner; once the best stops improving the weights are wiped and
+   it goes looking somewhere else, keeping everything it has sized so far.
+   Then the mixes it liked are polished in rounds, each round on a third as
+   many as the last with more care each, so the time goes where the money is
+   instead of the same amount to the 40th mix as to the 1st. */
+
+/* the dominance pruneCands uses, plus one more test under a limit: a loadout
+   only stands in for another if it eats no more of anything that is limited */
+function ceLoadouts(cands, o, usePerHit){
+  const caps = capsFor(cands, o);
+  const at = new Map(cands.map((c, i) => [c, i]));
+  const keep = [];
+  for (const c of cands.slice().sort((a, b) => a.wbits - b.wbits)){
+    const ci = at.get(c);
+    let dominated = false;
+    for (const k of keep){
+      if (k.wbits > c.wbits) continue;
+      let ok = true;
+      if (usePerHit)
+        for (let j = 0; j < c.perHit.length && ok; j++) if (k.perHit[j] < c.perHit[j]) ok = false;
+      if (ok && o.wantLosses)
+        for (let j = 0; j < c.incoming.length && ok; j++) if (k.incoming[j] > c.incoming[j]) ok = false;
+      if (ok){
+        const ki = at.get(k);
+        for (const cap of caps) if (cap.use[ki] > cap.use[ci]){ ok = false; break; }
+      }
+      if (ok){ dominated = true; break; }
+    }
+    if (!dominated) keep.push(c);
+  }
+  return keep;
+}
+
+/* The exact cheapest sizes for one small mix. Adding troops never turns a win
+   into a loss, so every army below one that fails fails too, and every army
+   above one that works works. That lets the search keep a set of corners
+   below which nothing has been ruled out: it takes the cheapest corner, walks
+   a ray from it until the fight is won, shaves the winning end into a new
+   best, and cuts away the box under the losing end, which splits every corner
+   in that box into one new corner per stack. When the cheapest corner left
+   costs as much as the best army in hand, nothing cheaper exists. It is only
+   fast for three stacks or fewer, and only right when the cost is the sizes
+   times the prices, which means upfront. Under a limit the rays run on the
+   fight alone (sv), every corner already past a limit is dropped, since all
+   above it is past it too, and only armies the full check (judge) passes can
+   become the best in hand. */
+function* cePolyblock(sv, judge, caps, start, until, eps){
+  const K = sv.K, c = sv.bitsArr;
+  const cost = x => { let s = 0; for (let i = 0; i < K; i++) s += x[i] * c[i]; return s; };
+  let inc = cost(start), incX = start.slice();
+  const U = c.map(ci => Math.ceil(inc / ci));
+  let V = [new Array(K).fill(0)], proved = false;
+  while (V.length && Date.now() < until && V.length < 20000){
+    let bi = 0, bc = Infinity;
+    for (let k = 0; k < V.length; k++){ const v = cost(V[k]); if (v < bc){ bc = v; bi = k; } }
+    if (bc >= inc * (1 - eps)){ proved = true; break; }
+    const v = V[bi];
+    if (sv.feasible(v)){
+      if (judge.feasible(v)){ if (bc < inc){ inc = bc; incX = v.slice(); } proved = true; break; }
+      V.splice(bi, 1);
+      continue;
+    }
+    const d = U.map((u, i) => u - v[i]);
+    const at = t => v.map((vi, i) => Math.min(U[i], vi + Math.floor(d[i] * t + 1e-9)));
+    let lo = 0, hi = 1, zlo;
+    if (!sv.feasible(at(hi))) zlo = at(hi);
+    else {
+      for (;;){
+        const mid = (lo + hi) / 2;
+        if (sv.feasible(at(mid))) hi = mid; else lo = mid;
+        const a = at(lo), b = at(hi);
+        let close = true;
+        for (let i = 0; i < K; i++) if (b[i] - a[i] > 1){ close = false; break; }
+        if (close || hi - lo < 1e-9) break;
+      }
+      zlo = at(lo);
+      const x = at(hi);
+      for (let i = 0; i < K; i++) if (x[i]) sv.tighten(x, i);
+      if (cost(x) < inc && judge.feasible(x)){ inc = cost(x); incX = x.slice(); }
+      if (sv.feasible(zlo)) zlo = v.slice();
+    }
+    /* every corner under the losing end is replaced by its children */
+    const keep = [], kids = [];
+    for (const s of V){
+      let below = true;
+      for (let i = 0; i < K; i++) if (s[i] > zlo[i]){ below = false; break; }
+      if (!below){ keep.push(s); continue; }
+      for (let i = 0; i < K; i++){
+        const ch = s.slice();
+        ch[i] = zlo[i] + 1;
+        if (ch[i] <= U[i] && cost(ch) < inc * (1 - eps) && !(caps.length && overCaps(caps, ch))) kids.push(ch);
+      }
+    }
+    const nKeep = keep.length;
+    for (const x of kids){
+      let covered = false;
+      for (let b = 0; b < keep.length && !covered; b++){
+        const y = keep[b];
+        let ge = true;
+        for (let i = 0; i < K; i++) if (x[i] < y[i]){ ge = false; break; }
+        covered = ge;
+      }
+      if (covered) continue;
+      for (let b = keep.length - 1; b >= nKeep; b--){
+        const y = keep[b];
+        let ge = true;
+        for (let i = 0; i < K; i++) if (y[i] < x[i]){ ge = false; break; }
+        if (ge) keep.splice(b, 1);
+      }
+      keep.push(x);
+    }
+    V = keep.filter(x => cost(x) < inc * (1 - eps));
+    if (!V.length) proved = true;
+    yield null;
+  }
+  return {sizes: incX, cost: inc, proved};
+}
+
+function* ceSolveGen(opts, foeRows, bonusOwn, bonusFoe){
+  const foeProfiles = foeRows.map(solProfile);
+  const ticks = Math.max(1, opts.ticks || 1);
+  const o = {
+    goal: opts.goal, minSurvivors: Math.max(1, opts.minSurvivors || 1),
+    bonusOwn, bonusFoe, ticks, budget: opts.budget || {}, stock: opts.stock || {},
+    wantLosses: ticks > 1 || opts.goal !== "wipe" || opts.objective !== "upfront"
+  };
+  const needKill = o.goal !== "survive";
+  const capsOn = limitsOn(o);
+  const upfront = opts.objective === "upfront";
+  const rng = mulberry32(0xce5eed);
+
+  /* the clock: the first allowance learns which mixes are worth having, the
+     second polishes them, and the answer is handed back with a little to spare */
+  const t0 = Date.now();
+  const scanMs = Math.max(200, opts.scanMs || 30000), budgetMs = Math.max(200, opts.budgetMs || 30000);
+  const scanEnd = t0 + scanMs;
+  const stopAt = t0 + scanMs + budgetMs - Math.min(500, 0.02 * (scanMs + budgetMs));
+  let lastNote = Date.now();
+  const due = () => Date.now() - lastNote >= 25;
+  const note = (phase, at, of, msg) => { lastNote = Date.now(); return {phase, done:false, at, of, msg}; };
+
+  let all = buildCandidates(Object.assign({}, opts, {goal:o.goal}), foeProfiles, bonusOwn, bonusFoe);
+  if (opts.side === "attacker") all = all.filter(c => c.type !== "Alicorns");
+  if (!all.length){ yield {done:true, error:noLoadouts(o)}; return; }
+  /* over several ticks killing them is how you live through it, so even a
+     pure survival run keeps the loadouts that hit hard */
+  const pool = ceLoadouts(all, o, needKill || ticks > 1);
+  if (needKill && foeProfiles.some((f, j) => !pool.some(c => c.perHit[j] > 0))){
+    yield {done:true, error:"Some enemy stacks take zero damage from every allowed loadout, so they cannot be killed."};
+    return;
+  }
+  const n = pool.length, K = Math.min(opts.maxStacks, n);
+
+  const pick = (a, b) => upfront ? a : opts.objective === "losses" ? b : a + b;
+  const metricOf = (sizes, subset, res) => {
+    let up = 0, burn = 0, wup = 0, wburn = 0;
+    for (let i = 0; i < sizes.length; i++){
+      up  += sizes[i] * subset[i].bits;
+      wup += sizes[i] * subset[i].wbits;
+      if (res && res.ownLost){
+        burn  += res.ownLost[i] * subset[i].bits;
+        wburn += res.ownLost[i] * subset[i].wbits;
+      }
+    }
+    return {up, burn, wup, m: pick(up, burn), score: pick(wup, wburn)};
+  };
+  /* ranking up front needs no battle; anything counting losses does */
+  const scoreOf = (sv, subset, sizes) =>
+    upfront ? sv.cost(sizes) : metricOf(sizes, subset, sv.result(sizes)).score;
+
+  /* the hits a mix needs at the very least, priced at its cheapest killer of
+     each enemy stack — the floor Deep sorts by, used here only to skip mixes
+     that cannot beat what is already in hand */
+  const killRate = pool.map(c => foeProfiles.map((f, j) => c.perHit[j] > 0 ? c.wbits / c.perHit[j] : Infinity));
+  const lowerBound = idxs => {
+    if (!needKill) return 0;
+    let lb = 0;
+    for (let j = 0; j < foeProfiles.length; j++){
+      let best = Infinity;
+      for (const i of idxs) if (killRate[i][j] < best) best = killRate[i][j];
+      if (best === Infinity) return Infinity;
+      lb += foeProfiles[j].size * best / ticks;
+    }
+    return lb;
+  };
+
+  /* ---- phase 1: learn which loadouts belong together ---- */
+  /* every mix that could be sized, and the eight best of them */
+  const archive = [], seen = new Set(), archiveAt = new Map(), leaders = [];
+  let considered = 0, bestRank = Infinity;
+  const evalSubset = idxs => {
+    const key = idxs.join(",");
+    if (seen.has(key)) return archiveAt.has(key) ? archive[archiveAt.get(key)] : null;
+    seen.add(key);
+    considered++;
+    if (upfront && lowerBound(idxs) >= bestRank) return null;
+    const subset = idxs.map(i => pool[i]);
+    const dz = deepSizer(subset, foeProfiles, o);
+    let best = null, bestScore = Infinity;
+    for (const d of dz.baseDirs()){
+      const s = dz.probe(d);
+      if (!s) continue;
+      const sc = scoreOf(dz.sv, subset, s);
+      if (sc < bestScore){ bestScore = sc; best = s; }
+    }
+    /* under a limit the cheapest mix hugs the edge of it, where no base
+       direction points, so the classic sizing has to rank it */
+    if (capsOn){
+      const q = quickOptimize(subset, foeProfiles, o);
+      if (q){
+        const sc = scoreOf(q.sv, subset, q.sizes);
+        if (sc < bestScore){ bestScore = sc; best = q.sizes; }
+      }
+    }
+    if (!best) return null;
+    /* when losses count, where a base direction lands says little about what
+       the mix can really do, so every mix is walked down to its local best
+       before it is ranked; up front the ranking holds well enough without,
+       and sizing five times as many mixes is worth more */
+    if (!upfront){
+      const lm = dz.sv.localMin(best, -1);
+      if (lm){
+        const sc = scoreOf(dz.sv, subset, lm);
+        if (sc < bestScore){ bestScore = sc; best = lm; }
+      }
+    }
+    if (bestScore < bestRank) bestRank = bestScore;
+    const e = {idxs, subset, sizes: best, rank: bestScore, settled: !upfront};
+    archiveAt.set(key, archive.length);
+    archive.push(e);
+    if (leaders.length < 8 || bestScore < leaders[leaders.length - 1].rank){
+      let k = Math.min(leaders.length, 7);
+      if (leaders.length < 8) leaders.push(e);
+      while (k > 0 && leaders[k - 1].rank > bestScore){ leaders[k] = leaders[k - 1]; k--; }
+      leaders[k] = e;
+    }
+    return e;
+  };
+  const liveOf = (idxs, sizes) => idxs.filter((v, k) => sizes[k] > 0);
+
+  /* how many mixes there are in all, and whether that is few enough to just
+     size every one of them */
+  const totalMixes = (() => {
+    let tot = 0, c = 1;
+    for (let i = 1; i <= K; i++){ c = c * (n - i + 1) / i; tot += c; }
+    return tot;
+  })();
+  const SWEEP_CAP = 150000;
+
+  /* a round draws three mixes per loadout; the best tenth of them teach the
+     weights, which move most of the way there each round but never quite
+     to nothing */
+  const N = Math.max(40, Math.min(400, 3 * n));
+  const rho = 0.1, alpha = 0.7, floor = 0.05 / n;
+  let p = new Float64Array(n).fill(1 / n);
+  /* With up to four stacks allowed every draw fills them all. With more, a
+     draw of twenty loadouts is mostly passengers that blur the ranking, so
+     fresh draws stay at four and wider mixes are grown one stack at a time
+     from the best ones (see neighbour below). */
+  const kDraw = Math.min(K, 4);
+  let round = 0, stall = 0, bestEver = Infinity, sweep = false;
+  const draw = () => {
+    const w = Array.from(p), out = [];
+    for (let k = 0; k < kDraw; k++){
+      let tot = 0;
+      for (let i = 0; i < n; i++) tot += w[i];
+      let r = rng() * tot, i = 0;
+      for (; i < n - 1; i++){ r -= w[i]; if (r <= 0 && w[i] > 0) break; }
+      while (!(w[i] > 0) && i > 0) i--;
+      out.push(i);
+      w[i] = 0;
+    }
+    return out.sort((a, b) => a - b);
+  };
+  /* A draw the weights alone would rarely make: one of the best mixes so far
+     with one stack swapped for another, picked half by the weights and half
+     at random. The weights learn which loadouts are good, not which go
+     together, and a winning trio can sit one swap away from a runner-up long
+     before the weights find all three. With more than four stacks allowed,
+     half of these add the new stack to what the mix really fields instead,
+     which is how the wider mixes get built. When losses count, and the
+     stacks are four or fewer, the ranking is too rough for any of this to
+     pay — it only crowds the draws round a few mixes — so there every draw
+     comes from the weights. */
+  const WIDE = K > 4;
+  const NEAR = upfront || WIDE ? 0.3 : 0;
+  const neighbour = () => {
+    const lead = leaders[Math.floor(rng() * leaders.length)];
+    const out = WIDE ? liveOf(lead.idxs, lead.sizes) : lead.idxs.slice(), w = Array.from(p, v => v + 1 / n);
+    for (const i of out) w[i] = 0;
+    let tot = 0;
+    for (let i = 0; i < n; i++) tot += w[i];
+    if (!(tot > 0)) return draw();
+    let r = rng() * tot, i = 0;
+    for (; i < n - 1; i++){ r -= w[i]; if (r <= 0 && w[i] > 0) break; }
+    while (!(w[i] > 0) && i > 0) i--;
+    if (out.length < kDraw || (WIDE && out.length < K && rng() < 0.5)) out.push(i);
+    else out[Math.floor(rng() * out.length)] = i;
+    return out.sort((a, b) => a - b);
+  };
+  const restart = () => { p = new Float64Array(n).fill(1 / n); stall = 0; };
+  const label1 = () => `Learning which loadouts pull together — round ${round} · ${considered.toLocaleString("en-US")} mixes sized`;
+
+  while (Date.now() < scanEnd){
+    round++;
+    const batch = [];
+    for (let s = 0; s < N; s++){
+      const e = evalSubset(NEAR && leaders.length && rng() < NEAR ? neighbour() : draw());
+      if (e) batch.push(e);
+      if (due()){
+        yield note(1, Math.min(1, (Date.now() - t0) / scanMs), 1, label1());
+        if (Date.now() >= scanEnd) break;
+      }
+    }
+    /* few enough left that sizing them all beats guessing */
+    const rate = considered / Math.max(1, Date.now() - t0);
+    if (totalMixes <= SWEEP_CAP && totalMixes - seen.size <= rate * (scanEnd - Date.now()) * 0.6){ sweep = true; break; }
+    if (!batch.length){ if (++stall >= 4) restart(); continue; }
+    batch.sort((a, b) => a.rank - b.rank);
+    const elite = batch.slice(0, Math.max(2, Math.ceil(rho * batch.length)));
+    const freq = new Float64Array(n);
+    for (const e of elite) e.idxs.forEach((v, k) => { if (e.sizes[k] > 0) freq[v] += 1; });
+    let tot = 0;
+    for (let i = 0; i < n; i++){ p[i] = Math.max(floor, (1 - alpha) * p[i] + alpha * freq[i] / (elite.length * kDraw)); tot += p[i]; }
+    for (let i = 0; i < n; i++) p[i] /= tot;
+    if (batch[0].rank < bestEver * (1 - 1e-6)){ bestEver = batch[0].rank; stall = 0; } else stall++;
+    if (stall >= 4) restart();
+  }
+
+  if (sweep){
+    /* every mix not yet sized, the likeliest first by what the weights learned */
+    const combos = [];
+    const rec = (start, chosen) => {
+      if (chosen.length && !seen.has(chosen.join(","))) combos.push(chosen.slice());
+      if (chosen.length === K) return;
+      for (let i = start; i < n; i++){ chosen.push(i); rec(i + 1, chosen); chosen.pop(); }
+    };
+    rec(0, []);
+    const lp = Array.from(p, v => Math.log(v));
+    for (const c of combos) c.like = c.reduce((s, i) => s + lp[i], 0) / c.length;
+    combos.sort((a, b) => b.like - a.like);
+    for (let k = 0; k < combos.length; k++){
+      evalSubset(combos[k]);
+      if (due()){
+        yield note(1, Math.min(1, (Date.now() - t0) / scanMs), 1,
+          `Sizing every mix that is left — ${k.toLocaleString("en-US")} of ${combos.length.toLocaleString("en-US")}`);
+        if (Date.now() >= scanEnd) break;
+      }
+    }
+  }
+
+  if (!archive.length){ yield {done:true, error:noSolution(considered, o)}; return; }
+
+  /* ---- phase 2: polish in rounds, a third as many mixes each time ---- */
+  archive.sort((a, b) => a.rank - b.rank);
+  const p2Start = Date.now();
+  const span = Math.max(1, stopAt - p2Start);
+  /* mixes that field the same stacks are the same mix, whatever else was
+     drawn beside them */
+  const states = [], liveSeen = new Set();
+  for (const e of archive){
+    const lk = liveOf(e.idxs, e.sizes).join(",");
+    if (liveSeen.has(lk)) continue;
+    liveSeen.add(lk);
+    states.push({subset: e.subset, best: e.sizes.slice(), bestScore: e.rank, dz: null, pts: [],
+                 polished: new Set(e.settled ? [e.sizes.join(",")] : []), quick: capsOn, rung: 0});
+    if ((states.length & 255) === 0 && due()) yield note(2, 0, span, "Lining up the best mixes");
+  }
+
+  const ensure = st => {
+    if (!st.dz) st.dz = deepSizer(st.subset, foeProfiles, o);
+    return st.dz;
+  };
+  const consider = (st, sizes) => {
+    if (!sizes || !st.dz.sv.feasible(sizes)) return false;
+    const sc = scoreOf(st.dz.sv, st.subset, sizes);
+    if (sc < st.bestScore - 1e-9){ st.bestScore = sc; st.best = sizes.slice(); return true; }
+    return false;
+  };
+
+  /* many more directions than the scan could afford, each one a fresh shape */
+  function* look(st, count, until, msg){
+    const dz = ensure(st);
+    for (let d = 0; d < count && Date.now() < until; d++){
+      const pz = dz.probe(dz.randomDir(rng));
+      if (pz){ st.pts.push({p: pz, c: dz.sv.cost(pz)}); consider(st, pz); }
+      if (due()) yield msg();
+    }
+  }
+  /* the best few starting points walked down to where no single trade helps */
+  function* settle(st, count, until, msg){
+    const dz = ensure(st);
+    const pts = st.pts.slice();
+    pts.push({p: st.best.slice(), c: dz.sv.cost(st.best)});
+    pts.sort((a, b) => a.c - b.c);
+    let done = 0;
+    for (const {p: pp} of pts){
+      if (done >= count || Date.now() >= until) break;
+      const key = pp.join(",");
+      if (st.polished.has(key)) continue;
+      st.polished.add(key);
+      consider(st, dz.sv.localMin(pp, -1));
+      done++;
+      if (due()) yield msg();
+    }
+    st.pts = pts.slice(0, 12);
+  }
+  /* shift troops from one stack onto another, or shake the whole mix and
+     scale it back to working, then re-polish */
+  function* kick(st, count, until, msg){
+    const dz = ensure(st), K2 = st.subset.length;
+    for (let r = 0; r < count && Date.now() < until; r++){
+      const best = st.best;
+      let trial;
+      if (K2 > 1 && rng() < 0.6){
+        const live = best.map((v, i) => i).filter(i => best[i] > 0);
+        const i = live[Math.floor(rng() * live.length)];
+        let j = Math.floor(rng() * (K2 - 1)); if (j >= i) j++;
+        const f = [0.1, 0.25, 0.5, 1][Math.floor(rng() * 4)];
+        trial = best.slice();
+        const moved = Math.ceil(trial[i] * f);
+        trial[i] -= moved;
+        trial[j] += Math.max(1, Math.round(moved * st.subset[i].wbits / st.subset[j].wbits));
+        trial = dz.probe(trial);
+      } else trial = dz.probe(best.map(v => (v + 1) * (0.5 + rng())));
+      if (trial){
+        const pol = dz.sv.localMin(trial, -1);
+        consider(st, pol || trial);
+      }
+      if (due()) yield msg();
+    }
+  }
+  /* When the price counts what the fight burns, the cheapest army up front is
+     not the answer — a bigger stack can win sooner and lose less. localMin only
+     knows the price up front, so this walks the edge of winning by the real
+     price: grow one stack a little, shave every stack back to the least that
+     still wins (the grown one last), and keep it if the total came down. */
+  function* descend(st, rounds, until, msg){
+    if (upfront) return;
+    const dz = ensure(st), sv = dz.sv, K2 = st.subset.length;
+    const factors = [0.003, 0.01, 0.03, 0.1, 0.3];
+    for (let r = 0; r < rounds && Date.now() < until; r++){
+      let moved = false;
+      for (let i = 0; i < K2 && !moved; i++){
+        for (const f of factors){
+          const base = st.best;
+          let tot = 0;
+          for (const v of base) tot += v;
+          const step = Math.max(1, Math.round((base[i] || tot / K2) * f));
+          const trial = base.slice();
+          trial[i] += step;
+          if (!sv.feasible(trial)) continue;
+          const order = trial.map((v, k) => k).filter(k => k !== i && trial[k] > 0)
+            .sort((a, b) => trial[b] * sv.bitsArr[b] - trial[a] * sv.bitsArr[a]);
+          for (const k of order) sv.tighten(trial, k);
+          sv.tighten(trial, i);
+          if (consider(st, trial)){ moved = true; break; }
+          if (due()) yield msg();
+        }
+      }
+      if (!moved) break;
+    }
+  }
+  /* the classic search's own grid walk from the best found, for as long as
+     the round's time lasts */
+  function* grid(st, gridN, until, msg){
+    ensure(st);
+    const walk = hardOptimize(st.subset, foeProfiles, o, null, gridN, st.best);
+    let r;
+    while (!(r = walk.next()).done){
+      if (Date.now() >= until) return;
+      if (due()) yield msg();
+    }
+    if (r.value) consider(st, r.value.sizes);
+  }
+  /* the exact sizes for a mix of three stacks or fewer, where they can be had */
+  function* exact(st, until, msg){
+    if (!upfront) return;
+    const keepIdx = st.best.map((v, i) => i).filter(i => st.best[i] > 0);
+    if (keepIdx.length > 3 || !keepIdx.length) return;
+    const sub = keepIdx.map(i => st.subset[i]);
+    const judge = makeSolver(sub, foeProfiles, o);
+    const start = keepIdx.map(i => st.best[i]);
+    if (!judge.feasible(start)) return;
+    const sv = capsOn ? makeSolver(sub, foeProfiles, Object.assign({}, o, {budget:{}, stock:{}})) : judge;
+    const run = cePolyblock(sv, judge, capsOn ? capsFor(sub, o) : [], start,
+                            Math.min(until, Date.now() + Math.max(250, span * 0.06)), 1e-5);
+    let r;
+    while (!(r = run.next()).done) if (due()) yield msg();
+    const got = r.value;
+    if (got && judge.feasible(got.sizes) && judge.cost(got.sizes) < judge.cost(start) - 1e-9){
+      const full = st.best.map(() => 0);
+      keepIdx.forEach((i, k) => { full[i] = got.sizes[k]; });
+      ensure(st);
+      consider(st, full);
+    }
+    if (got && got.proved) st.exact = st.best.join(",");
+  }
+
+  /* The leader against the whole catalogue, not just the loadouts kept for the
+     draw, one stack at a time: each stack dropped, then with a slot to spare
+     one more beside them, then every other loadout in each slot. The extra
+     stack is often a cheap unarmoured one of a type already fielded: the
+     enemy shoots the toughest of a type first, so it is only reached once its
+     armoured fellows are dead, and it fires a full volley every tick until
+     then. */
+  const loKey = sub => sub.map(c => `${c.type}|${c.weapon}|${c.armor}`).sort().join(";");
+  function* reshape(st0, until, msg){
+    const liveIdx = st0.best.map((v, i) => i).filter(i => st0.best[i] > 0);
+    let cur = {subset: liveIdx.map(i => st0.subset[i]), sizes: liveIdx.map(i => st0.best[i]), score: st0.bestScore};
+    const tried = new Set([loKey(cur.subset)]);
+    let found = null;
+    while (Date.now() < until){
+      const L = cur.subset.length, moves = [];
+      const types = new Set(cur.subset.map(c => c.type));
+      if (L > 1) for (let i = 0; i < L; i++) moves.push({drop: i, pri: 0});
+      if (L < K) for (const c of all) if (!cur.subset.includes(c)) moves.push({add: c, pri: types.has(c.type) ? 1 : 3});
+      for (let i = 0; i < L; i++) for (const c of all)
+        if (!cur.subset.includes(c)) moves.push({at: i, c, pri: c.type === cur.subset[i].type ? 2 : 4});
+      moves.sort((a, b) => a.pri - b.pri);
+      let tot = 0;
+      for (const v of cur.sizes) tot += v;
+      let better = null;
+      for (const mv of moves){
+        if (Date.now() >= until) break;
+        let sub, warm;
+        if (mv.add){ sub = cur.subset.concat(mv.add); warm = cur.sizes.concat(Math.max(1, Math.round(tot * 0.03))); }
+        else if (mv.c){
+          sub = cur.subset.slice(); sub[mv.at] = mv.c;
+          warm = cur.sizes.slice();
+          warm[mv.at] = Math.max(1, Math.round(warm[mv.at] * cur.subset[mv.at].wbits / mv.c.wbits));
+        } else { sub = cur.subset.filter((c, i) => i !== mv.drop); warm = cur.sizes.filter((v, i) => i !== mv.drop); }
+        const key = loKey(sub);
+        if (tried.has(key)) continue;
+        tried.add(key);
+        const dz = deepSizer(sub, foeProfiles, o);
+        const pz = dz.probe(warm);
+        if (pz){
+          const lm = dz.sv.localMin(pz, -1) || pz;
+          const st = {subset: sub, best: lm, bestScore: scoreOf(dz.sv, sub, lm), dz, pts: [], polished: new Set()};
+          /* a near miss often only needs shaking to come out ahead — dropping a
+             one-troop passenger lands a hair above the mix that carried it,
+             and a few kicks find the better shape the extra slot was hiding */
+          if (st.bestScore >= cur.score - 1e-9 && st.bestScore < cur.score * 1.0005) yield* kick(st, 20, until, msg);
+          if (st.bestScore < cur.score - 1e-9){ better = {subset: sub, sizes: st.best, score: st.bestScore, dz}; break; }
+        }
+        if (due()) yield msg();
+      }
+      if (!better) break;
+      cur = found = better;
+    }
+    if (!found) return null;
+    const st = {subset: found.subset, best: found.sizes, bestScore: found.score, dz: found.dz, pts: [],
+                polished: new Set([found.sizes.join(",")]), quick: false, rung: 4};
+    states.push(st);
+    return st;
+  }
+
+  /* each round's share of the time, on a third as many mixes as the round
+     before; whatever a round leaves unspent rolls on to the next */
+  const rungs = [
+    {share: 0.25, word: "a first look at", run: function*(st, until, msg){
+      yield* look(st, 6 + 3 * st.subset.length, until, msg);
+      yield* settle(st, 1, until, msg);
+      yield* descend(st, 3, until, msg);
+    }},
+    {share: 0.30, word: "a closer look at", run: function*(st, until, msg){
+      yield* look(st, 24 + 6 * st.subset.length, until, msg);
+      if (!st.quick && Date.now() < until){
+        st.quick = true;
+        const q = quickOptimize(st.subset, foeProfiles, o);
+        if (q){ ensure(st); consider(st, q.sizes); }
+      }
+      yield* settle(st, 3, until, msg);
+      yield* descend(st, 10, until, msg);
+      yield* kick(st, 10, until, msg);
+    }},
+    {share: 0.25, word: "shaking up", run: function*(st, until, msg){
+      yield* kick(st, 30, until, msg);
+      yield* descend(st, 20, until, msg);
+      yield* grid(st, 40, until, msg);
+    }},
+    {share: 0.20, word: "finishing", run: function*(st, until, msg){
+      yield* exact(st, until, msg);
+      yield* kick(st, 40, until, msg);
+      yield* look(st, 48, until, msg);
+      yield* settle(st, 4, until, msg);
+      yield* descend(st, 50, until, msg);
+    }}
+  ];
+  const reshapeShare = 0.1, rungSpan = span * (1 - reshapeShare);
+  let field = states, refined = 0, share = 0;
+  for (let r = 0; r < rungs.length && field.length; r++){
+    share += rungs[r].share;
+    const until = p2Start + rungSpan * share;
+    const done = [];
+    for (let k = 0; k < field.length && Date.now() < until; k++){
+      const st = field[k];
+      const msg = () => note(2, Date.now() - p2Start, span,
+        `Polishing the best mixes — ${rungs[r].word} ${k + 1} of ${field.length}`);
+      yield* rungs[r].run(st, until, msg);
+      st.rung = r + 1;
+      done.push(st);
+      if (r === 0) refined++;
+      if (due()) yield msg();
+    }
+    done.sort((a, b) => a.bestScore - b.bestScore);
+    field = done.slice(0, Math.max(Math.min(3, done.length), Math.ceil(done.length / 3)));
+  }
+
+  /* the leader against every loadout there is */
+  const lead = states.filter(st => st.rung).sort((a, b) => a.bestScore - b.bestScore)[0];
+  const reshapeUntil = Math.min(stopAt, Math.max(Date.now(), p2Start + rungSpan) + span * reshapeShare);
+  if (lead && Date.now() < reshapeUntil){
+    const msg = () => note(2, Date.now() - p2Start, span, "Trying every other loadout in each slot of the best mix");
+    const st = yield* reshape(lead, reshapeUntil, msg);
+    if (st){
+      yield* settle(st, 2, stopAt, msg);
+      yield* kick(st, 20, stopAt, msg);
+      yield* exact(st, stopAt, msg);
+      yield* descend(st, 20, stopAt, msg);
+    }
+  }
+
+  /* time to spare: keep shaking the leaders, until a few passes in a row
+     find nothing */
+  field = states.filter(st => st.rung).sort((a, b) => a.bestScore - b.bestScore).slice(0, 3);
+  for (let pass = 0, idle = 0; field.length && Date.now() < stopAt && idle < 4 * field.length; pass++){
+    const st = field[pass % field.length], was = st.bestScore;
+    const msg = () => note(2, Date.now() - p2Start, span, "Polishing the best mixes — one more pass over the leaders");
+    yield* kick(st, 20, stopAt, msg);
+    yield* look(st, 12, stopAt, msg);
+    yield* settle(st, 2, stopAt, msg);
+    yield* descend(st, 10, stopAt, msg);
+    idle = st.bestScore < was ? 0 : idle + 1;
+    if (due()) yield msg();
+  }
+
+  /* ---- the answers ---- */
+  states.sort((a, b) => a.bestScore - b.bestScore);
+  const finals = states.slice(0, 40).map(st => {
+    const sv = st.dz ? st.dz.sv : makeSolver(st.subset, foeProfiles, o);
+    const res = sv.result(st.best);
+    return {subset: st.subset, sizes: st.best, met: metricOf(st.best, st.subset, res), res,
+            exact: st.exact === st.best.join(",")};
+  });
+  const liveCount = f => f.sizes.filter(v => v > 0).length;
+  finals.sort((a, b) => a.met.score - b.met.score || liveCount(a) - liveCount(b) || a.met.wup - b.met.wup);
+  const seenOut = new Set(), out = [];
+  for (const f of finals){
+    const live = [];
+    f.sizes.forEach((sz, i) => { if (sz > 0) live.push({c: f.subset[i], size: sz,
+      lost: f.res.ownLost ? f.res.ownLost[i] : null}); });
+    if (!live.length) continue;
+    const key = live.map(l => `${l.c.type}|${l.c.weapon}|${l.c.armor}|${l.size}`).sort().join(";");
+    if (seenOut.has(key)) continue;
+    seenOut.add(key);
+    out.push({live, upfront: f.met.up, burned: f.met.burn, metric: f.met.m, score: f.met.score,
+              wipes: f.res.wipe, left: f.res.ownLeft,
+              ticks: f.res.ticksUsed || 1, tickLog: f.res.perTick || null,
+              troops: live.reduce((s, l) => s + l.size, 0), exact: f.exact});
+  }
+  yield {done:true, results: out.slice(0, 10), candCount: n, comboCount: considered,
+         beam: false, maxStacks: K, skipped: 0, refined, shortlisted: states.length, deep: false, ce: true};
+}
+
 /* how hard the deep search looks at each effort level */
 const DEEP_EFFORT = {
   quick:    {maxCandidates:20, refine:12, dirs:24, kicks:15, gridN:20, slack:1,    budgetMs:10000,  beam:10, scanMs:10000},
@@ -7613,7 +8290,7 @@ function readSolveOpts(){
     training: clampInt(document.getElementById("solveTrain").value, 0, TRAIN_UNCAPPED),
     maxStacks: clampInt(document.getElementById("solveStacks").value, 1, MAX_SOLVE_STACKS),
     minSurvivors: Math.max(1, clampInt(document.getElementById("solveSurv").value, 1, 1e9)),
-    algo: document.getElementById("solveAlgo").value === "classic" ? "classic" : "deep",
+    algo: ({classic: "classic", ce: "ce"})[document.getElementById("solveAlgo").value] || "deep",
     /* over several ticks armour earns its keep even on a pure wipe: a troop
        that lives through this tick fires again in the next one */
     useArmor: ticks > 1 || goal !== "wipe" || objective !== "upfront"
@@ -7660,7 +8337,7 @@ async function runSolver(){
   const started = performance.now();
   let last = null, tick = performance.now();
   try {
-    const gen = opts.algo === "classic" ? solveGen : deepSolveGen;
+    const gen = opts.algo === "classic" ? solveGen : opts.algo === "ce" ? ceSolveGen : deepSolveGen;
     for (const st of gen(opts, foeRows, bonusOwn, bonusFoe)){
       if (solveHalt) break;
       if (st && st.done) last = st;
@@ -7858,7 +8535,7 @@ function renderSolutions(out, opts, bonus, secs){
     <div class="small muted" style="margin:10px 0 8px">
       Cheapest ${esc(sideWord)} found · ${out.candCount} loadouts survived pruning ·
       ${out.comboCount.toLocaleString("en-US")} combinations considered${out.beam ? ` (beam search, up to ${out.maxStacks} stacks)` : ""} ·
-      ${out.deep ? "deep search · " : ""}
+      ${out.ce ? "cross-entropy search · " : out.deep ? "deep search · " : ""}
       ${out.refined} of ${out.shortlisted} shortlisted forces deeply refined ·
       ${secs.toFixed(1)}s${opts.ticks > 1 ? ` · up to ${opts.ticks} ticks` : ""}
     </div>
@@ -7903,7 +8580,7 @@ document.getElementById("solveSide").addEventListener("change", syncSolveSide);
 (() => {
   const sel = document.getElementById("solveAlgo");
   const saved = store.get("warcalc.solverAlgo", null);
-  if (saved === "classic" || saved === "deep") sel.value = saved;
+  if (saved === "classic" || saved === "deep" || saved === "ce") sel.value = saved;
   sel.addEventListener("change", () => store.set("warcalc.solverAlgo", sel.value));
 })();
 setupLean();
