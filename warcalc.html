@@ -10629,11 +10629,11 @@ function takeSnap(src){
   el.className = "snap";
   el.dataset.paper = GS_PAPER_DEFAULT;
   el.innerHTML = `<div class="snap-head">
-      <button type="button" class="snap-color" title="Colour"></button>
-      <span class="snap-name" title="Double-click to name"></span>
+      <button type="button" class="snap-color"></button>
+      <span class="snap-name"></span>
       <span class="spacer"></span>
-      <button type="button" class="snap-btn snap-fold" title="Collapse">▾</button>
-      <button type="button" class="snap-btn snap-x" title="Close">×</button>
+      <button type="button" class="snap-btn snap-fold">▾</button>
+      <button type="button" class="snap-btn snap-x">×</button>
     </div>
     <div class="snap-body"></div>`;
   const clone = snapClone(src);
@@ -10660,7 +10660,6 @@ function foldSnap(el, folded){
   el.classList.toggle("snap-folded", folded);
   const b = el.querySelector(".snap-fold");
   b.textContent = folded ? "▸" : "▾";
-  b.title = folded ? "Expand" : "Collapse";
 }
 
 function closeSnapPop(el){
@@ -10702,7 +10701,7 @@ function wireSnap(el){
       const pop = document.createElement("div");
       pop.className = "snap-pop";
       pop.innerHTML = Object.entries(GS_PAPER).map(([id, c])=>
-        `<button type="button" class="slip-dot${el.dataset.paper === id ? " on" : ""}" title="${id}"
+        `<button type="button" class="slip-dot${el.dataset.paper === id ? " on" : ""}"
            style="background:${c.paper}" data-snap-paper="${id}"></button>`).join("");
       head.appendChild(pop);
       t.closest(".snap-color").classList.add("open");
