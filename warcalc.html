@@ -1385,6 +1385,60 @@ details summary{cursor:pointer;color:var(--strong);font-size:13px;padding:2px 0}
 }
 .ovl-x:hover{color:var(--strong)}
 .ovl-body{overflow:auto;padding:12px;max-height:72vh;overscroll-behavior:contain}
+.help-table td{padding:3px 8px;font-size:12px;vertical-align:top}
+.help-table td:first-child{white-space:nowrap;text-align:right}
+.help-table kbd{
+  font:600 10px/1 var(--mono);
+  background:var(--sunken);border:1px solid var(--border-soft);border-radius:3px;
+  padding:2px 4px;color:var(--strong);
+}
+.help-table tr.help-grp td{padding-top:10px;font-size:10px;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--text-dim);text-align:left}
+
+/* ---------- snapshots: shift-click a box to keep a frozen copy of it ---------- */
+.snap{
+  --paper:#25282c;--ink:#d6d3cc;
+  position:fixed;z-index:60;display:flex;flex-direction:column;
+  max-width:calc(100vw - 8px);
+  background:var(--raised);
+  border:1px solid color-mix(in srgb,var(--paper) 55%,var(--ink));
+  box-shadow:0 10px 34px rgba(var(--lo),.6);
+}
+body.snaps-hidden .snap{display:none}
+.snap-head{
+  display:flex;align-items:center;gap:6px;height:18px;padding:0 3px 0 5px;
+  background:var(--paper);color:var(--ink);cursor:move;user-select:none;
+  font:11px/1 var(--font);
+}
+.snap-color{
+  flex:0 0 auto;width:10px;height:10px;padding:0;border-radius:50%;cursor:pointer;
+  background:var(--paper);border:1px solid color-mix(in srgb,var(--ink) 60%,transparent);
+}
+.snap-color:hover,.snap-color.open{border-color:var(--ink)}
+.snap-name{
+  min-width:24px;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+  font-weight:600;letter-spacing:.04em;padding:1px 2px;border-radius:2px;outline:none;
+}
+.snap-name:empty::before{content:"Name";opacity:.45;font-weight:400}
+.snap-name[contenteditable="true"]{cursor:text;text-overflow:clip;
+  background:color-mix(in srgb,var(--ink) 14%,transparent)}
+.snap-btn{
+  flex:0 0 auto;background:none;border:none;color:var(--ink);opacity:.7;
+  font:13px/1 var(--font);padding:0 3px;cursor:pointer;
+}
+.snap-btn:hover{opacity:1}
+.snap-pop{
+  position:absolute;top:20px;left:2px;z-index:2;display:flex;gap:5px;padding:6px 7px;
+  background:var(--sunken);border:1px solid var(--border-soft);border-radius:4px;
+  box-shadow:0 6px 16px rgba(var(--lo),.55);
+}
+.snap-body{overflow:auto;padding:6px;max-height:82vh;overscroll-behavior:contain}
+.snap.snap-folded .snap-body{display:none}
+.snap-root{margin:0 !important}
+/* a snapshot is a picture: its buttons and boxes do nothing */
+.snap-body :is(button,input,select,textarea,a,label){pointer-events:none}
+/* with shift held, the box a click would copy is marked */
+.snap-aim{outline:1px dashed var(--warn) !important;outline-offset:1px;cursor:copy}
 .ref-table{width:100%}
 .ref-table + .ref-table{margin-top:16px}
 .ref-table th,.ref-table td{padding:2px 6px;font-size:11.5px;white-space:nowrap}
@@ -1634,6 +1688,8 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
       <span class="ref-lab">Weapon cost</span><kbd>G</kbd></button>
     <button class="ref-btn" data-ref="acost" title="Armor build costs  (H)">
       <span class="ref-lab">Armor cost</span><kbd>H</kbd></button>
+    <button class="ref-btn" data-ref="help" title="Hotkeys  (?)">
+      <span class="ref-lab">Help</span><kbd>?</kbd></button>
   </span>
 </div>
 
@@ -9285,9 +9341,9 @@ document.addEventListener("keydown", e=>{
 
 
 /* ===================================================================
-   9b. REFERENCE OVERLAYS — three cheat sheets that float over the page
+   9b. REFERENCE OVERLAYS — cheat sheets that float over the page
        instead of taking it over: F the stat table, G weapon build
-       costs, H armor build costs. Drag one anywhere and it stays there.
+       costs, H armor build costs, ? the hotkeys. Drag one anywhere and it stays there.
    =================================================================== */
 
 const LS_REFPOS = "warcalc.refPos";
@@ -9351,10 +9407,36 @@ const buildCostRef = kind =>
       return `<td class="num">${bits(c.bits)}</td><td class="res">${resChips(c.res)}</td>`;
     })}</tbody></table>`;
 
+/* every key and modified click the page answers to */
+const HELP_KEYS = [
+  ["Anywhere"],
+  [["F"], "Weapon & armor stat table"],
+  [["G"], "Weapon build costs"],
+  [["H"], "Armor build costs"],
+  [["?"], "This list"],
+  [["Esc"], "Close the window on top"],
+  ["Jump (when Jump hotkeys is on)"],
+  [["Q"], "Top of the page"],
+  [["W"], "Battle result"],
+  [["E"], "Survivors"],
+  [["R"], "Import units"],
+  ["Snapshots"],
+  [["Shift", "click"], "Snapshot the box under the pointer — a copy that keeps its numbers"],
+  [["Z"], "Hide / show every snapshot"],
+  [["Shift", "X"], "Close every snapshot"],
+  [["double-click"], "Name, to label a snapshot (Enter keeps it, Esc backs out)"],
+  ["Copy buttons"],
+  [["Shift", "click"], "Copy code: the long form. Copy plan: leaves out the whole fight's upkeep"]
+];
+const buildHelpRef = () => `<table class="help-table"><tbody>${HELP_KEYS.map(([k, what]) =>
+  what === undefined ? `<tr class="help-grp"><td colspan="2">${esc(k)}</td></tr>`
+    : `<tr><td>${k.map(x => `<kbd>${esc(x)}</kbd>`).join(" + ")}</td><td>${esc(what)}</td></tr>`).join("")}</tbody></table>`;
+
 const REFS = {
   stats: {title:"Weapon & armor stats", width:540, build:()=>buildStatsRef()},
   wcost: {title:"Weapon build costs",   width:420, build:()=>buildCostRef("weapon")},
-  acost: {title:"Armor build costs",    width:420, build:()=>buildCostRef("armor")}
+  acost: {title:"Armor build costs",    width:420, build:()=>buildCostRef("armor")},
+  help:  {title:"Hotkeys",              width:400, build:()=>buildHelpRef()}
 };
 
 const refEls = {};
@@ -9441,7 +9523,7 @@ document.querySelectorAll(".ref-btn").forEach(b =>
 
 /* deliberately outside the Q W E R toggle: these are a reference card you
    flip up, not a jump, so they answer whether or not jumping is switched on */
-const REF_KEYS = {f:"stats", g:"wcost", h:"acost"};
+const REF_KEYS = {f:"stats", g:"wcost", h:"acost", "?":"help"};
 
 document.addEventListener("keydown", e=>{
   if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
@@ -10400,6 +10482,281 @@ gsEl("gsWide").addEventListener("change", ()=>{
   gs.wide = gsEl("gsWide").checked;
   gsSave();
   renderGrand();
+});
+
+
+/* ===================================================================
+   11. SNAPSHOTS — shift-click any box (an Entire battle well, an upkeep
+       strip, a ticket…) and a frozen copy of it floats over the page.
+       It keeps the numbers it had when it was taken. Z hides them all,
+       shift+X throws them all away.
+   =================================================================== */
+
+/* the boxes worth lifting out whole; anything else boxed in also counts */
+const SNAP_PICK = ".well,.chain-upkeep,.slip,.panel,.note,.pinbox";
+/* a shift-click on these keeps its own meaning */
+const SNAP_SKIP = "button,a,input,select,textarea,label,option,.snap,.ovl,#tip,.hk-dock,.tabstrip";
+/* the data- hooks a frozen copy may keep: its hover cards and the look of a few rows.
+   The rest are handles the page's code goes looking for, and must not find in here. */
+const SNAP_KEEP_DATA = /^data-(tip-|pin-key$|reinf$|step$|log-toggle$|icon$)/;
+
+let snapAim = null, snapOver = null;
+
+/* the box a shift-click on `el` would copy: the nearest named one, or the
+   nearest that draws a box of its own and is big enough to be one */
+function snapTarget(el){
+  if (!el?.closest || el.closest(SNAP_SKIP)) return null;
+  for (let n = el; n && n !== document.body; n = n.parentElement){
+    if (/^view/.test(n.id)) return null;           // a whole tab is not a box
+    if (n.matches(SNAP_PICK)) return n;
+    if (/^(TR|TD|TH|TBODY|THEAD|TFOOT|SUMMARY)$/.test(n.tagName)) continue;
+    const cs = getComputedStyle(n), r = n.getBoundingClientRect();
+    if (r.width < 100 || r.height < 28) continue;
+    const bg = cs.backgroundColor !== "rgba(0, 0, 0, 0)" && cs.backgroundColor !== "transparent";
+    const boxed = ["Top","Right","Bottom","Left"].every(s =>
+      parseFloat(cs[`border${s}Width`]) > 0 && cs[`border${s}Style`] !== "none");
+    if (bg || boxed) return n;
+  }
+  return null;
+}
+
+function aimSnap(el){
+  if (snapAim === el) return;
+  snapAim?.classList.remove("snap-aim");
+  snapAim = el;
+  el?.classList.add("snap-aim");
+}
+
+/* the hover card and damage compare a copy points at are filed again under
+   keys of its own, so redrawing the page never takes them away */
+function freezeKeys(root){
+  const moved = new Map();
+  const refile = (old, map) => {
+    if (!moved.has(old)){
+      const k = "snapk" + (++tipSeq);
+      moved.set(old, k);
+      if (TIPS.has(old)) TIPS.set(k, TIPS.get(old));
+      if (PINS.has(old)) PINS.set(k, PINS.get(old));
+    }
+    return moved.get(old);
+  };
+  root.querySelectorAll("[data-tip-key],[data-pin-key]").forEach(n=>{
+    if (n.dataset.tipKey) n.dataset.tipKey = refile(n.dataset.tipKey);
+    if (n.dataset.pinKey) n.dataset.pinKey = refile(n.dataset.pinKey);
+  });
+}
+
+function snapClone(src){
+  const c = src.cloneNode(true);
+  const all = n => [n, ...n.querySelectorAll("*")];
+  const from = all(src), to = all(c);
+  to.forEach((n, i)=>{
+    n.removeAttribute("id");
+    n.removeAttribute("for");
+    n.removeAttribute("name");              // or a copied radio would unpick the real one
+    [...n.attributes].forEach(a=>{
+      if (a.name.startsWith("data-") && !SNAP_KEEP_DATA.test(a.name)) n.removeAttribute(a.name);
+    });
+    n.classList?.remove("snap-aim");
+    /* what was typed or ticked is not in the markup, so carry it over */
+    const f = from[i];
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(f.tagName)){
+      if (f.type === "checkbox" || f.type === "radio") n.checked = f.checked;
+      else n.value = f.value;
+      n.tabIndex = -1;
+    }
+  });
+  freezeKeys(c);
+  c.classList.add("snap-root");
+  return c;
+}
+
+/* the copy sits inside bare stand-ins for the boxes the original sat in, so
+   every rule that dresses it by where it is still finds it there */
+function snapNest(src, clone){
+  let inner = clone;
+  for (let a = src.parentElement; a && a !== document.body; a = a.parentElement){
+    const w = document.createElement("div");
+    if (typeof a.className === "string") w.className = a.className;
+    w.classList.remove("snap-aim");
+    w.style.display = "contents";
+    w.appendChild(inner);
+    inner = w;
+  }
+  return inner;
+}
+
+function placeSnap(el, x, y){
+  el.style.left = Math.max(4 - el.offsetWidth + 60, Math.min(x, innerWidth - 60)) + "px";
+  el.style.top  = Math.max(4, Math.min(y, innerHeight - 22)) + "px";
+}
+
+function takeSnap(src){
+  const r = src.getBoundingClientRect();
+  const el = document.createElement("div");
+  el.className = "snap";
+  el.dataset.paper = GS_PAPER_DEFAULT;
+  el.innerHTML = `<div class="snap-head">
+      <button type="button" class="snap-color" title="Colour"></button>
+      <span class="snap-name" title="Double-click to name"></span>
+      <span class="spacer"></span>
+      <button type="button" class="snap-btn snap-fold" title="Collapse">▾</button>
+      <button type="button" class="snap-btn snap-x" title="Close">×</button>
+    </div>
+    <div class="snap-body"></div>`;
+  const clone = snapClone(src);
+  clone.style.width = r.width + "px";
+  el.querySelector(".snap-body").appendChild(snapNest(src, clone));
+  paintSnap(el, GS_PAPER_DEFAULT);
+  document.body.appendChild(el);
+  document.body.classList.remove("snaps-hidden");    // a new one is always seen
+  el.style.zIndex = ++refZ;
+  placeSnap(el, r.left + 14, Math.max(4, r.top) + 14);
+  wireSnap(el);
+  return el;
+}
+
+function paintSnap(el, id){
+  const pc = GS_PAPER[id] || GS_PAPER[GS_PAPER_DEFAULT];
+  el.dataset.paper = GS_PAPER[id] ? id : GS_PAPER_DEFAULT;
+  el.style.setProperty("--paper", pc.paper);
+  el.style.setProperty("--ink", pc.ink);
+}
+
+function closeSnapPop(el){
+  el.querySelector(".snap-pop")?.remove();
+  el.querySelector(".snap-color").classList.remove("open");
+}
+
+/* typing straight into the strip: double-click Name, Enter keeps it, Esc backs out */
+function editSnapName(name){
+  const was = name.textContent;
+  name.contentEditable = "true";
+  name.focus();
+  getSelection().selectAllChildren(name);
+  const done = keep=>{
+    name.removeEventListener("keydown", key);
+    name.removeEventListener("blur", blur);
+    name.contentEditable = "false";
+    name.textContent = keep ? name.textContent.replace(/\s+/g, " ").trim() : was;
+    name.scrollLeft = 0;
+  };
+  const key = e=>{
+    if (e.key === "Enter"){ e.preventDefault(); name.blur(); }
+    else if (e.key === "Escape"){ e.preventDefault(); e.stopPropagation(); done(false); }
+  };
+  const blur = ()=>done(true);
+  name.addEventListener("keydown", key);
+  name.addEventListener("blur", blur);
+}
+
+function wireSnap(el){
+  const head = el.querySelector(".snap-head"), name = el.querySelector(".snap-name");
+  el.addEventListener("pointerdown", ()=>{ el.style.zIndex = ++refZ; });
+  el.addEventListener("click", e=>{
+    const t = e.target;
+    if (t.closest(".snap-x")){ el.remove(); return; }
+    if (t.closest(".snap-fold")){
+      const folded = el.classList.toggle("snap-folded");
+      const b = t.closest(".snap-fold");
+      b.textContent = folded ? "▸" : "▾";
+      b.title = folded ? "Expand" : "Collapse";
+      return;
+    }
+    if (t.closest(".snap-color")){
+      if (el.querySelector(".snap-pop")) return closeSnapPop(el);
+      const pop = document.createElement("div");
+      pop.className = "snap-pop";
+      pop.innerHTML = Object.entries(GS_PAPER).map(([id, c])=>
+        `<button type="button" class="slip-dot${el.dataset.paper === id ? " on" : ""}" title="${id}"
+           style="background:${c.paper}" data-snap-paper="${id}"></button>`).join("");
+      head.appendChild(pop);
+      t.closest(".snap-color").classList.add("open");
+      return;
+    }
+    const dot = t.closest("[data-snap-paper]");
+    if (dot){ paintSnap(el, dot.dataset.snapPaper); closeSnapPop(el); return; }
+    closeSnapPop(el);
+    /* the page's own click handlers stay out of a picture; only a damage
+       figure still opens its compare */
+    if (!t.closest("[data-pin-key]")) e.stopPropagation();
+  });
+  name.addEventListener("dblclick", e=>{ e.preventDefault(); editSnapName(name); });
+
+  /* drag by the strip, from anywhere but its buttons or a name being typed.
+     The strip only takes hold of the pointer once it moves, so a
+     double-click on Name still lands on Name. */
+  let start = null, dx = 0, dy = 0;
+  head.addEventListener("pointerdown", e=>{
+    if (e.button !== 0 || e.target.closest("button,.snap-pop,[contenteditable='true']")) return;
+    const r = el.getBoundingClientRect();
+    start = {x:e.clientX, y:e.clientY, id:e.pointerId, on:false};
+    dx = e.clientX - r.left; dy = e.clientY - r.top;
+  });
+  head.addEventListener("pointermove", e=>{
+    if (!start) return;
+    if (!start.on){
+      if (Math.abs(e.clientX - start.x) + Math.abs(e.clientY - start.y) < 4) return;
+      start.on = true;
+      head.setPointerCapture(start.id);
+    }
+    placeSnap(el, e.clientX - dx, e.clientY - dy);
+  });
+  const drop = ()=>{
+    if (start?.on) try{ head.releasePointerCapture(start.id); }catch(err){}
+    start = null;
+  };
+  head.addEventListener("pointerup", drop);
+  head.addEventListener("pointercancel", drop);
+}
+
+/* a click anywhere else puts an open colour picker away */
+document.addEventListener("pointerdown", e=>{
+  document.querySelectorAll(".snap").forEach(s=>{
+    if (!s.contains(e.target)) closeSnapPop(s);
+  });
+});
+
+/* shift held: mark what a click would take, and keep the browser from
+   stretching a text selection out to it */
+document.addEventListener("mouseover", e=>{
+  snapOver = e.target;
+  aimSnap(e.shiftKey ? snapTarget(snapOver) : null);
+});
+document.addEventListener("mousedown", e=>{
+  if (e.shiftKey && e.button === 0 && snapTarget(e.target)) e.preventDefault();
+}, true);
+addEventListener("click", e=>{
+  if (!e.shiftKey || e.button !== 0) return;
+  const src = snapTarget(e.target);
+  if (!src) return;
+  e.preventDefault();                 // a summary under it stays as it is
+  e.stopPropagation();
+  aimSnap(null);
+  takeSnap(src);
+}, true);
+
+addEventListener("keydown", e=>{
+  if (e.key === "Shift"){ if (!typingIn(document.activeElement)) aimSnap(snapTarget(snapOver)); return; }
+  if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+  if (typingIn(e.target) || typingIn(document.activeElement)) return;
+  const key = String(e.key).toLowerCase();
+  if (key === "z" && !e.shiftKey){
+    if (!document.querySelector(".snap")) return;
+    e.preventDefault();
+    document.body.classList.toggle("snaps-hidden");
+  } else if (key === "x" && e.shiftKey){
+    e.preventDefault();
+    document.querySelectorAll(".snap").forEach(s => s.remove());
+    document.body.classList.remove("snaps-hidden");
+  }
+});
+addEventListener("keyup", e=>{ if (e.key === "Shift") aimSnap(null); });
+addEventListener("blur", ()=>aimSnap(null));
+
+/* a window that shrinks out from under a snapshot pulls its strip back into view */
+addEventListener("resize", ()=>{
+  document.querySelectorAll(".snap").forEach(el => placeSnap(el, el.offsetLeft, el.offsetTop));
 });
 
 
