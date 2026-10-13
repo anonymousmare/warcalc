@@ -58,15 +58,23 @@
    washes drawn for a dark page still read on a pale one. */
 /* a painted page background is laid once down the page, never tiled */
 [data-theme] body{min-height:100vh;background-repeat:no-repeat}
-/* the log's neon sprites on Applejack and Rainbow Dash: each sits on a
-   one-colour copy of itself in the theme's --patch, grown a pixel all round,
-   so it reads as the sprite with a crisp dark outline. Four hard drop
-   shadows, each copying the last, make the copy; the training chevrons get
-   it too and come up to full strength over it */
-:is([data-theme="applejack"],[data-theme="rainbow"]) .log :is(.ref-ic .gear-img,.ref-train img){
-  filter:drop-shadow(1px 0 0 rgb(var(--patch))) drop-shadow(-1px 0 0 rgb(var(--patch)))
-         drop-shadow(0 1px 0 rgb(var(--patch))) drop-shadow(0 -1px 0 rgb(var(--patch)))}
-:is([data-theme="applejack"],[data-theme="rainbow"]) .log .ref-train img{opacity:1}
+/* the log's neon sprites on Applejack and Rainbow Dash are partly see-through,
+   and wash out on a pale page: each is backed by a solid one-colour copy of
+   itself in the theme's --patch (the #sil filter by the top of <body>: every
+   pixel the sprite touches at all, fully dark). The training chevrons get it
+   too and come up to full strength over it. Darker exchange log turns this
+   off and darkens the whole log instead */
+.sil-flood{flood-color:rgb(var(--patch,0,0,0))}
+:is([data-theme="applejack"],[data-theme="rainbow"]) body:not(.dark-log) .log :is(.ref-ic .gear-img,.ref-train img){filter:url(#sil)}
+:is([data-theme="applejack"],[data-theme="rainbow"]) body:not(.dark-log) .log .ref-train img{opacity:1}
+/* Darker exchange log: the log wells go to the theme's night colours, with
+   the inks inside them re-set to read on it */
+[data-theme="applejack"] body.dark-log .well.log{background:#2b1a0d;border-color:#1a0f06;color:var(--text);
+  --text:#ead2a4;--text-dim:#b0916a;--strong:#fff2d1;--faint:#7d6448;--hi:255,236,200;--border-soft:rgba(0,0,0,.5);
+  --atk:#ff8a6e;--def:#86bdf0;--gold:#e9c46a;--gold-dim:#c9a24a;--good:#a8cf6a;--warn:#f0a040}
+[data-theme="rainbow"] body.dark-log .well.log{background:#0c2150;border-color:#061536;color:var(--text);
+  --text:#d4ecff;--text-dim:#8fb3e3;--strong:#fff;--faint:#5a7bb0;--hi:255,255,255;--border-soft:rgba(0,0,0,.5);
+  --atk:#ff7aa6;--def:#7cd0ff;--gold:#ffd75e;--gold-dim:#e2b93a;--good:#7ee08b;--warn:#ffab40}
 /* buttons and dropdowns wear the theme's type too (Grey leaves them as they were) */
 [data-theme] :where(button,select){font-family:var(--font)}
 @font-face{font-family:"Lovelt";src:url("https://files.catbox.moe/h1xvtm.ttf") format("truetype");font-display:swap}
@@ -246,7 +254,7 @@
 [data-theme="applejack"] .btn-success{border-color:#37491c}
 [data-theme="applejack"] .btn-danger{border-color:#64230f}
 /* the gear sprites are neon, drawn for a dark page: in the log each is
-   outlined in dark barn wood so it keeps its glow on the parchment */
+   backed in dark barn wood so it keeps its glow on the parchment */
 [data-theme="applejack"]{--patch:38,20,8}
 [data-theme="applejack"] ::selection{background:#c24a27;color:#fff2d1}
 
@@ -308,7 +316,7 @@
 [data-theme="rainbow"] .log,[data-theme="rainbow"] .mono{font-weight:700}
 [data-theme="rainbow"] .btn{border-color:#4d8bdc;border-radius:6px;box-shadow:inset 1px 1px 0 rgba(255,255,255,.6)}
 [data-theme="rainbow"] input,[data-theme="rainbow"] select,[data-theme="rainbow"] textarea{border-color:#74aeea}
-/* the neon gear sprites are outlined in night sky in the log */
+/* the neon gear sprites are backed in night sky in the log */
 [data-theme="rainbow"]{--patch:5,22,56}
 [data-theme="rainbow"] ::selection{background:#ff4fc8;color:#fff}
 *{box-sizing:border-box}
@@ -1150,6 +1158,9 @@ details summary{cursor:pointer;color:var(--strong);font-size:13px;padding:2px 0}
 }
 .set-grid .hk-toggle{white-space:normal}
 .theme-pick select{width:auto;padding:1px 4px;font-size:12px}
+/* Darker exchange log only means anything on the pale-logged themes */
+.dark-log-opt{display:none}
+:is([data-theme="applejack"],[data-theme="rainbow"]) .dark-log-opt{display:inline-flex}
 /* the horsewife roams the whole window on a clear pane that clicks fall
    straight through, over the panels but under a modal and the tooltips */
 #horsewife{position:fixed;inset:0;width:100vw;height:100vh;border:0;margin:0;padding:0;z-index:940;
@@ -1590,6 +1601,10 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
 </script>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="sil" color-interpolation-filters="sRGB">
+  <feComponentTransfer in="SourceAlpha" result="solid"><feFuncA type="linear" slope="40" intercept="0"/></feComponentTransfer>
+  <feFlood class="sil-flood"/><feComposite operator="in" in2="solid" result="sil"/>
+  <feMerge><feMergeNode in="sil"/><feMergeNode in="SourceGraphic"/></feMerge></filter></svg>
 
 <div class="tabstrip">
   <span class="tab-brand">CurioCalc 2.2<button class="gear-btn" id="btnTools"
@@ -1640,6 +1655,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
       <select id="themeSel"></select></label>
     <label class="hk-toggle theme-pick" for="wifeSel">Horsewife
       <select id="wifeSel"></select></label>
+    <label class="hk-toggle dark-log-opt"><input type="checkbox" data-pref="darkLog"> Darker exchange log</label>
     <span class="v-div">|</span>
     <button class="btn btn-xs btn-moss" id="expArmies">Export army presets (JSON)</button>
     <button class="btn btn-xs" id="expBattles">Export battle presets (JSON)</button>
@@ -4255,7 +4271,7 @@ let PREFS = {standOpen:false, deathsOpen:false, casOpen:false, logFull:true,
              iconsWA:false, plainHover:false, cardSlash:false, noUnspent:false,
              noPinArt:false, minDmg:false, stripNames:false, hide1x:true, hideAct:false,
              hideSkim:true, hideRaise:false, hidePar:false,
-             fullHits:false};
+             fullHits:false, darkLog:false};
 
 /* an exchange log with no choice made opens full when the setting says so */
 const logIsFull = id => LOG_FULL.has(id) ? LOG_FULL.get(id)
@@ -9094,8 +9110,8 @@ const LS_LOG_OPTS = "warcalc.logOpts";
   });
 }
 /* the settings in the gear drawer. They take hold on the next thing drawn,
-   bar the icon order, the card slashes, the unspent hits and the pictures, which are body
-   classes and so turn over at once */
+   bar the icon order, the card slashes, the unspent hits, the pictures and the darker
+   log, which are body classes and so turn over at once */
 const LS_PREFS = "warcalc.prefs";
 const LS_THEME = "warcalc.theme";
 {
@@ -9169,6 +9185,7 @@ function setHorsewife(name){
   document.body.classList.toggle("card-slash", PREFS.cardSlash);
   document.body.classList.toggle("no-unspent", PREFS.noUnspent);
   document.body.classList.toggle("no-pin-art", PREFS.noPinArt);
+  document.body.classList.toggle("dark-log", PREFS.darkLog);
   document.body.classList.toggle("hide-1x", PREFS.hide1x);
   document.body.classList.toggle("hide-act", PREFS.hideAct);
   document.body.classList.toggle("hide-skim", PREFS.hideSkim);
@@ -9184,6 +9201,7 @@ function setHorsewife(name){
       if (k === "cardSlash") document.body.classList.toggle("card-slash", box.checked);
       if (k === "noUnspent") document.body.classList.toggle("no-unspent", box.checked);
       if (k === "noPinArt") document.body.classList.toggle("no-pin-art", box.checked);
+      if (k === "darkLog") document.body.classList.toggle("dark-log", box.checked);
     });
   });
 }
