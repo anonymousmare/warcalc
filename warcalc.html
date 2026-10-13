@@ -1217,6 +1217,8 @@ details summary{cursor:pointer;color:var(--strong);font-size:13px;padding:2px 0}
    set their own filter on an icon append var(--res-edge,) to keep it */
 :is([data-theme="white"],[data-theme="applejack"],[data-theme="rainbow"]){
   --res-edge:drop-shadow(0 0 .6px rgba(var(--hi),.9)) drop-shadow(0 1px 1px rgba(var(--hi),.35))}
+/* White's ink is pure black, so it takes a lighter hand */
+[data-theme="white"]{--res-edge:drop-shadow(0 0 .5px rgba(0,0,0,.5)) drop-shadow(0 1px 1px rgba(0,0,0,.15))}
 /* Darker exchange log puts them back on a night page, where they need none */
 body.dark-log .well.log{--res-edge:opacity(1)}
 /* inline flow rather than flex: the spaces between the icon, the number and
