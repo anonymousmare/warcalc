@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CLOP Build Planner</title>
+<style>
+/* the house look, lifted from Warcalc's Grey theme */
+:root{
+  color-scheme:dark;
+  --bg:#272b30;
+  --text:#c8c8c8;
+  --text-dim:#8b9198;
+  --sunken:#1c1e22;
+  --raised:#2e3338;
+  --border:#1c1e22;
+  --border-soft:rgba(0,0,0,.6);
+  --strong:#fff;
+  --accent:#4ab9db;
+  --def:#74cae3;
+  --btn-default-a:#484e55; --btn-default-b:#313539;
+  --btn-success-a:#78cc78; --btn-success-b:#53be53;
+  --btn-info-a:#74cae3;    --btn-info-b:#4ab9db;
+  --btn-danger-a:#f17a77;  --btn-danger-b:#ec4d49;
+  --btn-ink:#fff; --btn-shadow:0 -1px 0 rgba(0,0,0,.4);
+  --input-bg:#fff; --input-ink:#22262a;
+  --font:"Helvetica Neue",Helvetica,Arial,sans-serif;
+  --mono:"SFMono-Regular",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font:14px/1.45 var(--font);padding:20px}
+h2{margin:0;font-size:19px;font-weight:500;color:var(--strong);letter-spacing:.01em}
+p{margin:0}
+[hidden]{display:none!important}
+
+/* ---------- tab strip ---------- */
+.tabstrip{
+  display:flex;align-items:stretch;gap:2px;
+  margin:-20px -20px 14px;padding:0 16px;
+  height:30px;background:var(--sunken);border-bottom:1px solid var(--border-soft);
+  overflow-x:auto;overflow-y:hidden;scrollbar-width:none;
+}
+.tabstrip::-webkit-scrollbar{display:none}
+.tabstrip > *{flex:0 0 auto}
+.tab{
+  background:none;border:none;border-bottom:2px solid transparent;
+  color:var(--text-dim);font:500 12px/1 var(--font);letter-spacing:.06em;text-transform:uppercase;
+  padding:0 14px;cursor:pointer;
+}
+.tab:hover{color:var(--strong)}
+.tab.active{color:var(--strong);border-bottom-color:var(--accent)}
+.tab-brand{
+  display:flex;align-items:center;color:var(--text-dim);font-size:12px;font-weight:600;
+  letter-spacing:.08em;text-transform:uppercase;padding-right:10px;margin-right:6px;
+  border-right:1px solid var(--border-soft);
+}
+
+/* ---------- surfaces ---------- */
+.panel{background:var(--raised);border:1px solid var(--border);border-radius:4px;padding:14px;min-width:0}
+.panel-head{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding-bottom:10px;margin-bottom:12px;border-bottom:1px solid var(--border-soft);
+}
+.spacer{flex:1 1 auto}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+@media (max-width:720px){.split{grid-template-columns:1fr}}
+
+/* ---------- controls ---------- */
+.btn{
+  display:inline-block;border:1px solid var(--border-soft);border-radius:4px;
+  padding:5px 12px;font:500 13px var(--font);color:var(--btn-ink);cursor:pointer;
+  text-shadow:var(--btn-shadow);
+  background-image:linear-gradient(to bottom,var(--btn-default-a),var(--btn-default-b));
+}
+.btn:hover{filter:brightness(1.14)}
+.btn:active{filter:brightness(.9)}
+.btn:focus-visible{outline:2px solid var(--def);outline-offset:1px}
+.btn-success{background-image:linear-gradient(to bottom,var(--btn-success-a),var(--btn-success-b))}
+.btn-danger{background-image:linear-gradient(to bottom,var(--btn-danger-a),var(--btn-danger-b))}
+.badge{
+  display:inline-block;padding:2px 8px;border-radius:9px;font-size:11px;font-weight:600;color:var(--btn-ink);
+  text-shadow:var(--btn-shadow);border:1px solid var(--border-soft);white-space:nowrap;
+  background-image:linear-gradient(to bottom,var(--btn-default-a),var(--btn-default-b));
+}
+.badge-success{background-image:linear-gradient(to bottom,var(--btn-success-a),var(--btn-success-b))}
+.badge-info{background-image:linear-gradient(to bottom,var(--btn-info-a),var(--btn-info-b))}
+.alert{
+  margin-bottom:14px;border-radius:4px;padding:10px 12px;border:1px solid var(--border-soft);color:var(--btn-ink);
+  text-shadow:var(--btn-shadow);background-image:linear-gradient(to bottom,var(--btn-danger-a),var(--btn-danger-b));
+}
+.alert code{font-family:var(--mono);background:rgba(0,0,0,.2);padding:0 4px;border-radius:3px}
+
+textarea,#out{
+  display:block;width:100%;min-height:420px;margin:0;border:1px solid var(--border-soft);border-radius:3px;
+  padding:8px 10px;font:12.5px/1.45 var(--mono);
+}
+textarea{background:var(--input-bg);color:var(--input-ink);resize:vertical}
+textarea:focus,#out:focus{outline:2px solid var(--accent);outline-offset:-1px}
+#out{background:var(--sunken);color:var(--strong);white-space:pre;overflow:auto;font-variant-numeric:tabular-nums}
+.hint{margin-top:8px;color:var(--text-dim);font-size:12px}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%)}
+</style>
+</head>
+<body>
+
+<div class="tabstrip">
+  <span class="tab-brand">CLOP Build Planner</span>
+  <button class="tab active" type="button">Buildings</button>
+</div>
+
+<div id="errors" hidden></div>
+
+<div class="split">
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Paste from the game</h2>
+      <span class="spacer"></span>
+      <span id="parsed" class="badge badge-info">0 parsed</span>
+      <button id="clear" class="btn btn-danger" type="button">Clear</button>
+    </div>
+    <textarea id="in" spellcheck="false" placeholder="Bakery	75&#10;Bar	25&#10;…"></textarea>
+    <p class="hint" id="sampleNote">Loaded with an example paste. Clear it and paste your own.</p>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Spreadsheet column</h2>
+      <span class="spacer"></span>
+      <span id="total" class="badge">0 buildings</span>
+      <button id="copy" class="btn btn-success" type="button">Copy column</button>
+    </div>
+    <pre id="out" tabindex="0"></pre>
+  </section>
+</div>
+<span id="toast" class="badge badge-success" hidden>Copied</span>
+
+<script>
+// game names in the spreadsheet's order; null marks a group break (blank row in the sheet)
+const LAYOUT = [
+  "Basic Copper Mine","Mechanized Copper Mine","Gem Mine","Tungsten Mine",null,
+  "Basic Apple Orchard","Mechanized Apple Farm","Coffee Farm","Drug Farm",null,
+  "Basic Oil Well","Mechanized Oil Well","Oil Fracker",null,
+  "Cider Production Facility","Energy Collector","Oil Combustion Facility","Gasoline Combustion Facility","Gasoline Refinery","Plastics Factory","Przewalskian Plastics Factory","Toy Factory",null,
+  "Bakery","Bar","Coffee Shop","Statue","Toy and Candy Shop","Video Arcade","Mall",null,
+  "Basic Factory","Advanced Factory","DNA Extraction Facility","Barracks",null,
+  "Moon Worship Center","Sun Worship Center",null,
+  "Lunar Environmental Facility","Solar Environmental Facility","Forbidden Research Facility","Alicornification Facility"
+];
+// alternate names the game uses for the same building
+const ALIASES = {
+  "mechanized apple orchard": "Mechanized Apple Farm",
+  "przewalskian advanced plastics factory": "Przewalskian Plastics Factory",
+  "toy & candy shop": "Toy and Candy Shop"
+};
+const norm = s => s.trim().replace(/\s+/g, " ").toLowerCase();
+const KNOWN = new Map();
+LAYOUT.forEach(name => { if (name) KNOWN.set(norm(name), name); });
+
+// DNA facilities carry the species they extract ("DNA Extraction Facility - C. Zebrica");
+// every one of them counts toward the single DNA row
+function lookup(key) {
+  if (key.startsWith("dna extraction facility")) return "DNA Extraction Facility";
+  return KNOWN.get(key) || ALIASES[key];
+}
+
+const SAMPLE = `Advanced Factory	1
+Bakery	75
+Bar	25
+Barracks	20
+Basic Apple Orchard	120
+Basic Factory	1
+Cider Production Facility	30
+Coffee Farm	70
+Coffee Shop	4
+DNA Extraction Facility - C. Zebrica	1
+Gasoline Combustion Facility	23
+Gasoline Refinery	45
+Lunar Environmental Facility	5
+Mall	25
+Mechanized Apple Orchard	110
+Moon Worship Center	3
+Oil Combustion Facility	35
+Plastics Factory	19
+Solar Environmental Facility	5
+Sun Worship Center	2
+Toy and Candy Shop	22
+Toy Factory	72`;
+
+const $ = id => document.getElementById(id);
+const inp = $("in"), out = $("out");
+
+function parse(text) {
+  const counts = new Map(), unknown = [];
+  let n = 0;
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line) continue;
+    const m = line.match(/^(.*?)[\t ]+([\d,]+)$/);
+    if (!m) { unknown.push(line); continue; }
+    const name = lookup(norm(m[1]));
+    if (!name) { unknown.push(m[1].trim()); continue; }
+    counts.set(name, (counts.get(name) || 0) + parseInt(m[2].replace(/,/g, ""), 10));
+    n++;
+  }
+  return { counts, unknown, n };
+}
+
+function esc(s) { return s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+function render() {
+  const { counts, unknown, n } = parse(inp.value);
+  let total = 0;
+  const lines = LAYOUT.map(name => {
+    if (!name) return "";
+    const v = counts.get(name) || 0;
+    total += v;
+    return String(v);
+  });
+  out.textContent = lines.join("\n");
+  $("parsed").textContent = n + " parsed";
+  $("total").textContent = total.toLocaleString() + " buildings";
+  const err = $("errors");
+  if (unknown.length) {
+    err.className = "alert";
+    err.innerHTML = "These lines weren't recognised and were skipped: " + unknown.map(u => "<code>" + esc(u) + "</code>").join(", ");
+    err.hidden = false;
+  } else err.hidden = true;
+}
+
+inp.addEventListener("input", () => { $("sampleNote").hidden = true; render(); });
+$("clear").addEventListener("click", () => { inp.value = ""; $("sampleNote").hidden = true; render(); inp.focus(); });
+$("copy").addEventListener("click", () => {
+  const toast = $("toast");
+  const done = msg => { toast.textContent = msg; toast.hidden = false; clearTimeout(done.t); done.t = setTimeout(() => toast.hidden = true, 1400); };
+  const fallback = () => { const r = document.createRange(); r.selectNodeContents(out); const s = getSelection(); s.removeAllRanges(); s.addRange(r); done("Selected, press Ctrl+C"); };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(out.textContent).then(() => done("Copied"), fallback);
+  } else fallback();
+});
+
+inp.value = SAMPLE;
+render();
+</script>
+
+</body>
+</html>
