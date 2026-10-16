@@ -452,6 +452,25 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
 .slip-l .v{text-align:right;white-space:nowrap}
 .slip-l .q{font:700 12px var(--mono);min-width:5ch;text-align:right}
 .slip-l img{width:16px;height:16px;image-rendering:pixelated}
+/* a leader line from a net's name to its number, so the eye can follow it across */
+.slip-l.lead > span:first-child{flex:0 1 auto}
+.slip-l.lead::after{content:"";order:1;flex:1 1 12px;align-self:center;margin-top:3px;
+  border-bottom:1px dotted color-mix(in srgb,var(--ink) 35%,transparent)}
+.slip-l.lead .v{order:2}
+
+/* every plan's nets side by side */
+#nCompareBox[hidden]{display:none}
+.cmp .ptab{min-width:1060px}
+.cmp .ptab col.lab{width:150px}
+.cmp .ptab thead th{font:600 10.5px var(--font);letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim)}
+.cmp .ptab th[scope=row]{font:600 12px var(--font);letter-spacing:0;text-transform:none;color:var(--strong);
+  overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.cmp .ptab th[scope=row]:hover{text-decoration:underline}
+.cmp .ptab th[scope=row] i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px;
+  border:1px solid rgba(255,255,255,.3)}
+.cmp .ptab tbody tr + tr :is(td,th){border-top:1px solid var(--border-soft)}
+/* the best of each column across the plans */
+.cmp .ptab td.best{font-weight:700;text-decoration:underline;text-underline-offset:3px}
 .slip-tot{font-weight:700;font-size:13px;margin:2px 0 3px;padding:3px 0;color:#fff;
   border-top:1px solid color-mix(in srgb,var(--ink) 22%,transparent);
   border-bottom:1px solid color-mix(in srgb,var(--ink) 22%,transparent)}
@@ -650,6 +669,11 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
   <hr class="plans-rule">
   <div class="plans-head"><h2>Plans</h2></div>
   <div id="nPlans" class="slips"></div>
+  <div id="nCompareBox" hidden>
+    <hr class="plans-rule">
+    <div class="plans-head"><h2>Compare</h2></div>
+    <div id="nCompare" class="cmp well"></div>
+  </div>
 </div>
 
 <div id="viewPlan" hidden>
@@ -1379,11 +1403,10 @@ function renderSlips(has, now) {
     const want = planCounts(pl, has), after = nationModel(current, want.counts, want.off);
     const diff = planDiff(has, want), cost = planCost(has.counts, want.counts, current.prze);
     const row = (l, v, c) => `<div class="slip-l${c ? " " + c : ""}"><span>${l}</span><span class="v">${v}</span></div>`;
-    const swing = (label, a, b, f) => a === b ? "" : row(label, `<span class="was">${f(a)} →</span> <span class="${cls(b - a).trim()}">${f(b)}</span>`);
+    const lead = (label, v, f, colour) => row(label, `<span class="${colour ? cls(v).trim() : ""}">${f(v)}</span>`, "lead");
     const resRows = PLAN_RES.map(([k, label, , img]) => {
-      const r0 = now.res[k], r1 = after.res[k];
-      const a = r0 ? r0.made - r0.used : 0, b = r1 ? r1.made - r1.used : 0;
-      return swing(`${resImg(img)} ${label}`, a, b, signed);
+      const r = after.res[k], v = r ? r.made - r.used : 0;
+      return r && (r.made || r.used) ? lead(`${resImg(img)} ${label}`, v, signed, true) : "";
     }).join("");
     return `<div class="slip" role="button" tabindex="0" data-plan="${esc(pl.id)}" style="${paperStyle(pl)}">
       <div class="slip-name">${esc(planName(pl))}</div>
@@ -1396,13 +1419,43 @@ function renderSlips(has, now) {
       ${cost.count ? row(`<span class="bit">${BIT}</span> Total`, fmt(cost.bits), "slip-tot") : '<div class="slip-none">Nothing to build</div>'}
       ${PLAN_RES.filter(r => cost.res[r[0]]).map(([k, label, , img]) => row(`${resImg(img)} ${label}`, fmt(cost.res[k]))).join("")}
       <div class="slip-cut double"></div>
-      <div class="slip-sub">A tick after</div>
-      ${swing("Sat", now.satTotal, after.satTotal, signed) + swing("GDP", now.gdp, after.gdp, v => fmt(v) + "k")
-        + swing("Solar Empire", now.seTotal, after.seTotal, signed) + swing("New Lunar Republic", now.nlrTotal, after.nlrTotal, signed)
-        + resRows || '<div class="slip-none">No change</div>'}
+      <div class="slip-sub">Nets a tick after</div>
+      ${lead("Sat", after.satTotal, signed, true) + lead("GDP", after.gdp, v => fmt(v) + "k")
+        + lead("Solar Empire", after.seTotal, signed, true) + lead("New Lunar Republic", after.nlrTotal, signed, true)}
+      <div class="slip-cut"></div>
+      ${resRows || '<div class="slip-none">No resources moving</div>'}
     </div>`;
   }).join("") + `<button class="slip slip-new" type="button" id="planNew"><b>+</b><span>New plan</span></button>`;
+  renderCompare(has, plans);
 }
+
+// one row per plan: the four headline numbers, then every resource's net, the best of each column marked
+function renderCompare(has, plans) {
+  $("nCompareBox").hidden = !plans.length;
+  if (!plans.length) { $("nCompare").innerHTML = ""; return; }
+  const models = plans.map(pl => { const w = planCounts(pl, has); return nationModel(current, w.counts, w.off); });
+  const cols = [
+    ["Sat", m => m.satTotal, signed, true],
+    ["GDP", m => m.gdp, v => fmt(v) + "k", false],
+    ["SE", m => m.seTotal, signed, true],
+    ["NLR", m => m.nlrTotal, signed, true],
+    ...PLAN_RES.map(([k, label, , img]) => [resImg(img), m => { const r = m.res[k]; return r ? r.made - r.used : 0; }, signed, true, label])
+  ];
+  const vals = cols.map(c => models.map(c[1]));
+  const best = vals.map(vs => { const hi = Math.max(...vs); return vs.some(v => v !== hi) ? hi : null; });
+  const head = '<tr><th></th>' + cols.map(c => `<th${c[4] ? ` title="${c[4]}"` : ""}>${c[0]}</th>`).join("") + "</tr>";
+  const body = plans.map((pl, i) => `<tr><th scope="row" data-plan="${esc(pl.id)}" title="${esc(planName(pl))}">`
+      + `<i style="background:${(PAPERS[pl.paper] || PAPERS.coal).paper}"></i>${esc(planName(pl))}</th>`
+      + cols.map((c, j) => {
+        const v = vals[j][i];
+        return `<td class="${v ? (c[3] ? cls(v).trim() : "") : "zero"}${v === best[j] ? " best" : ""}">${v ? c[2](v) : "0"}</td>`;
+      }).join("") + "</tr>").join("");
+  $("nCompare").innerHTML = `<div class="ptab-wrap"><table class="ptab"><col class="lab"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+}
+$("nCompare").addEventListener("click", ev => {
+  const th = ev.target.closest("[data-plan]");
+  if (th) go(`#planner/${current.id}/${th.dataset.plan}`);
+});
 $("nPlans").addEventListener("click", ev => {
   if (ev.target.closest("#planNew")) {
     const plans = current.plans || (current.plans = []);
