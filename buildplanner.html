@@ -353,7 +353,8 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
 const RES = {
   oil:"#FF0000", copper:"#FF6A00", apples:"#B6FF00", energy:"#00FFFF", pies:"#FF00DC", cider:"#FFD800",
   coffee:"#FF6A00", gasoline:"#0094FF", gems:"#00FF21", tungsten:"#808080", plastics:"#00FF21",
-  drugs:"#FF006E", toys:"#FFFFFF", forbidden:"#C342FF", serum:"#FFFFFF"
+  drugs:"#FF006E", toys:"#FFFFFF", forbidden:"#C342FF", serum:"#FFFFFF",
+  machinery:"#0094FF", precision:"#C342FF", composites:"#FFFFFF"
 };
 // [game name, resource] in the spreadsheet's order; null marks a group break (blank row in the sheet)
 const LAYOUT = [
@@ -362,10 +363,10 @@ const LAYOUT = [
   ["Basic Oil Well","oil"],["Mechanized Oil Well","oil"],["Oil Fracker","oil"],null,
   ["Cider Production Facility","cider"],["Energy Collector","energy"],["Oil Combustion Facility","energy"],["Gasoline Combustion Facility","energy"],
   ["Gasoline Refinery","gasoline"],["Plastics Factory","plastics"],["Przewalskian Plastics Factory","plastics"],["Toy Factory","toys"],null,
-  ["Bakery","pies"],["Bar","cider"],["Coffee Shop","coffee"],["Statue"],["Toy and Candy Shop","toys"],["Video Arcade"],["Mall"],null,
-  ["Basic Factory"],["Advanced Factory"],["DNA Extraction Facility"],["Barracks"],null,
-  ["Moon Worship Center"],["Sun Worship Center"],null,
-  ["Lunar Environmental Facility"],["Solar Environmental Facility"],["Forbidden Research Facility","forbidden"],["Alicornification Facility","serum"]
+  ["Bakery","pies"],["Bar","cider"],["Coffee Shop","coffee"],["Statue","copper"],["Toy and Candy Shop","toys"],["Video Arcade","energy"],["Mall"],null,
+  ["Basic Factory","machinery"],["Advanced Factory","precision"],["DNA Extraction Facility","composites"],["Barracks","composites"],null,
+  ["Moon Worship Center","cider"],["Sun Worship Center","coffee"],null,
+  ["Lunar Environmental Facility","cider"],["Solar Environmental Facility","coffee"],["Forbidden Research Facility","forbidden"],["Alicornification Facility","serum"]
 ];
 // alternate names the game uses for the same building
 const ALIASES = {
