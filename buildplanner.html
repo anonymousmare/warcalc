@@ -373,6 +373,10 @@ const LAYOUT = [
   ["Moon Worship Center","cider"],["Sun Worship Center","coffee"],null,
   ["Lunar Environmental Facility","cider"],["Solar Environmental Facility","coffee"],["Forbidden Research Facility","forbidden"],["Alicornification Facility","serum"]
 ];
+// the sheet's disabled section is the same list without the buildings that never get
+// switched off, so it ends on Forbidden Research
+const NEVER_DISABLED = new Set(["Lunar Environmental Facility", "Solar Environmental Facility", "Alicornification Facility"]);
+const DISABLED_LAYOUT = LAYOUT.filter(e => !e || !NEVER_DISABLED.has(e[0]));
 // alternate names the game uses for the same building
 const ALIASES = {
   "mechanized apple orchard": "Mechanized Apple Farm",
@@ -432,9 +436,9 @@ function parse(text) {
 function esc(s) { return s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 
 // one pass of the layout: the copied counts, and the rows shown beside them
-function block(counts) {
+function block(counts, layout) {
   const lines = []; let rows = "", total = 0;
-  for (const e of LAYOUT) {
+  for (const e of layout) {
     if (!e) { lines.push(""); rows += '<div class="oc-row"></div>'; continue; }
     const v = counts.get(e[0]) || 0; total += v;
     lines.push(String(v));
@@ -450,7 +454,7 @@ const DISABLED_GAP = 6;
 
 function render() {
   const { counts, off, unknown, n } = parse(inp.value);
-  const all = block(counts), dis = block(off);
+  const all = block(counts, LAYOUT), dis = block(off, DISABLED_LAYOUT);
   column = [...all.lines, ...Array(DISABLED_GAP).fill(""), ...dis.lines].join("\n");
   out.innerHTML = all.rows + `<div class="oc-div">Disabled · ${dis.total.toLocaleString()}</div>` + dis.rows;
   $("parsed").textContent = n + " parsed";
