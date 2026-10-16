@@ -511,6 +511,7 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
 .ptab thead th{padding-bottom:4px}
 .ptab thead th img{width:16px;height:16px;image-rendering:pixelated;vertical-align:middle}
 .ptab col.lab{width:96px}
+.ptab col.gdp{width:84px}
 .ptab th[scope=row]{text-align:left;padding-right:10px;font:600 10.5px var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
 .ptab td{color:var(--strong);border-radius:3px;cursor:default}
 .ptab td.pos{color:var(--pos)}
@@ -556,6 +557,21 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
 .bit{display:inline-block;width:16px;text-align:center;font-weight:700;color:var(--strong)}
 .cost-sub{margin:10px 0 3px;font:600 10.5px var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
 .cost-none{color:var(--text-dim);font-size:12px}
+
+.import-box{margin-bottom:10px}
+.import-box textarea{min-height:0;height:64px;font-size:11.5px}
+/* ---------- the envelopes' overall view ---------- */
+.ov-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,360px);gap:14px;align-items:start;margin-bottom:14px}
+@media (max-width:760px){.ov-grid{grid-template-columns:minmax(0,1fr)}}
+.ov-tbl th{font:600 10.5px var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);text-align:right;padding:0 0 5px 10px}
+.ov-tbl th:first-child,.ov-tbl th:nth-child(2){text-align:left;padding-left:0}
+.ov-tbl td{padding:4px 0 4px 10px}
+.ov-tbl td:first-child{padding-left:0;font-weight:600;color:var(--strong);white-space:nowrap}
+.ov-tbl td:nth-child(2){text-align:left;font-family:var(--font)}
+.ov-tbl td.pos{color:var(--pos)}
+.ov-tbl td.neg{color:var(--neg)}
+.ov-tbl select{background:var(--input-bg);color:var(--input-ink);border:1px solid var(--border-soft);border-radius:3px;padding:1px 4px;font:12px var(--font);max-width:180px}
+.ov-dot{display:inline-block;width:12px;height:9px;border-radius:2px;margin-right:7px;vertical-align:0;box-shadow:0 0 0 1px rgba(0,0,0,.3)}
 
 /* ---------- Mine mix and Well mix ---------- */
 .mx-in{margin-bottom:14px}
@@ -653,6 +669,24 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
 
 <div id="viewPlanner" hidden>
   <div class="env-grid" id="envGrid"></div>
+  <div id="ovBox" hidden>
+    <hr class="plans-rule">
+    <div class="plans-head"><h2>Overall</h2></div>
+    <div class="ov-grid">
+      <section class="panel">
+        <div class="panel-head"><h2>Plans in use</h2></div>
+        <table class="mx-tbl ov-tbl" id="ovNations"></table>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>Total cost</h2></div>
+        <div id="ovCost"></div>
+      </section>
+    </div>
+    <section class="panel">
+      <div class="panel-head"><h2>Projected nets</h2></div>
+      <div id="ovNets" class="well"></div>
+    </section>
+  </div>
 </div>
 
 <div id="viewNation" hidden>
@@ -712,6 +746,9 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
     <input id="pName" class="name-input" type="text" spellcheck="false" maxlength="60" aria-label="Plan name">
     <div class="head-tools">
     <div class="swatches" id="pPapers" role="group" aria-label="Slip colour"></div>
+    <button id="pDup" class="icon-btn" type="button" title="Duplicate this plan"><svg viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect
+      x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8"/></svg></button>
     <button id="pDelete" class="icon-btn danger" type="button" title="Delete this plan"><svg viewBox="0 0 24 24"
       fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path
       d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13M10 11v6M14 11v6"/></svg></button>
@@ -729,7 +766,13 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
       <div class="panel-head">
         <h2>Buildings</h2>
         <span class="spacer"></span>
+        <button id="pImportBtn" class="btn" type="button" aria-expanded="false">Import column</button>
+        <button id="pCopy" class="btn btn-success" type="button">Copy column</button>
         <button id="pReset" class="btn" type="button">Reset to Has</button>
+      </div>
+      <div id="pImportBox" class="import-box" hidden>
+        <textarea id="pImport" spellcheck="false" placeholder="Paste a spreadsheet column"></textarea>
+        <p id="pImportNote" class="has-note" hidden></p>
       </div>
       <div id="pTable"></div>
     </section>
@@ -779,11 +822,11 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
   </div>
   <div class="split mx-split">
     <section class="panel">
-      <div class="panel-head"><h2>Slider split</h2><span class="spacer"></span><span id="m_verdict"></span></div>
+      <div class="panel-head"><h2>Slider mix</h2><span class="spacer"></span><span id="m_verdict"></span></div>
       <table class="mx-tbl" id="m_tbl"></table>
     </section>
     <section class="panel">
-      <div class="panel-head"><h2>Best split</h2><span class="spacer"></span><button class="btn btn-success" id="m_apply" type="button">Use it</button></div>
+      <div class="panel-head"><h2>Best mix</h2><span class="spacer"></span><button class="btn btn-success" id="m_apply" type="button">Use it</button></div>
       <table class="mx-tbl" id="m_best"></table>
     </section>
   </div>
@@ -972,22 +1015,23 @@ function render() {
 
 inp.addEventListener("input", render);
 $("clear").addEventListener("click", () => { inp.value = ""; render(); inp.focus(); });
-$("copy").addEventListener("click", () => {
+$("copy").addEventListener("click", () => copyText(column));
+function copyText(text) {
   const toast = $("toast");
   const done = msg => { toast.textContent = msg; toast.hidden = false; clearTimeout(done.t); done.t = setTimeout(() => toast.hidden = true, 1400); };
   // only the counts are copied; without the clipboard API they go through a scratch textarea
   const fallback = () => {
     const ta = document.createElement("textarea");
-    ta.value = column; ta.style.position = "fixed"; ta.style.opacity = "0";
+    ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
     document.body.appendChild(ta); ta.select();
     let ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
     ta.remove();
     done(ok ? "Copied" : "Couldn't copy");
   };
   if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(column).then(() => done("Copied"), fallback);
+    navigator.clipboard.writeText(text).then(() => done("Copied"), fallback);
   } else fallback();
-});
+}
 
 const toolsBtn = $("btnTools"), toolsPanel = $("toolsPanel");
 toolsBtn.addEventListener("click", () => {
@@ -1230,7 +1274,67 @@ function renderGrid() {
          + `<span class="env-label"><span class="env-name">${esc(nationName(n))}</span>`
          + `<span class="env-sub">${fmt(total)} building${total === 1 ? "" : "s"}</span></span></button>`;
   }).join("") + `<button class="env env-new" type="button" id="envNew" title="New nation"><b>+</b><span>New nation</span></button>`;
+  renderOverall();
 }
+
+/* ---- the whole empire: each nation on the plan picked for it, or as it stands ---- */
+// a nation that has never been told otherwise counts its first plan
+const usedPlan = n => {
+  const plans = n.plans || [];
+  return n.usePlan === undefined ? plans[0] || null : plans.find(p => p.id === n.usePlan) || null;
+};
+function renderOverall() {
+  $("ovBox").hidden = !nations.length;
+  if (!nations.length) return;
+  const bits = { total: 0 }, res = {}, netNow = {}, netAfter = {};
+  let gdpNow = 0, gdpAfter = 0;
+  const rows = nations.map(n => {
+    const has = parseHas(n.has || ""), pl = usedPlan(n);
+    const want = pl ? planCounts(pl, has) : has;
+    const now = nationModel(n, has.counts, has.off), after = pl ? nationModel(n, want.counts, want.off) : now;
+    const cost = pl ? planCost(has.counts, want.counts, n.prze) : { bits: 0, res: {} };
+    bits.total += cost.bits;
+    for (const [k, v] of Object.entries(cost.res)) res[k] = (res[k] || 0) + v;
+    for (const [k] of PLAN_RES) {
+      const a = now.res[k], b = after.res[k];
+      netNow[k] = (netNow[k] || 0) + (a ? a.made - a.used : 0);
+      netAfter[k] = (netAfter[k] || 0) + (b ? b.made - b.used : 0);
+    }
+    gdpNow += now.gdp; gdpAfter += after.gdp;
+    const opts = `<option value=""${pl ? "" : " selected"}>No plan</option>`
+      + (n.plans || []).map(p => `<option value="${esc(p.id)}"${p === pl ? " selected" : ""}>${esc(planName(p))}</option>`).join("");
+    return `<tr><td><i class="ov-dot" style="background:${isColour(n.color) ? n.color : MANILA}"></i>${esc(nationName(n))}</td>`
+      + `<td>${(n.plans || []).length ? `<select data-ov="${esc(n.id)}" aria-label="Plan for ${esc(nationName(n))}">${opts}</select>` : '<span style="color:var(--text-dim)">no plans</span>'}</td>`
+      + `<td>${cost.bits ? shortBits(cost.bits) : "—"}</td>`
+      + `<td class="${cls(after.satTotal).trim()}">${signed(after.satTotal)}</td>`
+      + `<td>${fmt(after.gdp)}k</td></tr>`;
+  }).join("");
+  $("ovNations").innerHTML = `<tr><th>Nation</th><th>Plan</th><th>Cost</th><th>Sat</th><th>GDP</th></tr>` + rows;
+
+  const line = (l, v, c) => `<div class="cost-l${c ? " " + c : ""}">${l}<span class="v">${v}</span></div>`;
+  $("ovCost").innerHTML = !bits.total ? '<p class="cost-none">Nothing to build.</p>'
+    : line(`<span class="bit">${BIT}</span> Bits`, fmt(bits.total), "cost-tot")
+    + PLAN_RES.filter(r => res[r[0]]).map(([k, label, , img]) => line(`${resImg(img)} ${label}`, fmt(res[k]))).join("");
+
+  const cell = (v, f = signed) => `<td class="${v ? cls(v).trim() : "zero"}">${v ? f(v) : "0"}</td>`;
+  const k = v => fmt(v) + "k";
+  let head = '<tr><th></th><th>GDP</th>', rh = `<tr><th scope="row">Has</th><td>${k(gdpNow)}</td>`,
+      rw = `<tr><th scope="row">Projected</th><td>${k(gdpAfter)}</td>`;
+  let rd = `<tr class="diff${showDiff ? "" : " hidden"}"><th scope="row"><button type="button" class="diff-tog" aria-expanded="${showDiff}">Difference</button></th>`
+         + (gdpAfter - gdpNow ? `<td class="${cls(gdpAfter - gdpNow).trim()}">${signed(gdpAfter - gdpNow)}k</td>` : '<td class="zero">·</td>');
+  for (const [key, label, , img] of PLAN_RES) {
+    const a = netNow[key], b = netAfter[key];
+    head += `<th title="${label}">${resImg(img)}</th>`;
+    rh += cell(a); rw += cell(b);
+    rd += `<td class="${b - a ? cls(b - a).trim() : "zero"}">${b - a ? signed(b - a) : "·"}</td>`;
+  }
+  $("ovNets").innerHTML = `<div class="ptab-wrap"><table class="ptab"><col class="lab"><col class="gdp"><thead>${head}</tr></thead><tbody>${rh}</tr>${rw}</tr>${rd}</tr></tbody></table></div>`;
+}
+$("ovNations").addEventListener("change", ev => {
+  const sel = ev.target.closest("[data-ov]"); if (!sel) return;
+  const n = nations.find(x => x.id === sel.dataset.ov); if (!n) return;
+  n.usePlan = sel.value; saveNations(); renderOverall();
+});
 envGrid.addEventListener("click", ev => {
   const b = ev.target.closest(".env");
   if (!b) return;
@@ -1670,12 +1774,37 @@ $("pReset").addEventListener("click", () => { plan.want = {}; plan.off = {}; sav
 
 let showDiff = true;
 try { showDiff = localStorage.getItem("buildplanner.planDiff") !== "0"; } catch (e) {}
-$("pNets").addEventListener("click", ev => {
+document.addEventListener("click", ev => {
   if (!ev.target.closest(".diff-tog")) return;
   showDiff = !showDiff;
   try { localStorage.setItem("buildplanner.planDiff", showDiff ? "1" : "0"); } catch (e) {}
-  ev.target.closest(".diff-tog").setAttribute("aria-expanded", showDiff);
-  $("pNets").querySelector("tr.diff").classList.toggle("hidden", !showDiff);
+  document.querySelectorAll(".diff-tog").forEach(b => b.setAttribute("aria-expanded", showDiff));
+  document.querySelectorAll(".ptab tr.diff").forEach(r => r.classList.toggle("hidden", !showDiff));
+});
+
+// a plan goes out as the same column the Buildings tab copies, and comes back in the same way
+function planColumn(pl, has) {
+  const w = planCounts(pl, has);
+  return [...block(w.counts, LAYOUT).lines, ...Array(DISABLED_GAP).fill(""), ...block(w.off, DISABLED_LAYOUT).lines].join("\n");
+}
+$("pCopy").addEventListener("click", () => copyText(planColumn(plan, parseHas(current.has || ""))));
+$("pImportBtn").addEventListener("click", () => {
+  const box = $("pImportBox"), open = box.hidden;
+  box.hidden = !open; $("pImportBtn").setAttribute("aria-expanded", open);
+  if (open) { $("pImport").value = ""; $("pImportNote").hidden = true; $("pImport").focus(); }
+});
+$("pImport").addEventListener("input", () => {
+  const text = $("pImport").value, note = $("pImportNote");
+  if (!text.trim()) { note.hidden = true; return; }
+  const got = parseHas(text);
+  note.hidden = false;
+  if (got.warn) { note.textContent = got.warn; note.className = "has-note warn"; return; }
+  plan.want = {}; plan.off = {};
+  for (const e of LAYOUT) if (e) { plan.want[e[0]] = got.counts.get(e[0]) || 0; plan.off[e[0]] = Math.min(got.off.get(e[0]) || 0, plan.want[e[0]]); }
+  saveNations();
+  note.textContent = `Imported ${fmt(sumMap(got.counts))} buildings` + (sumMap(got.off) ? `, ${fmt(sumMap(got.off))} disabled` : "");
+  note.className = "has-note";
+  renderPlanTable(); renderPlanCalc();
 });
 
 function renderPlanCalc(has = parseHas(current.has || "")) {
@@ -1730,6 +1859,14 @@ $("pPrze").addEventListener("change", ev => { current.prze = ev.target.checked; 
 const toNation = () => go("#planner/" + current.id);
 $("pBack").addEventListener("click", toNation);
 $("pNation").addEventListener("click", toNation);
+$("pDup").addEventListener("click", () => {
+  const plans = current.plans, id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const copy = { id, name: planName(plan) + " copy", paper: PAPER_CYCLE[plans.length % PAPER_CYCLE.length],
+                 want: { ...plan.want }, off: { ...(plan.off || {}) } };
+  plans.splice(plans.indexOf(plan) + 1, 0, copy);
+  saveNations();
+  go(`#planner/${current.id}/${id}`);
+});
 $("pDelete").addEventListener("click", () => {
   if (!confirm(`Delete ${planName(plan)}? This can't be undone.`)) return;
   current.plans = current.plans.filter(x => x !== plan); saveNations();
@@ -1836,7 +1973,7 @@ function drawMine() {
   const r = mineLoss(b, m, k), copper = 5 * b + 8 * m, best = bestSplit(T, k);
   $("m_ob").textContent = fmt(b); $("m_om").textContent = fmt(m); $("m_oc").textContent = fmt(copper);
   $("m_os").textContent = "−" + n1(r.total);
-  verdict("m_verdict", T - copper, r.total - best.total, best.total, "split");
+  verdict("m_verdict", T - copper, r.total - best.total, best.total, "mix");
   mxRows("m_tbl", [
     ["Basic, inherent", minus(BM.inh * b)], ["Basic, pollution", minus(scrub(pol(b, BM.min, BM.div), k))],
     ["Mechanised, inherent", minus(MM.inh * m)], ["Mechanised, pollution", minus(scrub(pol(m, MM.min, MM.div), k))],
