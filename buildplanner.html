@@ -381,7 +381,10 @@ const DISABLED_LAYOUT = LAYOUT.filter(e => !e || !NEVER_DISABLED.has(e[0]));
 const ALIASES = {
   "mechanized apple orchard": "Mechanized Apple Farm",
   "przewalskian advanced plastics factory": "Przewalskian Plastics Factory",
-  "toy & candy shop": "Toy and Candy Shop"
+  "toy & candy shop": "Toy and Candy Shop",
+  // the energy collector goes by what it collects; both kinds share the one row
+  "solar collector": "Energy Collector",
+  "tidal collector": "Energy Collector"
 };
 const norm = s => s.trim().replace(/\s+/g, " ").toLowerCase();
 const KNOWN = new Map();
