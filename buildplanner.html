@@ -282,6 +282,11 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
   color:var(--res, var(--text-dim))}
 .oc-row.zero .oc-n{color:var(--text-dim)}
 .oc-row.zero .oc-lab{opacity:.5}
+/* where the disabled block starts: a rule on screen, six blank rows in the copy */
+.oc-div{display:flex;align-items:center;gap:8px;margin:10px 0 8px;user-select:none;-webkit-user-select:none;
+  font:600 10.5px/1 var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
+.oc-div::before,.oc-div::after{content:"";flex:1 1 auto;border-top:1px solid var(--text-dim);opacity:.45}
+.oc-div::before{flex:0 0 12px}
 #toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%)}
 </style>
 <script>
@@ -333,7 +338,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
       <span id="parsed" class="badge badge-info">0 parsed</span>
       <button id="clear" class="btn btn-danger" type="button">Clear</button>
     </div>
-    <textarea id="in" spellcheck="false" placeholder="Bakery	75&#10;Bar	25&#10;…"></textarea>
+    <textarea id="in" spellcheck="false" placeholder="Paste the building list, or Ctrl+A / Ctrl+C the whole nation page&#10;&#10;Bakery	75&#10;Bar	25&#10;…"></textarea>
   </section>
 
   <section class="panel">
@@ -389,27 +394,46 @@ const $ = id => document.getElementById(id);
 const inp = $("in"), out = $("out");
 let column = "";
 
+// a count line: "Plastics Factory	35", or with some switched off, "Plastics Factory	35 (4 disabled)".
+// The first number is every building of that kind, the disabled ones included
+const COUNT_LINE = /^(.*?)[\t ]+([\d,]+)(?:\s*\(\s*([\d,]+)\s+disabled\s*\))?$/i;
+const num = s => parseInt(s.replace(/,/g, ""), 10);
+
+// Either the building list on its own, or the whole nation page (Ctrl+A, Ctrl+C):
+// when there is a "Buildings" heading, only the count lines straight under it are read
+function buildingLines(text) {
+  const lines = text.split(/\r?\n/).map(l => l.trim());
+  const head = lines.findIndex((l, i) => /^buildings$/i.test(l) && COUNT_LINE.test(lines[i + 1] || ""));
+  if (head < 0) return lines.filter(Boolean);
+  const out = [];
+  for (const l of lines.slice(head + 1)) {
+    if (!l) continue;
+    if (!COUNT_LINE.test(l)) break;
+    out.push(l);
+  }
+  return out;
+}
+
 function parse(text) {
-  const counts = new Map(), unknown = [];
+  const counts = new Map(), off = new Map(), unknown = [];
   let n = 0;
-  for (const raw of text.split(/\r?\n/)) {
-    const line = raw.trim();
-    if (!line) continue;
-    const m = line.match(/^(.*?)[\t ]+([\d,]+)$/);
+  for (const line of buildingLines(text)) {
+    const m = line.match(COUNT_LINE);
     if (!m) { unknown.push(line); continue; }
     const name = lookup(norm(m[1]));
     if (!name) { unknown.push(m[1].trim()); continue; }
-    counts.set(name, (counts.get(name) || 0) + parseInt(m[2].replace(/,/g, ""), 10));
+    counts.set(name, (counts.get(name) || 0) + num(m[2]));
+    if (m[3]) off.set(name, (off.get(name) || 0) + num(m[3]));
     n++;
   }
-  return { counts, unknown, n };
+  return { counts, off, unknown, n };
 }
 
 function esc(s) { return s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 
-function render() {
-  const { counts, unknown, n } = parse(inp.value);
-  const lines = []; let rows = ""; let total = 0;
+// one pass of the layout: the copied counts, and the rows shown beside them
+function block(counts) {
+  const lines = []; let rows = "", total = 0;
   for (const e of LAYOUT) {
     if (!e) { lines.push(""); rows += '<div class="oc-row"></div>'; continue; }
     const v = counts.get(e[0]) || 0; total += v;
@@ -418,10 +442,19 @@ function render() {
     rows += `<div class="oc-row${v ? "" : " zero"}"><span class="oc-n">${v}</span>`
           + `<span class="oc-lab"${res}>${esc(e[0])}</span></div>`;
   }
-  column = lines.join("\n");
-  out.innerHTML = rows;
+  return { lines, rows, total };
+}
+
+// the disabled block sits six blank rows below the main one in the sheet
+const DISABLED_GAP = 6;
+
+function render() {
+  const { counts, off, unknown, n } = parse(inp.value);
+  const all = block(counts), dis = block(off);
+  column = [...all.lines, ...Array(DISABLED_GAP).fill(""), ...dis.lines].join("\n");
+  out.innerHTML = all.rows + `<div class="oc-div">Disabled · ${dis.total.toLocaleString()}</div>` + dis.rows;
   $("parsed").textContent = n + " parsed";
-  $("total").textContent = total.toLocaleString() + " buildings";
+  $("total").textContent = all.total.toLocaleString() + " buildings";
   const err = $("errors");
   if (unknown.length) {
     err.className = "alert";
