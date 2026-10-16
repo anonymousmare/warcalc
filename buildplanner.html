@@ -28,6 +28,7 @@
   --font:"Helvetica Neue",Helvetica,Arial,sans-serif;
   --head-font:var(--font);
   --mono:"SFMono-Regular",Menlo,Consolas,monospace;
+  --pos:#78cc78; --neg:#f17a77;
 }
 
 /* ===================== themes =====================
@@ -37,10 +38,18 @@
 [data-theme] :where(button,select){font-family:var(--font)}
 @font-face{font-family:"Lovelt";src:url("https://files.catbox.moe/h1xvtm.ttf") format("truetype");font-display:swap}
 /* the resource colours are drawn for a dark page, so on the light themes the
-   column well goes to the theme's night colours, as Warcalc's darker log does */
-[data-theme="white"] #out{background:#272b30;background-image:none;border-color:#1c1e22;--strong:#fff;--text-dim:#8b9198}
-[data-theme="applejack"] #out{background:#2b1a0d;border-color:#1a0f06;--strong:#fff2d1;--text-dim:#b0916a}
-[data-theme="rainbow"] #out{background:#0c2150;border-color:#061536;--strong:#fff;--text-dim:#8fb3e3}
+   readouts keep the theme's own background and the colours go darker instead */
+:is([data-theme="white"],[data-theme="applejack"],[data-theme="rainbow"]) :is(.oc-lab,.bl-name,.net-name,.tip-name){
+  color:color-mix(in srgb,var(--res,var(--text-dim)) 58%,#000)}
+[data-theme="white"]{--pos:#2e8b2e;--neg:#c9302c}
+/* the game's sprites are drawn for a dark page and their pale parts vanish on a light one,
+   so the light themes ring each in a soft halo of their own ink, as Warcalc does */
+[data-theme="white"]{--icon-edge:drop-shadow(0 0 .5px rgba(0,0,0,.5)) drop-shadow(0 1px 1px rgba(0,0,0,.15))}
+[data-theme="applejack"]{--icon-edge:drop-shadow(0 0 .6px rgba(77,42,18,.9)) drop-shadow(0 1px 1px rgba(77,42,18,.35))}
+[data-theme="rainbow"]{--icon-edge:drop-shadow(0 0 .6px rgba(6,58,148,.9)) drop-shadow(0 1px 1px rgba(6,58,148,.35))}
+.res-ic{filter:var(--icon-edge,none)}
+[data-theme="applejack"]{--pos:#4f6b1f;--neg:#a8321a}
+[data-theme="rainbow"]{--pos:#13803a;--neg:#d42020}
 
 /* ---- White: Bootstrap 3 with its gradients ---- */
 :root[data-theme="white"]{
@@ -288,6 +297,310 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
 .oc-div::before,.oc-div::after{content:"";flex:1 1 auto;border-top:1px solid var(--text-dim);opacity:.45}
 .oc-div::before{flex:0 0 12px}
 #toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%)}
+
+/* ---------- planner: nations as manila envelopes ---------- */
+.env-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:26px 22px;padding:8px 2px}
+.env{
+  --env:#d6b47a;
+  position:relative;display:block;width:100%;aspect-ratio:3/2;padding:0;border:none;border-radius:5px;cursor:pointer;
+  font:inherit;color:#2a2620;text-align:left;
+  background:
+    repeating-linear-gradient(115deg,rgba(255,255,255,.035) 0 2px,transparent 2px 5px),
+    linear-gradient(color-mix(in srgb,var(--env) 88%,#fff),var(--env));
+  box-shadow:0 1px 0 color-mix(in srgb,var(--env) 60%,#000),0 6px 14px rgba(0,0,0,.35);
+  transition:transform .12s ease,box-shadow .12s ease;
+}
+.env:hover{transform:translateY(-3px) rotate(-.5deg);box-shadow:0 1px 0 color-mix(in srgb,var(--env) 60%,#000),0 10px 20px rgba(0,0,0,.4)}
+.env:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+/* the flap, and the string-tie button at its point */
+.env::before{
+  content:"";position:absolute;left:0;right:0;top:0;height:46%;border-radius:5px 5px 0 0;
+  background:color-mix(in srgb,var(--env) 84%,#000);
+  clip-path:polygon(0 0,100% 0,100% 16%,56% 100%,44% 100%,0 16%);
+}
+.env::after{
+  content:"";position:absolute;left:50%;top:46%;width:11px;height:11px;margin:-6px 0 0 -6px;border-radius:50%;
+  background:color-mix(in srgb,var(--env) 55%,#7a1f12);box-shadow:0 1px 1px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.25);
+}
+.env-label{
+  position:absolute;left:11%;right:11%;bottom:12%;padding:5px 9px 6px;border-radius:2px;
+  background:#f6f1e2;box-shadow:0 1px 2px rgba(0,0,0,.25);transform:rotate(-1deg);
+  display:flex;flex-direction:column;gap:1px;min-width:0;
+}
+.env-name{font:700 14px/1.2 var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.env-sub{font:11px/1.2 var(--font);color:#7a7060}
+/* the empty slot that makes a new one */
+.env-new{background:none;box-shadow:none;border:2px dashed var(--text-dim);color:var(--text-dim);opacity:.75;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.env-new::before,.env-new::after{display:none}
+.env-new:hover{opacity:1;color:var(--strong);border-color:var(--strong);box-shadow:none}
+.env-new b{font:300 46px/1 var(--font)}
+.env-new span{font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+
+/* ---------- a single nation ---------- */
+.nation-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.nation-head .env{width:54px;flex:0 0 auto;cursor:default}
+.nation-head .env:hover{transform:none}
+.nation-head .env::after{width:6px;height:6px;margin:-3px 0 0 -3px}
+.name-input{
+  flex:1 1 200px;min-width:0;background:none;border:none;border-bottom:1px solid transparent;border-radius:0;
+  color:var(--strong);font:500 21px/1.2 var(--head-font);padding:2px 0;
+}
+.name-input:hover{border-bottom-color:var(--border-soft)}
+.name-input:focus{outline:none;border-bottom-color:var(--accent)}
+.head-tools{display:flex;align-items:center;gap:12px;order:2}
+.back-btn{order:3}
+/* on a phone the colours drop to their own row and back stays in the corner */
+@media (max-width:760px){.head-tools{order:4;flex:1 1 100%;justify-content:space-between}}
+.swatches{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.swatch{width:18px;height:18px;border-radius:50%;padding:0;cursor:pointer;background:var(--sw);
+  border:2px solid var(--raised);box-shadow:0 0 0 1px var(--border-soft)}
+.swatch:hover{transform:scale(1.15)}
+.swatch.on{box-shadow:0 0 0 2px var(--strong)}
+.swatch-custom{position:relative;overflow:hidden;
+  background:conic-gradient(#f55,#fd5,#5f5,#5ff,#55f,#f5f,#f55)}
+.swatch-custom input{position:absolute;inset:-6px;width:40px;height:40px;opacity:0;cursor:pointer}
+.icon-btn{background:none;border:none;color:var(--text-dim);cursor:pointer;padding:4px;line-height:0;border-radius:4px}
+.icon-btn:hover{color:var(--strong);background:var(--sunken)}
+.icon-btn:focus-visible{outline:2px solid var(--accent)}
+.icon-btn svg{width:20px;height:20px}
+.icon-btn.danger:hover{color:var(--btn-danger-b)}
+
+.nation-body{display:grid;grid-template-columns:minmax(250px,320px) 1fr;gap:14px;align-items:start}
+@media (max-width:760px){.nation-body{grid-template-columns:1fr}}
+#nHas{min-height:0;height:74px;font-size:11.5px}
+.has-note{font-size:12px;color:var(--text-dim);margin:6px 0 0}
+.has-note.warn{color:var(--btn-danger-b)}
+.blist{margin-top:10px;padding:6px 10px;font-size:12px;max-height:520px;overflow:auto}
+.blist:empty{display:none}
+.bl-row{display:flex;gap:10px;align-items:baseline;min-height:1.5em}
+.bl-n{min-width:4ch;text-align:right;font:12px var(--mono);color:var(--strong);font-variant-numeric:tabular-nums}
+.bl-name{font-weight:600;color:var(--res,var(--text-dim))}
+.bl-off{margin-left:auto;font-size:11px;color:var(--neg);white-space:nowrap}
+.bl-on{color:var(--text-dim)}
+.bl-gap{height:6px}
+
+/* government and the rest of what the sheet's top-right corner held */
+.gov-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding-bottom:10px;margin-bottom:10px;
+  border-bottom:1px solid var(--border-soft);font-size:12px;color:var(--text-dim)}
+.gov-bar label{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;cursor:pointer}
+.gov-bar input[type=number]{width:5.5em;background:var(--input-bg);color:var(--input-ink);border:1px solid var(--border-soft);
+  border-radius:3px;padding:1px 4px;font:12px var(--mono)}
+.gov-bar :is(input,select):focus{outline:2px solid var(--accent);outline-offset:-1px}
+
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:10px}
+@media (max-width:520px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stat{padding:6px 10px;border-radius:4px;cursor:default}
+.stat-k{display:block;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
+.stat-v{display:block;font:700 18px/1.25 var(--mono);color:var(--strong);font-variant-numeric:tabular-nums}
+
+/* the resources: one line each, the game's 16px icons at their own size */
+.nets{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:1px 10px;padding:6px 8px}
+.net{display:flex;align-items:center;gap:7px;padding:3px 6px;border-radius:3px;min-width:0;cursor:default}
+.net img{width:16px;height:16px;flex:0 0 16px;image-rendering:pixelated}
+.net-name{font-weight:600;font-size:12px;color:var(--res);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.net-val{margin-left:auto;padding-left:6px;font:600 12.5px var(--mono);font-variant-numeric:tabular-nums;color:var(--strong)}
+:is(.net-val,.stat-v).pos{color:var(--pos)}
+:is(.net-val,.stat-v).neg{color:var(--neg)}
+.net.idle{opacity:.4}
+:is(.net,.stat[data-tip]):is(:hover,:focus-visible,.tip-on){background:color-mix(in srgb,var(--strong) 9%,transparent);outline:none}
+
+/* hover card: where a number comes from */
+#tip{position:fixed;z-index:20;width:max-content;max-width:min(340px,calc(100vw - 16px));padding:8px 10px;border-radius:4px;
+  background:var(--raised);color:var(--text);border:1px solid var(--border);box-shadow:0 6px 18px rgba(0,0,0,.35);
+  font-size:12px;pointer-events:none}
+.tip-head{display:flex;align-items:center;gap:7px;margin-bottom:6px;padding-bottom:5px;border-bottom:1px solid var(--border-soft)}
+.tip-head img{width:16px;height:16px;image-rendering:pixelated}
+.tip-name{font-weight:700;color:var(--res,var(--strong))}
+.tip-total{margin-left:auto;padding-left:14px;font:600 12px var(--mono);color:var(--strong)}
+.tip-row{display:grid;grid-template-columns:1fr auto auto;column-gap:12px;align-items:baseline;padding:1px 0}
+.tip-row .n{color:var(--text-dim)}
+.tip-row .v{font:12px var(--mono);text-align:right;color:var(--strong);font-variant-numeric:tabular-nums}
+.tip-row .p{font:11px var(--mono);text-align:right;color:var(--text-dim);min-width:4ch}
+.tip-row .sub{grid-column:1 / -1;font-size:11px;color:var(--text-dim)}
+.tip-bar{grid-column:1 / -1;height:2px;margin:1px 0 3px;border-radius:1px;background:var(--res,var(--accent));opacity:.7}
+.tip-sec{margin-top:6px;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
+.tip-none{color:var(--text-dim)}
+
+/* ---------- plans, as Grand Strategy's till slips ---------- */
+.plans-rule{border:none;border-top:1px solid var(--border-soft);margin:24px 0 14px}
+.plans-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.slips{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;padding-bottom:12px}
+.slip{
+  --paper:#25282c;--ink:#d6d3cc;--icon-edge:none;
+  position:relative;width:272px;padding:12px 14px 14px;margin-bottom:8px;cursor:pointer;
+  background:var(--paper);color:var(--ink);border-radius:3px 3px 0 0;
+  border:1px solid rgba(255,255,255,.05);border-bottom:none;
+  background-image:linear-gradient(rgba(255,255,255,.025),rgba(0,0,0,.06));
+  font:12px/1.5 var(--mono);box-shadow:0 8px 18px rgba(0,0,0,.45);
+  transition:transform .12s ease;
+}
+.slip:hover{transform:translateY(-2px)}
+.slip:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+/* the torn edge a till leaves on the bottom of a slip */
+.slip::after{
+  content:"";position:absolute;left:0;right:0;bottom:-8px;height:8px;
+  background:conic-gradient(from 135deg at 50% 0,var(--paper) 90deg,transparent 0) 0 0/12px 8px repeat-x;
+}
+.slip-name{text-align:center;font-weight:700;font-size:14px;letter-spacing:.12em;text-transform:uppercase;overflow-wrap:anywhere}
+.slip-meta{text-align:center;font-size:11px;opacity:.6}
+.slip-cut{border-top:1.5px dashed color-mix(in srgb,var(--ink) 30%,transparent);margin:9px 0}
+.slip-cut.double{border-top:3px double color-mix(in srgb,var(--ink) 35%,transparent);margin:11px 0 8px}
+.slip-l{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:1px 0}
+.slip-l > span:first-child{font-family:var(--font);display:inline-flex;align-items:center;gap:6px;
+  min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slip-l .v{text-align:right;white-space:nowrap}
+.slip-l .q{font:700 12px var(--mono);min-width:5ch;text-align:right}
+.slip-l img{width:16px;height:16px;image-rendering:pixelated}
+/* a leader line from a net's name to its number, so the eye can follow it across */
+.slip-l.lead > span:first-child{flex:0 1 auto}
+.slip-l.lead::after{content:"";order:1;flex:1 1 12px;align-self:center;margin-top:3px;
+  border-bottom:1px dotted color-mix(in srgb,var(--ink) 35%,transparent)}
+.slip-l.lead .v{order:2}
+
+/* every plan's nets side by side */
+#nCompareBox[hidden]{display:none}
+.cmp .ptab{min-width:1060px}
+.cmp .ptab col.lab{width:150px}
+.cmp .ptab thead th{font:600 10.5px var(--font);letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim)}
+.cmp .ptab th[scope=row]{font:600 12px var(--font);letter-spacing:0;text-transform:none;color:var(--strong);
+  overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.cmp .ptab th[scope=row]:hover{text-decoration:underline}
+.cmp .ptab th[scope=row] i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px;
+  border:1px solid rgba(255,255,255,.3)}
+.cmp .ptab tbody tr + tr :is(td,th){border-top:1px solid var(--border-soft)}
+/* the best of each column across the plans */
+.cmp .ptab td.best{font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.slip-tot{font-weight:700;font-size:13px;margin:2px 0 3px;padding:3px 0;color:#fff;
+  border-top:1px solid color-mix(in srgb,var(--ink) 22%,transparent);
+  border-bottom:1px solid color-mix(in srgb,var(--ink) 22%,transparent)}
+.slip-sub{font:700 10px/1.3 var(--font);letter-spacing:.1em;text-transform:uppercase;opacity:.55;margin:8px 0 3px}
+.slip-sub:first-child{margin-top:0}
+.slip-none{opacity:.5;font-family:var(--font)}
+.slip .pos{color:#8fd18f}
+.slip .neg{color:#f08a87}
+.slip .was{opacity:.5}
+.slip-new{background:none;box-shadow:none;border:2px dashed var(--text-dim);border-radius:3px;color:var(--text-dim);opacity:.75;
+  min-height:170px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:var(--font)}
+.slip-new::after{display:none}
+.slip-new:hover{opacity:1;color:var(--strong);border-color:var(--strong)}
+.slip-new b{font:300 46px/1 var(--font)}
+.slip-new span{font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+
+/* ---------- one plan ---------- */
+.crumb{background:none;border:none;padding:0;cursor:pointer;color:var(--text-dim);font:500 16px/1.2 var(--head-font);
+  white-space:nowrap;max-width:30vw;overflow:hidden;text-overflow:ellipsis}
+.crumb:hover{color:var(--strong)}
+.crumb-sep{color:var(--text-dim);margin:0 -4px}
+.proj{margin-bottom:14px}
+.proj .stats{margin-bottom:8px}
+/* each headline number split down the middle: Has on the left, Want on the right */
+.stat2{padding:5px 10px 6px}
+.stat2 .stat-k{margin-bottom:2px}
+.stat-halves{display:grid;grid-template-columns:1fr 1fr}
+.stat-half{padding:1px 6px;border-radius:3px;cursor:default;min-width:0}
+.stat-half + .stat-half{border-left:1px solid var(--border-soft);padding-left:10px}
+.stat-half small{display:block;font:600 9.5px var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
+.stat-half .stat-v{font-size:16px}
+.stat-half:is(:hover,:focus-visible,.tip-on){background:color-mix(in srgb,var(--strong) 9%,transparent);outline:none}
+
+/* the nets as a table: icons across the top, a row each for Has, Want and the difference */
+.ptab-wrap{overflow-x:auto;padding:4px 6px}
+.ptab{width:100%;min-width:900px;table-layout:fixed;border-collapse:collapse;font:12px var(--mono);font-variant-numeric:tabular-nums}
+.ptab th,.ptab td{padding:2px 4px;text-align:right;white-space:nowrap}
+.ptab thead th{padding-bottom:4px}
+.ptab thead th img{width:16px;height:16px;image-rendering:pixelated;vertical-align:middle}
+.ptab col.lab{width:96px}
+.ptab col.gdp{width:84px}
+.ptab th[scope=row]{text-align:left;padding-right:10px;font:600 10.5px var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
+.ptab td{color:var(--strong);border-radius:3px;cursor:default}
+.ptab td.pos{color:var(--pos)}
+.ptab td.neg{color:var(--neg)}
+.ptab td.zero{color:var(--text-dim);opacity:.6}
+.ptab :is(td,th)[data-tip]:is(:hover,:focus-visible,.tip-on){background:color-mix(in srgb,var(--strong) 9%,transparent);outline:none}
+.ptab tr.diff td{font-size:11px}
+.ptab tr.diff.hidden td{display:none}
+.diff-tog{background:none;border:none;padding:0;cursor:pointer;color:inherit;font:inherit;letter-spacing:inherit;text-transform:inherit;
+  display:inline-flex;align-items:center;gap:4px}
+.diff-tog::before{content:"▸";display:inline-block;transition:transform .12s}
+.diff-tog[aria-expanded=true]::before{transform:rotate(90deg)}
+.diff-tog:hover{color:var(--strong)}
+
+.plan-body{display:grid;grid-template-columns:max-content minmax(260px,360px);gap:14px;align-items:start}
+@media (max-width:760px){.plan-body{grid-template-columns:minmax(0,1fr)}}
+/* the building table: names right-aligned against their numbers */
+#pTable{display:grid;grid-template-columns:max-content auto auto auto auto;column-gap:10px;row-gap:3px;align-items:center;font-size:12px}
+.pt-row{display:contents}
+.pt-head > span{font:600 10.5px var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);text-align:center;padding-bottom:2px}
+.pt-head > span:first-child,.pt-head > span:nth-child(2),.pt-head > span:last-child{text-align:right}
+.pt-name{font-weight:600;text-align:right;color:var(--res,var(--text));white-space:nowrap}
+:is([data-theme="white"],[data-theme="applejack"],[data-theme="rainbow"]) .pt-name{color:color-mix(in srgb,var(--res,var(--text-dim)) 58%,#000)}
+.pt-has{font:12px var(--mono);text-align:right;color:var(--text-dim);white-space:nowrap}
+.pt-row input{justify-self:center;width:44px;background:var(--input-bg);color:var(--input-ink);border:1px solid var(--border-soft);border-radius:3px;
+  padding:1px 3px;font:12px var(--mono);text-align:center;-moz-appearance:textfield;appearance:textfield}
+.pt-row input::-webkit-inner-spin-button,.pt-row input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.pt-row input:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.pt-row input.changed{border-color:var(--accent);font-weight:700}
+.pt-row input.pt-off{color:var(--text-dim)}
+.pt-row input.pt-off.some{color:var(--neg)}
+.pt-d{font:600 12px var(--mono);text-align:right;min-width:5ch;white-space:nowrap}
+.pt-d.pos{color:var(--pos)}
+.pt-d.neg{color:var(--neg)}
+.pt-gap{grid-column:1 / -1;height:6px}
+@media (max-width:520px){#pTable{grid-template-columns:minmax(0,1fr) auto auto auto auto;column-gap:6px}
+  .pt-name{white-space:normal;line-height:1.2}.pt-head > span{letter-spacing:.02em;font-size:9.5px}}
+.cost-l{display:flex;align-items:center;gap:7px;padding:2px 0;font-size:12.5px}
+.cost-l img{width:16px;height:16px;image-rendering:pixelated}
+.cost-l .v{margin-left:auto;font:600 12.5px var(--mono);color:var(--strong);font-variant-numeric:tabular-nums}
+.cost-tot{font-size:14px;padding:4px 0 6px;margin-bottom:4px;border-bottom:1px solid var(--border-soft)}
+.cost-tot .v{font-size:15px}
+.bit{display:inline-block;width:16px;text-align:center;font-weight:700;color:var(--strong)}
+.cost-sub{margin:10px 0 3px;font:600 10.5px var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
+.cost-none{color:var(--text-dim);font-size:12px}
+
+.import-box{margin-bottom:10px}
+.code-bar{display:flex;justify-content:flex-end;gap:8px;margin-bottom:10px}
+.code-box{max-width:620px;margin-left:auto}
+.code-box textarea{word-break:break-all}
+.import-box textarea{min-height:0;height:64px;font-size:11.5px}
+/* ---------- the envelopes' overall view ---------- */
+.ov-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,360px);gap:14px;align-items:start;margin-bottom:14px}
+@media (max-width:760px){.ov-grid{grid-template-columns:minmax(0,1fr)}}
+.ov-tbl th{font:600 10.5px var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);text-align:right;padding:0 0 5px 10px}
+.ov-tbl th:first-child,.ov-tbl th:nth-child(2){text-align:left;padding-left:0}
+.ov-tbl td{padding:4px 0 4px 10px}
+.ov-tbl td:first-child{padding-left:0;font-weight:600;color:var(--strong);white-space:nowrap}
+.ov-tbl td:nth-child(2){text-align:left;font-family:var(--font)}
+.ov-tbl td.pos{color:var(--pos)}
+.ov-tbl td.neg{color:var(--neg)}
+.ov-tbl select{background:var(--input-bg);color:var(--input-ink);border:1px solid var(--border-soft);border-radius:3px;padding:1px 4px;font:12px var(--font);max-width:180px}
+.ov-dot{display:inline-block;width:12px;height:9px;border-radius:2px;margin-right:7px;vertical-align:0;box-shadow:0 0 0 1px rgba(0,0,0,.3)}
+
+/* ---------- Mine mix and Well mix ---------- */
+.mx-in{margin-bottom:14px}
+.mx-fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px 14px}
+.mx-f{display:flex;flex-direction:column;gap:4px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim)}
+.mx-f :is(input,select){width:100%;background:var(--input-bg);color:var(--input-ink);border:1px solid var(--border-soft);border-radius:3px;
+  padding:4px 7px;font:13px var(--mono);letter-spacing:0;text-transform:none}
+.mx-f select{font-family:var(--font)}
+.mx-f :is(input,select):focus,.mx-srow input:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.mx-shares{margin-top:12px;padding-top:12px;border-top:1px solid var(--border-soft);display:grid;gap:6px}
+.mx-srow{display:grid;grid-template-columns:140px 1fr 64px 52px;gap:12px;align-items:center}
+.mx-nm{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--strong)}
+.mx-sw{width:10px;height:10px;border-radius:2px;flex:0 0 auto}
+.mx-srow input[type=range]{width:100%;accent-color:var(--accent)}
+.mx-srow input[type=number]{width:100%;background:var(--input-bg);color:var(--input-ink);border:1px solid var(--border-soft);border-radius:3px;
+  padding:2px 5px;font:12px var(--mono);text-align:right}
+.mx-out{text-align:right;font:600 13px var(--mono);color:var(--strong)}
+@media (max-width:620px){.mx-srow{grid-template-columns:1fr 64px 44px}.mx-nm{grid-column:1 / -1}}
+.mx-stats{margin-bottom:14px}
+.mx-split{margin-bottom:14px}
+.mx-tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.mx-tbl td{padding:4px 0;border-bottom:1px solid var(--border-soft)}
+.mx-tbl tr:last-child td{border-bottom:none}
+.mx-tbl td + td{text-align:right;font:12.5px var(--mono);color:var(--strong);font-variant-numeric:tabular-nums}
+.mx-chart{position:relative;height:280px}
+.badge-danger{background-image:linear-gradient(to bottom,var(--btn-danger-a),var(--btn-danger-b));color:var(--btn-ink);text-shadow:var(--btn-shadow)}
 </style>
 <script>
 /* the theme goes on before anything paints. Same list and key as Warcalc */
@@ -320,7 +633,10 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
     aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path
     d="M10.3 2.5h3.4l.5 2.6a7.6 7.6 0 0 1 2 1.2l2.5-.9 1.7 2.9-2 1.8a7.7 7.7 0 0 1 0 2.3l2 1.8-1.7 2.9-2.5-.9a7.6 7.6 0 0 1-2 1.2l-.5 2.6h-3.4l-.5-2.6a7.6 7.6 0 0 1-2-1.2l-2.5.9-1.7-2.9 2-1.8a7.7 7.7 0 0 1 0-2.3l-2-1.8 1.7-2.9 2.5.9a7.6 7.6 0 0 1 2-1.2z"/><circle
     cx="12" cy="12" r="3"/></svg></button></span>
-  <button class="tab active" type="button">Buildings</button>
+  <button class="tab active" type="button" data-view="buildings">Buildings</button>
+  <button class="tab" type="button" data-view="planner">Planner</button>
+  <button class="tab" type="button" data-view="mine">Mine mix</button>
+  <button class="tab" type="button" data-view="wells">Well mix</button>
 </div>
 
 <div class="panel" id="toolsPanel" hidden>
@@ -328,6 +644,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
   <label class="hk-toggle" for="themeSel">Theme <select id="themeSel"></select></label>
 </div>
 
+<div id="viewBuildings">
 <div id="errors" hidden></div>
 
 <div class="split">
@@ -351,8 +668,261 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
     <div id="out" class="well" tabindex="0"></div>
   </section>
 </div>
-<span id="toast" class="badge badge-success" hidden>Copied</span>
+</div>
 
+<div id="viewPlanner" hidden>
+  <div class="env-grid" id="envGrid"></div>
+  <div id="ovBox" hidden>
+    <hr class="plans-rule">
+    <div class="plans-head"><h2>Overall</h2></div>
+    <div class="ov-grid">
+      <section class="panel">
+        <div class="panel-head"><h2>Plans in use</h2></div>
+        <table class="mx-tbl ov-tbl" id="ovNations"></table>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>Total cost</h2></div>
+        <div id="ovCost"></div>
+      </section>
+    </div>
+    <section class="panel">
+      <div class="panel-head"><h2>Projected nets</h2></div>
+      <div id="ovNets" class="well"></div>
+    </section>
+  </div>
+  <hr class="plans-rule">
+  <div class="code-bar">
+    <button id="envImportBtn" class="btn" type="button" aria-expanded="false">Import code</button>
+    <button id="envCopyAll" class="btn btn-success" type="button">Copy all envelopes</button>
+  </div>
+  <div id="envImportBox" class="import-box code-box" hidden>
+    <textarea id="envImport" spellcheck="false" placeholder="Paste an envelope code"></textarea>
+    <p id="envImportNote" class="has-note" hidden></p>
+  </div>
+</div>
+
+<div id="viewNation" hidden>
+  <div class="nation-head">
+    <span class="env" id="nEnv" aria-hidden="true"></span>
+    <input id="nName" class="name-input" type="text" spellcheck="false" maxlength="60" aria-label="Nation name">
+    <div class="head-tools">
+    <div class="swatches" id="nSwatches" role="group" aria-label="Envelope colour"></div>
+    <button id="nShare" class="icon-btn" type="button" title="Copy this envelope's code"><svg viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path
+      d="M12 15V3.5M7.5 8 12 3.5 16.5 8"/><path d="M5 12.5V19a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19v-6.5"/></svg></button>
+    <button id="nDelete" class="icon-btn danger" type="button" title="Delete this nation"><svg viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path
+      d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13M10 11v6M14 11v6"/></svg></button>
+    </div>
+    <button id="nBack" class="icon-btn back-btn" type="button" title="Back to nations"><svg viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path
+      d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+  </div>
+  <div class="nation-body">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Has</h2>
+        <span class="spacer"></span>
+        <span id="nHasBadge" class="badge">0 buildings</span>
+      </div>
+      <textarea id="nHas" spellcheck="false" placeholder="Paste the spreadsheet column from the Buildings tab"></textarea>
+      <p id="nHasNote" class="has-note"></p>
+      <div id="nBuildings" class="blist well"></div>
+    </section>
+    <section class="panel">
+      <div class="gov-bar">
+        <label>Government <select id="nGov"></select></label>
+        <label>Economy <select id="nEcon"></select></label>
+        <label title="How many nations are in your empire: every one past the first costs sat">Nations
+          <input id="nEmpire" type="number" min="1" step="1"></label>
+        <label title="Units in your army: every unit past 20 costs half a sat">Army
+          <input id="nArmy" type="number" min="0" step="1"></label>
+        <label title="Hold max sat for its GDP multiplier, keeping 30 sat spare to stay there"><input id="nMaxSat" type="checkbox"> Max sat</label>
+      </div>
+      <div id="nStats" class="stats"></div>
+      <div id="nNets" class="nets well"></div>
+    </section>
+  </div>
+  <hr class="plans-rule">
+  <div class="plans-head"><h2>Plans</h2></div>
+  <div id="nPlans" class="slips"></div>
+  <div id="nCompareBox" hidden>
+    <hr class="plans-rule">
+    <div class="plans-head"><h2>Compare</h2></div>
+    <div id="nCompare" class="cmp well"></div>
+  </div>
+  <hr class="plans-rule">
+  <div class="code-bar">
+    <button id="plImportBtn" class="btn" type="button" aria-expanded="false">Import code</button>
+    <button id="plCopyAll" class="btn btn-success" type="button">Copy all plans</button>
+  </div>
+  <div id="plImportBox" class="import-box code-box" hidden>
+    <textarea id="plImport" spellcheck="false" placeholder="Paste a plan code"></textarea>
+    <p id="plImportNote" class="has-note" hidden></p>
+  </div>
+</div>
+
+<div id="viewPlan" hidden>
+  <div class="nation-head">
+    <span class="env" id="pEnv" aria-hidden="true"></span>
+    <button id="pNation" class="crumb" type="button" title="Back to the nation"></button>
+    <span class="crumb-sep" aria-hidden="true">›</span>
+    <input id="pName" class="name-input" type="text" spellcheck="false" maxlength="60" aria-label="Plan name">
+    <div class="head-tools">
+    <div class="swatches" id="pPapers" role="group" aria-label="Slip colour"></div>
+    <button id="pShare" class="icon-btn" type="button" title="Copy this plan's code"><svg viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path
+      d="M12 15V3.5M7.5 8 12 3.5 16.5 8"/><path d="M5 12.5V19a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19v-6.5"/></svg></button>
+    <button id="pDup" class="icon-btn" type="button" title="Duplicate this plan"><svg viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect
+      x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8"/></svg></button>
+    <button id="pDelete" class="icon-btn danger" type="button" title="Delete this plan"><svg viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path
+      d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13M10 11v6M14 11v6"/></svg></button>
+    </div>
+    <button id="pBack" class="icon-btn back-btn" type="button" title="Back to the nation"><svg viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path
+      d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+  </div>
+  <section class="panel proj">
+    <div id="pStats" class="stats"></div>
+    <div id="pNets" class="well"></div>
+  </section>
+  <div class="plan-body">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Buildings</h2>
+        <span class="spacer"></span>
+        <button id="pImportBtn" class="btn" type="button" aria-expanded="false">Import column</button>
+        <button id="pCopy" class="btn btn-success" type="button">Copy column</button>
+        <button id="pReset" class="btn" type="button">Reset to Has</button>
+      </div>
+      <div id="pImportBox" class="import-box" hidden>
+        <textarea id="pImport" spellcheck="false" placeholder="Paste a spreadsheet column"></textarea>
+        <p id="pImportNote" class="has-note" hidden></p>
+      </div>
+      <div id="pTable"></div>
+    </section>
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Cost</h2>
+        <span class="spacer"></span>
+        <label class="hk-toggle" title="Przewalskian nations build some things cheaper"><input id="pPrze" type="checkbox"> Przewalskia</label>
+      </div>
+      <div id="pCost"></div>
+    </section>
+  </div>
+</div>
+
+<div id="viewMine" hidden>
+  <section class="panel mx-in">
+    <div class="mx-fields">
+      <label class="mx-f">Copper target<input type="number" id="m_t" value="1562" min="0" step="1"></label>
+      <label class="mx-f">Environmental facilities<input type="number" id="m_cl" value="10" min="0" max="10" step="1"></label>
+      <label class="mx-f">Method<select id="m_mode">
+        <option value="share">Split by share</option>
+        <option value="ab">Anchor basic mines</option>
+        <option value="am">Anchor mechanised mines</option>
+      </select></label>
+      <label class="mx-f" id="anchbox" hidden>Anchored count<input type="number" id="m_anch" value="146" min="0" step="1"></label>
+    </div>
+    <div id="sharebox" class="mx-shares">
+      <div class="mx-srow">
+        <span class="mx-nm"><i class="mx-sw" style="background:#D85A30"></i>Mechanised</span>
+        <input type="range" id="m_pm" min="0" max="100" step="1" value="64">
+        <input type="number" id="m_pmn" min="0" max="100" step="1" value="64">
+        <span class="mx-out" id="m_pmv">—</span>
+      </div>
+      <div class="mx-srow">
+        <span class="mx-nm"><i class="mx-sw" style="background:#BA7517"></i>Basic</span>
+        <input type="range" id="m_pb" min="0" max="100" step="1" value="36">
+        <input type="number" id="m_pbn" min="0" max="100" step="1" value="36">
+        <span class="mx-out" id="m_pbv">—</span>
+      </div>
+    </div>
+  </section>
+  <div class="stats mx-stats">
+    <div class="stat well"><span class="stat-k">Basic mines</span><span class="stat-v" id="m_ob">—</span></div>
+    <div class="stat well"><span class="stat-k">Mechanised mines</span><span class="stat-v" id="m_om">—</span></div>
+    <div class="stat well"><span class="stat-k">Copper</span><span class="stat-v" id="m_oc">—</span></div>
+    <div class="stat well"><span class="stat-k">Sat lost</span><span class="stat-v neg" id="m_os">—</span></div>
+  </div>
+  <div class="split mx-split">
+    <section class="panel">
+      <div class="panel-head"><h2>Slider mix</h2><span class="spacer"></span><span id="m_verdict"></span></div>
+      <table class="mx-tbl" id="m_tbl"></table>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h2>Best mix</h2><span class="spacer"></span><button class="btn btn-success" id="m_apply" type="button">Use it</button></div>
+      <table class="mx-tbl" id="m_best"></table>
+    </section>
+  </div>
+  <section class="panel">
+    <div class="panel-head"><h2>Loss by mechanised share</h2></div>
+    <div class="mx-chart"><canvas id="c1"></canvas></div>
+  </section>
+</div>
+
+<div id="viewWells" hidden>
+  <section class="panel mx-in">
+    <div class="mx-fields">
+      <label class="mx-f">Gross oil target<input type="number" id="o_t" value="240" min="0" step="1"></label>
+      <label class="mx-f">Environmental facilities<input type="number" id="o_cl" value="10" min="0" max="10" step="1"></label>
+      <label class="mx-f">Method<select id="o_mode">
+        <option value="share">Split by share</option>
+        <option value="0">Anchor basic oil wells</option>
+        <option value="1">Anchor upgraded oil wells</option>
+        <option value="2">Anchor oil frackers</option>
+      </select></label>
+      <label class="mx-f" id="o_anchbox" hidden>Anchored count<input type="number" id="o_anch" value="20" min="0" step="1"></label>
+      <label class="mx-f">Other energy draw<input type="number" id="o_ex" value="0" min="0" step="1"></label>
+    </div>
+    <div id="o_sharebox" class="mx-shares">
+      <div class="mx-srow">
+        <span class="mx-nm"><i class="mx-sw" style="background:#BA7517"></i>Basic wells</span>
+        <input type="range" id="o_s0" min="0" max="100" step="1" value="0">
+        <input type="number" id="o_n0" min="0" max="100" step="1" value="0">
+        <span class="mx-out" id="o_v0">—</span>
+      </div>
+      <div class="mx-srow">
+        <span class="mx-nm"><i class="mx-sw" style="background:#D85A30"></i>Upgraded wells</span>
+        <input type="range" id="o_s1" min="0" max="100" step="1" value="33">
+        <input type="number" id="o_n1" min="0" max="100" step="1" value="33">
+        <span class="mx-out" id="o_v1">—</span>
+      </div>
+      <div class="mx-srow">
+        <span class="mx-nm"><i class="mx-sw" style="background:#ec4d49"></i>Oil frackers</span>
+        <input type="range" id="o_s2" min="0" max="100" step="1" value="67">
+        <input type="number" id="o_n2" min="0" max="100" step="1" value="67">
+        <span class="mx-out" id="o_v2">—</span>
+      </div>
+    </div>
+  </section>
+  <div class="stats mx-stats">
+    <div class="stat well"><span class="stat-k">Gross oil</span><span class="stat-v" id="o_gross">—</span></div>
+    <div class="stat well"><span class="stat-k">Net oil</span><span class="stat-v" id="o_net">—</span></div>
+    <div class="stat well"><span class="stat-k">Sat lost</span><span class="stat-v neg" id="o_sat">—</span></div>
+    <div class="stat well"><span class="stat-k">Sat per net oil</span><span class="stat-v" id="o_rat">—</span></div>
+  </div>
+  <div class="split mx-split">
+    <section class="panel">
+      <div class="panel-head"><h2>Slider mix</h2><span class="spacer"></span><span id="o_verdict"></span></div>
+      <table class="mx-tbl" id="o_tbl"></table>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h2>Best mix</h2><span class="spacer"></span><button class="btn btn-success" id="o_apply" type="button">Use it</button></div>
+      <table class="mx-tbl" id="o_best"></table>
+    </section>
+  </div>
+  <section class="panel">
+    <div class="panel-head"><h2>Sat per oil, next well</h2></div>
+    <div class="mx-chart"><canvas id="c5"></canvas></div>
+  </section>
+</div>
+<span id="toast" class="badge badge-success" hidden>Copied</span>
+<div id="tip" role="tooltip" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
 // the colour of what each building makes (or, for the shops, what it sells)
 const RES = {
@@ -472,22 +1042,23 @@ function render() {
 
 inp.addEventListener("input", render);
 $("clear").addEventListener("click", () => { inp.value = ""; render(); inp.focus(); });
-$("copy").addEventListener("click", () => {
+$("copy").addEventListener("click", () => copyText(column));
+function copyText(text) {
   const toast = $("toast");
   const done = msg => { toast.textContent = msg; toast.hidden = false; clearTimeout(done.t); done.t = setTimeout(() => toast.hidden = true, 1400); };
   // only the counts are copied; without the clipboard API they go through a scratch textarea
   const fallback = () => {
     const ta = document.createElement("textarea");
-    ta.value = column; ta.style.position = "fixed"; ta.style.opacity = "0";
+    ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
     document.body.appendChild(ta); ta.select();
     let ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
     ta.remove();
     done(ok ? "Copied" : "Couldn't copy");
   };
   if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(column).then(() => done("Copied"), fallback);
+    navigator.clipboard.writeText(text).then(() => done("Copied"), fallback);
   } else fallback();
-});
+}
 
 const toolsBtn = $("btnTools"), toolsPanel = $("toolsPanel");
 toolsBtn.addEventListener("click", () => {
@@ -503,10 +1074,1318 @@ toolsBtn.addEventListener("click", () => {
   sel.addEventListener("change", () => {
     const t = applyTheme(sel.value);
     try { localStorage.setItem(LS_THEME, JSON.stringify(t)); } catch (e) {}
+    mixRetheme();
   });
 }
 
 render();
+
+/* ===================== planner =====================
+   Each nation is an envelope holding what it Has: the spreadsheet column from the
+   Buildings tab pasted back in, read by position, and from that its net per tick */
+
+// [key, name, colour, image file] in the game's resource order
+const PLAN_RES = [
+  ["oil", "Oil", "#FF0000", "Oil"],
+  ["copper", "Copper", "#FF6A00", "Copper"],
+  ["apples", "Apples", "#B6FF00", "Apples"],
+  ["energy", "Energy", "#00FFFF", "Energy"],
+  ["vparts", "Vehicle Parts", "#FF0000", "Vehicle Parts"],
+  ["mparts", "Machinery Parts", "#0094FF", "Machine Parts"],
+  ["pies", "Pies", "#FF00DC", "Pie"],
+  ["cider", "Cider", "#FFD800", "Cider"],
+  ["coffee", "Coffee", "#FF6A00", "Coffee"],
+  ["gasoline", "Gasoline", "#0094FF", "Gasoline"],
+  ["gems", "Gems", "#00FF21", "Gems"],
+  ["tungsten", "Tungsten", "#808080", "Tungsten"],
+  ["plastics", "Plastics", "#00FF21", "Plastics"],
+  ["precision", "Precision Parts", "#C342FF", "Precision Parts"],
+  ["composites", "Composites", "#FFFFFF", "Composites"],
+  ["drugs", "Drugs", "#FF006E", "Drugs"],
+  ["toys", "Toys", "#FFFFFF", "Toys"],
+  ["forbidden", "Forbidden Research", "#C342FF", "Forbidden Research"],
+  ["serum", "Apotheosis Serum", "#FFFFFF", "Apotheosis Serum"]
+];
+const IMG_BASE = "https://cloppenmanager.neocities.org/img/";
+const resImg = img => `<img class="res-ic" src="${IMG_BASE}${encodeURIComponent(img)}.png" alt="" loading="lazy">`;
+const RES_BY_KEY = Object.fromEntries(PLAN_RES.map(r => [r[0], r]));
+
+// what one working building makes (+) and burns (−) every tick, from the game's own descriptions
+const TICK = {
+  "Basic Copper Mine": { copper: 5 },
+  "Mechanized Copper Mine": { copper: 8, energy: -1 },
+  "Gem Mine": { gems: 3, coffee: -1, energy: -1 },
+  "Tungsten Mine": { tungsten: 4, cider: -1, energy: -1 },
+  "Basic Apple Orchard": { apples: 5 },
+  "Mechanized Apple Farm": { apples: 8, energy: -1 },
+  "Coffee Farm": { coffee: 5, energy: -1 },
+  "Drug Farm": { drugs: 10 },
+  "Basic Oil Well": { oil: 5 },
+  "Mechanized Oil Well": { oil: 8, energy: -1 },
+  "Oil Fracker": { oil: 20, energy: -2 },
+  "Cider Production Facility": { cider: 5, apples: -5, energy: -1 },
+  "Energy Collector": { energy: 1 },
+  "Oil Combustion Facility": { energy: 12, oil: -8 },
+  "Gasoline Combustion Facility": { energy: 12, gasoline: -8 },
+  "Gasoline Refinery": { gasoline: 8, oil: -10 },
+  "Plastics Factory": { plastics: 4, oil: -4, energy: -1 },
+  "Przewalskian Plastics Factory": { plastics: 5, oil: -4, energy: -1 },
+  "Toy Factory": { toys: 3, plastics: -1, energy: -1 },
+  "Bakery": { pies: 3, apples: -2, energy: -1 },
+  "Bar": { cider: -3, pies: -1 },
+  "Coffee Shop": { coffee: -3, pies: -1 },
+  "Toy and Candy Shop": { apples: -4, pies: -4, toys: -4 },
+  "Video Arcade": { energy: -5, pies: -1 },
+  "Mall": { vparts: -5, mparts: -2, toys: -5, coffee: -5, cider: -5, gems: -2, apples: -5, pies: -5, gasoline: -5, energy: -10 },
+  "Basic Factory": { energy: -1 },
+  "Advanced Factory": { energy: -2 },
+  "DNA Extraction Facility": { apples: -1 },
+  "Moon Worship Center": { cider: -2, energy: -6 },
+  "Sun Worship Center": { coffee: -2, energy: -6 },
+  "Lunar Environmental Facility": { energy: -5 },
+  "Solar Environmental Facility": { energy: -5 },
+  "Forbidden Research Facility": { forbidden: 1 }
+};
+
+// sat a tick from each working building: [per building, how many before the environment
+// starts to object, divisor]. Past the soft cap it costs roundup((n − cap)² / divisor) more,
+// cut by 10% for every environmental facility
+const SAT = {
+  "Basic Copper Mine": [-2, 10, 10], "Mechanized Copper Mine": [-1, 20, 5], "Gem Mine": [-1, 7, 5], "Tungsten Mine": [-1, 7, 5],
+  "Basic Apple Orchard": [-2, 10, 10], "Mechanized Apple Farm": [-1, 20, 5], "Coffee Farm": [-1, 15, 10],
+  "Basic Oil Well": [-2, 10, 10], "Mechanized Oil Well": [-1, 20, 5], "Oil Fracker": [-2, 5, 5],
+  "Oil Combustion Facility": [-2, 5, 5], "Plastics Factory": [-1, 7, 5], "Przewalskian Plastics Factory": [-1, 1, 5],
+  "Bakery": [1], "Bar": [10], "Coffee Shop": [10], "Statue": [1], "Toy and Candy Shop": [30], "Video Arcade": [10], "Mall": [50],
+  "Basic Factory": [-1, 20, 10], "Advanced Factory": [-1, 5, 5], "DNA Extraction Facility": [0, 1, 1], "Barracks": [0, 1, 1]
+};
+
+// what each government does: flat sat, superpower relations, GDP multiplier [normally, at max sat],
+// the divisor on the empire penalty, and what it eats every tick. The two ascension stages
+// carry their own upkeep here rather than on the Alicornification Facility
+const GOVS = {
+  "Loose Despotism":  { gdp: [1, 2] },
+  "Democracy":        { sat: 15, se: -3, nlr: 2, gdp: [1, 2.5], upkeep: { gasoline: 20, vparts: 2 } },
+  "Repression":       { se: 2, nlr: -3, gdp: [2, 2], upkeep: { gasoline: 10 } },
+  "Decentralization": { sat: 30, se: -3, nlr: 4, gdp: [1, 3], upkeep: { gasoline: 50, vparts: 5 } },
+  "Authoritarianism": { se: 4, nlr: -3, gdp: [2.5, 2.5], upkeep: { gasoline: 10, mparts: 3 } },
+  "Oppression":       { se: 6, nlr: -3, gdp: [3, 3], empireDiv: 3, upkeep: { gasoline: 10, mparts: 5 } },
+  "Independence":     { sat: 50, se: -3, nlr: 6, gdp: [1, 3.5], upkeep: { gasoline: 40, vparts: 4 } },
+  "Alicorn Elite":    { gdp: [6, 6], empireDiv: 3, upkeep: { energy: 100, apples: 50 } },
+  "Transponyism":     { gdp: [8, 8], empireDiv: 3, upkeep: { energy: 300, apples: 150 } }
+};
+const ECONOMIES = {
+  "Poorly Defined":   {},
+  "Free Market":      { se: -3, nlr: 1, upkeep: { coffee: 6 } },
+  "State Controlled": { se: 1, nlr: -3, upkeep: { cider: 6 } }
+};
+const DEFAULT_GOV = "Loose Despotism", DEFAULT_ECON = "Poorly Defined";
+
+const ENV_COLOURS = ["#d6b47a", "#b98a5b", "#c4574c", "#d98a3d", "#e0c44c", "#7fa65a",
+                     "#4f9c97", "#5b86c4", "#8a6bbf", "#d27fb0", "#8d9096", "#3c3f45"];
+const MANILA = ENV_COLOURS[0];
+const isColour = c => /^#[0-9a-f]{6}$/i.test(c || "");
+
+const LS_NATIONS = "buildplanner.nations";
+let nations = [];
+try { nations = JSON.parse(localStorage.getItem(LS_NATIONS)) || []; } catch (e) {}
+if (!Array.isArray(nations)) nations = [];
+const saveNations = () => { try { localStorage.setItem(LS_NATIONS, JSON.stringify(nations)); } catch (e) {} };
+const nationName = n => n.name.trim() || "Untitled";
+
+// The Has box takes the Buildings tab's column back, read by row: the main block, six
+// blank rows, then the disabled block. A paste of the game's own list works too
+function parseHas(text) {
+  if (/[a-z]/i.test(text)) {
+    const { counts, off, unknown } = parse(text);
+    return { counts, off, warn: unknown.length ? "Skipped: " + unknown.join(", ") : "", note: "Read as a paste from the game" };
+  }
+  const counts = new Map(), off = new Map();
+  const lines = text.replace(/^(\s*\n)+/, "").replace(/\s+$/, "").split(/\r?\n/).map(s => s.trim());
+  if (!lines[0]) return { counts, off, warn: "", note: "" };
+  let shifted = false; const bad = [];
+  const read = (layout, from, into) => layout.forEach((e, i) => {
+    const s = lines[from + i] || "";
+    if (!e) { if (s) shifted = true; return; }
+    if (!s) return;
+    const v = s.replace(/[,\s]/g, "");
+    if (!/^\d+$/.test(v)) { bad.push(s); return; }
+    if (+v) into.set(e[0], +v);
+  });
+  read(LAYOUT, 0, counts);
+  const disStart = LAYOUT.length + DISABLED_GAP;
+  for (let i = LAYOUT.length; i < disStart; i++) if (lines[i]) shifted = true;
+  read(DISABLED_LAYOUT, disStart, off);
+  const warn = [];
+  if (shifted) warn.push("A number sits where a blank row should be, so the paste looks shifted. Copy the whole column from the top.");
+  if (bad.length) warn.push("Not numbers: " + bad.slice(0, 5).join(", "));
+  if (lines.length > disStart + DISABLED_LAYOUT.length) warn.push("Rows past the disabled block were ignored.");
+  const note = lines.length <= LAYOUT.length ? "No disabled block, so everything counts as switched on" : "";
+  return { counts, off, warn: warn.join(" "), note };
+}
+
+const sumMap = m => [...m.values()].reduce((a, b) => a + b, 0);
+
+// Everything one tick does for a nation, from its working buildings and its government:
+// each resource's makers and users, and where its sat, GDP and relations come from
+function nationModel(n, counts, off) {
+  const gov = GOVS[n.gov] || GOVS[DEFAULT_GOV], econ = ECONOMIES[n.econ] || ECONOMIES[DEFAULT_ECON];
+  const govName = GOVS[n.gov] ? n.gov : DEFAULT_GOV, econName = ECONOMIES[n.econ] ? n.econ : DEFAULT_ECON;
+  const has = name => counts.get(name) || 0;
+  const off1 = name => Math.min(off.get(name) || 0, has(name));
+  const on = name => has(name) - off1(name);
+
+  const res = {};
+  const R = k => res[k] || (res[k] = { made: 0, used: 0, makers: [], users: [] });
+  for (const [name, per] of Object.entries(TICK)) {
+    const c = on(name); if (!c) continue;
+    for (const [k, a] of Object.entries(per)) {
+      const v = a * c, r = R(k);
+      if (v > 0) { r.made += v; r.makers.push([name, c, v]); } else { r.used -= v; r.users.push([name, c, v]); }
+    }
+  }
+  for (const [src, label] of [[gov, govName], [econ, econName]])
+    for (const [k, a] of Object.entries(src.upkeep || {})) { const r = R(k); r.used += a; r.users.push([label, 0, -a]); }
+
+  // sat: [label, count, value, of which environmental]
+  const sat = [];
+  const envCut = 0.9 ** (has("Lunar Environmental Facility") + has("Solar Environmental Facility"));
+  let disabled = 0;
+  for (const e of LAYOUT) {
+    if (!e) continue;
+    disabled += off1(e[0]);
+    const s = SAT[e[0]], c = on(e[0]);
+    if (!s || !c) continue;
+    const [per, cap, div] = s;
+    const env = cap != null && c > cap ? Math.round(Math.ceil((c - cap) ** 2 / div) * envCut) : 0;
+    if (per * c - env) sat.push([e[0], c, per * c - env, env]);
+  }
+  if (disabled) sat.push(["Disabled buildings", disabled, -disabled, 0]);
+  if (gov.sat) sat.push([govName, 0, gov.sat, 0]);
+  const army = Math.max(0, Math.floor(+n.army || 0)), empire = Math.max(1, Math.floor(+n.empire || 1));
+  if (army > 20) sat.push(["Army past 20 units", army - 20, -Math.ceil((army - 20) / 2), 0]);
+  if (empire > 1) sat.push([`Empire of ${empire} nations`, 0, -Math.ceil((empire - 1) ** 2 * 20 / (gov.empireDiv || 1)), 0]);
+  if (n.maxSat) sat.push(["Kept spare to hold max sat", 0, -30, 0]);
+
+  // GDP, in thousands of bits
+  const gdpParts = [["Base", 0, 50], ["Mall", on("Mall"), on("Mall") * 250],
+                    ["Basic Factory", on("Basic Factory"), on("Basic Factory") * 10],
+                    ["Advanced Factory", on("Advanced Factory"), on("Advanced Factory") * 20]].filter(p => p[2]);
+  const mult = gov.gdp[n.maxSat ? 1 : 0];
+
+  // relations with the Solar Empire and the New Lunar Republic
+  const rep = (worship, side) => [
+    ["Drug Farm", on("Drug Farm"), -on("Drug Farm")],
+    ["Forbidden Research Facility", on("Forbidden Research Facility"), -15 * on("Forbidden Research Facility")],
+    [worship, on(worship), on(worship)],
+    [govName, 0, gov[side] || 0],
+    [econName, 0, econ[side] || 0]
+  ].filter(p => p[2]);
+
+  const total = parts => parts.reduce((a, p) => a + p[2], 0);
+  const se = rep("Sun Worship Center", "se"), nlr = rep("Moon Worship Center", "nlr");
+  return {
+    res, sat, satTotal: total(sat), gdpParts, gdpBase: total(gdpParts), mult, gdp: total(gdpParts) * mult,
+    se, seTotal: total(se), nlr, nlrTotal: total(nlr), govName, econName
+  };
+}
+
+const fmt = n => n.toLocaleString();
+const cls = v => v > 0 ? " pos" : v < 0 ? " neg" : "";
+const signed = n => (n > 0 ? "+" : n < 0 ? "−" : "") + fmt(Math.abs(n));
+
+const envGrid = $("envGrid");
+function renderGrid() {
+  envGrid.innerHTML = nations.map(n => {
+    const total = sumMap(parseHas(n.has || "").counts);
+    return `<button class="env" type="button" data-id="${esc(n.id)}" style="--env:${isColour(n.color) ? n.color : MANILA}">`
+         + `<span class="env-label"><span class="env-name">${esc(nationName(n))}</span>`
+         + `<span class="env-sub">${fmt(total)} building${total === 1 ? "" : "s"}</span></span></button>`;
+  }).join("") + `<button class="env env-new" type="button" id="envNew" title="New nation"><b>+</b><span>New nation</span></button>`;
+  renderOverall();
+}
+
+/* ---- the whole empire: each nation on the plan picked for it, or as it stands ---- */
+// a nation that has never been told otherwise counts its first plan
+const usedPlan = n => {
+  const plans = n.plans || [];
+  return n.usePlan === undefined ? plans[0] || null : plans.find(p => p.id === n.usePlan) || null;
+};
+function renderOverall() {
+  $("ovBox").hidden = !nations.length;
+  if (!nations.length) return;
+  const bits = { total: 0 }, res = {}, netNow = {}, netAfter = {};
+  let gdpNow = 0, gdpAfter = 0;
+  const rows = nations.map(n => {
+    const has = parseHas(n.has || ""), pl = usedPlan(n);
+    const want = pl ? planCounts(pl, has) : has;
+    const now = nationModel(n, has.counts, has.off), after = pl ? nationModel(n, want.counts, want.off) : now;
+    const cost = pl ? planCost(has.counts, want.counts, n.prze) : { bits: 0, res: {} };
+    bits.total += cost.bits;
+    for (const [k, v] of Object.entries(cost.res)) res[k] = (res[k] || 0) + v;
+    for (const [k] of PLAN_RES) {
+      const a = now.res[k], b = after.res[k];
+      netNow[k] = (netNow[k] || 0) + (a ? a.made - a.used : 0);
+      netAfter[k] = (netAfter[k] || 0) + (b ? b.made - b.used : 0);
+    }
+    gdpNow += now.gdp; gdpAfter += after.gdp;
+    const opts = `<option value=""${pl ? "" : " selected"}>No plan</option>`
+      + (n.plans || []).map(p => `<option value="${esc(p.id)}"${p === pl ? " selected" : ""}>${esc(planName(p))}</option>`).join("");
+    return `<tr><td><i class="ov-dot" style="background:${isColour(n.color) ? n.color : MANILA}"></i>${esc(nationName(n))}</td>`
+      + `<td>${(n.plans || []).length ? `<select data-ov="${esc(n.id)}" aria-label="Plan for ${esc(nationName(n))}">${opts}</select>` : '<span style="color:var(--text-dim)">no plans</span>'}</td>`
+      + `<td>${cost.bits ? shortBits(cost.bits) : "—"}</td>`
+      + `<td class="${cls(after.satTotal).trim()}">${signed(after.satTotal)}</td>`
+      + `<td>${fmt(after.gdp)}k</td></tr>`;
+  }).join("");
+  $("ovNations").innerHTML = `<tr><th>Nation</th><th>Plan</th><th>Cost</th><th>Sat</th><th>GDP</th></tr>` + rows;
+
+  const line = (l, v, c) => `<div class="cost-l${c ? " " + c : ""}">${l}<span class="v">${v}</span></div>`;
+  $("ovCost").innerHTML = !bits.total ? '<p class="cost-none">Nothing to build.</p>'
+    : line(`<span class="bit">${BIT}</span> Bits`, fmt(bits.total), "cost-tot")
+    + PLAN_RES.filter(r => res[r[0]]).map(([k, label, , img]) => line(`${resImg(img)} ${label}`, fmt(res[k]))).join("");
+
+  const cell = (v, f = signed) => `<td class="${v ? cls(v).trim() : "zero"}">${v ? f(v) : "0"}</td>`;
+  const k = v => fmt(v) + "k";
+  let head = '<tr><th></th><th>GDP</th>', rh = `<tr><th scope="row">Has</th><td>${k(gdpNow)}</td>`,
+      rw = `<tr><th scope="row">Projected</th><td>${k(gdpAfter)}</td>`;
+  let rd = `<tr class="diff${showDiff ? "" : " hidden"}"><th scope="row"><button type="button" class="diff-tog" aria-expanded="${showDiff}">Difference</button></th>`
+         + (gdpAfter - gdpNow ? `<td class="${cls(gdpAfter - gdpNow).trim()}">${signed(gdpAfter - gdpNow)}k</td>` : '<td class="zero">·</td>');
+  for (const [key, label, , img] of PLAN_RES) {
+    const a = netNow[key], b = netAfter[key];
+    head += `<th title="${label}">${resImg(img)}</th>`;
+    rh += cell(a); rw += cell(b);
+    rd += `<td class="${b - a ? cls(b - a).trim() : "zero"}">${b - a ? signed(b - a) : "·"}</td>`;
+  }
+  $("ovNets").innerHTML = `<div class="ptab-wrap"><table class="ptab"><col class="lab"><col class="gdp"><thead>${head}</tr></thead><tbody>${rh}</tr>${rw}</tr>${rd}</tr></tbody></table></div>`;
+}
+$("ovNations").addEventListener("change", ev => {
+  const sel = ev.target.closest("[data-ov]"); if (!sel) return;
+  const n = nations.find(x => x.id === sel.dataset.ov); if (!n) return;
+  n.usePlan = sel.value; saveNations(); renderOverall();
+});
+envGrid.addEventListener("click", ev => {
+  const b = ev.target.closest(".env");
+  if (!b) return;
+  if (b.id === "envNew") {
+    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    nations.push({ id, name: "New nation", color: MANILA, has: "" });
+    saveNations();
+    go("#planner/" + id);
+    const nm = $("nName"); nm.focus(); nm.select();
+  } else go("#planner/" + b.dataset.id);
+});
+
+let current = null;
+const nName = $("nName"), nHas = $("nHas");
+
+function renderSwatches() {
+  const c = isColour(current.color) ? current.color.toLowerCase() : MANILA;
+  const custom = !ENV_COLOURS.includes(c);
+  $("nSwatches").innerHTML = ENV_COLOURS.map(k =>
+      `<button class="swatch${k === c ? " on" : ""}" type="button" data-c="${k}" style="--sw:${k}" title="${k}"></button>`).join("")
+    + `<label class="swatch swatch-custom${custom ? " on" : ""}" title="Any colour"${custom ? ` style="background:${c}"` : ""}>`
+    + `<input type="color" value="${c}" aria-label="Any colour"></label>`;
+  $("nEnv").style.setProperty("--env", c);
+}
+function setColour(c) {
+  current.color = c; saveNations(); renderSwatches();
+}
+$("nSwatches").addEventListener("click", ev => { const b = ev.target.closest("[data-c]"); if (b) setColour(b.dataset.c); });
+$("nSwatches").addEventListener("input", ev => {
+  if (ev.target.type !== "color") return;
+  current.color = ev.target.value; saveNations();
+  ev.target.parentNode.style.background = ev.target.value;
+  $("nEnv").style.setProperty("--env", ev.target.value);
+});
+$("nSwatches").addEventListener("change", ev => { if (ev.target.type === "color") renderSwatches(); });
+
+function renderNation() {
+  const { counts, off, warn, note } = parseHas(current.has || "");
+  const total = sumMap(counts), totalOff = sumMap(off);
+  $("nHasBadge").textContent = fmt(total) + " buildings" + (totalOff ? ` · ${fmt(totalOff)} off` : "");
+  const hn = $("nHasNote");
+  hn.textContent = warn || note || (current.has ? "" : "Paste the column the Buildings tab copies.");
+  hn.className = "has-note" + (warn ? " warn" : "");
+  hn.hidden = !hn.textContent;
+
+  // what it has, in the sheet's order and groups, leaving out what it has none of
+  let rows = "", gap = false;
+  for (const e of LAYOUT) {
+    if (!e) { gap = !!rows; continue; }
+    const v = counts.get(e[0]); if (!v) continue;
+    if (gap) { rows += '<div class="bl-gap"></div>'; gap = false; }
+    const o = off.get(e[0]);
+    rows += `<div class="bl-row"><span class="bl-n">${fmt(v)}</span>`
+          + `<span class="bl-name"${e[1] ? ` style="--res:${RES[e[1]]}"` : ""}>${esc(e[0])}</span>`
+          + (o ? `<span class="bl-off">${fmt(o)} off <span class="bl-on">(${fmt(Math.max(0, v - o))})</span></span>` : "") + "</div>";
+  }
+  $("nBuildings").innerHTML = rows;
+
+  const m = nationModel(current, counts, off);
+  tips.clear();
+  const stat = (key, label, value, text) =>
+    `<div class="stat well" tabindex="0" data-tip="${key}"><span class="stat-k">${label}</span>`
+    + `<span class="stat-v${key === "gdp" ? "" : cls(value)}">${text}</span></div>`;
+  $("nStats").innerHTML = stat("sat", "Sat", m.satTotal, signed(m.satTotal))
+    + stat("gdp", "GDP", m.gdp, fmt(m.gdp) + "k")
+    + stat("se", "Solar Empire", m.seTotal, signed(m.seTotal))
+    + stat("nlr", "New Lunar Republic", m.nlrTotal, signed(m.nlrTotal));
+  tips.set("sat", tipSat(m));
+  tips.set("gdp", tipGdp(m));
+  tips.set("se", tipParts("Solar Empire relations", m.se, m.seTotal));
+  tips.set("nlr", tipParts("New Lunar Republic relations", m.nlr, m.nlrTotal));
+
+  $("nNets").innerHTML = PLAN_RES.map(([k, label, col, img]) => {
+    const r = m.res[k] || { made: 0, used: 0, makers: [] }, net = r.made - r.used;
+    tips.set(k, tipMade(label, col, img, r));
+    return `<div class="net${r.made || r.used ? "" : " idle"}" style="--res:${col}" tabindex="0" data-tip="${k}">`
+         + `${resImg(img)}`
+         + `<span class="net-name">${label}</span>`
+         + `<span class="net-val${cls(net)}">${signed(net)}</span></div>`;
+  }).join("");
+  renderSlips({ counts, off }, m);
+  hideTip();
+}
+
+/* ---- hover cards ---- */
+const tips = new Map();
+const tipRow = (name, count, value, extra) =>
+  `<div class="tip-row"><span>${esc(name)}${count ? ` <span class="n">×${fmt(count)}</span>` : ""}</span>`
+  + `<span class="v">${value}</span><span class="p">${extra || ""}</span></div>`;
+
+// what makes a resource, before anything eats it, and each maker's share
+function tipMade(label, col, img, r) {
+  let h = `<div class="tip-head" style="--res:${col}">${resImg(img)}`
+        + `<span class="tip-name">${label}</span><span class="tip-total">${fmt(r.made)} made a tick</span></div>`;
+  if (!r.made) return h + `<div class="tip-none">Nothing here makes ${label.toLowerCase()}.</div>`;
+  for (const [name, c, v] of [...r.makers].sort((a, b) => b[2] - a[2])) {
+    const pct = v / r.made * 100;
+    h += tipRow(name, c, "+" + fmt(v), pct < 1 ? "<1%" : Math.round(pct) + "%")
+       + `<div class="tip-bar" style="--res:${col};width:${pct}%"></div>`;
+  }
+  return h;
+}
+function tipSat(m) {
+  let h = `<div class="tip-head"><span class="tip-name">Sat</span><span class="tip-total">${signed(m.satTotal)} a tick</span></div>`;
+  if (!m.sat.length) return h + '<div class="tip-none">Nothing here moves sat.</div>';
+  const gains = m.sat.filter(p => p[2] > 0).sort((a, b) => b[2] - a[2]);
+  const losses = m.sat.filter(p => p[2] < 0).sort((a, b) => a[2] - b[2]);
+  const sum = ps => ps.reduce((a, p) => a + p[2], 0);
+  const list = ps => ps.map(([name, c, v, env]) => tipRow(name, c, signed(v))
+    + (env ? `<div class="tip-row"><span class="sub">${fmt(env)} of that from the environment</span></div>` : "")).join("");
+  if (gains.length) h += `<div class="tip-sec">Gains ${signed(sum(gains))}</div>` + list(gains);
+  if (losses.length) h += `<div class="tip-sec">Losses ${signed(sum(losses))}</div>` + list(losses);
+  return h;
+}
+function tipGdp(m) {
+  return `<div class="tip-head"><span class="tip-name">GDP</span><span class="tip-total">${fmt(m.gdp)}k a tick</span></div>`
+    + m.gdpParts.map(([name, c, v]) => tipRow(name, c, fmt(v) + "k")).join("")
+    + `<div class="tip-sec">× ${m.mult} for ${esc(m.govName)}</div>`;
+}
+function tipParts(title, parts, t) {
+  return `<div class="tip-head"><span class="tip-name">${title}</span><span class="tip-total">${signed(t)} a tick</span></div>`
+    + (parts.length ? parts.map(([name, c, v]) => tipRow(name, c, signed(v))).join("")
+                    : '<div class="tip-none">Nothing here moves it.</div>');
+}
+
+const tipEl = $("tip");
+let tipFor = null;
+function showTip(el) {
+  const html = tips.get(el.dataset.tip);
+  if (!html) return;
+  if (tipFor) tipFor.classList.remove("tip-on");
+  tipFor = el; el.classList.add("tip-on");
+  tipEl.innerHTML = html; tipEl.hidden = false;
+  // under the thing it explains, or above it when there's no room, and never off the side
+  const r = el.getBoundingClientRect(), t = tipEl.getBoundingClientRect();
+  const x = Math.min(Math.max(8, r.left), innerWidth - t.width - 8);
+  const y = r.bottom + 6 + t.height <= innerHeight - 8 ? r.bottom + 6 : Math.max(8, r.top - 6 - t.height);
+  tipEl.style.left = x + "px"; tipEl.style.top = y + "px";
+}
+function hideTip() {
+  if (tipFor) tipFor.classList.remove("tip-on");
+  tipFor = null; tipEl.hidden = true;
+}
+document.addEventListener("mouseover", ev => { const el = ev.target.closest("[data-tip]"); if (el && el !== tipFor) showTip(el); });
+document.addEventListener("mouseout", ev => {
+  const el = ev.target.closest("[data-tip]");
+  if (el && !el.contains(ev.relatedTarget)) hideTip();
+});
+document.addEventListener("focusin", ev => { const el = ev.target.closest("[data-tip]"); if (el) showTip(el); });
+document.addEventListener("focusout", hideTip);
+// a tap on a phone opens it, and a tap anywhere else closes it
+document.addEventListener("click", ev => {
+  const el = ev.target.closest("[data-tip]");
+  if (el) showTip(el); else hideTip();
+});
+addEventListener("scroll", hideTip, { passive: true });
+
+/* ---- government ---- */
+const nGov = $("nGov"), nEcon = $("nEcon"), nEmpire = $("nEmpire"), nArmy = $("nArmy"), nMaxSat = $("nMaxSat");
+nGov.innerHTML = Object.keys(GOVS).map(g => `<option>${g}</option>`).join("");
+nEcon.innerHTML = Object.keys(ECONOMIES).map(g => `<option>${g}</option>`).join("");
+function fillGov() {
+  nGov.value = GOVS[current.gov] ? current.gov : DEFAULT_GOV;
+  nEcon.value = ECONOMIES[current.econ] ? current.econ : DEFAULT_ECON;
+  nEmpire.value = current.empire || 1;
+  nArmy.value = current.army || 0;
+  nMaxSat.checked = !!current.maxSat;
+}
+const govInput = () => {
+  current.gov = nGov.value; current.econ = nEcon.value;
+  current.empire = Math.max(1, Math.floor(+nEmpire.value || 1));
+  current.army = Math.max(0, Math.floor(+nArmy.value || 0));
+  current.maxSat = nMaxSat.checked;
+  saveNations(); renderNation();
+};
+for (const el of [nGov, nEcon, nEmpire, nArmy, nMaxSat]) el.addEventListener(el.type === "number" ? "input" : "change", govInput);
+
+nName.addEventListener("input", () => { current.name = nName.value; saveNations(); document.title = nationName(current) + " · CLOP Build Planner"; });
+nHas.addEventListener("input", () => { current.has = nHas.value; saveNations(); renderNation(); });
+$("nBack").addEventListener("click", () => go("#planner"));
+$("nDelete").addEventListener("click", () => {
+  if (!confirm(`Delete ${nationName(current)}? This can't be undone.`)) return;
+  nations = nations.filter(n => n !== current); saveNations();
+  go("#planner");
+});
+
+/* ===================== plans =====================
+   A plan is a Want column against the nation's Has: what it would cost to get
+   there, and what the nation would look like a tick after. Want only keeps the
+   rows that were typed in, so every other row follows Has as it changes */
+
+// what one more of each costs to put up: bits [elsewhere, in Przewalskia], resources, and
+// the sat it gives on completion. An upgrade is built on top of the one it comes "from",
+// so wanting more of it means building that many more of the base as well
+const BUILD = {
+  "Basic Copper Mine":            { bits: 200000 },
+  "Mechanized Copper Mine":       { bits: 200000, res: { copper: 20, vparts: 5, mparts: 10 }, sat: 5, from: "Basic Copper Mine" },
+  "Gem Mine":                     { bits: 300000, res: { copper: 40, mparts: 15 } },
+  "Tungsten Mine":                { bits: 300000, res: { precision: 3, vparts: 10, mparts: 10 } },
+  "Basic Apple Orchard":          { bits: 200000 },
+  "Mechanized Apple Farm":        { bits: 200000, res: { vparts: 20, mparts: 5 }, sat: 5, from: "Basic Apple Orchard" },
+  "Coffee Farm":                  { bits: 200000, res: { vparts: 10, mparts: 5 } },
+  "Drug Farm":                    { bits: 200000 },
+  "Basic Oil Well":               { bits: 200000 },
+  "Mechanized Oil Well":          { bits: 200000, res: { copper: 5, vparts: 7, mparts: 15 }, sat: 5, from: "Basic Oil Well" },
+  "Oil Fracker":                  { bits: 500000, res: { copper: 75, vparts: 15, mparts: 10, composites: 5 } },
+  "Cider Production Facility":    { bits: 300000, res: { copper: 15, vparts: 5, mparts: 5 } },
+  "Energy Collector":             { bits: 100000 },
+  "Oil Combustion Facility":      { bits: [500000, 250000], res: { copper: 10, mparts: 20 } },
+  "Gasoline Combustion Facility": { bits: [200000, 100000], res: { copper: 30, mparts: 10 }, sat: 5, from: "Oil Combustion Facility" },
+  "Gasoline Refinery":            { bits: [300000, 200000], res: { copper: 75, energy: 50, mparts: 20, vparts: 10 } },
+  "Plastics Factory":             { bits: 200000, res: { precision: 5, vparts: 15, mparts: 20 } },
+  "Przewalskian Plastics Factory": { bits: 1000000, res: { mparts: 20, precision: 5, composites: 5 }, sat: 10, from: "Plastics Factory" },
+  "Toy Factory":                  { bits: [500000, 250000], res: { copper: 100, mparts: 5, precision: 5 } },
+  "Bakery":                       { bits: [400000, 200000], res: { copper: 5, energy: 5, vparts: 5, mparts: 5 }, sat: 2 },
+  "Bar":                          { bits: 150000, res: { copper: 40 }, sat: 5 },
+  "Coffee Shop":                  { bits: 150000, res: { copper: 40 }, sat: 5 },
+  "Statue":                       { bits: 5000000, res: { copper: 20000 }, sat: 50 },
+  "Toy and Candy Shop":           { bits: 400000, res: { copper: 50 }, sat: 10 },
+  "Video Arcade":                 { bits: 500000, res: { copper: 50, energy: 50 }, sat: 5 },
+  "Mall":                         { bits: 3000000, res: { copper: 200, vparts: 10, mparts: 10, tungsten: 10 }, sat: 100 },
+  "Basic Factory":                { bits: [500000, 150000], res: { copper: 30, energy: 12 } },
+  "Advanced Factory":             { bits: [750000, 500000], res: { copper: 50, energy: 50, mparts: 20, vparts: 20 }, sat: 20 },
+  "DNA Extraction Facility":      { bits: 500000 },
+  "Barracks":                     { bits: 4000000, res: { copper: 500, energy: 500, vparts: 50, mparts: 50 } },
+  "Moon Worship Center":          { bits: 300000, res: { copper: 50, plastics: 20 } },
+  "Sun Worship Center":           { bits: 300000, res: { copper: 50, plastics: 20 } },
+  "Lunar Environmental Facility": { bits: 20000000, res: { copper: 500, mparts: 100, composites: 100 } },
+  "Solar Environmental Facility": { bits: 20000000, res: { copper: 500, mparts: 100, composites: 100 } },
+  "Forbidden Research Facility":  { bits: 1000000000, res: { copper: 1000, mparts: 300, precision: 300 } }
+};
+
+// the slip papers Grand Strategy hands out
+const PAPERS = {
+  coal:  { paper: "#25282c", ink: "#d6d3cc" },
+  ember: { paper: "#30251f", ink: "#e0cfbd" },
+  wine:  { paper: "#321f27", ink: "#e3ccd4" },
+  moss:  { paper: "#1f2b24", ink: "#cddfd2" },
+  navy:  { paper: "#1c2531", ink: "#cbd9e7" },
+  plum:  { paper: "#292233", ink: "#dbd0eb" },
+  ash:   { paper: "#33373c", ink: "#e2e2e2" }
+};
+const PAPER_CYCLE = ["wine", "navy", "moss", "ember", "plum", "ash", "coal"];
+const paperStyle = pl => { const c = PAPERS[pl.paper] || PAPERS.coal; return `--paper:${c.paper};--ink:${c.ink}`; };
+const planName = pl => pl.name.trim() || "Untitled plan";
+const BIT = "฿";
+
+// the plan's Want and Disabled columns; a row nobody typed in follows Has, and the
+// disabled count never runs past what the plan has of that building
+const planWant = (pl, has, n) => pl.want && Number.isFinite(pl.want[n]) ? pl.want[n] : has.counts.get(n) || 0;
+const planOffTyped = (pl, has, n) => pl.off && Number.isFinite(pl.off[n]) ? pl.off[n] : has.off.get(n) || 0;
+function planCounts(pl, has) {
+  const counts = new Map(), off = new Map();
+  for (const e of LAYOUT) {
+    if (!e) continue;
+    const w = planWant(pl, has, e[0]);
+    if (w) counts.set(e[0], w);
+    const o = Math.min(planOffTyped(pl, has, e[0]), w);
+    if (o) off.set(e[0], o);
+  }
+  return { counts, off };
+}
+
+function planCost(has, want, prze) {
+  const h = n => has.get(n) || 0, w = n => want.get(n) || 0;
+  const builds = {};
+  for (const n of Object.keys(BUILD)) builds[n] = Math.max(0, w(n) - h(n));
+  for (const [n, b] of Object.entries(BUILD)) if (b.from) builds[b.from] = Math.max(0, w(b.from) - h(b.from) + builds[n]);
+  let bits = 0, sat = 0, count = 0;
+  const res = {}, lines = [];
+  for (const e of LAYOUT) {
+    if (!e || !builds[e[0]]) continue;
+    const b = BUILD[e[0]], n = builds[e[0]];
+    const each = Array.isArray(b.bits) ? b.bits[prze ? 1 : 0] : b.bits;
+    bits += each * n; sat += (b.sat || 0) * n; count += n;
+    for (const [k, a] of Object.entries(b.res || {})) res[k] = (res[k] || 0) + a * n;
+    lines.push([e[0], n, each * n]);
+  }
+  return { bits, res, sat, count, lines };
+}
+
+// the rows a plan changes, in the sheet's order: [building, change in count, change in how many are off]
+function planDiff(has, want) {
+  const out = [];
+  for (const e of LAYOUT) {
+    if (!e) continue;
+    const n = e[0];
+    const d = (want.counts.get(n) || 0) - (has.counts.get(n) || 0);
+    const o = (want.off.get(n) || 0) - Math.min(has.off.get(n) || 0, has.counts.get(n) || 0);
+    if (d || o) out.push([n, d, o]);
+  }
+  return out;
+}
+
+const shortBits = n => {
+  const a = Math.abs(n);
+  for (const [u, suf] of [[1e9, "bil"], [1e6, "mil"], [1e3, "k"]])
+    if (a >= u) return +(n / u).toFixed(a / u >= 100 ? 0 : a / u >= 10 ? 1 : 2) + suf;
+  return fmt(n);
+};
+
+/* ---- the slips under a nation ---- */
+function renderSlips(has, now) {
+  const plans = current.plans || [];
+  $("nPlans").innerHTML = plans.map(pl => {
+    const want = planCounts(pl, has), after = nationModel(current, want.counts, want.off);
+    const diff = planDiff(has, want), cost = planCost(has.counts, want.counts, current.prze);
+    const row = (l, v, c) => `<div class="slip-l${c ? " " + c : ""}"><span>${l}</span><span class="v">${v}</span></div>`;
+    const lead = (label, v, f, colour) => row(label, `<span class="${colour ? cls(v).trim() : ""}">${f(v)}</span>`, "lead");
+    const resRows = PLAN_RES.map(([k, label, , img]) => {
+      const r = after.res[k], v = r ? r.made - r.used : 0;
+      return r && (r.made || r.used) ? lead(`${resImg(img)} ${label}`, v, signed, true) : "";
+    }).join("");
+    return `<div class="slip" role="button" tabindex="0" data-plan="${esc(pl.id)}" style="${paperStyle(pl)}">
+      <div class="slip-name">${esc(planName(pl))}</div>
+      <div class="slip-meta">${diff.length ? `${diff.length} change${diff.length === 1 ? "" : "s"}` : "no changes yet"}</div>
+      <div class="slip-cut"></div>
+      ${diff.map(([n, d, o]) => (d ? row(`<span class="q ${cls(d).trim()}">${signed(d)}</span>${esc(n)}`, "") : "")
+        + (o ? row(`<span class="q ${cls(-o).trim()}">${fmt(Math.abs(o))}</span>${esc(n)} ${o < 0 ? "switched on" : "switched off"}`, "") : "")).join("")
+        || '<div class="slip-none">Same as Has</div>'}
+      <div class="slip-cut"></div>
+      ${cost.count ? row(`<span class="bit">${BIT}</span> Total`, fmt(cost.bits), "slip-tot") : '<div class="slip-none">Nothing to build</div>'}
+      ${PLAN_RES.filter(r => cost.res[r[0]]).map(([k, label, , img]) => row(`${resImg(img)} ${label}`, fmt(cost.res[k]))).join("")}
+      <div class="slip-cut double"></div>
+      <div class="slip-sub">Nets a tick after</div>
+      ${lead("Sat", after.satTotal, signed, true) + lead("GDP", after.gdp, v => fmt(v) + "k")
+        + lead("Solar Empire", after.seTotal, signed, true) + lead("New Lunar Republic", after.nlrTotal, signed, true)}
+      <div class="slip-cut"></div>
+      ${resRows || '<div class="slip-none">No resources moving</div>'}
+    </div>`;
+  }).join("") + `<button class="slip slip-new" type="button" id="planNew"><b>+</b><span>New plan</span></button>`;
+  renderCompare(has, plans);
+}
+
+// one row per plan: the four headline numbers, then every resource's net, the best of each column marked
+function renderCompare(has, plans) {
+  $("nCompareBox").hidden = !plans.length;
+  if (!plans.length) { $("nCompare").innerHTML = ""; return; }
+  const models = plans.map(pl => { const w = planCounts(pl, has); return nationModel(current, w.counts, w.off); });
+  const cols = [
+    ["Sat", m => m.satTotal, signed, true],
+    ["GDP", m => m.gdp, v => fmt(v) + "k", false],
+    ["SE", m => m.seTotal, signed, true],
+    ["NLR", m => m.nlrTotal, signed, true],
+    ...PLAN_RES.map(([k, label, , img]) => [resImg(img), m => { const r = m.res[k]; return r ? r.made - r.used : 0; }, signed, true, label])
+  ];
+  const vals = cols.map(c => models.map(c[1]));
+  const best = vals.map(vs => { const hi = Math.max(...vs); return vs.some(v => v !== hi) ? hi : null; });
+  const head = '<tr><th></th>' + cols.map(c => `<th${c[4] ? ` title="${c[4]}"` : ""}>${c[0]}</th>`).join("") + "</tr>";
+  const body = plans.map((pl, i) => `<tr><th scope="row" data-plan="${esc(pl.id)}" title="${esc(planName(pl))}">`
+      + `<i style="background:${(PAPERS[pl.paper] || PAPERS.coal).paper}"></i>${esc(planName(pl))}</th>`
+      + cols.map((c, j) => {
+        const v = vals[j][i];
+        return `<td class="${v ? (c[3] ? cls(v).trim() : "") : "zero"}${v === best[j] ? " best" : ""}">${v ? c[2](v) : "0"}</td>`;
+      }).join("") + "</tr>").join("");
+  $("nCompare").innerHTML = `<div class="ptab-wrap"><table class="ptab"><col class="lab"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+}
+$("nCompare").addEventListener("click", ev => {
+  const th = ev.target.closest("[data-plan]");
+  if (th) go(`#planner/${current.id}/${th.dataset.plan}`);
+});
+$("nPlans").addEventListener("click", ev => {
+  if (ev.target.closest("#planNew")) {
+    const plans = current.plans || (current.plans = []);
+    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    plans.push({ id, name: "Plan " + (plans.length + 1), paper: PAPER_CYCLE[plans.length % PAPER_CYCLE.length], want: {}, off: {} });
+    saveNations();
+    go(`#planner/${current.id}/${id}`);
+    pName.focus(); pName.select();
+    return;
+  }
+  const sl = ev.target.closest("[data-plan]");
+  if (sl) go(`#planner/${current.id}/${sl.dataset.plan}`);
+});
+$("nPlans").addEventListener("keydown", ev => {
+  const sl = ev.target.closest("[data-plan]");
+  if (sl && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); sl.click(); }
+});
+
+/* ---- the plan page ---- */
+let plan = null;
+const pName = $("pName");
+
+function renderPapers() {
+  $("pPapers").innerHTML = Object.entries(PAPERS).map(([k, c]) =>
+    `<button class="swatch${(PAPERS[plan.paper] ? plan.paper : "coal") === k ? " on" : ""}" type="button" data-paper="${k}" style="--sw:${c.paper}" title="${k}"></button>`).join("");
+}
+$("pPapers").addEventListener("click", ev => {
+  const b = ev.target.closest("[data-paper]"); if (!b) return;
+  plan.paper = b.dataset.paper; saveNations(); renderPapers();
+});
+
+// the table is drawn once when the plan opens, so typing in it never loses its place
+function renderPlanTable() {
+  const has = parseHas(current.has || "");
+  let rows = '<div class="pt-row pt-head"><span>Building</span><span>Has</span><span>Want</span><span>Disabled</span><span>Change</span></div>';
+  for (const e of LAYOUT) {
+    if (!e) { rows += '<div class="pt-gap"></div>'; continue; }
+    rows += `<div class="pt-row" data-b="${esc(e[0])}"><span class="pt-name"${e[1] ? ` style="--res:${RES[e[1]]}"` : ""}>${esc(e[0])}</span>`
+          + `<span class="pt-has">${fmt(has.counts.get(e[0]) || 0)}</span>`
+          + `<input type="number" min="0" step="1" inputmode="numeric" data-col="want" value="${planWant(plan, has, e[0])}" aria-label="Want ${esc(e[0])}">`
+          + `<input type="number" min="0" step="1" inputmode="numeric" data-col="off" class="pt-off" value="${planOffTyped(plan, has, e[0])}" aria-label="Disabled ${esc(e[0])}">`
+          + `<span class="pt-d"></span></div>`;
+  }
+  $("pTable").innerHTML = rows;
+  markRows(has);
+}
+function markRows(has) {
+  for (const r of $("pTable").querySelectorAll("[data-b]")) {
+    const n = r.dataset.b, h = has.counts.get(n) || 0, d = planWant(plan, has, n) - h;
+    r.querySelector("[data-col=want]").classList.toggle("changed", d !== 0);
+    const off = r.querySelector("[data-col=off]"), o = planOffTyped(plan, has, n);
+    off.classList.toggle("changed", o !== (has.off.get(n) || 0));
+    off.classList.toggle("some", o > 0);
+    const dc = r.querySelector(".pt-d");
+    dc.textContent = d ? signed(d) : ""; dc.className = "pt-d" + cls(d);
+  }
+}
+$("pTable").addEventListener("input", ev => {
+  const r = ev.target.closest("[data-b]"), col = ev.target.dataset.col; if (!r || !col) return;
+  const store = plan[col] || (plan[col] = {});
+  const v = ev.target.value.trim();
+  if (v === "") delete store[r.dataset.b];
+  else store[r.dataset.b] = Math.max(0, Math.floor(+v || 0));
+  saveNations();
+  const has = parseHas(current.has || "");
+  markRows(has); renderPlanCalc(has);
+});
+// a cleared box goes back to what Has says
+$("pTable").addEventListener("change", ev => {
+  const r = ev.target.closest("[data-b]"), col = ev.target.dataset.col;
+  if (!r || !col || ev.target.value.trim() !== "") return;
+  const has = parseHas(current.has || "");
+  ev.target.value = col === "want" ? planWant(plan, has, r.dataset.b) : planOffTyped(plan, has, r.dataset.b);
+});
+$("pReset").addEventListener("click", () => { plan.want = {}; plan.off = {}; saveNations(); renderPlanTable(); renderPlanCalc(); });
+
+let showDiff = true;
+try { showDiff = localStorage.getItem("buildplanner.planDiff") !== "0"; } catch (e) {}
+document.addEventListener("click", ev => {
+  if (!ev.target.closest(".diff-tog")) return;
+  showDiff = !showDiff;
+  try { localStorage.setItem("buildplanner.planDiff", showDiff ? "1" : "0"); } catch (e) {}
+  document.querySelectorAll(".diff-tog").forEach(b => b.setAttribute("aria-expanded", showDiff));
+  document.querySelectorAll(".ptab tr.diff").forEach(r => r.classList.toggle("hidden", !showDiff));
+});
+
+// a plan goes out as the same column the Buildings tab copies, and comes back in the same way
+function planColumn(pl, has) {
+  const w = planCounts(pl, has);
+  return [...block(w.counts, LAYOUT).lines, ...Array(DISABLED_GAP).fill(""), ...block(w.off, DISABLED_LAYOUT).lines].join("\n");
+}
+$("pCopy").addEventListener("click", () => copyText(planColumn(plan, parseHas(current.has || ""))));
+$("pImportBtn").addEventListener("click", () => {
+  const box = $("pImportBox"), open = box.hidden;
+  box.hidden = !open; $("pImportBtn").setAttribute("aria-expanded", open);
+  if (open) { $("pImport").value = ""; $("pImportNote").hidden = true; $("pImport").focus(); }
+});
+$("pImport").addEventListener("input", () => {
+  const text = $("pImport").value, note = $("pImportNote");
+  if (!text.trim()) { note.hidden = true; return; }
+  const got = parseHas(text);
+  note.hidden = false;
+  if (got.warn) { note.textContent = got.warn; note.className = "has-note warn"; return; }
+  plan.want = {}; plan.off = {};
+  for (const e of LAYOUT) if (e) { plan.want[e[0]] = got.counts.get(e[0]) || 0; plan.off[e[0]] = Math.min(got.off.get(e[0]) || 0, plan.want[e[0]]); }
+  saveNations();
+  note.textContent = `Imported ${fmt(sumMap(got.counts))} buildings` + (sumMap(got.off) ? `, ${fmt(sumMap(got.off))} disabled` : "");
+  note.className = "has-note";
+  renderPlanTable(); renderPlanCalc();
+});
+
+function renderPlanCalc(has = parseHas(current.has || "")) {
+  const want = planCounts(plan, has);
+  const now = nationModel(current, has.counts, has.off), after = nationModel(current, want.counts, want.off);
+  tips.clear();
+  const half = (key, side, v, f, colour) =>
+    `<div class="stat-half" tabindex="0" data-tip="${key}"><small>${side}</small><span class="stat-v${colour ? cls(v) : ""}">${f(v)}</span></div>`;
+  const stat = (key, label, a, b, f, colour) =>
+    `<div class="stat stat2 well"><span class="stat-k">${label}</span><div class="stat-halves">`
+    + half("h-" + key, "Has", a, f, colour) + half("p-" + key, "Want", b, f, colour) + "</div></div>";
+  const k = v => fmt(v) + "k";
+  $("pStats").innerHTML = stat("sat", "Sat", now.satTotal, after.satTotal, signed, true)
+    + stat("gdp", "GDP", now.gdp, after.gdp, k)
+    + stat("se", "Solar Empire", now.seTotal, after.seTotal, signed, true)
+    + stat("nlr", "New Lunar Republic", now.nlrTotal, after.nlrTotal, signed, true);
+  for (const [pre, m] of [["h-", now], ["p-", after]]) {
+    tips.set(pre + "sat", tipSat(m));
+    tips.set(pre + "gdp", tipGdp(m));
+    tips.set(pre + "se", tipParts("Solar Empire relations", m.se, m.seTotal));
+    tips.set(pre + "nlr", tipParts("New Lunar Republic relations", m.nlr, m.nlrTotal));
+  }
+
+  const net = r => r ? r.made - r.used : 0;
+  const cell = (key, v, sign) => `<td tabindex="0"${key ? ` data-tip="${key}"` : ""} class="${v ? cls(v).trim() : "zero"}">${v ? sign(v) : "0"}</td>`;
+  let head = '<tr><th></th>', rh = '<tr><th scope="row">Has</th>', rw = '<tr><th scope="row">Want</th>';
+  let rd = `<tr class="diff${showDiff ? "" : " hidden"}"><th scope="row"><button type="button" class="diff-tog" aria-expanded="${showDiff}">Difference</button></th>`;
+  for (const [key, label, col, img] of PLAN_RES) {
+    const r0 = now.res[key] || { made: 0, used: 0, makers: [] }, r1 = after.res[key] || { made: 0, used: 0, makers: [] };
+    tips.set("h-" + key, tipMade(label, col, img, r0));
+    tips.set("p-" + key, tipMade(label, col, img, r1));
+    const a = net(r0), b = net(r1);
+    head += `<th title="${label}">${resImg(img)}</th>`;
+    rh += cell("h-" + key, a, signed);
+    rw += cell("p-" + key, b, signed);
+    rd += `<td class="${b - a ? cls(b - a).trim() : "zero"}">${b - a ? signed(b - a) : "·"}</td>`;
+  }
+  $("pNets").innerHTML = `<div class="ptab-wrap"><table class="ptab"><col class="lab"><thead>${head}</tr></thead><tbody>${rh}</tr>${rw}</tr>${rd}</tr></tbody></table></div>`;
+
+  const cost = planCost(has.counts, want.counts, current.prze);
+  const line = (l, v, c) => `<div class="cost-l${c ? " " + c : ""}">${l}<span class="v">${v}</span></div>`;
+  $("pCost").innerHTML = !cost.count ? '<p class="cost-none">Nothing to build. Raise a Want above its Has and the bill shows here.</p>'
+    : line(`<span class="bit">${BIT}</span> Bits`, fmt(cost.bits), "cost-tot")
+    + PLAN_RES.filter(r => cost.res[r[0]]).map(([k, label, , img]) => line(`${resImg(img)} ${label}`, fmt(cost.res[k]))).join("")
+    + `<div class="cost-sub">${fmt(cost.count)} to build</div>`
+    + cost.lines.map(([n, c, b]) => line(`${esc(n)} <span class="n" style="color:var(--text-dim)">×${fmt(c)}</span>`, shortBits(b))).join("");
+  hideTip();
+}
+
+pName.addEventListener("input", () => { plan.name = pName.value; saveNations(); document.title = planName(plan) + " · " + nationName(current); });
+$("pPrze").addEventListener("change", ev => { current.prze = ev.target.checked; saveNations(); renderPlanCalc(); });
+const toNation = () => go("#planner/" + current.id);
+$("pBack").addEventListener("click", toNation);
+$("pNation").addEventListener("click", toNation);
+$("pDup").addEventListener("click", () => {
+  const plans = current.plans, id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const copy = { id, name: planName(plan) + " copy", paper: PAPER_CYCLE[plans.length % PAPER_CYCLE.length],
+                 want: { ...plan.want }, off: { ...(plan.off || {}) } };
+  plans.splice(plans.indexOf(plan) + 1, 0, copy);
+  saveNations();
+  go(`#planner/${current.id}/${id}`);
+});
+$("pDelete").addEventListener("click", () => {
+  if (!confirm(`Delete ${planName(plan)}? This can't be undone.`)) return;
+  current.plans = current.plans.filter(x => x !== plan); saveNations();
+  toNation();
+});
+
+/* ===================== share codes =====================
+   Envelopes and plans travel as one run of letters and digits, the way
+   Warcalc's army codes do: base 62, so they survive chat, markdown and a
+   double-click. Inside is a small byte stream: a magic byte, a version, what
+   the code holds (envelopes or plans) and how many, then each one in turn.
+   Numbers are LEB128 varints and building counts go sparse, as (building,
+   count) pairs, so an envelope with a handful of building types stays short.
+
+   CODE_BUILDINGS is the order buildings are numbered in. It is the code's
+   alphabet: append to it, never reorder it */
+const CODE_BUILDINGS = LAYOUT.filter(Boolean).map(e => e[0]);
+const CODE_GOVS = Object.keys(GOVS), CODE_ECONS = Object.keys(ECONOMIES), CODE_PAPERS = Object.keys(PAPERS);
+const CODE_MAGIC = 0xB7, CODE_VERSION = 1, KIND_NATIONS = 0, KIND_PLANS = 1;
+const ALPHA62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+
+function toB62(bytes) {
+  let v = 1n;                       // a leading 1 keeps any zero bytes at the front
+  for (const b of bytes) v = (v << 8n) | BigInt(b);
+  let out = "";
+  while (v > 0n) { out = ALPHA62[Number(v % 62n)] + out; v /= 62n; }
+  return out;
+}
+function fromB62(text) {
+  let v = 0n;
+  for (const ch of text) {
+    const d = ALPHA62.indexOf(ch);
+    if (d < 0) throw new Error("not a code");
+    v = v * 62n + BigInt(d);
+  }
+  const bytes = [];
+  while (v > 1n) { bytes.unshift(Number(v & 255n)); v >>= 8n; }
+  if (v !== 1n) throw new Error("not a code");
+  return bytes;
+}
+
+function writer() {
+  const b = [];
+  const w = {
+    bytes: b,
+    u(n) { n = Math.max(0, Math.floor(+n || 0)); do { let x = n % 128; n = Math.floor(n / 128); b.push(n ? x | 128 : x); } while (n); return w; },
+    str(t) { const e = new TextEncoder().encode(String(t || "")); w.u(e.length); b.push(...e); return w; },
+    counts(m) {
+      const pairs = CODE_BUILDINGS.map((n, i) => [i, m.get(n) || 0]).filter(p => p[1]);
+      w.u(pairs.length); pairs.forEach(([i, v]) => w.u(i).u(v)); return w;
+    }
+  };
+  return w;
+}
+function reader(bytes) {
+  let i = 0;
+  const need = () => { if (i >= bytes.length) throw new Error("code cut short"); return bytes[i++]; };
+  const r = {
+    u() { let n = 0, mul = 1, x; do { x = need(); n += (x & 127) * mul; mul *= 128; } while (x & 128); return n; },
+    str() { const len = r.u(); if (i + len > bytes.length) throw new Error("code cut short"); const t = new TextDecoder().decode(new Uint8Array(bytes.slice(i, i + len))); i += len; return t; },
+    counts() { const m = new Map(); for (let k = r.u(); k > 0; k--) { const idx = r.u(), v = r.u(); if (CODE_BUILDINGS[idx]) m.set(CODE_BUILDINGS[idx], v); } return m; },
+    byte: need
+  };
+  return r;
+}
+
+// a plan goes out as what it would leave the nation with, so it reads the same wherever it lands
+function writePlan(w, pl, has) {
+  const c = planCounts(pl, has);
+  w.str(planName(pl)).u(Math.max(0, CODE_PAPERS.indexOf(pl.paper))).counts(c.counts).counts(c.off);
+}
+function readPlan(r) {
+  const name = r.str(), paper = CODE_PAPERS[r.u()] || "coal", counts = r.counts(), off = r.counts();
+  const want = {}, offs = {};
+  for (const n of CODE_BUILDINGS) { want[n] = counts.get(n) || 0; offs[n] = Math.min(off.get(n) || 0, want[n]); }
+  return { id: newId(), name, paper, want, off: offs };
+}
+function writeNation(w, n) {
+  const has = parseHas(n.has || ""), col = isColour(n.color) ? n.color : MANILA;
+  w.str(nationName(n));
+  w.bytes.push(...[1, 3, 5].map(i => parseInt(col.slice(i, i + 2), 16)));
+  w.u(Math.max(0, CODE_GOVS.indexOf(n.gov))).u(Math.max(0, CODE_ECONS.indexOf(n.econ)))
+   .u(n.empire || 1).u(n.army || 0).u((n.maxSat ? 1 : 0) | (n.prze ? 2 : 0))
+   .counts(has.counts).counts(has.off);
+  const plans = n.plans || [];
+  w.u(plans.length); plans.forEach(pl => writePlan(w, pl, has));
+  // 0 means "its first plan", as an envelope that was never told otherwise reads; 1 means none
+  const used = n.usePlan === undefined ? 0 : n.usePlan === "" ? 1 : plans.findIndex(p => p.id === n.usePlan) + 2;
+  w.u(Math.max(0, used));
+}
+function readNation(r) {
+  const name = r.str(), color = "#" + [r.byte(), r.byte(), r.byte()].map(x => x.toString(16).padStart(2, "0")).join("");
+  const gov = CODE_GOVS[r.u()] || DEFAULT_GOV, econ = CODE_ECONS[r.u()] || DEFAULT_ECON;
+  const empire = r.u() || 1, army = r.u(), flags = r.u();
+  const counts = r.counts(), off = r.counts();
+  const plans = []; for (let k = r.u(); k > 0; k--) plans.push(readPlan(r));
+  const used = r.u();
+  const n = { id: newId(), name, color, gov, econ, empire, army, maxSat: !!(flags & 1), prze: !!(flags & 2),
+              has: columnOf(counts, off), plans };
+  if (used === 1) n.usePlan = ""; else if (used >= 2 && plans[used - 2]) n.usePlan = plans[used - 2].id;
+  return n;
+}
+const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const columnOf = (counts, off) =>
+  [...block(counts, LAYOUT).lines, ...Array(DISABLED_GAP).fill(""), ...block(off, DISABLED_LAYOUT).lines].join("\n");
+
+function encodeCode(kind, items, write) {
+  const w = writer();
+  w.bytes.push(CODE_MAGIC, CODE_VERSION, kind);
+  w.u(items.length);
+  items.forEach(it => write(w, it));
+  return toB62(w.bytes);
+}
+const nationsCode = list => encodeCode(KIND_NATIONS, list, writeNation);
+const plansCode = (n, list) => { const has = parseHas(n.has || ""); return encodeCode(KIND_PLANS, list, (w, pl) => writePlan(w, pl, has)); };
+
+// { kind, items } from a pasted code, or an error saying why not
+function decodeCode(text) {
+  const t = text.replace(/\s+/g, "");
+  if (!t) return null;
+  try {
+    const r = reader(fromB62(t));
+    if (r.byte() !== CODE_MAGIC) throw new Error("not a code");
+    const ver = r.byte();
+    if (ver > CODE_VERSION) return { error: "That code is from a newer version of this page." };
+    const kind = r.byte(), items = [];
+    if (kind !== KIND_NATIONS && kind !== KIND_PLANS) throw new Error("not a code");
+    for (let k = r.u(); k > 0; k--) items.push(kind === KIND_NATIONS ? readNation(r) : readPlan(r));
+    return { kind, items };
+  } catch (e) {
+    return { error: e.message === "code cut short" ? "That code is cut short. Copy the whole thing." : "That isn't an envelope or plan code." };
+  }
+}
+
+const many = (n, one) => `${fmt(n)} ${one}${n === 1 ? "" : "s"}`;
+function codeBox(btn, box, ta, note, onCode) {
+  $(btn).addEventListener("click", () => {
+    const open = $(box).hidden;
+    $(box).hidden = !open; $(btn).setAttribute("aria-expanded", open);
+    if (open) { $(ta).value = ""; $(note).hidden = true; $(ta).focus(); }
+  });
+  $(ta).addEventListener("input", () => {
+    const got = decodeCode($(ta).value), nt = $(note);
+    if (!got) { nt.hidden = true; return; }
+    const msg = got.error || onCode(got);
+    nt.hidden = false; nt.textContent = msg.text || msg;
+    nt.className = "has-note" + (got.error || msg.warn ? " warn" : "");
+    if (!got.error && !msg.warn) $(ta).value = "";
+  });
+}
+// envelopes come in beside the ones already here; a plan code can't make an envelope
+codeBox("envImportBtn", "envImportBox", "envImport", "envImportNote", got => {
+  if (got.kind !== KIND_NATIONS) return { warn: true, text: "That's a plan code. Open an envelope and import it under its plans." };
+  nations.push(...got.items); saveNations(); renderGrid();
+  return "Added " + many(got.items.length, "envelope") + ": " + got.items.map(nationName).join(", ");
+});
+// plans join the open envelope's; an envelope code brings its plans along
+codeBox("plImportBtn", "plImportBox", "plImport", "plImportNote", got => {
+  const list = got.kind === KIND_PLANS ? got.items : got.items.flatMap(n => n.plans);
+  if (!list.length) return { warn: true, text: "That code has no plans in it." };
+  (current.plans || (current.plans = [])).push(...list); saveNations(); renderNation();
+  return "Added " + many(list.length, "plan") + ": " + list.map(planName).join(", ");
+});
+$("envCopyAll").addEventListener("click", () => nations.length && copyText(nationsCode(nations)));
+$("nShare").addEventListener("click", () => copyText(nationsCode([current])));
+$("plCopyAll").addEventListener("click", () => (current.plans || []).length && copyText(plansCode(current, current.plans)));
+$("pShare").addEventListener("click", () => copyText(plansCode(current, [plan])));
+
+/* ===================== Mine mix and Well mix =====================
+   From the copper planner: the cheapest way, in sat, to hit a copper or oil target.
+   Its maths is kept as it was there: pollution past the soft cap is
+   roundup((n − cap)² / divisor), and each environmental facility scrubs 10% of it */
+const pol = (n, min, div) => n > min ? Math.ceil((n - min) ** 2 / div) : 0;
+const ce = x => x > 0 ? Math.ceil(x) : 0;
+const n1 = x => (Math.round(x * 10) / 10).toLocaleString();
+const scrub = (p, k) => Math.ceil(p * k);
+function iv(id, lo, hi, dflt) {
+  let v = parseInt($(id).value, 10);
+  if (isNaN(v)) v = dflt;
+  return Math.max(lo, Math.min(hi, v));
+}
+const mxRows = (id, list) => { $(id).innerHTML = list.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join(""); };
+const minus = v => "−" + v.toLocaleString();
+function verdict(id, short, gap, best, what) {
+  $(id).innerHTML = short > 0 ? `<span class="badge badge-danger">${fmt(short)} short</span>`
+    : gap < 0.05 ? `<span class="badge badge-success">Best ${what}</span>`
+    : `<span class="badge badge-danger">+${n1(gap)} sat · ${((gap / Math.max(best, 1)) * 100).toFixed(1)}% over</span>`;
+}
+
+/* ---- charts, coloured from the theme and redrawn when it changes ---- */
+const charts = {};
+let mixBuilt = { mine: false, wells: false };
+function themeColours() {
+  const cs = getComputedStyle(document.body);
+  const v = n => cs.getPropertyValue(n).trim();
+  return { axis: v("--text-dim"), grid: v("--border-soft"), line: v("--def"), you: v("--neg"), best: v("--pos"), strong: v("--strong"), font: v("--font") };
+}
+function mkChart(id, datasets, xlab, ylab, x) {
+  const t = themeColours();
+  if (charts[id]) charts[id].destroy();
+  const ax = (lab, extra) => Object.assign({ type: "linear", title: { display: true, text: lab, color: t.axis }, ticks: { color: t.axis }, grid: { color: t.grid } }, extra);
+  charts[id] = new Chart($(id).getContext("2d"), {
+    type: "line", data: { datasets: datasets(t) },
+    options: { responsive: true, maintainAspectRatio: false, animation: false,
+      scales: { x: ax(xlab, x), y: ax(ylab, {}) },
+      plugins: { legend: { labels: { color: t.axis, boxWidth: 12, usePointStyle: true, font: { family: t.font } } } } }
+  });
+}
+const lineSet = (label, c) => ({ label, data: [], borderColor: c, backgroundColor: c, borderWidth: 2, pointRadius: 0, tension: .2 });
+const dotSet = (label, c, r = 6) => ({ label, type: "scatter", data: [], borderColor: c, backgroundColor: c, pointRadius: r, showLine: false });
+function buildMineCharts() {
+  if (!window.Chart) return;
+  mkChart("c1", t => [lineSet("Sat lost", t.line), dotSet("Slider", t.you), dotSet("Best", t.best)],
+    "mechanised share of copper (%)", "sat lost a tick", { min: 0, max: 100 });
+}
+function buildWellCharts() {
+  if (!window.Chart) return;
+  mkChart("c5", t => WELL.map(w => lineSet(w.n, w.c)).concat([dotSet("Slider", t.strong, 5)]),
+    "wells of that grade", "sat per oil, next one", { min: 0, max: 200 });
+  charts.c5.options.scales.y.max = 1;
+}
+function mixShown(v) {
+  if (mixBuilt[v]) return;
+  mixBuilt[v] = true;
+  if (v === "mine") { buildMineCharts(); drawMine(); } else { buildWellCharts(); drawWell(); }
+}
+function mixRetheme() {
+  if (mixBuilt.mine) { buildMineCharts(); drawMine(); }
+  if (mixBuilt.wells) { buildWellCharts(); drawWell(); }
+}
+
+/* ---- Mine mix ---- */
+const BM = { inh: 2, min: 10, div: 10, cu: 5 }, MM = { inh: 1, min: 20, div: 5, cu: 8 };
+function mineLoss(b, m, k) {
+  const pb = pol(b, BM.min, BM.div), pm = pol(m, MM.min, MM.div);
+  const inh = BM.inh * b + MM.inh * m, plu = pb + pm, scr = scrub(pb, k) + scrub(pm, k);
+  return { inh, plu, scr, total: inh + scr };
+}
+function bestSplit(T, k) {
+  let best = null;
+  for (let m = 0, maxM = ce(T / 8); m <= maxM; m++) {
+    const b = ce((T - 8 * m) / 5), r = mineLoss(b, m, k);
+    if (!best || r.total < best.total - 1e-9) best = { b, m, total: r.total, copper: 5 * b + 8 * m };
+  }
+  return best;
+}
+const mMode = $("m_mode");
+function syncMineMode() {
+  $("sharebox").hidden = mMode.value !== "share";
+  $("anchbox").hidden = mMode.value === "share";
+  drawMine();
+}
+function setShare(pm) { $("m_pm").value = $("m_pmn").value = pm; $("m_pb").value = $("m_pbn").value = 100 - pm; }
+function drawMine() {
+  const T = iv("m_t", 0, 1e6, 0), k = 0.9 ** iv("m_cl", 0, 10, 10), mode = mMode.value;
+  let b, m;
+  if (mode === "share") {
+    const pm = iv("m_pmn", 0, 100, 0);
+    setShare(pm);
+    m = ce(T * pm / 100 / 8); b = ce((T - 8 * m) / 5);
+    $("m_pmv").textContent = pm + "%"; $("m_pbv").textContent = (100 - pm) + "%";
+  } else {
+    const a = iv("m_anch", 0, 1e6, 0);
+    if (mode === "ab") { b = a; m = ce((T - 5 * b) / 8); } else { m = a; b = ce((T - 8 * m) / 5); }
+  }
+  const r = mineLoss(b, m, k), copper = 5 * b + 8 * m, best = bestSplit(T, k);
+  $("m_ob").textContent = fmt(b); $("m_om").textContent = fmt(m); $("m_oc").textContent = fmt(copper);
+  $("m_os").textContent = "−" + n1(r.total);
+  verdict("m_verdict", T - copper, r.total - best.total, best.total, "mix");
+  mxRows("m_tbl", [
+    ["Basic, inherent", minus(BM.inh * b)], ["Basic, pollution", minus(scrub(pol(b, BM.min, BM.div), k))],
+    ["Mechanised, inherent", minus(MM.inh * m)], ["Mechanised, pollution", minus(scrub(pol(m, MM.min, MM.div), k))],
+    ["Raw pollution", minus(r.plu)], ["Sat per copper", copper > 0 ? (r.total / copper).toFixed(3) : "—"]
+  ]);
+  mxRows("m_best", [
+    ["Basic mines", fmt(best.b)], ["Mechanised mines", fmt(best.m)], ["Copper", fmt(best.copper)],
+    ["Sat lost", "−" + n1(best.total)], ["Sat per copper", best.copper > 0 ? (best.total / best.copper).toFixed(3) : "—"]
+  ]);
+  $("m_apply").onclick = () => { mMode.value = "am"; $("m_anch").value = best.m; syncMineMode(); };
+  const ch = charts.c1;
+  if (ch && T > 0) {
+    const line = [];
+    for (let p = 0; p <= 100; p++) {
+      const mm = ce(T * p / 100 / 8), bb = ce((T - 8 * mm) / 5);
+      line.push({ x: p, y: Math.round(mineLoss(bb, mm, k).total * 10) / 10 });
+    }
+    ch.data.datasets[0].data = line;
+    ch.data.datasets[1].data = [{ x: Math.min(100, Math.max(0, Math.round(8 * m / Math.max(T, 1) * 100))), y: Math.round(r.total * 10) / 10 }];
+    ch.data.datasets[2].data = [{ x: Math.min(100, best.copper > 0 ? Math.round(8 * best.m / T * 100) : 0), y: Math.round(best.total * 10) / 10 }];
+    ch.update("none");
+  }
+}
+function linkPair(sid, nid, cb) {
+  const sl = $(sid), n = $(nid);
+  sl.addEventListener("input", () => { n.value = sl.value; cb(); });
+  n.addEventListener("input", () => { const v = parseInt(n.value, 10); if (!isNaN(v)) sl.value = Math.max(+sl.min, Math.min(+sl.max, v)); cb(); });
+}
+mMode.addEventListener("change", syncMineMode);
+["m_t", "m_cl", "m_anch"].forEach(id => $(id).addEventListener("input", drawMine));
+linkPair("m_pm", "m_pmn", () => { setShare(iv("m_pmn", 0, 100, 0)); drawMine(); });
+linkPair("m_pb", "m_pbn", () => { setShare(100 - iv("m_pbn", 0, 100, 0)); drawMine(); });
+
+/* ---- Well mix ---- */
+const WELL = [
+  { n: "Basic oil well", oil: 5, inh: 2, en: 0, min: 10, div: 10, c: "#BA7517" },
+  { n: "Upgraded oil well", oil: 8, inh: 1, en: 1, min: 20, div: 5, c: "#D85A30" },
+  { n: "Oil fracker", oil: 20, inh: 2, en: 2, min: 5, div: 5, c: "#ec4d49" }
+];
+const wOil = c => 5 * c[0] + 8 * c[1] + 20 * c[2];
+const wEn = c => c[1] + 2 * c[2];
+function wDmg(c, k) {
+  let inh = 0, plu = 0, scr = 0;
+  for (let i = 0; i < 3; i++) {
+    inh += WELL[i].inh * c[i];
+    const p = pol(c[i], WELL[i].min, WELL[i].div);
+    plu += p; scr += scrub(p, k);
+  }
+  return { inh, plu, scr, total: inh + scr };
+}
+function polishWells(c, Q, k, enCap) {
+  let best = c.slice(), bd = wDmg(best, k).total, moved = true, guard = 0;
+  while (moved && guard++ < 40) {
+    moved = false;
+    for (let i = 0; i < 3; i++) {
+      if (best[i] === 0) continue;
+      for (let j = -1; j < 3; j++) {
+        const t = best.slice(); t[i]--;
+        if (j >= 0) t[j]++;
+        if (wOil(t) < Q || wEn(t) > enCap) continue;
+        const d = wDmg(t, k).total;
+        if (d < bd - 1e-9) { bd = d; best = t; moved = true; }
+      }
+    }
+  }
+  return best;
+}
+function greedyFrom(start, Q, k, allow) {
+  const c = start.slice();
+  let oil = wOil(c), guard = 0;
+  while (oil < Q && guard++ < 40000) {
+    let bi = -1, bc = Infinity;
+    for (let i = 0; i < 3; i++) {
+      if (!allow.includes(i)) continue;
+      const w = WELL[i], m = w.inh + k * (pol(c[i] + 1, w.min, w.div) - pol(c[i], w.min, w.div));
+      if (m / w.oil < bc - 1e-12) { bc = m / w.oil; bi = i; }
+    }
+    if (bi < 0) return c;
+    c[bi]++; oil += WELL[bi].oil;
+  }
+  return c;
+}
+const bestWells = (Q, k) => polishWells(greedyFrom([0, 0, 0], Q, k, [0, 1, 2]), Q, k, 1e9);
+function netOf(c, extra) {
+  const en = wEn(c) + (extra || 0), plants = ce(en / 12);
+  return { en, plants, burn: 10 * plants, net: wOil(c) - 10 * plants };
+}
+function setShares(v) { for (let i = 0; i < 3; i++) $("o_s" + i).value = $("o_n" + i).value = v[i]; }
+const readShares = () => [iv("o_n0", 0, 100, 0), iv("o_n1", 0, 100, 0), iv("o_n2", 0, 100, 0)];
+function rebalance(idx) {
+  const v = readShares(), keep = Math.max(0, Math.min(100, v[idx])), rest = 100 - keep;
+  const a = (idx + 1) % 3, b = (idx + 2) % 3, sum = v[a] + v[b];
+  if (sum <= 0) { v[a] = Math.round(rest / 2); v[b] = rest - v[a]; }
+  else { v[a] = Math.round(rest * v[a] / sum); v[b] = rest - v[a]; }
+  v[idx] = keep;
+  setShares(v); drawWell();
+}
+const oMode = $("o_mode");
+let oOverride = null;
+function sharesOf(c) {
+  const g = wOil(c);
+  if (g <= 0) return [0, 0, 0];
+  const p = [Math.round(5 * c[0] / g * 100), Math.round(8 * c[1] / g * 100)];
+  p[2] = 100 - p[0] - p[1];
+  if (p[2] < 0) { p[2] = 0; p[1] = Math.max(0, 100 - p[0]); }
+  return p;
+}
+function syncWellMode() {
+  const sh = oMode.value === "share";
+  $("o_sharebox").hidden = !sh; $("o_anchbox").hidden = sh;
+  drawWell();
+}
+const nextCost = (w, x, k) => Math.round((w.inh + scrub(pol(x + 1, w.min, w.div), k) - scrub(pol(x, w.min, w.div), k)) / w.oil * 1000) / 1000;
+function drawWell() {
+  const Q = iv("o_t", 0, 1e6, 0), k = 0.9 ** iv("o_cl", 0, 10, 10);
+  let c;
+  if (oOverride) {
+    c = oOverride.slice();
+    const sp = sharesOf(c); setShares(sp);
+    for (let i = 0; i < 3; i++) $("o_v" + i).textContent = sp[i] + "%";
+  } else if (oMode.value === "share") {
+    const p = readShares();
+    c = [0, 0, 0];
+    c[2] = ce(Q * p[2] / 100 / 20); c[1] = ce(Q * p[1] / 100 / 8); c[0] = ce((Q - 20 * c[2] - 8 * c[1]) / 5);
+    for (let i = 0; i < 3; i++) $("o_v" + i).textContent = p[i] + "%";
+  } else {
+    const t = parseInt(oMode.value, 10), st = [0, 0, 0];
+    st[t] = iv("o_anch", 0, 100000, 0);
+    c = greedyFrom(st, Q, k, [0, 1, 2].filter(x => x !== t));
+  }
+  const xe = iv("o_ex", 0, 100000, 0);
+  const d = wDmg(c, k), nf = netOf(c, xe), best = bestWells(Q, k), bd = wDmg(best, k), bn = netOf(best, xe);
+  $("o_gross").textContent = fmt(wOil(c)); $("o_net").textContent = fmt(nf.net);
+  $("o_sat").textContent = "−" + n1(d.total);
+  $("o_rat").textContent = nf.net > 0 ? (d.total / nf.net).toFixed(3) : "—";
+  verdict("o_verdict", Q - wOil(c), d.total - bd.total, bd.total, "mix");
+  mxRows("o_tbl", [
+    [WELL[0].n, fmt(c[0])], [WELL[1].n, fmt(c[1])], [WELL[2].n, fmt(c[2])],
+    ["Inherent loss", minus(d.inh)], ["Pollution after cleaners", minus(d.scr)],
+    ["Energy drawn", `${fmt(nf.en)} · ${fmt(nf.plants)} gas plant${nf.plants === 1 ? "" : "s"}`],
+    ["Oil burnt running itself", minus(nf.burn)]
+  ]);
+  mxRows("o_best", [
+    [WELL[0].n, fmt(best[0])], [WELL[1].n, fmt(best[1])], [WELL[2].n, fmt(best[2])],
+    ["Gross oil", fmt(wOil(best))], ["Net oil", fmt(bn.net)], ["Sat lost", "−" + n1(bd.total)],
+    ["Sat per net oil", bn.net > 0 ? (bd.total / bn.net).toFixed(3) : "—"]
+  ]);
+  $("o_apply").onclick = () => {
+    oOverride = best.slice();
+    if (oMode.value !== "share") $("o_anch").value = best[parseInt(oMode.value, 10)];
+    drawWell();
+  };
+  if (charts.c5) {
+    const ch = charts.c5, xs = Array.from({ length: 201 }, (_, x) => x);
+    WELL.forEach((w, i) => { ch.data.datasets[i].data = xs.map(x => ({ x, y: nextCost(w, x, k) })); });
+    ch.data.datasets[3].data = WELL.map((w, i) => ({ x: c[i], y: nextCost(w, c[i], k) }));
+    ch.update("none");
+  }
+}
+oMode.addEventListener("change", () => { oOverride = null; syncWellMode(); });
+["o_t", "o_cl", "o_anch", "o_ex"].forEach(id => $(id).addEventListener("input", () => { oOverride = null; drawWell(); }));
+[0, 1, 2].forEach(i => {
+  $("o_s" + i).addEventListener("input", () => { oOverride = null; $("o_n" + i).value = $("o_s" + i).value; rebalance(i); });
+  $("o_n" + i).addEventListener("input", () => { oOverride = null; rebalance(i); });
+});
+syncMineMode();
+syncWellMode();
+
+/* views: Buildings at the bare address, the envelopes at #planner, one nation at #planner/<id> */
+const views = { buildings: $("viewBuildings"), planner: $("viewPlanner"), nation: $("viewNation"), plan: $("viewPlan"),
+                mine: $("viewMine"), wells: $("viewWells") };
+function show(view) {
+  for (const [k, el] of Object.entries(views)) el.hidden = k !== view;
+  document.querySelectorAll(".tab[data-view]").forEach(t =>
+    t.classList.toggle("active", t.dataset.view === (view === "nation" || view === "plan" ? "planner" : view)));
+}
+// popstate and hashchange can both fire for one step back, so a nation already
+// open is left alone rather than refilled under the cursor
+function route() {
+  const m = location.hash.match(/^#planner(?:\/([^/]+)(?:\/([^/]+))?)?$/);
+  const next = m && m[1] ? nations.find(n => n.id === decodeURIComponent(m[1])) || null : null;
+  const nextPlan = next && m[2] ? (next.plans || []).find(p => p.id === decodeURIComponent(m[2])) || null : null;
+  if (nextPlan) {
+    if (nextPlan !== plan || views.plan.hidden) {
+      current = next; plan = nextPlan;
+      if (!plan.want) plan.want = {};
+      if (!plan.off) plan.off = {};
+      $("pNation").textContent = nationName(current);
+      $("pEnv").style.setProperty("--env", isColour(current.color) ? current.color : MANILA);
+      pName.value = plan.name; $("pPrze").checked = !!current.prze;
+      renderPapers(); renderPlanTable(); renderPlanCalc(); show("plan");
+      document.title = planName(plan) + " · " + nationName(current);
+      window.scrollTo(0, 0);
+    }
+    return;
+  }
+  plan = null;
+  if (next) {
+    if (next !== current || views.nation.hidden) {
+      current = next;
+      nName.value = current.name; nHas.value = current.has || "";
+      fillGov(); renderSwatches(); renderNation(); show("nation");
+      document.title = nationName(current) + " · CLOP Build Planner";
+      window.scrollTo(0, 0);
+    }
+    return;
+  }
+  current = null; hideTip();
+  document.title = "CLOP Build Planner";
+  if (m) { renderGrid(); show("planner"); }
+  else if (location.hash === "#mine" || location.hash === "#wells") { const v = location.hash.slice(1); show(v); mixShown(v); }
+  else show("buildings");
+}
+function go(hash) {
+  const url = hash || location.pathname + location.search;
+  if ((location.hash || "") !== hash) history.pushState(null, "", url);
+  route();
+}
+document.querySelectorAll(".tab[data-view]").forEach(t =>
+  t.addEventListener("click", () => go(t.dataset.view === "buildings" ? "" : "#" + t.dataset.view)));
+window.addEventListener("hashchange", route);
+window.addEventListener("popstate", route);
+route();
 </script>
 
 </body>
