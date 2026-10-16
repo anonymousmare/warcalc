@@ -559,6 +559,9 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
 .cost-none{color:var(--text-dim);font-size:12px}
 
 .import-box{margin-bottom:10px}
+.code-bar{display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px}
+.code-box{max-width:620px;margin-left:auto}
+.code-box textarea{word-break:break-all}
 .import-box textarea{min-height:0;height:64px;font-size:11.5px}
 /* ---------- the envelopes' overall view ---------- */
 .ov-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,360px);gap:14px;align-items:start;margin-bottom:14px}
@@ -668,6 +671,14 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
 </div>
 
 <div id="viewPlanner" hidden>
+  <div class="code-bar">
+    <button id="envImportBtn" class="btn" type="button" aria-expanded="false">Import code</button>
+    <button id="envCopyAll" class="btn btn-success" type="button">Copy all envelopes</button>
+  </div>
+  <div id="envImportBox" class="import-box code-box" hidden>
+    <textarea id="envImport" spellcheck="false" placeholder="Paste an envelope code"></textarea>
+    <p id="envImportNote" class="has-note" hidden></p>
+  </div>
   <div class="env-grid" id="envGrid"></div>
   <div id="ovBox" hidden>
     <hr class="plans-rule">
@@ -695,6 +706,9 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
     <input id="nName" class="name-input" type="text" spellcheck="false" maxlength="60" aria-label="Nation name">
     <div class="head-tools">
     <div class="swatches" id="nSwatches" role="group" aria-label="Envelope colour"></div>
+    <button id="nShare" class="icon-btn" type="button" title="Copy this envelope's code"><svg viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path
+      d="M12 15V3.5M7.5 8 12 3.5 16.5 8"/><path d="M5 12.5V19a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19v-6.5"/></svg></button>
     <button id="nDelete" class="icon-btn danger" type="button" title="Delete this nation"><svg viewBox="0 0 24 24"
       fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path
       d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13M10 11v6M14 11v6"/></svg></button>
@@ -729,7 +743,14 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
     </section>
   </div>
   <hr class="plans-rule">
-  <div class="plans-head"><h2>Plans</h2></div>
+  <div class="plans-head"><h2>Plans</h2><span class="spacer"></span>
+    <button id="plImportBtn" class="btn" type="button" aria-expanded="false">Import code</button>
+    <button id="plCopyAll" class="btn btn-success" type="button">Copy all plans</button>
+  </div>
+  <div id="plImportBox" class="import-box code-box" hidden>
+    <textarea id="plImport" spellcheck="false" placeholder="Paste a plan code"></textarea>
+    <p id="plImportNote" class="has-note" hidden></p>
+  </div>
   <div id="nPlans" class="slips"></div>
   <div id="nCompareBox" hidden>
     <hr class="plans-rule">
@@ -746,6 +767,9 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
     <input id="pName" class="name-input" type="text" spellcheck="false" maxlength="60" aria-label="Plan name">
     <div class="head-tools">
     <div class="swatches" id="pPapers" role="group" aria-label="Slip colour"></div>
+    <button id="pShare" class="icon-btn" type="button" title="Copy this plan's code"><svg viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path
+      d="M12 15V3.5M7.5 8 12 3.5 16.5 8"/><path d="M5 12.5V19a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19v-6.5"/></svg></button>
     <button id="pDup" class="icon-btn" type="button" title="Duplicate this plan"><svg viewBox="0 0 24 24"
       fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect
       x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8"/></svg></button>
@@ -1872,6 +1896,168 @@ $("pDelete").addEventListener("click", () => {
   current.plans = current.plans.filter(x => x !== plan); saveNations();
   toNation();
 });
+
+/* ===================== share codes =====================
+   Envelopes and plans travel as one run of letters and digits, the way
+   Warcalc's army codes do: base 62, so they survive chat, markdown and a
+   double-click. Inside is a small byte stream: a magic byte, a version, what
+   the code holds (envelopes or plans) and how many, then each one in turn.
+   Numbers are LEB128 varints and building counts go sparse, as (building,
+   count) pairs, so an envelope with a handful of building types stays short.
+
+   CODE_BUILDINGS is the order buildings are numbered in. It is the code's
+   alphabet: append to it, never reorder it */
+const CODE_BUILDINGS = LAYOUT.filter(Boolean).map(e => e[0]);
+const CODE_GOVS = Object.keys(GOVS), CODE_ECONS = Object.keys(ECONOMIES), CODE_PAPERS = Object.keys(PAPERS);
+const CODE_MAGIC = 0xB7, CODE_VERSION = 1, KIND_NATIONS = 0, KIND_PLANS = 1;
+const ALPHA62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+
+function toB62(bytes) {
+  let v = 1n;                       // a leading 1 keeps any zero bytes at the front
+  for (const b of bytes) v = (v << 8n) | BigInt(b);
+  let out = "";
+  while (v > 0n) { out = ALPHA62[Number(v % 62n)] + out; v /= 62n; }
+  return out;
+}
+function fromB62(text) {
+  let v = 0n;
+  for (const ch of text) {
+    const d = ALPHA62.indexOf(ch);
+    if (d < 0) throw new Error("not a code");
+    v = v * 62n + BigInt(d);
+  }
+  const bytes = [];
+  while (v > 1n) { bytes.unshift(Number(v & 255n)); v >>= 8n; }
+  if (v !== 1n) throw new Error("not a code");
+  return bytes;
+}
+
+function writer() {
+  const b = [];
+  const w = {
+    bytes: b,
+    u(n) { n = Math.max(0, Math.floor(+n || 0)); do { let x = n % 128; n = Math.floor(n / 128); b.push(n ? x | 128 : x); } while (n); return w; },
+    str(t) { const e = new TextEncoder().encode(String(t || "")); w.u(e.length); b.push(...e); return w; },
+    counts(m) {
+      const pairs = CODE_BUILDINGS.map((n, i) => [i, m.get(n) || 0]).filter(p => p[1]);
+      w.u(pairs.length); pairs.forEach(([i, v]) => w.u(i).u(v)); return w;
+    }
+  };
+  return w;
+}
+function reader(bytes) {
+  let i = 0;
+  const need = () => { if (i >= bytes.length) throw new Error("code cut short"); return bytes[i++]; };
+  const r = {
+    u() { let n = 0, mul = 1, x; do { x = need(); n += (x & 127) * mul; mul *= 128; } while (x & 128); return n; },
+    str() { const len = r.u(); if (i + len > bytes.length) throw new Error("code cut short"); const t = new TextDecoder().decode(new Uint8Array(bytes.slice(i, i + len))); i += len; return t; },
+    counts() { const m = new Map(); for (let k = r.u(); k > 0; k--) { const idx = r.u(), v = r.u(); if (CODE_BUILDINGS[idx]) m.set(CODE_BUILDINGS[idx], v); } return m; },
+    byte: need
+  };
+  return r;
+}
+
+// a plan goes out as what it would leave the nation with, so it reads the same wherever it lands
+function writePlan(w, pl, has) {
+  const c = planCounts(pl, has);
+  w.str(planName(pl)).u(Math.max(0, CODE_PAPERS.indexOf(pl.paper))).counts(c.counts).counts(c.off);
+}
+function readPlan(r) {
+  const name = r.str(), paper = CODE_PAPERS[r.u()] || "coal", counts = r.counts(), off = r.counts();
+  const want = {}, offs = {};
+  for (const n of CODE_BUILDINGS) { want[n] = counts.get(n) || 0; offs[n] = Math.min(off.get(n) || 0, want[n]); }
+  return { id: newId(), name, paper, want, off: offs };
+}
+function writeNation(w, n) {
+  const has = parseHas(n.has || ""), col = isColour(n.color) ? n.color : MANILA;
+  w.str(nationName(n));
+  w.bytes.push(...[1, 3, 5].map(i => parseInt(col.slice(i, i + 2), 16)));
+  w.u(Math.max(0, CODE_GOVS.indexOf(n.gov))).u(Math.max(0, CODE_ECONS.indexOf(n.econ)))
+   .u(n.empire || 1).u(n.army || 0).u((n.maxSat ? 1 : 0) | (n.prze ? 2 : 0))
+   .counts(has.counts).counts(has.off);
+  const plans = n.plans || [];
+  w.u(plans.length); plans.forEach(pl => writePlan(w, pl, has));
+  // 0 means "its first plan", as an envelope that was never told otherwise reads; 1 means none
+  const used = n.usePlan === undefined ? 0 : n.usePlan === "" ? 1 : plans.findIndex(p => p.id === n.usePlan) + 2;
+  w.u(Math.max(0, used));
+}
+function readNation(r) {
+  const name = r.str(), color = "#" + [r.byte(), r.byte(), r.byte()].map(x => x.toString(16).padStart(2, "0")).join("");
+  const gov = CODE_GOVS[r.u()] || DEFAULT_GOV, econ = CODE_ECONS[r.u()] || DEFAULT_ECON;
+  const empire = r.u() || 1, army = r.u(), flags = r.u();
+  const counts = r.counts(), off = r.counts();
+  const plans = []; for (let k = r.u(); k > 0; k--) plans.push(readPlan(r));
+  const used = r.u();
+  const n = { id: newId(), name, color, gov, econ, empire, army, maxSat: !!(flags & 1), prze: !!(flags & 2),
+              has: columnOf(counts, off), plans };
+  if (used === 1) n.usePlan = ""; else if (used >= 2 && plans[used - 2]) n.usePlan = plans[used - 2].id;
+  return n;
+}
+const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const columnOf = (counts, off) =>
+  [...block(counts, LAYOUT).lines, ...Array(DISABLED_GAP).fill(""), ...block(off, DISABLED_LAYOUT).lines].join("\n");
+
+function encodeCode(kind, items, write) {
+  const w = writer();
+  w.bytes.push(CODE_MAGIC, CODE_VERSION, kind);
+  w.u(items.length);
+  items.forEach(it => write(w, it));
+  return toB62(w.bytes);
+}
+const nationsCode = list => encodeCode(KIND_NATIONS, list, writeNation);
+const plansCode = (n, list) => { const has = parseHas(n.has || ""); return encodeCode(KIND_PLANS, list, (w, pl) => writePlan(w, pl, has)); };
+
+// { kind, items } from a pasted code, or an error saying why not
+function decodeCode(text) {
+  const t = text.replace(/\s+/g, "");
+  if (!t) return null;
+  try {
+    const r = reader(fromB62(t));
+    if (r.byte() !== CODE_MAGIC) throw new Error("not a code");
+    const ver = r.byte();
+    if (ver > CODE_VERSION) return { error: "That code is from a newer version of this page." };
+    const kind = r.byte(), items = [];
+    if (kind !== KIND_NATIONS && kind !== KIND_PLANS) throw new Error("not a code");
+    for (let k = r.u(); k > 0; k--) items.push(kind === KIND_NATIONS ? readNation(r) : readPlan(r));
+    return { kind, items };
+  } catch (e) {
+    return { error: e.message === "code cut short" ? "That code is cut short. Copy the whole thing." : "That isn't an envelope or plan code." };
+  }
+}
+
+const many = (n, one) => `${fmt(n)} ${one}${n === 1 ? "" : "s"}`;
+function codeBox(btn, box, ta, note, onCode) {
+  $(btn).addEventListener("click", () => {
+    const open = $(box).hidden;
+    $(box).hidden = !open; $(btn).setAttribute("aria-expanded", open);
+    if (open) { $(ta).value = ""; $(note).hidden = true; $(ta).focus(); }
+  });
+  $(ta).addEventListener("input", () => {
+    const got = decodeCode($(ta).value), nt = $(note);
+    if (!got) { nt.hidden = true; return; }
+    const msg = got.error || onCode(got);
+    nt.hidden = false; nt.textContent = msg.text || msg;
+    nt.className = "has-note" + (got.error || msg.warn ? " warn" : "");
+    if (!got.error && !msg.warn) $(ta).value = "";
+  });
+}
+// envelopes come in beside the ones already here; a plan code can't make an envelope
+codeBox("envImportBtn", "envImportBox", "envImport", "envImportNote", got => {
+  if (got.kind !== KIND_NATIONS) return { warn: true, text: "That's a plan code. Open an envelope and import it under its plans." };
+  nations.push(...got.items); saveNations(); renderGrid();
+  return "Added " + many(got.items.length, "envelope") + ": " + got.items.map(nationName).join(", ");
+});
+// plans join the open envelope's; an envelope code brings its plans along
+codeBox("plImportBtn", "plImportBox", "plImport", "plImportNote", got => {
+  const list = got.kind === KIND_PLANS ? got.items : got.items.flatMap(n => n.plans);
+  if (!list.length) return { warn: true, text: "That code has no plans in it." };
+  (current.plans || (current.plans = [])).push(...list); saveNations(); renderNation();
+  return "Added " + many(list.length, "plan") + ": " + list.map(planName).join(", ");
+});
+$("envCopyAll").addEventListener("click", () => nations.length && copyText(nationsCode(nations)));
+$("nShare").addEventListener("click", () => copyText(nationsCode([current])));
+$("plCopyAll").addEventListener("click", () => (current.plans || []).length && copyText(plansCode(current, current.plans)));
+$("pShare").addEventListener("click", () => copyText(plansCode(current, [plan])));
 
 /* ===================== Mine mix and Well mix =====================
    From the copper planner: the cheapest way, in sat, to hit a copper or oil target.
