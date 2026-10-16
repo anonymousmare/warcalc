@@ -403,7 +403,7 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
 :is(.net-val,.stat-v).pos{color:var(--pos)}
 :is(.net-val,.stat-v).neg{color:var(--neg)}
 .net.idle{opacity:.4}
-:is(.net,.stat):is(:hover,:focus-visible,.tip-on){background:color-mix(in srgb,var(--strong) 9%,transparent);outline:none}
+:is(.net,.stat[data-tip]):is(:hover,:focus-visible,.tip-on){background:color-mix(in srgb,var(--strong) 9%,transparent);outline:none}
 
 /* hover card: where a number comes from */
 #tip{position:fixed;z-index:20;width:max-content;max-width:min(340px,calc(100vw - 16px));padding:8px 10px;border-radius:4px;
@@ -475,40 +475,60 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
 .crumb-sep{color:var(--text-dim);margin:0 -4px}
 .proj{margin-bottom:14px}
 .proj .stats{margin-bottom:8px}
-.stat-d{display:block;font:11px var(--mono);color:var(--text-dim)}
-.stat-d.pos{color:var(--pos)}
-.stat-d.neg{color:var(--neg)}
-.pnets{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:2px 6px;padding:5px 8px}
-@media (max-width:980px){.pnets{grid-template-columns:repeat(auto-fill,minmax(82px,1fr))}}
-.pn{display:grid;grid-template-columns:16px 1fr;column-gap:7px;align-items:center;padding:2px 6px;border-radius:3px;cursor:default}
-.pn img{grid-row:1 / 3;width:16px;height:16px;image-rendering:pixelated}
-.pn-v{font:600 12.5px/1.3 var(--mono);color:var(--strong);font-variant-numeric:tabular-nums}
-.pn-d{font:10.5px/1.2 var(--mono);color:var(--text-dim);font-variant-numeric:tabular-nums}
-:is(.pn-v,.pn-d).pos{color:var(--pos)}
-:is(.pn-v,.pn-d).neg{color:var(--neg)}
-.pn.idle{opacity:.4}
-.pn:is(:hover,:focus-visible,.tip-on){background:color-mix(in srgb,var(--strong) 9%,transparent);outline:none}
+/* each headline number split down the middle: Has on the left, Want on the right */
+.stat2{padding:5px 10px 6px}
+.stat2 .stat-k{margin-bottom:2px}
+.stat-halves{display:grid;grid-template-columns:1fr 1fr}
+.stat-half{padding:1px 6px;border-radius:3px;cursor:default;min-width:0}
+.stat-half + .stat-half{border-left:1px solid var(--border-soft);padding-left:10px}
+.stat-half small{display:block;font:600 9.5px var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
+.stat-half .stat-v{font-size:16px}
+.stat-half:is(:hover,:focus-visible,.tip-on){background:color-mix(in srgb,var(--strong) 9%,transparent);outline:none}
 
-.plan-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,330px);gap:14px;align-items:start}
-@media (max-width:760px){.plan-body{grid-template-columns:1fr}}
-.pt-row{display:grid;grid-template-columns:minmax(0,1fr) 9ch 74px 7ch;gap:10px;align-items:center;min-height:26px;
-  padding:0 6px;border-radius:3px;font-size:12px}
-.pt-row:not(.pt-head):hover{background:color-mix(in srgb,var(--strong) 5%,transparent)}
-.pt-head{font:600 10.5px var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);min-height:20px}
-.pt-head span:not(:first-child){text-align:right}
-.pt-name{font-weight:600;color:var(--res,var(--text));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* the nets as a table: icons across the top, a row each for Has, Want and the difference */
+.ptab-wrap{overflow-x:auto;padding:4px 6px}
+.ptab{width:100%;min-width:900px;table-layout:fixed;border-collapse:collapse;font:12px var(--mono);font-variant-numeric:tabular-nums}
+.ptab th,.ptab td{padding:2px 4px;text-align:right;white-space:nowrap}
+.ptab thead th{padding-bottom:4px}
+.ptab thead th img{width:16px;height:16px;image-rendering:pixelated;vertical-align:middle}
+.ptab col.lab{width:96px}
+.ptab th[scope=row]{text-align:left;padding-right:10px;font:600 10.5px var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
+.ptab td{color:var(--strong);border-radius:3px;cursor:default}
+.ptab td.pos{color:var(--pos)}
+.ptab td.neg{color:var(--neg)}
+.ptab td.zero{color:var(--text-dim);opacity:.6}
+.ptab :is(td,th)[data-tip]:is(:hover,:focus-visible,.tip-on){background:color-mix(in srgb,var(--strong) 9%,transparent);outline:none}
+.ptab tr.diff td{font-size:11px}
+.ptab tr.diff.hidden td{display:none}
+.diff-tog{background:none;border:none;padding:0;cursor:pointer;color:inherit;font:inherit;letter-spacing:inherit;text-transform:inherit;
+  display:inline-flex;align-items:center;gap:4px}
+.diff-tog::before{content:"▸";display:inline-block;transition:transform .12s}
+.diff-tog[aria-expanded=true]::before{transform:rotate(90deg)}
+.diff-tog:hover{color:var(--strong)}
+
+.plan-body{display:grid;grid-template-columns:max-content minmax(260px,360px);gap:14px;align-items:start}
+@media (max-width:760px){.plan-body{grid-template-columns:minmax(0,1fr)}}
+/* the building table: names right-aligned against their numbers */
+#pTable{display:grid;grid-template-columns:max-content auto auto auto auto;column-gap:10px;row-gap:3px;align-items:center;font-size:12px}
+.pt-row{display:contents}
+.pt-head > span{font:600 10.5px var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);text-align:center;padding-bottom:2px}
+.pt-head > span:first-child,.pt-head > span:nth-child(2),.pt-head > span:last-child{text-align:right}
+.pt-name{font-weight:600;text-align:right;color:var(--res,var(--text));white-space:nowrap}
 :is([data-theme="white"],[data-theme="applejack"],[data-theme="rainbow"]) .pt-name{color:color-mix(in srgb,var(--res,var(--text-dim)) 58%,#000)}
 .pt-has{font:12px var(--mono);text-align:right;color:var(--text-dim);white-space:nowrap}
-.pt-has small{font-size:10.5px;color:var(--neg)}
-.pt-row input{width:100%;background:var(--input-bg);color:var(--input-ink);border:1px solid var(--border-soft);border-radius:3px;
-  padding:1px 5px;font:12px var(--mono);text-align:right}
+.pt-row input{justify-self:center;width:44px;background:var(--input-bg);color:var(--input-ink);border:1px solid var(--border-soft);border-radius:3px;
+  padding:1px 3px;font:12px var(--mono);text-align:center;-moz-appearance:textfield;appearance:textfield}
+.pt-row input::-webkit-inner-spin-button,.pt-row input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .pt-row input:focus{outline:2px solid var(--accent);outline-offset:-1px}
-.pt-row.changed input{border-color:var(--accent);font-weight:700}
-.pt-d{font:600 12px var(--mono);text-align:right}
+.pt-row input.changed{border-color:var(--accent);font-weight:700}
+.pt-row input.pt-off{color:var(--text-dim)}
+.pt-row input.pt-off.some{color:var(--neg)}
+.pt-d{font:600 12px var(--mono);text-align:right;min-width:5ch;white-space:nowrap}
 .pt-d.pos{color:var(--pos)}
 .pt-d.neg{color:var(--neg)}
-.pt-gap{height:8px}
-@media (max-width:520px){.pt-row{grid-template-columns:minmax(0,1fr) 4ch 58px 5ch;gap:6px;padding:0 2px}.pt-has small{display:none}}
+.pt-gap{grid-column:1 / -1;height:6px}
+@media (max-width:520px){#pTable{grid-template-columns:minmax(0,1fr) auto auto auto auto;column-gap:6px}
+  .pt-name{white-space:normal;line-height:1.2}.pt-head > span{letter-spacing:.02em;font-size:9.5px}}
 .cost-l{display:flex;align-items:center;gap:7px;padding:2px 0;font-size:12.5px}
 .cost-l img{width:16px;height:16px;image-rendering:pixelated}
 .cost-l .v{margin-left:auto;font:600 12.5px var(--mono);color:var(--strong);font-variant-numeric:tabular-nums}
@@ -650,7 +670,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
   </div>
   <section class="panel proj">
     <div id="pStats" class="stats"></div>
-    <div id="pNets" class="pnets well"></div>
+    <div id="pNets" class="well"></div>
   </section>
   <div class="plan-body">
     <section class="panel">
@@ -1298,14 +1318,17 @@ const paperStyle = pl => { const c = PAPERS[pl.paper] || PAPERS.coal; return `--
 const planName = pl => pl.name.trim() || "Untitled plan";
 const BIT = "฿";
 
-// the plan's Want, with the disabled buildings carried over from Has as far as they still fit
+// the plan's Want and Disabled columns; a row nobody typed in follows Has, and the
+// disabled count never runs past what the plan has of that building
+const planWant = (pl, has, n) => pl.want && Number.isFinite(pl.want[n]) ? pl.want[n] : has.counts.get(n) || 0;
+const planOffTyped = (pl, has, n) => pl.off && Number.isFinite(pl.off[n]) ? pl.off[n] : has.off.get(n) || 0;
 function planCounts(pl, has) {
   const counts = new Map(), off = new Map();
   for (const e of LAYOUT) {
     if (!e) continue;
-    const w = pl.want && Number.isFinite(pl.want[e[0]]) ? pl.want[e[0]] : has.counts.get(e[0]) || 0;
+    const w = planWant(pl, has, e[0]);
     if (w) counts.set(e[0], w);
-    const o = Math.min(has.off.get(e[0]) || 0, w);
+    const o = Math.min(planOffTyped(pl, has, e[0]), w);
     if (o) off.set(e[0], o);
   }
   return { counts, off };
@@ -1329,13 +1352,15 @@ function planCost(has, want, prze) {
   return { bits, res, sat, count, lines };
 }
 
-// the rows a plan changes, in the sheet's order
+// the rows a plan changes, in the sheet's order: [building, change in count, change in how many are off]
 function planDiff(has, want) {
   const out = [];
   for (const e of LAYOUT) {
     if (!e) continue;
-    const d = (want.get(e[0]) || 0) - (has.get(e[0]) || 0);
-    if (d) out.push([e[0], d]);
+    const n = e[0];
+    const d = (want.counts.get(n) || 0) - (has.counts.get(n) || 0);
+    const o = (want.off.get(n) || 0) - Math.min(has.off.get(n) || 0, has.counts.get(n) || 0);
+    if (d || o) out.push([n, d, o]);
   }
   return out;
 }
@@ -1352,7 +1377,7 @@ function renderSlips(has, now) {
   const plans = current.plans || [];
   $("nPlans").innerHTML = plans.map(pl => {
     const want = planCounts(pl, has), after = nationModel(current, want.counts, want.off);
-    const diff = planDiff(has.counts, want.counts), cost = planCost(has.counts, want.counts, current.prze);
+    const diff = planDiff(has, want), cost = planCost(has.counts, want.counts, current.prze);
     const row = (l, v, c) => `<div class="slip-l${c ? " " + c : ""}"><span>${l}</span><span class="v">${v}</span></div>`;
     const swing = (label, a, b, f) => a === b ? "" : row(label, `<span class="was">${f(a)} →</span> <span class="${cls(b - a).trim()}">${f(b)}</span>`);
     const resRows = PLAN_RES.map(([k, label, , img]) => {
@@ -1364,11 +1389,12 @@ function renderSlips(has, now) {
       <div class="slip-name">${esc(planName(pl))}</div>
       <div class="slip-meta">${diff.length ? `${diff.length} change${diff.length === 1 ? "" : "s"}` : "no changes yet"}</div>
       <div class="slip-cut"></div>
-      ${diff.map(([n, d]) => row(`<span class="q ${cls(d).trim()}">${signed(d)}</span>${esc(n)}`, "")).join("") || '<div class="slip-none">Same as Has</div>'}
+      ${diff.map(([n, d, o]) => (d ? row(`<span class="q ${cls(d).trim()}">${signed(d)}</span>${esc(n)}`, "") : "")
+        + (o ? row(`<span class="q ${cls(-o).trim()}">${fmt(Math.abs(o))}</span>${esc(n)} ${o < 0 ? "switched on" : "switched off"}`, "") : "")).join("")
+        || '<div class="slip-none">Same as Has</div>'}
       <div class="slip-cut"></div>
       ${cost.count ? row(`<span class="bit">${BIT}</span> Total`, fmt(cost.bits), "slip-tot") : '<div class="slip-none">Nothing to build</div>'}
       ${PLAN_RES.filter(r => cost.res[r[0]]).map(([k, label, , img]) => row(`${resImg(img)} ${label}`, fmt(cost.res[k]))).join("")}
-      ${cost.sat ? row("Sat on completion", "+" + fmt(cost.sat)) : ""}
       <div class="slip-cut double"></div>
       <div class="slip-sub">A tick after</div>
       ${swing("Sat", now.satTotal, after.satTotal, signed) + swing("GDP", now.gdp, after.gdp, v => fmt(v) + "k")
@@ -1381,7 +1407,7 @@ $("nPlans").addEventListener("click", ev => {
   if (ev.target.closest("#planNew")) {
     const plans = current.plans || (current.plans = []);
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    plans.push({ id, name: "Plan " + (plans.length + 1), paper: PAPER_CYCLE[plans.length % PAPER_CYCLE.length], want: {} });
+    plans.push({ id, name: "Plan " + (plans.length + 1), paper: PAPER_CYCLE[plans.length % PAPER_CYCLE.length], want: {}, off: {} });
     saveNations();
     go(`#planner/${current.id}/${id}`);
     pName.focus(); pName.select();
@@ -1411,14 +1437,13 @@ $("pPapers").addEventListener("click", ev => {
 // the table is drawn once when the plan opens, so typing in it never loses its place
 function renderPlanTable() {
   const has = parseHas(current.has || "");
-  let rows = '<div class="pt-row pt-head"><span>Building</span><span>Has</span><span>Want</span><span>Change</span></div>';
+  let rows = '<div class="pt-row pt-head"><span>Building</span><span>Has</span><span>Want</span><span>Disabled</span><span>Change</span></div>';
   for (const e of LAYOUT) {
     if (!e) { rows += '<div class="pt-gap"></div>'; continue; }
-    const h = has.counts.get(e[0]) || 0, o = has.off.get(e[0]) || 0;
-    const w = Number.isFinite(plan.want[e[0]]) ? plan.want[e[0]] : h;
     rows += `<div class="pt-row" data-b="${esc(e[0])}"><span class="pt-name"${e[1] ? ` style="--res:${RES[e[1]]}"` : ""}>${esc(e[0])}</span>`
-          + `<span class="pt-has">${o ? `<small>${fmt(o)} off</small> ` : ""}${fmt(h)}</span>`
-          + `<input type="number" min="0" step="1" inputmode="numeric" value="${w}" aria-label="Want ${esc(e[0])}">`
+          + `<span class="pt-has">${fmt(has.counts.get(e[0]) || 0)}</span>`
+          + `<input type="number" min="0" step="1" inputmode="numeric" data-col="want" value="${planWant(plan, has, e[0])}" aria-label="Want ${esc(e[0])}">`
+          + `<input type="number" min="0" step="1" inputmode="numeric" data-col="off" class="pt-off" value="${planOffTyped(plan, has, e[0])}" aria-label="Disabled ${esc(e[0])}">`
           + `<span class="pt-d"></span></div>`;
   }
   $("pTable").innerHTML = rows;
@@ -1426,60 +1451,86 @@ function renderPlanTable() {
 }
 function markRows(has) {
   for (const r of $("pTable").querySelectorAll("[data-b]")) {
-    const n = r.dataset.b, h = has.counts.get(n) || 0;
-    const w = Number.isFinite(plan.want[n]) ? plan.want[n] : h, d = w - h;
-    r.classList.toggle("changed", d !== 0);
+    const n = r.dataset.b, h = has.counts.get(n) || 0, d = planWant(plan, has, n) - h;
+    r.querySelector("[data-col=want]").classList.toggle("changed", d !== 0);
+    const off = r.querySelector("[data-col=off]"), o = planOffTyped(plan, has, n);
+    off.classList.toggle("changed", o !== (has.off.get(n) || 0));
+    off.classList.toggle("some", o > 0);
     const dc = r.querySelector(".pt-d");
     dc.textContent = d ? signed(d) : ""; dc.className = "pt-d" + cls(d);
   }
 }
 $("pTable").addEventListener("input", ev => {
-  const r = ev.target.closest("[data-b]"); if (!r) return;
+  const r = ev.target.closest("[data-b]"), col = ev.target.dataset.col; if (!r || !col) return;
+  const store = plan[col] || (plan[col] = {});
   const v = ev.target.value.trim();
-  if (v === "") delete plan.want[r.dataset.b];
-  else plan.want[r.dataset.b] = Math.max(0, Math.floor(+v || 0));
+  if (v === "") delete store[r.dataset.b];
+  else store[r.dataset.b] = Math.max(0, Math.floor(+v || 0));
   saveNations();
   const has = parseHas(current.has || "");
   markRows(has); renderPlanCalc(has);
 });
 // a cleared box goes back to what Has says
 $("pTable").addEventListener("change", ev => {
-  const r = ev.target.closest("[data-b]");
-  if (r && ev.target.value.trim() === "") ev.target.value = parseHas(current.has || "").counts.get(r.dataset.b) || 0;
+  const r = ev.target.closest("[data-b]"), col = ev.target.dataset.col;
+  if (!r || !col || ev.target.value.trim() !== "") return;
+  const has = parseHas(current.has || "");
+  ev.target.value = col === "want" ? planWant(plan, has, r.dataset.b) : planOffTyped(plan, has, r.dataset.b);
 });
-$("pReset").addEventListener("click", () => { plan.want = {}; saveNations(); renderPlanTable(); renderPlanCalc(); });
+$("pReset").addEventListener("click", () => { plan.want = {}; plan.off = {}; saveNations(); renderPlanTable(); renderPlanCalc(); });
+
+let showDiff = true;
+try { showDiff = localStorage.getItem("buildplanner.planDiff") !== "0"; } catch (e) {}
+$("pNets").addEventListener("click", ev => {
+  if (!ev.target.closest(".diff-tog")) return;
+  showDiff = !showDiff;
+  try { localStorage.setItem("buildplanner.planDiff", showDiff ? "1" : "0"); } catch (e) {}
+  ev.target.closest(".diff-tog").setAttribute("aria-expanded", showDiff);
+  $("pNets").querySelector("tr.diff").classList.toggle("hidden", !showDiff);
+});
 
 function renderPlanCalc(has = parseHas(current.has || "")) {
   const want = planCounts(plan, has);
   const now = nationModel(current, has.counts, has.off), after = nationModel(current, want.counts, want.off);
   tips.clear();
+  const half = (key, side, v, f, colour) =>
+    `<div class="stat-half" tabindex="0" data-tip="${key}"><small>${side}</small><span class="stat-v${colour ? cls(v) : ""}">${f(v)}</span></div>`;
   const stat = (key, label, a, b, f, colour) =>
-    `<div class="stat well" tabindex="0" data-tip="${key}"><span class="stat-k">${label}</span>`
-    + `<span class="stat-v${colour ? cls(b) : ""}">${f(b)}</span>`
-    + `<span class="stat-d${cls(b - a)}">${b === a ? "no change" : signed(b - a) + (key === "p-gdp" ? "k" : "")}</span></div>`;
-  $("pStats").innerHTML = stat("p-sat", "Sat", now.satTotal, after.satTotal, signed, true)
-    + stat("p-gdp", "GDP", now.gdp, after.gdp, v => fmt(v) + "k")
-    + stat("p-se", "Solar Empire", now.seTotal, after.seTotal, signed, true)
-    + stat("p-nlr", "New Lunar Republic", now.nlrTotal, after.nlrTotal, signed, true);
-  tips.set("p-sat", tipSat(after));
-  tips.set("p-gdp", tipGdp(after));
-  tips.set("p-se", tipParts("Solar Empire relations", after.se, after.seTotal));
-  tips.set("p-nlr", tipParts("New Lunar Republic relations", after.nlr, after.nlrTotal));
+    `<div class="stat stat2 well"><span class="stat-k">${label}</span><div class="stat-halves">`
+    + half("h-" + key, "Has", a, f, colour) + half("p-" + key, "Want", b, f, colour) + "</div></div>";
+  const k = v => fmt(v) + "k";
+  $("pStats").innerHTML = stat("sat", "Sat", now.satTotal, after.satTotal, signed, true)
+    + stat("gdp", "GDP", now.gdp, after.gdp, k)
+    + stat("se", "Solar Empire", now.seTotal, after.seTotal, signed, true)
+    + stat("nlr", "New Lunar Republic", now.nlrTotal, after.nlrTotal, signed, true);
+  for (const [pre, m] of [["h-", now], ["p-", after]]) {
+    tips.set(pre + "sat", tipSat(m));
+    tips.set(pre + "gdp", tipGdp(m));
+    tips.set(pre + "se", tipParts("Solar Empire relations", m.se, m.seTotal));
+    tips.set(pre + "nlr", tipParts("New Lunar Republic relations", m.nlr, m.nlrTotal));
+  }
 
-  $("pNets").innerHTML = PLAN_RES.map(([k, label, col, img]) => {
-    const r0 = now.res[k], r1 = after.res[k] || { made: 0, used: 0, makers: [] };
-    const a = r0 ? r0.made - r0.used : 0, b = r1.made - r1.used;
-    tips.set("p-" + k, tipMade(label, col, img, r1));
-    return `<div class="pn${r1.made || r1.used || a ? "" : " idle"}" tabindex="0" data-tip="p-${k}" aria-label="${label}">${resImg(img)}`
-         + `<span class="pn-v${cls(b)}">${signed(b)}</span><span class="pn-d${cls(b - a)}">${b === a ? "·" : signed(b - a)}</span></div>`;
-  }).join("");
+  const net = r => r ? r.made - r.used : 0;
+  const cell = (key, v, sign) => `<td tabindex="0"${key ? ` data-tip="${key}"` : ""} class="${v ? cls(v).trim() : "zero"}">${v ? sign(v) : "0"}</td>`;
+  let head = '<tr><th></th>', rh = '<tr><th scope="row">Has</th>', rw = '<tr><th scope="row">Want</th>';
+  let rd = `<tr class="diff${showDiff ? "" : " hidden"}"><th scope="row"><button type="button" class="diff-tog" aria-expanded="${showDiff}">Difference</button></th>`;
+  for (const [key, label, col, img] of PLAN_RES) {
+    const r0 = now.res[key] || { made: 0, used: 0, makers: [] }, r1 = after.res[key] || { made: 0, used: 0, makers: [] };
+    tips.set("h-" + key, tipMade(label, col, img, r0));
+    tips.set("p-" + key, tipMade(label, col, img, r1));
+    const a = net(r0), b = net(r1);
+    head += `<th title="${label}">${resImg(img)}</th>`;
+    rh += cell("h-" + key, a, signed);
+    rw += cell("p-" + key, b, signed);
+    rd += `<td class="${b - a ? cls(b - a).trim() : "zero"}">${b - a ? signed(b - a) : "·"}</td>`;
+  }
+  $("pNets").innerHTML = `<div class="ptab-wrap"><table class="ptab"><col class="lab"><thead>${head}</tr></thead><tbody>${rh}</tr>${rw}</tr>${rd}</tr></tbody></table></div>`;
 
   const cost = planCost(has.counts, want.counts, current.prze);
   const line = (l, v, c) => `<div class="cost-l${c ? " " + c : ""}">${l}<span class="v">${v}</span></div>`;
   $("pCost").innerHTML = !cost.count ? '<p class="cost-none">Nothing to build. Raise a Want above its Has and the bill shows here.</p>'
     : line(`<span class="bit">${BIT}</span> Bits`, fmt(cost.bits), "cost-tot")
     + PLAN_RES.filter(r => cost.res[r[0]]).map(([k, label, , img]) => line(`${resImg(img)} ${label}`, fmt(cost.res[k]))).join("")
-    + (cost.sat ? line("Sat on completion", "+" + fmt(cost.sat)) : "")
     + `<div class="cost-sub">${fmt(cost.count)} to build</div>`
     + cost.lines.map(([n, c, b]) => line(`${esc(n)} <span class="n" style="color:var(--text-dim)">×${fmt(c)}</span>`, shortBits(b))).join("");
   hideTip();
@@ -1513,6 +1564,7 @@ function route() {
     if (nextPlan !== plan || views.plan.hidden) {
       current = next; plan = nextPlan;
       if (!plan.want) plan.want = {};
+      if (!plan.off) plan.off = {};
       $("pNation").textContent = nationName(current);
       $("pEnv").style.setProperty("--env", isColour(current.color) ? current.color : MANILA);
       pName.value = plan.name; $("pPrze").checked = !!current.prze;
