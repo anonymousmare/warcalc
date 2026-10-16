@@ -413,7 +413,7 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
 .seg button:hover{color:var(--strong)}
 .seg button[aria-pressed=true]{color:var(--strong);background:color-mix(in srgb,var(--strong) 12%,transparent)}
 /* down a list: one resource a line, a leader line from its name to its number */
-.nets.vertical{grid-template-columns:minmax(0,1fr);padding:6px 10px}
+.nets.vertical{grid-template-columns:minmax(0,1fr);width:300px;max-width:100%;padding:6px 10px}
 .nets.vertical .net-name{flex:0 1 auto}
 .nets.vertical .net::after{content:"";order:2;flex:1 1 12px;align-self:center;margin:3px 2px 0;
   border-bottom:1px dotted color-mix(in srgb,var(--text-dim) 60%,transparent)}
