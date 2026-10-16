@@ -367,7 +367,9 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
 .icon-btn.danger:hover{color:var(--btn-danger-b)}
 
 .nation-body{display:grid;grid-template-columns:minmax(250px,320px) 1fr;gap:14px;align-items:start}
-@media (max-width:760px){.nation-body{grid-template-columns:1fr}}
+/* editing Has, the left panel grows to fit its table */
+.nation-body:has(#nBuildings.editing){grid-template-columns:max-content minmax(0,1fr)}
+@media (max-width:760px){.nation-body,.nation-body:has(#nBuildings.editing){grid-template-columns:1fr}}
 #nHas{min-height:0;height:74px;font-size:11.5px}
 .has-note{font-size:12px;color:var(--text-dim);margin:6px 0 0}
 .has-note.warn{color:var(--btn-danger-b)}
@@ -403,6 +405,19 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
 :is(.net-val,.stat-v).pos{color:var(--pos)}
 :is(.net-val,.stat-v).neg{color:var(--neg)}
 .net.idle{opacity:.4}
+.nets-bar{display:flex;justify-content:flex-end;margin:-4px 0 4px}
+.seg{display:inline-flex;border:1px solid var(--border-soft);border-radius:4px;overflow:hidden}
+.seg button{background:none;border:none;padding:2px 6px;line-height:0;color:var(--text-dim);cursor:pointer}
+.seg button + button{border-left:1px solid var(--border-soft)}
+.seg button svg{width:16px;height:16px}
+.seg button:hover{color:var(--strong)}
+.seg button[aria-pressed=true]{color:var(--strong);background:color-mix(in srgb,var(--strong) 12%,transparent)}
+/* down a list: one resource a line, a leader line from its name to its number */
+.nets.vertical{grid-template-columns:minmax(0,1fr);padding:6px 10px}
+.nets.vertical .net-name{flex:0 1 auto}
+.nets.vertical .net::after{content:"";order:2;flex:1 1 12px;align-self:center;margin:3px 2px 0;
+  border-bottom:1px dotted color-mix(in srgb,var(--text-dim) 60%,transparent)}
+.nets.vertical .net-val{order:3;margin-left:0}
 :is(.net,.stat[data-tip]):is(:hover,:focus-visible,.tip-on){background:color-mix(in srgb,var(--strong) 9%,transparent);outline:none}
 
 /* hover card: where a number comes from */
@@ -421,6 +436,7 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
 .tip-bar{grid-column:1 / -1;height:2px;margin:1px 0 3px;border-radius:1px;background:var(--res,var(--accent));opacity:.7}
 .tip-sec{margin-top:6px;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
 .tip-none{color:var(--text-dim)}
+.tip-rule{border-top:1px solid var(--border-soft);margin:7px 0 2px}
 
 /* ---------- plans, as Grand Strategy's till slips ---------- */
 .plans-rule{border:none;border-top:1px solid var(--border-soft);margin:24px 0 14px}
@@ -529,8 +545,9 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
 .plan-body{display:grid;grid-template-columns:max-content minmax(260px,360px);gap:14px;align-items:start}
 @media (max-width:760px){.plan-body{grid-template-columns:minmax(0,1fr)}}
 /* the building table: names right-aligned against their numbers */
-#pTable{display:grid;grid-template-columns:max-content auto auto auto auto;column-gap:10px;row-gap:3px;align-items:center;font-size:12px}
+#pTable,#nBuildings.editing{display:grid;grid-template-columns:max-content auto auto auto auto;column-gap:10px;row-gap:3px;align-items:center;font-size:12px}
 .pt-row{display:contents}
+#nBuildings.editing{grid-template-columns:max-content auto auto;justify-content:center;max-height:none;padding:8px 10px}
 .pt-head > span{font:600 10.5px var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);text-align:center;padding-bottom:2px}
 .pt-head > span:first-child,.pt-head > span:nth-child(2),.pt-head > span:last-child{text-align:right}
 .pt-name{font-weight:600;text-align:right;color:var(--res,var(--text));white-space:nowrap}
@@ -542,6 +559,7 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
 .pt-row input:focus{outline:2px solid var(--accent);outline-offset:-1px}
 .pt-row input.changed{border-color:var(--accent);font-weight:700}
 .pt-row input.pt-off{color:var(--text-dim)}
+.pt-row input.pt-hasin{color:var(--text-dim)}
 .pt-row input.pt-off.some{color:var(--neg)}
 .pt-d{font:600 12px var(--mono);text-align:right;min-width:5ch;white-space:nowrap}
 .pt-d.pos{color:var(--pos)}
@@ -724,6 +742,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
         <h2>Has</h2>
         <span class="spacer"></span>
         <span id="nHasBadge" class="badge">0 buildings</span>
+        <button id="nEditHas" class="btn" type="button" aria-pressed="false">Edit</button>
       </div>
       <textarea id="nHas" spellcheck="false" placeholder="Paste the spreadsheet column from the Buildings tab"></textarea>
       <p id="nHasNote" class="has-note"></p>
@@ -740,6 +759,14 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
         <label title="Hold max sat for its GDP multiplier, keeping 30 sat spare to stay there"><input id="nMaxSat" type="checkbox"> Max sat</label>
       </div>
       <div id="nStats" class="stats"></div>
+      <div class="nets-bar">
+        <span class="seg" role="group" aria-label="Nets layout">
+          <button type="button" data-nv="h" title="Across"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+            stroke-linecap="round" aria-hidden="true"><path d="M4 7h4M10 7h4M16 7h4M4 12h4M10 12h4M16 12h4M4 17h4M10 17h4"/></svg></button>
+          <button type="button" data-nv="v" title="Down a list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+            stroke-linecap="round" aria-hidden="true"><path d="M4 5h16M4 9.5h16M4 14h16M4 18.5h16"/></svg></button>
+        </span>
+      </div>
       <div id="nNets" class="nets well"></div>
     </section>
   </div>
@@ -1139,7 +1166,7 @@ const TICK = {
   "Mall": { vparts: -5, mparts: -2, toys: -5, coffee: -5, cider: -5, gems: -2, apples: -5, pies: -5, gasoline: -5, energy: -10 },
   "Basic Factory": { energy: -1 },
   "Advanced Factory": { energy: -2 },
-  "DNA Extraction Facility": { apples: -1 },
+  "DNA Extraction Facility": { apples: -10 },
   "Moon Worship Center": { cider: -2, energy: -6 },
   "Sun Worship Center": { coffee: -2, energy: -6 },
   "Lunar Environmental Facility": { energy: -5 },
@@ -1398,7 +1425,7 @@ $("nSwatches").addEventListener("input", ev => {
 });
 $("nSwatches").addEventListener("change", ev => { if (ev.target.type === "color") renderSwatches(); });
 
-function renderNation() {
+function renderNation(keepList) {
   const { counts, off, warn, note } = parseHas(current.has || "");
   const total = sumMap(counts), totalOff = sumMap(off);
   $("nHasBadge").textContent = fmt(total) + " buildings" + (totalOff ? ` · ${fmt(totalOff)} off` : "");
@@ -1407,6 +1434,22 @@ function renderNation() {
   hn.className = "has-note" + (warn ? " warn" : "");
   hn.hidden = !hn.textContent;
 
+  const list = $("nBuildings");
+  list.classList.toggle("editing", editingHas);
+  if (editingHas) {
+    // every row, with its count and how many are off, typed straight in
+    if (!keepList) {
+      let er = '<div class="pt-row pt-head"><span>Building</span><span>Has</span><span>Disabled</span></div>';
+      for (const e of LAYOUT) {
+        if (!e) { er += '<div class="pt-gap"></div>'; continue; }
+        const v = counts.get(e[0]) || 0, o = off.get(e[0]) || 0;
+        er += `<div class="pt-row" data-b="${esc(e[0])}"><span class="pt-name"${e[1] ? ` style="--res:${RES[e[1]]}"` : ""}>${esc(e[0])}</span>`
+            + `<input type="number" min="0" step="1" inputmode="numeric" data-col="count" value="${v}" aria-label="Has ${esc(e[0])}">`
+            + `<input type="number" min="0" step="1" inputmode="numeric" data-col="off" class="pt-off${o ? " some" : ""}" value="${o}" aria-label="Disabled ${esc(e[0])}"></div>`;
+      }
+      list.innerHTML = er;
+    }
+  } else {
   // what it has, in the sheet's order and groups, leaving out what it has none of
   let rows = "", gap = false;
   for (const e of LAYOUT) {
@@ -1418,7 +1461,8 @@ function renderNation() {
           + `<span class="bl-name"${e[1] ? ` style="--res:${RES[e[1]]}"` : ""}>${esc(e[0])}</span>`
           + (o ? `<span class="bl-off">${fmt(o)} off <span class="bl-on">(${fmt(Math.max(0, v - o))})</span></span>` : "") + "</div>";
   }
-  $("nBuildings").innerHTML = rows;
+  list.innerHTML = rows;
+  }
 
   const m = nationModel(current, counts, off);
   tips.clear();
@@ -1446,6 +1490,20 @@ function renderNation() {
   hideTip();
 }
 
+let netsView = "h";
+try { netsView = localStorage.getItem("buildplanner.netsView") === "v" ? "v" : "h"; } catch (e) {}
+function applyNetsView() {
+  $("nNets").classList.toggle("vertical", netsView === "v");
+  document.querySelectorAll("[data-nv]").forEach(b => b.setAttribute("aria-pressed", b.dataset.nv === netsView));
+}
+document.querySelector(".nets-bar").addEventListener("click", ev => {
+  const b = ev.target.closest("[data-nv]"); if (!b) return;
+  netsView = b.dataset.nv;
+  try { localStorage.setItem("buildplanner.netsView", netsView); } catch (e) {}
+  applyNetsView();
+});
+applyNetsView();
+
 /* ---- hover cards ---- */
 const tips = new Map();
 const tipRow = (name, count, value, extra) =>
@@ -1453,15 +1511,20 @@ const tipRow = (name, count, value, extra) =>
   + `<span class="v">${value}</span><span class="p">${extra || ""}</span></div>`;
 
 // what makes a resource, before anything eats it, and each maker's share
+// what makes a resource and what eats it, each with its share of that side
 function tipMade(label, col, img, r) {
+  const net = r.made - r.used;
   let h = `<div class="tip-head" style="--res:${col}">${resImg(img)}`
-        + `<span class="tip-name">${label}</span><span class="tip-total">${fmt(r.made)} made a tick</span></div>`;
-  if (!r.made) return h + `<div class="tip-none">Nothing here makes ${label.toLowerCase()}.</div>`;
-  for (const [name, c, v] of [...r.makers].sort((a, b) => b[2] - a[2])) {
-    const pct = v / r.made * 100;
-    h += tipRow(name, c, "+" + fmt(v), pct < 1 ? "<1%" : Math.round(pct) + "%")
-       + `<div class="tip-bar" style="--res:${col};width:${pct}%"></div>`;
-  }
+        + `<span class="tip-name">${label}</span><span class="tip-total">${signed(net)} a tick</span></div>`;
+  if (!r.made && !r.used) return h + `<div class="tip-none">Nothing here makes or uses ${label.toLowerCase()}.</div>`;
+  const side = (list, total, sign) => [...list].sort((a, b) => Math.abs(b[2]) - Math.abs(a[2])).map(([name, c, v]) => {
+    const pct = Math.abs(v) / total * 100;
+    return tipRow(name, c, sign + fmt(Math.abs(v)), pct < 1 ? "<1%" : Math.round(pct) + "%")
+         + `<div class="tip-bar" style="--res:${col};width:${pct}%"></div>`;
+  }).join("");
+  h += `<div class="tip-sec">Made ${fmt(r.made)}</div>` + (r.made ? side(r.makers, r.made, "+") : '<div class="tip-none">Nothing</div>');
+  h += `<div class="tip-rule"></div><div class="tip-sec">Used ${fmt(r.used)}</div>`
+     + (r.used ? side(r.users || [], r.used, "−") : '<div class="tip-none">Nothing</div>');
   return h;
 }
 function tipSat(m) {
@@ -1541,6 +1604,32 @@ for (const el of [nGov, nEcon, nEmpire, nArmy, nMaxSat]) el.addEventListener(el.
 
 nName.addEventListener("input", () => { current.name = nName.value; saveNations(); document.title = nationName(current) + " · CLOP Build Planner"; });
 nHas.addEventListener("input", () => { current.has = nHas.value; saveNations(); renderNation(); });
+
+// Has edited a row at a time rewrites the pasted column, so the box and the list always agree
+function editHas(n, name, count, offCount) {
+  const h = parseHas(n.has || "");
+  if (count != null) { if (count) h.counts.set(name, count); else h.counts.delete(name); }
+  if (offCount != null) { if (offCount) h.off.set(name, offCount); else h.off.delete(name); }
+  const c = h.counts.get(name) || 0;
+  if ((h.off.get(name) || 0) > c) { if (c) h.off.set(name, c); else h.off.delete(name); }
+  n.has = columnOf(h.counts, h.off);
+  saveNations();
+}
+let editingHas = false;
+$("nEditHas").addEventListener("click", () => {
+  editingHas = !editingHas;
+  $("nEditHas").setAttribute("aria-pressed", editingHas);
+  $("nEditHas").textContent = editingHas ? "Done" : "Edit";
+  renderNation();
+});
+$("nBuildings").addEventListener("input", ev => {
+  const r = ev.target.closest("[data-b]"), col = ev.target.dataset.col; if (!r || !col) return;
+  const v = Math.max(0, Math.floor(+ev.target.value || 0));
+  editHas(current, r.dataset.b, col === "count" ? v : null, col === "off" ? v : null);
+  if (col === "off") ev.target.classList.toggle("some", v > 0);
+  nHas.value = current.has;
+  renderNation(true);
+});
 $("nBack").addEventListener("click", () => go("#planner"));
 $("nDelete").addEventListener("click", () => {
   if (!confirm(`Delete ${nationName(current)}? This can't be undone.`)) return;
@@ -1761,7 +1850,7 @@ function renderPlanTable() {
   for (const e of LAYOUT) {
     if (!e) { rows += '<div class="pt-gap"></div>'; continue; }
     rows += `<div class="pt-row" data-b="${esc(e[0])}"><span class="pt-name"${e[1] ? ` style="--res:${RES[e[1]]}"` : ""}>${esc(e[0])}</span>`
-          + `<span class="pt-has">${fmt(has.counts.get(e[0]) || 0)}</span>`
+          + `<input type="number" min="0" step="1" inputmode="numeric" data-col="has" class="pt-hasin" value="${has.counts.get(e[0]) || 0}" aria-label="Has ${esc(e[0])}">`
           + `<input type="number" min="0" step="1" inputmode="numeric" data-col="want" value="${planWant(plan, has, e[0])}" aria-label="Want ${esc(e[0])}">`
           + `<input type="number" min="0" step="1" inputmode="numeric" data-col="off" class="pt-off" value="${planOffTyped(plan, has, e[0])}" aria-label="Disabled ${esc(e[0])}">`
           + `<span class="pt-d"></span></div>`;
@@ -1778,10 +1867,20 @@ function markRows(has) {
     off.classList.toggle("some", o > 0);
     const dc = r.querySelector(".pt-d");
     dc.textContent = d ? signed(d) : ""; dc.className = "pt-d" + cls(d);
+    // rows nobody typed a Want or Disabled into follow Has as it is edited
+    const wi = r.querySelector("[data-col=want]");
+    if (document.activeElement !== wi && !Number.isFinite(plan.want[n])) wi.value = h;
+    if (document.activeElement !== off && !(plan.off && Number.isFinite(plan.off[n]))) off.value = o;
   }
 }
 $("pTable").addEventListener("input", ev => {
   const r = ev.target.closest("[data-b]"), col = ev.target.dataset.col; if (!r || !col) return;
+  if (col === "has") {
+    editHas(current, r.dataset.b, Math.max(0, Math.floor(+ev.target.value || 0)), null);
+    const has = parseHas(current.has || "");
+    markRows(has); renderPlanCalc(has);
+    return;
+  }
   const store = plan[col] || (plan[col] = {});
   const v = ev.target.value.trim();
   if (v === "") delete store[r.dataset.b];
