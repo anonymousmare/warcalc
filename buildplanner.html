@@ -779,7 +779,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
   </div>
   <div class="split mx-split">
     <section class="panel">
-      <div class="panel-head"><h2>Your split</h2><span class="spacer"></span><span id="m_verdict"></span></div>
+      <div class="panel-head"><h2>Slider split</h2><span class="spacer"></span><span id="m_verdict"></span></div>
       <table class="mx-tbl" id="m_tbl"></table>
     </section>
     <section class="panel">
@@ -836,7 +836,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
   </div>
   <div class="split mx-split">
     <section class="panel">
-      <div class="panel-head"><h2>Your mix</h2><span class="spacer"></span><span id="o_verdict"></span></div>
+      <div class="panel-head"><h2>Slider mix</h2><span class="spacer"></span><span id="o_verdict"></span></div>
       <table class="mx-tbl" id="o_tbl"></table>
     </section>
     <section class="panel">
@@ -844,16 +844,10 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
       <table class="mx-tbl" id="o_best"></table>
     </section>
   </div>
-  <div class="split mx-split">
-    <section class="panel">
-      <div class="panel-head"><h2>Loss by fracker share</h2></div>
-      <div class="mx-chart"><canvas id="c4"></canvas></div>
-    </section>
-    <section class="panel">
-      <div class="panel-head"><h2>Sat per oil, next well</h2></div>
-      <div class="mx-chart"><canvas id="c5"></canvas></div>
-    </section>
-  </div>
+  <section class="panel">
+    <div class="panel-head"><h2>Sat per oil, next well</h2></div>
+    <div class="mx-chart"><canvas id="c5"></canvas></div>
+  </section>
 </div>
 <span id="toast" class="badge badge-success" hidden>Copied</span>
 <div id="tip" role="tooltip" hidden></div>
@@ -1786,14 +1780,12 @@ const lineSet = (label, c) => ({ label, data: [], borderColor: c, backgroundColo
 const dotSet = (label, c, r = 6) => ({ label, type: "scatter", data: [], borderColor: c, backgroundColor: c, pointRadius: r, showLine: false });
 function buildMineCharts() {
   if (!window.Chart) return;
-  mkChart("c1", t => [lineSet("Sat lost", t.line), dotSet("Yours", t.you), dotSet("Best", t.best)],
+  mkChart("c1", t => [lineSet("Sat lost", t.line), dotSet("Slider", t.you), dotSet("Best", t.best)],
     "mechanised share of copper (%)", "sat lost a tick", { min: 0, max: 100 });
 }
 function buildWellCharts() {
   if (!window.Chart) return;
-  mkChart("c4", t => [lineSet("Sat lost", t.line), dotSet("Yours", t.you), dotSet("Best", t.best)],
-    "fracker share of oil (%)", "sat lost a tick", { min: 0, max: 100 });
-  mkChart("c5", t => WELL.map(w => lineSet(w.n, w.c)).concat([dotSet("You", t.strong, 5)]),
+  mkChart("c5", t => WELL.map(w => lineSet(w.n, w.c)).concat([dotSet("Slider", t.strong, 5)]),
     "wells of that grade", "sat per oil, next one", { min: 0, max: 200 });
   charts.c5.options.scales.y.max = 1;
 }
@@ -1997,18 +1989,6 @@ function drawWell() {
     if (oMode.value !== "share") $("o_anch").value = best[parseInt(oMode.value, 10)];
     drawWell();
   };
-  if (charts.c4 && Q > 0) {
-    const line = [];
-    for (let sh = 0; sh <= 100; sh++) {
-      const cc = greedyFrom([0, 0, ce(Q * sh / 100 / 20)], Q, k, [0, 1]);
-      line.push({ x: sh, y: Math.round(wDmg(cc, k).total * 10) / 10 });
-    }
-    const ch = charts.c4;
-    ch.data.datasets[0].data = line;
-    ch.data.datasets[1].data = [{ x: Math.min(100, Math.round(20 * c[2] / Math.max(Q, 1) * 100)), y: Math.round(d.total * 10) / 10 }];
-    ch.data.datasets[2].data = [{ x: Math.min(100, Math.round(20 * best[2] / Math.max(Q, 1) * 100)), y: Math.round(bd.total * 10) / 10 }];
-    ch.update("none");
-  }
   if (charts.c5) {
     const ch = charts.c5, xs = Array.from({ length: 201 }, (_, x) => x);
     WELL.forEach((w, i) => { ch.data.datasets[i].data = xs.map(x => ({ x, y: nextCost(w, x, k) })); });
