@@ -38,9 +38,9 @@
 @font-face{font-family:"Lovelt";src:url("https://files.catbox.moe/h1xvtm.ttf") format("truetype");font-display:swap}
 /* the resource colours are drawn for a dark page, so on the light themes the
    column well goes to the theme's night colours, as Warcalc's darker log does */
-[data-theme="white"] #out{background:#272b30;background-image:none;border-color:#1c1e22;--strong:#fff;--text-dim:#8b9198}
-[data-theme="applejack"] #out{background:#2b1a0d;border-color:#1a0f06;--strong:#fff2d1;--text-dim:#b0916a}
-[data-theme="rainbow"] #out{background:#0c2150;border-color:#061536;--strong:#fff;--text-dim:#8fb3e3}
+[data-theme="white"] :is(#out,.night){background:#272b30;background-image:none;border-color:#1c1e22;--strong:#fff;--text-dim:#8b9198}
+[data-theme="applejack"] :is(#out,.night){background:#2b1a0d;border-color:#1a0f06;--strong:#fff2d1;--text-dim:#b0916a}
+[data-theme="rainbow"] :is(#out,.night){background:#0c2150;border-color:#061536;--strong:#fff;--text-dim:#8fb3e3}
 
 /* ---- White: Bootstrap 3 with its gradients ---- */
 :root[data-theme="white"]{
@@ -288,6 +288,99 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
 .oc-div::before,.oc-div::after{content:"";flex:1 1 auto;border-top:1px solid var(--text-dim);opacity:.45}
 .oc-div::before{flex:0 0 12px}
 #toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%)}
+
+/* ---------- planner: nations as manila envelopes ---------- */
+.env-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:26px 22px;padding:8px 2px}
+.env{
+  --env:#d6b47a;
+  position:relative;display:block;width:100%;aspect-ratio:3/2;padding:0;border:none;border-radius:5px;cursor:pointer;
+  font:inherit;color:#2a2620;text-align:left;
+  background:
+    repeating-linear-gradient(115deg,rgba(255,255,255,.035) 0 2px,transparent 2px 5px),
+    linear-gradient(color-mix(in srgb,var(--env) 88%,#fff),var(--env));
+  box-shadow:0 1px 0 color-mix(in srgb,var(--env) 60%,#000),0 6px 14px rgba(0,0,0,.35);
+  transition:transform .12s ease,box-shadow .12s ease;
+}
+.env:hover{transform:translateY(-3px) rotate(-.5deg);box-shadow:0 1px 0 color-mix(in srgb,var(--env) 60%,#000),0 10px 20px rgba(0,0,0,.4)}
+.env:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+/* the flap, and the string-tie button at its point */
+.env::before{
+  content:"";position:absolute;left:0;right:0;top:0;height:46%;border-radius:5px 5px 0 0;
+  background:color-mix(in srgb,var(--env) 84%,#000);
+  clip-path:polygon(0 0,100% 0,100% 16%,56% 100%,44% 100%,0 16%);
+}
+.env::after{
+  content:"";position:absolute;left:50%;top:46%;width:11px;height:11px;margin:-6px 0 0 -6px;border-radius:50%;
+  background:color-mix(in srgb,var(--env) 55%,#7a1f12);box-shadow:0 1px 1px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.25);
+}
+.env-label{
+  position:absolute;left:11%;right:11%;bottom:12%;padding:5px 9px 6px;border-radius:2px;
+  background:#f6f1e2;box-shadow:0 1px 2px rgba(0,0,0,.25);transform:rotate(-1deg);
+  display:flex;flex-direction:column;gap:1px;min-width:0;
+}
+.env-name{font:700 14px/1.2 var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.env-sub{font:11px/1.2 var(--font);color:#7a7060}
+/* the empty slot that makes a new one */
+.env-new{background:none;box-shadow:none;border:2px dashed var(--text-dim);color:var(--text-dim);opacity:.75;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.env-new::before,.env-new::after{display:none}
+.env-new:hover{opacity:1;color:var(--strong);border-color:var(--strong);box-shadow:none}
+.env-new b{font:300 46px/1 var(--font)}
+.env-new span{font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+
+/* ---------- a single nation ---------- */
+.nation-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.nation-head .env{width:54px;flex:0 0 auto;cursor:default}
+.nation-head .env:hover{transform:none}
+.nation-head .env::after{width:6px;height:6px;margin:-3px 0 0 -3px}
+.name-input{
+  flex:1 1 200px;min-width:0;background:none;border:none;border-bottom:1px solid transparent;border-radius:0;
+  color:var(--strong);font:500 21px/1.2 var(--head-font);padding:2px 0;
+}
+.name-input:hover{border-bottom-color:var(--border-soft)}
+.name-input:focus{outline:none;border-bottom-color:var(--accent)}
+.head-tools{display:flex;align-items:center;gap:12px;order:2}
+#nBack{order:3}
+/* on a phone the colours drop to their own row and back stays in the corner */
+@media (max-width:760px){.head-tools{order:4;flex:1 1 100%;justify-content:space-between}}
+.swatches{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.swatch{width:18px;height:18px;border-radius:50%;padding:0;cursor:pointer;background:var(--sw);
+  border:2px solid var(--raised);box-shadow:0 0 0 1px var(--border-soft)}
+.swatch:hover{transform:scale(1.15)}
+.swatch.on{box-shadow:0 0 0 2px var(--strong)}
+.swatch-custom{position:relative;overflow:hidden;
+  background:conic-gradient(#f55,#fd5,#5f5,#5ff,#55f,#f5f,#f55)}
+.swatch-custom input{position:absolute;inset:-6px;width:40px;height:40px;opacity:0;cursor:pointer}
+.icon-btn{background:none;border:none;color:var(--text-dim);cursor:pointer;padding:4px;line-height:0;border-radius:4px}
+.icon-btn:hover{color:var(--strong);background:var(--sunken)}
+.icon-btn:focus-visible{outline:2px solid var(--accent)}
+.icon-btn svg{width:20px;height:20px}
+.icon-btn.danger:hover{color:var(--btn-danger-b)}
+
+.nation-body{display:grid;grid-template-columns:minmax(250px,320px) 1fr;gap:14px;align-items:start}
+@media (max-width:760px){.nation-body{grid-template-columns:1fr}}
+#nHas{min-height:0;height:74px;font-size:11.5px}
+.has-note{font-size:12px;color:var(--text-dim);margin:6px 0 0}
+.has-note.warn{color:var(--btn-danger-b)}
+.blist{margin-top:10px;padding:6px 10px;font-size:12px;max-height:520px;overflow:auto}
+.blist:empty{display:none}
+.bl-row{display:flex;gap:10px;align-items:baseline;min-height:1.5em}
+.bl-n{min-width:4ch;text-align:right;font:12px var(--mono);color:var(--strong);font-variant-numeric:tabular-nums}
+.bl-name{font-weight:600;color:var(--res,var(--text-dim))}
+.bl-off{margin-left:auto;font-size:11px;color:#f17a77;white-space:nowrap}
+.bl-gap{height:6px}
+
+.nets{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;padding:10px}
+.net{display:grid;grid-template-columns:32px 1fr auto;grid-template-rows:auto auto;align-items:center;column-gap:10px;
+  padding:7px 10px;border-radius:4px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.04)}
+/* the game's icons are 16px pixel art, doubled */
+.net img{width:32px;height:32px;image-rendering:pixelated;grid-column:1;grid-row:1 / 3}
+.net-name{grid-column:2;grid-row:1;font-weight:600;font-size:12.5px;color:var(--res);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.net-val{grid-column:3;grid-row:1 / 3;font:700 17px/1.2 var(--mono);text-align:right;font-variant-numeric:tabular-nums;color:var(--strong)}
+.net-val.pos{color:#78cc78}
+.net-val.neg{color:#f17a77}
+.net-flow{grid-column:2;grid-row:2;overflow:hidden;text-overflow:ellipsis;font-size:11px;color:var(--text-dim);font-variant-numeric:tabular-nums;white-space:nowrap}
+.net.idle{opacity:.4}
 </style>
 <script>
 /* the theme goes on before anything paints. Same list and key as Warcalc */
@@ -320,7 +413,8 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
     aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path
     d="M10.3 2.5h3.4l.5 2.6a7.6 7.6 0 0 1 2 1.2l2.5-.9 1.7 2.9-2 1.8a7.7 7.7 0 0 1 0 2.3l2 1.8-1.7 2.9-2.5-.9a7.6 7.6 0 0 1-2 1.2l-.5 2.6h-3.4l-.5-2.6a7.6 7.6 0 0 1-2-1.2l-2.5.9-1.7-2.9 2-1.8a7.7 7.7 0 0 1 0-2.3l-2-1.8 1.7-2.9 2.5.9a7.6 7.6 0 0 1 2-1.2z"/><circle
     cx="12" cy="12" r="3"/></svg></button></span>
-  <button class="tab active" type="button">Buildings</button>
+  <button class="tab active" type="button" data-view="buildings">Buildings</button>
+  <button class="tab" type="button" data-view="planner">Planner</button>
 </div>
 
 <div class="panel" id="toolsPanel" hidden>
@@ -328,6 +422,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
   <label class="hk-toggle" for="themeSel">Theme <select id="themeSel"></select></label>
 </div>
 
+<div id="viewBuildings">
 <div id="errors" hidden></div>
 
 <div class="split">
@@ -350,6 +445,47 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
     </div>
     <div id="out" class="well" tabindex="0"></div>
   </section>
+</div>
+</div>
+
+<div id="viewPlanner" hidden>
+  <div class="env-grid" id="envGrid"></div>
+</div>
+
+<div id="viewNation" hidden>
+  <div class="nation-head">
+    <span class="env" id="nEnv" aria-hidden="true"></span>
+    <input id="nName" class="name-input" type="text" spellcheck="false" maxlength="60" aria-label="Nation name">
+    <div class="head-tools">
+    <div class="swatches" id="nSwatches" role="group" aria-label="Envelope colour"></div>
+    <button id="nDelete" class="icon-btn danger" type="button" title="Delete this nation"><svg viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path
+      d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13M10 11v6M14 11v6"/></svg></button>
+    </div>
+    <button id="nBack" class="icon-btn" type="button" title="Back to nations"><svg viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path
+      d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+  </div>
+  <div class="nation-body">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Has</h2>
+        <span class="spacer"></span>
+        <span id="nHasBadge" class="badge">0 buildings</span>
+      </div>
+      <textarea id="nHas" spellcheck="false" placeholder="Paste the spreadsheet column from the Buildings tab"></textarea>
+      <p id="nHasNote" class="has-note"></p>
+      <div id="nBuildings" class="blist well night"></div>
+    </section>
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Net per tick</h2>
+        <span class="spacer"></span>
+        <span class="has-note" style="margin:0">disabled buildings left out</span>
+      </div>
+      <div id="nNets" class="nets well night"></div>
+    </section>
+  </div>
 </div>
 <span id="toast" class="badge badge-success" hidden>Copied</span>
 
@@ -507,6 +643,260 @@ toolsBtn.addEventListener("click", () => {
 }
 
 render();
+
+/* ===================== planner =====================
+   Each nation is an envelope holding what it Has: the spreadsheet column from the
+   Buildings tab pasted back in, read by position, and from that its net per tick */
+
+// [key, name, colour, image file] in the game's resource order
+const PLAN_RES = [
+  ["oil", "Oil", "#FF0000", "Oil"],
+  ["copper", "Copper", "#FF6A00", "Copper"],
+  ["apples", "Apples", "#B6FF00", "Apples"],
+  ["energy", "Energy", "#00FFFF", "Energy"],
+  ["vparts", "Vehicle Parts", "#FF0000", "Vehicle Parts"],
+  ["mparts", "Machinery Parts", "#0094FF", "Machine Parts"],
+  ["pies", "Pies", "#FF00DC", "Pie"],
+  ["cider", "Cider", "#FFD800", "Cider"],
+  ["coffee", "Coffee", "#FF6A00", "Coffee"],
+  ["gasoline", "Gasoline", "#0094FF", "Gasoline"],
+  ["gems", "Gems", "#00FF21", "Gems"],
+  ["tungsten", "Tungsten", "#808080", "Tungsten"],
+  ["plastics", "Plastics", "#00FF21", "Plastics"],
+  ["precision", "Precision Parts", "#C342FF", "Precision Parts"],
+  ["composites", "Composites", "#FFFFFF", "Composites"],
+  ["drugs", "Drugs", "#FF006E", "Drugs"],
+  ["toys", "Toys", "#FFFFFF", "Toys"],
+  ["forbidden", "Forbidden Research", "#C342FF", "Forbidden Research"],
+  ["serum", "Apotheosis Serum", "#FFFFFF", "Apotheosis Serum"]
+];
+const IMG_BASE = "https://cloppenmanager.neocities.org/img/";
+
+// what one working building makes (+) and burns (−) every tick, from the game's own descriptions
+const TICK = {
+  "Basic Copper Mine": { copper: 5 },
+  "Mechanized Copper Mine": { copper: 8, energy: -1 },
+  "Gem Mine": { gems: 3, coffee: -1, energy: -1 },
+  "Tungsten Mine": { tungsten: 4, cider: -1, energy: -1 },
+  "Basic Apple Orchard": { apples: 5 },
+  "Mechanized Apple Farm": { apples: 8, energy: -1 },
+  "Coffee Farm": { coffee: 5, energy: -1 },
+  "Drug Farm": { drugs: 10 },
+  "Basic Oil Well": { oil: 5 },
+  "Mechanized Oil Well": { oil: 8, energy: -1 },
+  "Oil Fracker": { oil: 20, energy: -2 },
+  "Cider Production Facility": { cider: 5, apples: -5, energy: -1 },
+  "Energy Collector": { energy: 1 },
+  "Oil Combustion Facility": { energy: 12, oil: -8 },
+  "Gasoline Combustion Facility": { energy: 12, gasoline: -8 },
+  "Gasoline Refinery": { gasoline: 8, oil: -10 },
+  "Plastics Factory": { plastics: 4, oil: -4, energy: -1 },
+  "Przewalskian Plastics Factory": { plastics: 5, oil: -4, energy: -1 },
+  "Toy Factory": { toys: 3, plastics: -1, energy: -1 },
+  "Bakery": { pies: 3, apples: -2, energy: -1 },
+  "Bar": { cider: -3, pies: -1 },
+  "Coffee Shop": { coffee: -3, pies: -1 },
+  "Toy and Candy Shop": { apples: -4, pies: -4, toys: -4 },
+  "Video Arcade": { energy: -5, pies: -1 },
+  "Mall": { vparts: -5, mparts: -2, toys: -5, coffee: -5, cider: -5, gems: -2, apples: -5, pies: -5, gasoline: -5, energy: -10 },
+  "Basic Factory": { energy: -1 },
+  "Advanced Factory": { energy: -2 },
+  "DNA Extraction Facility": { apples: -1 },
+  "Moon Worship Center": { cider: -2, energy: -6 },
+  "Sun Worship Center": { coffee: -2, energy: -6 },
+  "Lunar Environmental Facility": { energy: -5 },
+  "Solar Environmental Facility": { energy: -5 },
+  "Forbidden Research Facility": { forbidden: 1 },
+  "Alicornification Facility": { serum: 1, apples: -50, energy: -100 }
+};
+
+const ENV_COLOURS = ["#d6b47a", "#b98a5b", "#c4574c", "#d98a3d", "#e0c44c", "#7fa65a",
+                     "#4f9c97", "#5b86c4", "#8a6bbf", "#d27fb0", "#8d9096", "#3c3f45"];
+const MANILA = ENV_COLOURS[0];
+const isColour = c => /^#[0-9a-f]{6}$/i.test(c || "");
+
+const LS_NATIONS = "buildplanner.nations";
+let nations = [];
+try { nations = JSON.parse(localStorage.getItem(LS_NATIONS)) || []; } catch (e) {}
+if (!Array.isArray(nations)) nations = [];
+const saveNations = () => { try { localStorage.setItem(LS_NATIONS, JSON.stringify(nations)); } catch (e) {} };
+const nationName = n => n.name.trim() || "Untitled";
+
+// The Has box takes the Buildings tab's column back, read by row: the main block, six
+// blank rows, then the disabled block. A paste of the game's own list works too
+function parseHas(text) {
+  if (/[a-z]/i.test(text)) {
+    const { counts, off, unknown } = parse(text);
+    return { counts, off, warn: unknown.length ? "Skipped: " + unknown.join(", ") : "", note: "Read as a paste from the game" };
+  }
+  const counts = new Map(), off = new Map();
+  const lines = text.replace(/^(\s*\n)+/, "").replace(/\s+$/, "").split(/\r?\n/).map(s => s.trim());
+  if (!lines[0]) return { counts, off, warn: "", note: "" };
+  let shifted = false; const bad = [];
+  const read = (layout, from, into) => layout.forEach((e, i) => {
+    const s = lines[from + i] || "";
+    if (!e) { if (s) shifted = true; return; }
+    if (!s) return;
+    const v = s.replace(/[,\s]/g, "");
+    if (!/^\d+$/.test(v)) { bad.push(s); return; }
+    if (+v) into.set(e[0], +v);
+  });
+  read(LAYOUT, 0, counts);
+  const disStart = LAYOUT.length + DISABLED_GAP;
+  for (let i = LAYOUT.length; i < disStart; i++) if (lines[i]) shifted = true;
+  read(DISABLED_LAYOUT, disStart, off);
+  const warn = [];
+  if (shifted) warn.push("A number sits where a blank row should be, so the paste looks shifted. Copy the whole column from the top.");
+  if (bad.length) warn.push("Not numbers: " + bad.slice(0, 5).join(", "));
+  if (lines.length > disStart + DISABLED_LAYOUT.length) warn.push("Rows past the disabled block were ignored.");
+  const note = lines.length <= LAYOUT.length ? "No disabled block, so everything counts as switched on" : "";
+  return { counts, off, warn: warn.join(" "), note };
+}
+
+const sumMap = m => [...m.values()].reduce((a, b) => a + b, 0);
+
+// every resource's made, used, and the buildings behind each, from the working buildings only
+function tickNets(counts, off) {
+  const made = {}, used = {}, from = {};
+  for (const [name, per] of Object.entries(TICK)) {
+    const on = Math.max(0, (counts.get(name) || 0) - (off.get(name) || 0));
+    if (!on) continue;
+    for (const [r, a] of Object.entries(per)) {
+      const v = a * on;
+      if (v > 0) made[r] = (made[r] || 0) + v; else used[r] = (used[r] || 0) - v;
+      (from[r] = from[r] || []).push([name, on, v]);
+    }
+  }
+  return { made, used, from };
+}
+
+const fmt = n => n.toLocaleString();
+const signed = n => (n > 0 ? "+" : n < 0 ? "−" : "") + fmt(Math.abs(n));
+
+const envGrid = $("envGrid");
+function renderGrid() {
+  envGrid.innerHTML = nations.map(n => {
+    const total = sumMap(parseHas(n.has || "").counts);
+    return `<button class="env" type="button" data-id="${esc(n.id)}" style="--env:${isColour(n.color) ? n.color : MANILA}">`
+         + `<span class="env-label"><span class="env-name">${esc(nationName(n))}</span>`
+         + `<span class="env-sub">${fmt(total)} building${total === 1 ? "" : "s"}</span></span></button>`;
+  }).join("") + `<button class="env env-new" type="button" id="envNew" title="New nation"><b>+</b><span>New nation</span></button>`;
+}
+envGrid.addEventListener("click", ev => {
+  const b = ev.target.closest(".env");
+  if (!b) return;
+  if (b.id === "envNew") {
+    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    nations.push({ id, name: "New nation", color: MANILA, has: "" });
+    saveNations();
+    go("#planner/" + id);
+    const nm = $("nName"); nm.focus(); nm.select();
+  } else go("#planner/" + b.dataset.id);
+});
+
+let current = null;
+const nName = $("nName"), nHas = $("nHas");
+
+function renderSwatches() {
+  const c = isColour(current.color) ? current.color.toLowerCase() : MANILA;
+  const custom = !ENV_COLOURS.includes(c);
+  $("nSwatches").innerHTML = ENV_COLOURS.map(k =>
+      `<button class="swatch${k === c ? " on" : ""}" type="button" data-c="${k}" style="--sw:${k}" title="${k}"></button>`).join("")
+    + `<label class="swatch swatch-custom${custom ? " on" : ""}" title="Any colour"${custom ? ` style="background:${c}"` : ""}>`
+    + `<input type="color" value="${c}" aria-label="Any colour"></label>`;
+  $("nEnv").style.setProperty("--env", c);
+}
+function setColour(c) {
+  current.color = c; saveNations(); renderSwatches();
+}
+$("nSwatches").addEventListener("click", ev => { const b = ev.target.closest("[data-c]"); if (b) setColour(b.dataset.c); });
+$("nSwatches").addEventListener("input", ev => {
+  if (ev.target.type !== "color") return;
+  current.color = ev.target.value; saveNations();
+  ev.target.parentNode.style.background = ev.target.value;
+  $("nEnv").style.setProperty("--env", ev.target.value);
+});
+$("nSwatches").addEventListener("change", ev => { if (ev.target.type === "color") renderSwatches(); });
+
+function renderNation() {
+  const { counts, off, warn, note } = parseHas(current.has || "");
+  const total = sumMap(counts), totalOff = sumMap(off);
+  $("nHasBadge").textContent = fmt(total) + " buildings" + (totalOff ? ` · ${fmt(totalOff)} off` : "");
+  const hn = $("nHasNote");
+  hn.textContent = warn || note || (current.has ? "" : "Paste the column the Buildings tab copies.");
+  hn.className = "has-note" + (warn ? " warn" : "");
+  hn.hidden = !hn.textContent;
+
+  // what it has, in the sheet's order and groups, leaving out what it has none of
+  let rows = "", gap = false;
+  for (const e of LAYOUT) {
+    if (!e) { gap = !!rows; continue; }
+    const v = counts.get(e[0]); if (!v) continue;
+    if (gap) { rows += '<div class="bl-gap"></div>'; gap = false; }
+    const o = off.get(e[0]);
+    rows += `<div class="bl-row"><span class="bl-n">${fmt(v)}</span>`
+          + `<span class="bl-name"${e[1] ? ` style="--res:${RES[e[1]]}"` : ""}>${esc(e[0])}</span>`
+          + (o ? `<span class="bl-off">${fmt(o)} off</span>` : "") + "</div>";
+  }
+  $("nBuildings").innerHTML = rows;
+
+  const { made, used, from } = tickNets(counts, off);
+  $("nNets").innerHTML = PLAN_RES.map(([k, label, col, img]) => {
+    const m = made[k] || 0, u = used[k] || 0, net = m - u;
+    const tip = (from[k] || []).map(([b, n, v]) => `${b} ×${fmt(n)}: ${signed(v)}`).join("\n");
+    return `<div class="net${m || u ? "" : " idle"}" style="--res:${col}"${tip ? ` title="${esc(tip)}"` : ""}>`
+         + `<img src="${IMG_BASE}${encodeURIComponent(img)}.png" alt="" loading="lazy">`
+         + `<span class="net-name">${label}</span>`
+         + `<span class="net-val${net > 0 ? " pos" : net < 0 ? " neg" : ""}">${signed(net)}</span>`
+         + `<span class="net-flow">${[m && `+${fmt(m)} made`, u && `−${fmt(u)} used`].filter(Boolean).join(" · ") || "—"}</span></div>`;
+  }).join("");
+}
+
+nName.addEventListener("input", () => { current.name = nName.value; saveNations(); document.title = nationName(current) + " · CLOP Build Planner"; });
+nHas.addEventListener("input", () => { current.has = nHas.value; saveNations(); renderNation(); });
+$("nBack").addEventListener("click", () => go("#planner"));
+$("nDelete").addEventListener("click", () => {
+  if (!confirm(`Delete ${nationName(current)}? This can't be undone.`)) return;
+  nations = nations.filter(n => n !== current); saveNations();
+  go("#planner");
+});
+
+/* views: Buildings at the bare address, the envelopes at #planner, one nation at #planner/<id> */
+const views = { buildings: $("viewBuildings"), planner: $("viewPlanner"), nation: $("viewNation") };
+function show(view) {
+  for (const [k, el] of Object.entries(views)) el.hidden = k !== view;
+  document.querySelectorAll(".tab[data-view]").forEach(t =>
+    t.classList.toggle("active", t.dataset.view === (view === "nation" ? "planner" : view)));
+}
+// popstate and hashchange can both fire for one step back, so a nation already
+// open is left alone rather than refilled under the cursor
+function route() {
+  const m = location.hash.match(/^#planner(?:\/(.+))?$/);
+  const next = m && m[1] ? nations.find(n => n.id === decodeURIComponent(m[1])) || null : null;
+  if (next) {
+    if (next !== current || views.nation.hidden) {
+      current = next;
+      nName.value = current.name; nHas.value = current.has || "";
+      renderSwatches(); renderNation(); show("nation");
+      document.title = nationName(current) + " · CLOP Build Planner";
+      window.scrollTo(0, 0);
+    }
+    return;
+  }
+  current = null;
+  document.title = "CLOP Build Planner";
+  if (m) { renderGrid(); show("planner"); } else show("buildings");
+}
+function go(hash) {
+  const url = hash || location.pathname + location.search;
+  if ((location.hash || "") !== hash) history.pushState(null, "", url);
+  route();
+}
+document.querySelectorAll(".tab[data-view]").forEach(t =>
+  t.addEventListener("click", () => go(t.dataset.view === "planner" ? "#planner" : "")));
+window.addEventListener("hashchange", route);
+window.addEventListener("popstate", route);
+route();
 </script>
 
 </body>
