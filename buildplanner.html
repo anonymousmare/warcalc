@@ -28,6 +28,7 @@
   --font:"Helvetica Neue",Helvetica,Arial,sans-serif;
   --head-font:var(--font);
   --mono:"SFMono-Regular",Menlo,Consolas,monospace;
+  --pos:#78cc78; --neg:#f17a77;
 }
 
 /* ===================== themes =====================
@@ -37,10 +38,12 @@
 [data-theme] :where(button,select){font-family:var(--font)}
 @font-face{font-family:"Lovelt";src:url("https://files.catbox.moe/h1xvtm.ttf") format("truetype");font-display:swap}
 /* the resource colours are drawn for a dark page, so on the light themes the
-   column well goes to the theme's night colours, as Warcalc's darker log does */
-[data-theme="white"] :is(#out,.night){background:#272b30;background-image:none;border-color:#1c1e22;--strong:#fff;--text-dim:#8b9198}
-[data-theme="applejack"] :is(#out,.night){background:#2b1a0d;border-color:#1a0f06;--strong:#fff2d1;--text-dim:#b0916a}
-[data-theme="rainbow"] :is(#out,.night){background:#0c2150;border-color:#061536;--strong:#fff;--text-dim:#8fb3e3}
+   readouts keep the theme's own background and the colours go darker instead */
+:is([data-theme="white"],[data-theme="applejack"],[data-theme="rainbow"]) :is(.oc-lab,.bl-name,.net-name,.tip-name){
+  color:color-mix(in srgb,var(--res,var(--text-dim)) 58%,#000)}
+[data-theme="white"]{--pos:#2e8b2e;--neg:#c9302c}
+[data-theme="applejack"]{--pos:#4f6b1f;--neg:#a8321a}
+[data-theme="rainbow"]{--pos:#13803a;--neg:#d42020}
 
 /* ---- White: Bootstrap 3 with its gradients ---- */
 :root[data-theme="white"]{
@@ -367,20 +370,51 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
 .bl-row{display:flex;gap:10px;align-items:baseline;min-height:1.5em}
 .bl-n{min-width:4ch;text-align:right;font:12px var(--mono);color:var(--strong);font-variant-numeric:tabular-nums}
 .bl-name{font-weight:600;color:var(--res,var(--text-dim))}
-.bl-off{margin-left:auto;font-size:11px;color:#f17a77;white-space:nowrap}
+.bl-off{margin-left:auto;font-size:11px;color:var(--neg);white-space:nowrap}
+.bl-on{color:var(--text-dim)}
 .bl-gap{height:6px}
 
-.nets{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;padding:10px}
-.net{display:grid;grid-template-columns:32px 1fr auto;grid-template-rows:auto auto;align-items:center;column-gap:10px;
-  padding:7px 10px;border-radius:4px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.04)}
-/* the game's icons are 16px pixel art, doubled */
-.net img{width:32px;height:32px;image-rendering:pixelated;grid-column:1;grid-row:1 / 3}
-.net-name{grid-column:2;grid-row:1;font-weight:600;font-size:12.5px;color:var(--res);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.net-val{grid-column:3;grid-row:1 / 3;font:700 17px/1.2 var(--mono);text-align:right;font-variant-numeric:tabular-nums;color:var(--strong)}
-.net-val.pos{color:#78cc78}
-.net-val.neg{color:#f17a77}
-.net-flow{grid-column:2;grid-row:2;overflow:hidden;text-overflow:ellipsis;font-size:11px;color:var(--text-dim);font-variant-numeric:tabular-nums;white-space:nowrap}
+/* government and the rest of what the sheet's top-right corner held */
+.gov-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding-bottom:10px;margin-bottom:10px;
+  border-bottom:1px solid var(--border-soft);font-size:12px;color:var(--text-dim)}
+.gov-bar label{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;cursor:pointer}
+.gov-bar input[type=number]{width:5.5em;background:var(--input-bg);color:var(--input-ink);border:1px solid var(--border-soft);
+  border-radius:3px;padding:1px 4px;font:12px var(--mono)}
+.gov-bar :is(input,select):focus{outline:2px solid var(--accent);outline-offset:-1px}
+
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:10px}
+@media (max-width:520px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stat{padding:6px 10px;border-radius:4px;cursor:default}
+.stat-k{display:block;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
+.stat-v{display:block;font:700 18px/1.25 var(--mono);color:var(--strong);font-variant-numeric:tabular-nums}
+
+/* the resources: one line each, the game's 16px icons at their own size */
+.nets{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:1px 10px;padding:6px 8px}
+.net{display:flex;align-items:center;gap:7px;padding:3px 6px;border-radius:3px;min-width:0;cursor:default}
+.net img{width:16px;height:16px;flex:0 0 16px;image-rendering:pixelated}
+.net-name{font-weight:600;font-size:12px;color:var(--res);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.net-val{margin-left:auto;padding-left:6px;font:600 12.5px var(--mono);font-variant-numeric:tabular-nums;color:var(--strong)}
+:is(.net-val,.stat-v).pos{color:var(--pos)}
+:is(.net-val,.stat-v).neg{color:var(--neg)}
 .net.idle{opacity:.4}
+:is(.net,.stat):is(:hover,:focus-visible,.tip-on){background:color-mix(in srgb,var(--strong) 9%,transparent);outline:none}
+
+/* hover card: where a number comes from */
+#tip{position:fixed;z-index:20;width:max-content;max-width:min(340px,calc(100vw - 16px));padding:8px 10px;border-radius:4px;
+  background:var(--raised);color:var(--text);border:1px solid var(--border);box-shadow:0 6px 18px rgba(0,0,0,.35);
+  font-size:12px;pointer-events:none}
+.tip-head{display:flex;align-items:center;gap:7px;margin-bottom:6px;padding-bottom:5px;border-bottom:1px solid var(--border-soft)}
+.tip-head img{width:16px;height:16px;image-rendering:pixelated}
+.tip-name{font-weight:700;color:var(--res,var(--strong))}
+.tip-total{margin-left:auto;padding-left:14px;font:600 12px var(--mono);color:var(--strong)}
+.tip-row{display:grid;grid-template-columns:1fr auto auto;column-gap:12px;align-items:baseline;padding:1px 0}
+.tip-row .n{color:var(--text-dim)}
+.tip-row .v{font:12px var(--mono);text-align:right;color:var(--strong);font-variant-numeric:tabular-nums}
+.tip-row .p{font:11px var(--mono);text-align:right;color:var(--text-dim);min-width:4ch}
+.tip-row .sub{grid-column:1 / -1;font-size:11px;color:var(--text-dim)}
+.tip-bar{grid-column:1 / -1;height:2px;margin:1px 0 3px;border-radius:1px;background:var(--res,var(--accent));opacity:.7}
+.tip-sec{margin-top:6px;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
+.tip-none{color:var(--text-dim)}
 </style>
 <script>
 /* the theme goes on before anything paints. Same list and key as Warcalc */
@@ -475,19 +509,25 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
       </div>
       <textarea id="nHas" spellcheck="false" placeholder="Paste the spreadsheet column from the Buildings tab"></textarea>
       <p id="nHasNote" class="has-note"></p>
-      <div id="nBuildings" class="blist well night"></div>
+      <div id="nBuildings" class="blist well"></div>
     </section>
     <section class="panel">
-      <div class="panel-head">
-        <h2>Net per tick</h2>
-        <span class="spacer"></span>
-        <span class="has-note" style="margin:0">disabled buildings left out</span>
+      <div class="gov-bar">
+        <label>Government <select id="nGov"></select></label>
+        <label>Economy <select id="nEcon"></select></label>
+        <label title="How many nations are in your empire: every one past the first costs sat">Nations
+          <input id="nEmpire" type="number" min="1" step="1"></label>
+        <label title="Units in your army: every unit past 20 costs half a sat">Army
+          <input id="nArmy" type="number" min="0" step="1"></label>
+        <label title="Hold max sat for its GDP multiplier, keeping 30 sat spare to stay there"><input id="nMaxSat" type="checkbox"> Max sat</label>
       </div>
-      <div id="nNets" class="nets well night"></div>
+      <div id="nStats" class="stats"></div>
+      <div id="nNets" class="nets well"></div>
     </section>
   </div>
 </div>
 <span id="toast" class="badge badge-success" hidden>Copied</span>
+<div id="tip" role="tooltip" hidden></div>
 
 <script>
 // the colour of what each building makes (or, for the shops, what it sells)
@@ -706,9 +746,41 @@ const TICK = {
   "Sun Worship Center": { coffee: -2, energy: -6 },
   "Lunar Environmental Facility": { energy: -5 },
   "Solar Environmental Facility": { energy: -5 },
-  "Forbidden Research Facility": { forbidden: 1 },
-  "Alicornification Facility": { serum: 1, apples: -50, energy: -100 }
+  "Forbidden Research Facility": { forbidden: 1 }
 };
+
+// sat a tick from each working building: [per building, how many before the environment
+// starts to object, divisor]. Past the soft cap it costs roundup((n − cap)² / divisor) more,
+// cut by 10% for every environmental facility
+const SAT = {
+  "Basic Copper Mine": [-2, 10, 10], "Mechanized Copper Mine": [-1, 20, 5], "Gem Mine": [-1, 7, 5], "Tungsten Mine": [-1, 7, 5],
+  "Basic Apple Orchard": [-2, 10, 10], "Mechanized Apple Farm": [-1, 20, 5], "Coffee Farm": [-1, 15, 10],
+  "Basic Oil Well": [-2, 10, 10], "Mechanized Oil Well": [-1, 20, 5], "Oil Fracker": [-2, 5, 5],
+  "Oil Combustion Facility": [-2, 5, 5], "Plastics Factory": [-1, 7, 5], "Przewalskian Plastics Factory": [-1, 1, 5],
+  "Bakery": [1], "Bar": [10], "Coffee Shop": [10], "Statue": [1], "Toy and Candy Shop": [30], "Video Arcade": [10], "Mall": [50],
+  "Basic Factory": [-1, 20, 10], "Advanced Factory": [-1, 5, 5], "DNA Extraction Facility": [0, 1, 1], "Barracks": [0, 1, 1]
+};
+
+// what each government does: flat sat, superpower relations, GDP multiplier [normally, at max sat],
+// the divisor on the empire penalty, and what it eats every tick. The two ascension stages
+// carry their own upkeep here rather than on the Alicornification Facility
+const GOVS = {
+  "Loose Despotism":  { gdp: [1, 2] },
+  "Democracy":        { sat: 15, se: -3, nlr: 2, gdp: [1, 2.5], upkeep: { gasoline: 20, vparts: 2 } },
+  "Repression":       { se: 2, nlr: -3, gdp: [2, 2], upkeep: { gasoline: 10 } },
+  "Decentralization": { sat: 30, se: -3, nlr: 4, gdp: [1, 3], upkeep: { gasoline: 50, vparts: 5 } },
+  "Authoritarianism": { se: 4, nlr: -3, gdp: [2.5, 2.5], upkeep: { gasoline: 10, mparts: 3 } },
+  "Oppression":       { se: 6, nlr: -3, gdp: [3, 3], empireDiv: 3, upkeep: { gasoline: 10, mparts: 5 } },
+  "Independence":     { sat: 50, se: -3, nlr: 6, gdp: [1, 3.5], upkeep: { gasoline: 40, vparts: 4 } },
+  "Alicorn Elite":    { gdp: [6, 6], empireDiv: 3, upkeep: { energy: 100, apples: 50 } },
+  "Transponyism":     { gdp: [8, 8], empireDiv: 3, upkeep: { energy: 300, apples: 150 } }
+};
+const ECONOMIES = {
+  "Poorly Defined":   {},
+  "Free Market":      { se: -3, nlr: 1, upkeep: { coffee: 6 } },
+  "State Controlled": { se: 1, nlr: -3, upkeep: { cider: 6 } }
+};
+const DEFAULT_GOV = "Loose Despotism", DEFAULT_ECON = "Poorly Defined";
 
 const ENV_COLOURS = ["#d6b47a", "#b98a5b", "#c4574c", "#d98a3d", "#e0c44c", "#7fa65a",
                      "#4f9c97", "#5b86c4", "#8a6bbf", "#d27fb0", "#8d9096", "#3c3f45"];
@@ -755,19 +827,68 @@ function parseHas(text) {
 
 const sumMap = m => [...m.values()].reduce((a, b) => a + b, 0);
 
-// every resource's made, used, and the buildings behind each, from the working buildings only
-function tickNets(counts, off) {
-  const made = {}, used = {}, from = {};
+// Everything one tick does for a nation, from its working buildings and its government:
+// each resource's makers and users, and where its sat, GDP and relations come from
+function nationModel(n, counts, off) {
+  const gov = GOVS[n.gov] || GOVS[DEFAULT_GOV], econ = ECONOMIES[n.econ] || ECONOMIES[DEFAULT_ECON];
+  const govName = GOVS[n.gov] ? n.gov : DEFAULT_GOV, econName = ECONOMIES[n.econ] ? n.econ : DEFAULT_ECON;
+  const has = name => counts.get(name) || 0;
+  const off1 = name => Math.min(off.get(name) || 0, has(name));
+  const on = name => has(name) - off1(name);
+
+  const res = {};
+  const R = k => res[k] || (res[k] = { made: 0, used: 0, makers: [], users: [] });
   for (const [name, per] of Object.entries(TICK)) {
-    const on = Math.max(0, (counts.get(name) || 0) - (off.get(name) || 0));
-    if (!on) continue;
-    for (const [r, a] of Object.entries(per)) {
-      const v = a * on;
-      if (v > 0) made[r] = (made[r] || 0) + v; else used[r] = (used[r] || 0) - v;
-      (from[r] = from[r] || []).push([name, on, v]);
+    const c = on(name); if (!c) continue;
+    for (const [k, a] of Object.entries(per)) {
+      const v = a * c, r = R(k);
+      if (v > 0) { r.made += v; r.makers.push([name, c, v]); } else { r.used -= v; r.users.push([name, c, v]); }
     }
   }
-  return { made, used, from };
+  for (const [src, label] of [[gov, govName], [econ, econName]])
+    for (const [k, a] of Object.entries(src.upkeep || {})) { const r = R(k); r.used += a; r.users.push([label, 0, -a]); }
+
+  // sat: [label, count, value, of which environmental]
+  const sat = [];
+  const envCut = 0.9 ** (has("Lunar Environmental Facility") + has("Solar Environmental Facility"));
+  let disabled = 0;
+  for (const e of LAYOUT) {
+    if (!e) continue;
+    disabled += off1(e[0]);
+    const s = SAT[e[0]], c = on(e[0]);
+    if (!s || !c) continue;
+    const [per, cap, div] = s;
+    const env = cap != null && c > cap ? Math.round(Math.ceil((c - cap) ** 2 / div) * envCut) : 0;
+    if (per * c - env) sat.push([e[0], c, per * c - env, env]);
+  }
+  if (disabled) sat.push(["Disabled buildings", disabled, -disabled, 0]);
+  if (gov.sat) sat.push([govName, 0, gov.sat, 0]);
+  const army = Math.max(0, Math.floor(+n.army || 0)), empire = Math.max(1, Math.floor(+n.empire || 1));
+  if (army > 20) sat.push(["Army past 20 units", army - 20, -Math.ceil((army - 20) / 2), 0]);
+  if (empire > 1) sat.push([`Empire of ${empire} nations`, 0, -Math.ceil((empire - 1) ** 2 * 20 / (gov.empireDiv || 1)), 0]);
+  if (n.maxSat) sat.push(["Kept spare to hold max sat", 0, -30, 0]);
+
+  // GDP, in thousands of bits
+  const gdpParts = [["Base", 0, 50], ["Mall", on("Mall"), on("Mall") * 250],
+                    ["Basic Factory", on("Basic Factory"), on("Basic Factory") * 10],
+                    ["Advanced Factory", on("Advanced Factory"), on("Advanced Factory") * 20]].filter(p => p[2]);
+  const mult = gov.gdp[n.maxSat ? 1 : 0];
+
+  // relations with the Solar Empire and the New Lunar Republic
+  const rep = (worship, side) => [
+    ["Drug Farm", on("Drug Farm"), -on("Drug Farm")],
+    ["Forbidden Research Facility", on("Forbidden Research Facility"), -15 * on("Forbidden Research Facility")],
+    [worship, on(worship), on(worship)],
+    [govName, 0, gov[side] || 0],
+    [econName, 0, econ[side] || 0]
+  ].filter(p => p[2]);
+
+  const total = parts => parts.reduce((a, p) => a + p[2], 0);
+  const se = rep("Sun Worship Center", "se"), nlr = rep("Moon Worship Center", "nlr");
+  return {
+    res, sat, satTotal: total(sat), gdpParts, gdpBase: total(gdpParts), mult, gdp: total(gdpParts) * mult,
+    se, seTotal: total(se), nlr, nlrTotal: total(nlr), govName, econName
+  };
 }
 
 const fmt = n => n.toLocaleString();
@@ -836,21 +957,129 @@ function renderNation() {
     const o = off.get(e[0]);
     rows += `<div class="bl-row"><span class="bl-n">${fmt(v)}</span>`
           + `<span class="bl-name"${e[1] ? ` style="--res:${RES[e[1]]}"` : ""}>${esc(e[0])}</span>`
-          + (o ? `<span class="bl-off">${fmt(o)} off</span>` : "") + "</div>";
+          + (o ? `<span class="bl-off">${fmt(o)} off <span class="bl-on">(${fmt(Math.max(0, v - o))})</span></span>` : "") + "</div>";
   }
   $("nBuildings").innerHTML = rows;
 
-  const { made, used, from } = tickNets(counts, off);
+  const m = nationModel(current, counts, off);
+  tips.clear();
+  const cls = v => v > 0 ? " pos" : v < 0 ? " neg" : "";
+  const stat = (key, label, value, text) =>
+    `<div class="stat well" tabindex="0" data-tip="${key}"><span class="stat-k">${label}</span>`
+    + `<span class="stat-v${key === "gdp" ? "" : cls(value)}">${text}</span></div>`;
+  $("nStats").innerHTML = stat("sat", "Sat", m.satTotal, signed(m.satTotal))
+    + stat("gdp", "GDP", m.gdp, fmt(m.gdp) + "k")
+    + stat("se", "Solar Empire", m.seTotal, signed(m.seTotal))
+    + stat("nlr", "New Lunar Republic", m.nlrTotal, signed(m.nlrTotal));
+  tips.set("sat", tipSat(m));
+  tips.set("gdp", tipGdp(m));
+  tips.set("se", tipParts("Solar Empire relations", m.se, m.seTotal));
+  tips.set("nlr", tipParts("New Lunar Republic relations", m.nlr, m.nlrTotal));
+
   $("nNets").innerHTML = PLAN_RES.map(([k, label, col, img]) => {
-    const m = made[k] || 0, u = used[k] || 0, net = m - u;
-    const tip = (from[k] || []).map(([b, n, v]) => `${b} ×${fmt(n)}: ${signed(v)}`).join("\n");
-    return `<div class="net${m || u ? "" : " idle"}" style="--res:${col}"${tip ? ` title="${esc(tip)}"` : ""}>`
+    const r = m.res[k] || { made: 0, used: 0, makers: [] }, net = r.made - r.used;
+    tips.set(k, tipMade(label, col, img, r));
+    return `<div class="net${r.made || r.used ? "" : " idle"}" style="--res:${col}" tabindex="0" data-tip="${k}">`
          + `<img src="${IMG_BASE}${encodeURIComponent(img)}.png" alt="" loading="lazy">`
          + `<span class="net-name">${label}</span>`
-         + `<span class="net-val${net > 0 ? " pos" : net < 0 ? " neg" : ""}">${signed(net)}</span>`
-         + `<span class="net-flow">${[m && `+${fmt(m)} made`, u && `−${fmt(u)} used`].filter(Boolean).join(" · ") || "—"}</span></div>`;
+         + `<span class="net-val${cls(net)}">${signed(net)}</span></div>`;
   }).join("");
+  hideTip();
 }
+
+/* ---- hover cards ---- */
+const tips = new Map();
+const tipRow = (name, count, value, extra) =>
+  `<div class="tip-row"><span>${esc(name)}${count ? ` <span class="n">×${fmt(count)}</span>` : ""}</span>`
+  + `<span class="v">${value}</span><span class="p">${extra || ""}</span></div>`;
+
+// what makes a resource, before anything eats it, and each maker's share
+function tipMade(label, col, img, r) {
+  let h = `<div class="tip-head" style="--res:${col}"><img src="${IMG_BASE}${encodeURIComponent(img)}.png" alt="">`
+        + `<span class="tip-name">${label}</span><span class="tip-total">${fmt(r.made)} made a tick</span></div>`;
+  if (!r.made) return h + `<div class="tip-none">Nothing here makes ${label.toLowerCase()}.</div>`;
+  for (const [name, c, v] of [...r.makers].sort((a, b) => b[2] - a[2])) {
+    const pct = v / r.made * 100;
+    h += tipRow(name, c, "+" + fmt(v), pct < 1 ? "<1%" : Math.round(pct) + "%")
+       + `<div class="tip-bar" style="--res:${col};width:${pct}%"></div>`;
+  }
+  return h;
+}
+function tipSat(m) {
+  let h = `<div class="tip-head"><span class="tip-name">Sat</span><span class="tip-total">${signed(m.satTotal)} a tick</span></div>`;
+  if (!m.sat.length) return h + '<div class="tip-none">Nothing here moves sat.</div>';
+  const gains = m.sat.filter(p => p[2] > 0).sort((a, b) => b[2] - a[2]);
+  const losses = m.sat.filter(p => p[2] < 0).sort((a, b) => a[2] - b[2]);
+  const sum = ps => ps.reduce((a, p) => a + p[2], 0);
+  const list = ps => ps.map(([name, c, v, env]) => tipRow(name, c, signed(v))
+    + (env ? `<div class="tip-row"><span class="sub">${fmt(env)} of that from the environment</span></div>` : "")).join("");
+  if (gains.length) h += `<div class="tip-sec">Gains ${signed(sum(gains))}</div>` + list(gains);
+  if (losses.length) h += `<div class="tip-sec">Losses ${signed(sum(losses))}</div>` + list(losses);
+  return h;
+}
+function tipGdp(m) {
+  return `<div class="tip-head"><span class="tip-name">GDP</span><span class="tip-total">${fmt(m.gdp)}k a tick</span></div>`
+    + m.gdpParts.map(([name, c, v]) => tipRow(name, c, fmt(v) + "k")).join("")
+    + `<div class="tip-sec">× ${m.mult} for ${esc(m.govName)}</div>`;
+}
+function tipParts(title, parts, t) {
+  return `<div class="tip-head"><span class="tip-name">${title}</span><span class="tip-total">${signed(t)} a tick</span></div>`
+    + (parts.length ? parts.map(([name, c, v]) => tipRow(name, c, signed(v))).join("")
+                    : '<div class="tip-none">Nothing here moves it.</div>');
+}
+
+const tipEl = $("tip");
+let tipFor = null;
+function showTip(el) {
+  const html = tips.get(el.dataset.tip);
+  if (!html) return;
+  if (tipFor) tipFor.classList.remove("tip-on");
+  tipFor = el; el.classList.add("tip-on");
+  tipEl.innerHTML = html; tipEl.hidden = false;
+  // under the thing it explains, or above it when there's no room, and never off the side
+  const r = el.getBoundingClientRect(), t = tipEl.getBoundingClientRect();
+  const x = Math.min(Math.max(8, r.left), innerWidth - t.width - 8);
+  const y = r.bottom + 6 + t.height <= innerHeight - 8 ? r.bottom + 6 : Math.max(8, r.top - 6 - t.height);
+  tipEl.style.left = x + "px"; tipEl.style.top = y + "px";
+}
+function hideTip() {
+  if (tipFor) tipFor.classList.remove("tip-on");
+  tipFor = null; tipEl.hidden = true;
+}
+const nationView = $("viewNation");
+nationView.addEventListener("mouseover", ev => { const el = ev.target.closest("[data-tip]"); if (el && el !== tipFor) showTip(el); });
+nationView.addEventListener("mouseout", ev => {
+  const el = ev.target.closest("[data-tip]");
+  if (el && !el.contains(ev.relatedTarget)) hideTip();
+});
+nationView.addEventListener("focusin", ev => { const el = ev.target.closest("[data-tip]"); if (el) showTip(el); });
+nationView.addEventListener("focusout", hideTip);
+// a tap on a phone opens it, and a tap anywhere else closes it
+document.addEventListener("click", ev => {
+  const el = ev.target.closest("#viewNation [data-tip]");
+  if (el) showTip(el); else hideTip();
+});
+addEventListener("scroll", hideTip, { passive: true });
+
+/* ---- government ---- */
+const nGov = $("nGov"), nEcon = $("nEcon"), nEmpire = $("nEmpire"), nArmy = $("nArmy"), nMaxSat = $("nMaxSat");
+nGov.innerHTML = Object.keys(GOVS).map(g => `<option>${g}</option>`).join("");
+nEcon.innerHTML = Object.keys(ECONOMIES).map(g => `<option>${g}</option>`).join("");
+function fillGov() {
+  nGov.value = GOVS[current.gov] ? current.gov : DEFAULT_GOV;
+  nEcon.value = ECONOMIES[current.econ] ? current.econ : DEFAULT_ECON;
+  nEmpire.value = current.empire || 1;
+  nArmy.value = current.army || 0;
+  nMaxSat.checked = !!current.maxSat;
+}
+const govInput = () => {
+  current.gov = nGov.value; current.econ = nEcon.value;
+  current.empire = Math.max(1, Math.floor(+nEmpire.value || 1));
+  current.army = Math.max(0, Math.floor(+nArmy.value || 0));
+  current.maxSat = nMaxSat.checked;
+  saveNations(); renderNation();
+};
+for (const el of [nGov, nEcon, nEmpire, nArmy, nMaxSat]) el.addEventListener(el.type === "number" ? "input" : "change", govInput);
 
 nName.addEventListener("input", () => { current.name = nName.value; saveNations(); document.title = nationName(current) + " · CLOP Build Planner"; });
 nHas.addEventListener("input", () => { current.has = nHas.value; saveNations(); renderNation(); });
@@ -877,13 +1106,13 @@ function route() {
     if (next !== current || views.nation.hidden) {
       current = next;
       nName.value = current.name; nHas.value = current.has || "";
-      renderSwatches(); renderNation(); show("nation");
+      fillGov(); renderSwatches(); renderNation(); show("nation");
       document.title = nationName(current) + " · CLOP Build Planner";
       window.scrollTo(0, 0);
     }
     return;
   }
-  current = null;
+  current = null; hideTip();
   document.title = "CLOP Build Planner";
   if (m) { renderGrid(); show("planner"); } else show("buildings");
 }
