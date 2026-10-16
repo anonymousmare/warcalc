@@ -618,6 +618,7 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
 .mx-tbl tr:last-child td{border-bottom:none}
 .mx-tbl td + td{text-align:right;font:12.5px var(--mono);color:var(--strong);font-variant-numeric:tabular-nums}
 .mx-chart{position:relative;height:280px}
+.mx-chart.tall{height:min(560px,70vh)}
 .badge-danger{background-image:linear-gradient(to bottom,var(--btn-danger-a),var(--btn-danger-b));color:var(--btn-ink);text-shadow:var(--btn-shadow)}
 </style>
 <script>
@@ -943,7 +944,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
   </div>
   <section class="panel">
     <div class="panel-head"><h2>Sat per oil, next well</h2></div>
-    <div class="mx-chart"><canvas id="c5"></canvas></div>
+    <div class="mx-chart tall"><canvas id="c5"></canvas></div>
   </section>
 </div>
 <span id="toast" class="badge badge-success" hidden>Copied</span>
