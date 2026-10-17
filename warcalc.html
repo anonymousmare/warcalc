@@ -1767,6 +1767,10 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
     <label class="hk-toggle"><input type="checkbox" data-pref="noUnspent"> Hide unspent hits</label>
     <label class="hk-toggle"><input type="checkbox" data-pref="noPinArt"> Hide pictures in the damage compare</label>
     <label class="hk-toggle"><input type="checkbox" data-pref="minDmg"> Minimal damage breakdown view</label>
+    <label class="hk-toggle" for="planTicks"
+      title="With no defenders to fight, a plain click on the attackers' pretty plan bills the upkeep for this many warticks (12/h each); shift-click keeps it to one">
+      <input type="number" id="planTicks" min="1" max="99" value="1" style="width:52px;padding:1px 4px;font-size:12px">
+      Pretty plan attack how many ticks?</label>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:10px;
               border-top:1px solid var(--border-soft)">
@@ -2781,7 +2785,7 @@ function renderCosts(side){
   el.innerHTML = `
     <details class="cost-drop"${openMain ? " open" : ""}>
       <summary>Costs<button type="button" class="bp-btn plan-copy" data-plan-copy="${side}"
-        title="Copy the pretty plan (shift-click leaves out the upkeep over the whole fight)">${iconSvg("copy")}</button></summary>
+        title="Copy the pretty plan (shift-click leaves out the upkeep over the whole fight, and keeps an unopposed attack to 12/h)">${iconSvg("copy")}</button></summary>
       <div class="cost-body">
         ${tabBar}
         <div${tip(hireTipKey)}>
@@ -3017,7 +3021,9 @@ document.addEventListener("click", async e=>{
    the army code, the roster, sat and bits, the builder gear line, and the
    gear and upkeep as ANSI colour blocks. A plain click also fights the side
    against whatever the other list holds, tick after tick, and adds the
-   upkeep for the whole fight (and a warning if the side is wiped out). */
+   upkeep for the whole fight (and a warning if the side is wiped out); the
+   attackers with no defenders to fight bill the upkeep for as many warticks
+   as the setting says instead. */
 const ANSI = "\u001b";
 const PLAN_RGB = {
   copper:"255;106;0", tungsten:"128;128;128", plastics:"0;255;33", machinery:"0;148;255",
@@ -3100,8 +3106,12 @@ function prettyPlan(side, noFight){
   const total = fight && fight.ticks > 1 ? fight.up : null;
   if (planKeys(c.gearRes).length)
     out.push(fence("ansi", planResLines(c.gearRes, planWidth(c.gearRes))));
-  const w = planWidth(c.upkeep, total || {});        // both upkeep lists share one column
-  out.push(fence("ansi", planHead("Upkeep 12/h") + "\n" + planResLines(c.upkeep, w) +
+  /* attackers with no one to fight: the upkeep over the set number of warticks */
+  const ticks = !noFight && side === "attacker" && !readSide("defender").some(u => u.size > 0)
+    ? Math.max(1, Math.floor(PREFS.planTicks) || 1) : 1;
+  const upkeep = ticks > 1 ? addRes({}, c.upkeep, ticks) : c.upkeep;
+  const w = planWidth(upkeep, total || {});          // both upkeep lists share one column
+  out.push(fence("ansi", planHead(`Upkeep ${12 * ticks}/h`) + "\n" + planResLines(upkeep, w) +
     (total ? "\n" + planHead("Upkeep Total") + "\n" + planResLines(total, w) : "")));
   if (fight && fight.lost)
     out.push(fence("ansi", `${ANSI}[7;41m${ANSI}[48;2;255;0;0mBATTLE LOSS?${ANSI}[0m${ANSI}[7;41m${ANSI}[0m`));
@@ -4374,7 +4384,7 @@ let PREFS = {standOpen:false, deathsOpen:false, casOpen:false, logFull:true,
              iconsWA:false, plainHover:false, cardSlash:false, noUnspent:false,
              noPinArt:false, minDmg:false, stripNames:false, hide1x:true, hideAct:false,
              hideSkim:true, hideRaise:false, hidePar:false,
-             fullHits:false, darkLog:false};
+             fullHits:false, darkLog:false, planTicks:1};
 
 /* an exchange log with no choice made opens full when the setting says so */
 const logIsFull = id => LOG_FULL.has(id) ? LOG_FULL.get(id)
@@ -9306,7 +9316,7 @@ function setHorsewife(name){
 }
 {
   const o = store.get(LS_PREFS, {}) || {};
-  Object.keys(PREFS).forEach(k => { if (typeof o[k] === "boolean") PREFS[k] = o[k]; });
+  Object.keys(PREFS).forEach(k => { if (typeof o[k] === typeof PREFS[k]) PREFS[k] = o[k]; });
   document.body.classList.toggle("icons-wa", PREFS.iconsWA);
   document.body.classList.toggle("card-slash", PREFS.cardSlash);
   document.body.classList.toggle("no-unspent", PREFS.noUnspent);
@@ -9329,6 +9339,14 @@ function setHorsewife(name){
       if (k === "noPinArt") document.body.classList.toggle("no-pin-art", box.checked);
       if (k === "darkLog") document.body.classList.toggle("dark-log", box.checked);
     });
+  });
+  /* the pretty plan's warticks when the attackers have no one to fight */
+  const ticks = document.getElementById("planTicks");
+  ticks.value = PREFS.planTicks;
+  ticks.addEventListener("change", ()=>{
+    PREFS.planTicks = Math.max(1, Math.floor(+ticks.value) || 1);
+    ticks.value = PREFS.planTicks;
+    store.set(LS_PREFS, PREFS);
   });
 }
 
