@@ -1790,6 +1790,8 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
       <input type="checkbox" id="hkEnable" checked> Jump hotkeys (Q W E R)</label>
     <label class="hk-toggle" for="bcNoGroup">
       <input type="checkbox" id="bcNoGroup"> Don't group Builder Copy</label>
+    <label class="hk-toggle" title="Builder Copy names an unnamed unit after two random pony words and two digits; tick to fall back to cavalry_a, cavalry_b …">
+      <input type="checkbox" data-pref="noAutoName"> Disable awesome auto-naming</label>
     <label class="hk-toggle"><input type="checkbox" data-pref="stripNames"> Strip names from export/import</label>
   </div>
   <div class="set-grid" id="prefGrid">
@@ -2978,18 +2980,102 @@ function rosterText(rows){
    taken as already delivered, so nothing is built */
 const bq = t => /\s/.test(t) ? `"${t}"` : t;
 const bSuffix = i => { let s = ""; i++; while (i > 0){ i--; s = String.fromCharCode(97 + i % 26) + s; i = Math.floor(i / 26); } return s; };
+/* the awesome auto-naming: a unit with no name of its own is called after
+   two words off this list and two digits, e.g. "Cloudy Pumpkin 42". Each
+   unnamed slot keeps its name for the session, so a redraw doesn't reroll it */
+const PONY_WORDS = `
+  Abracadabra Aloha Amazing Apple Amber Alphabittle Alphabet April August Art Artsy Aurora Autumn
+  Azaela Anvil Ace Adante Affero Aloe Amaranthine Amethyst Apricot Aquamarine Argyle Aunt Auntie
+  Avalon Amelia Angel Aqua Arpeggia Arpeggio Ample Back Black Balloon Barbara Baritone Beach Bea
+  Bee Beauty Bell Bella Belle Berry Betty Bit Biddy Bridle Big Blade Blue Bottlecap Bottle Brae
+  Bulk Buried Bun Blot Boop Bask Blow Brow Basic Blaze Blossom Buck Blueberry Blackberry Bluebird
+  Blip Bow Buddy Butter Bags Ballad Banana Beyond Brass Bright Burning Busk Biscuit Beetroot
+  Burlap Burnt Bush Bushel Business Butternut Caboose Candy Caramel Carlotta Cascada Cascade Cathy
+  Cattail Celena Charcoal Charged Chargrill Charity Charlie Cheerilee Cheese Chelsea Cherry Chilly
+  Chilli Chimney Chock Chocolate Choco Cinnamon Clarity Classy Clean Cleo Cloud Cloudy Cobalt Coco
+  Code Color Comb Comet Coral Cormano Cornflower Corn Cosmic Count Cracked Crafty Cactus Creamcup
+  Creme Crescendo Crest Crimson Crusoe Cultivar Cerulean Chip Clear Compass Cream Carbon Carrot
+  Cayenne Charm Cinnabelle Cipher Citrine Citrus Clop Clopper Claude Cloverbelle Clover Cold
+  Cookie Coriander Cozy Cranberry Crystal Dahlia Daisy Dance Davenport Dane Deputy Derek Derpy
+  Diamond Diggy Dirt Dirtbound Dish Dishwater Doctor Doc Don Dosey Double Drizzle Dry Duce Dusky
+  Descent Dewdrop Downdraft Dip Dot Dapper Dazzle Dumb Dusty Dandy Dark Dear Discord Distant
+  Dreamy Drum Draped Dainty Disk Doll Day Drab Dither Eiffel Elphaba Emerald End Evening Ever Eff
+  Endless Evergreen Earl Electric Eliza Easy Early Ember Eye Explorer Expresso Epic El Ebony Ears
+  Eclipse Echo Fahal Feather Felix Fiddly Filthy Flash Floral Flounder Flurry Flutter Forest
+  Frazzle Free Frou Full Fun Funnel Fuzzy Frisky Flask Fast Fire Flitter Flower Fluffy Fluff Fond
+  Fret Fretlock Fuschia Fancy Fashion Focus Fat Fiery Fine First Flank Fleur Fly Four Five Foxxy
+  Fresh Frostie Frosted Frost Funky Funk Frappucino Fill Gala Gallop Ginger Gizmo Glad Glitter
+  Globe Golden Gold Goldie Grand Grape Green Grub Geronimo Grizzled Grip Gary Gasket Giza Glamour
+  Gourmand Gum Glyph Glint Great Grey Gusty Gust Gladiolus Hammer Hard Hay Hayseed Haylage Hazel
+  Helia Hermes High Hill Host Hot Hitch Hoity Honey Hoofer Harsh Hocus Helix Hoops Heather Harp
+  Holly Horse Health Hello Halo Heart Hub Hunk Hotshot Hearth Hint Hop Hat Harmony Hasty Hamlet
+  Hope Hustle Hero Hola Heaven Happy Hum Half Hank Haunch Haiku Hemlock Hidden Honest Hobby Hip
+  Hoof Icy Ice Igneous Iron Inky Ink Infinity Isle Isla Ivy Izzy Icecream Imagine Impossible
+  Indigo Impress Illiad Inferno Inspire Incense Ivory Itsy Jack Jasmine Jazz Jelly Jinx Junebug
+  Juniper July Jam Just Jet Juicy Juice Jackpot Jumper Jigsaw Jitter Jump Jubilee Jag Jug Java
+  Jewel Joy Jolly Jule Jade Junk Karat Kazooie Kazoo Kabloom Klein Kerfuffle Kick Kit Kiwi Krest
+  Kipper Keep Kip Keen Kino Kiss Knock Knight Kettle Klunk Kinder Klutz Knot Kind Key Knit
+  Keyboard Kin Kinetic Kernel Kelter Kudos Lacey Lug Lady Lapis Late Lavender Lovely Love Lead
+  Lemon Lavish Light Lilac Lily Lime Little Linked Link Lock Log Long Lotus Lucky Lyra Lyrica
+  Lyric Laurette Lightning Luck Luminous Lipstick Liberty Luna Legacy Lace Level Lass Licorice
+  Lippy Lip Lava Lone Magdalena Mage Magenta Majesty Mane Musky Manely Mango Maple Mask Marble
+  March Mare Maroon Match Maud Mayonnaise Mc Merry Midnight Mint Minty Minuette Mist Misty Mixed
+  Mjolna Moon Morning Meadow Melt Mountain Muffin Medley Milky Mono Mossy Mulberry Neigh Neon
+  Night Note Nut Northern Natural Nile Nook North November Noble Nifty Nugget Net Nest Never New
+  Necklace Nail Nectar Needle Nexus Nerve Network Novel Neat Nudge Notch Nine Oak Oakey Obscure
+  Ocean Octavia Octavio Offbeat Opulence Opal Orange Open Old Orchard Orchid Olive Odyssey Oasis
+  One Odd Over Ode Opera Oodle Onion Orbit Orb Paisley Parsley Patch Pampered Parasol Parcel
+  Parish Party Peach Peachy Pear Pegasus Penny Perfect Perfume Petunia Photo Pony Pebble Pink Poof
+  Pound Prim Prism Pumpkin Ponut Passion Peace Peanut Pixie Pin Polo Poppy Port Potion Precious
+  Press Pretzel Pristine Purple Picture Piles Pine Pitch Play Poker Pokey Posey Powder Power
+  Prance Pretty Pronto Purse Quarter Quibble Quick QT Queen Quake Quiet Quip Quiz Quark Quasar
+  Quill Quartz Quest Quash Quilt Quince Quinoa Queue Quote Quiver Quarry Raggedy Rag Rainbow Rare
+  Raspberry Raven Real Red Reflective Regal Rivet Rock Roger Rose Rosemary Rough Royal Runy Rusty
+  Rain Rainy Ray Record Redwood Rolling Ruby Ruddy Rudder Rusk Roar Ribbon Ripple Race Ranger
+  Rebel Rouge Rogue River Rhythm Renaissance Report Salt Sand Sans Sapphire Sassaflash Scoot
+  Savoir Screw Screwball Sea Serena Serene Shamrock Shimmy Shiny Shoeshine Shoot Shoting
+  Shortbread Shortcake Short Silver Script Spoon Sky Slate Slender Smoke Snap Smooth Snappy Snow
+  Snowpity Snuzzle Soft Soot Sour Spring Sprinke Squeaky Star Steam Steel Stellar Stereo Storm
+  Strawberry Street Sun Sunny Surf Swanky Sweetie Sweets Sweet Swoon Swoop Symphony Score Swirl
+  Spiral Shutter Sightseer Slip Soaring Spear Special Sprinkle Starry Steer Sugar Stub Staple
+  Sunstone Shining Swap Splash Sparkler Sparkle Sherbet Slap Snapshot South Spa Sprig Sprout Stage
+  Tall Thump Tangerine Tarantella Temple Thorn Thunder Thunderlane Tight Toffee Torch Task Torque
+  Tote Tough Train Trapeze Tree Trendy Tropical Trouble Turf Turqoise Twilight Twinkle Twist Two
+  Tiger Trusty Tut Twirly Tulip Tossles Tootsie Tornado Tiny Tea Tappy Tempest Top The Upper
+  Uptown Under Undertone Ultimate Universe Unusual Ulysses Utopia Usher Umbra Unicorn Uniform
+  Ukulele Umbrella Unit Unicycle Ultra Utterly Uproot Urban Ultramarine Vanilla Vegemite Vellum
+  Velvet Vermilion Vidala Viola Violin Valley Vapor Valor Vine Vanity Verse Victory Voyager
+  Volcano Velocity Vogue Vane Value Wacky Warm Wax Whiplash Wink White Wild Wildwood Winter Water
+  Wisp Wither Wave Wind Windy Wonder Wonderful Whinny Whoa Written Wigwam Whirly Woosie Withers
+  Wrangler Xylophone Xtra Xyla Xanthea Xenon Yummy Yum Yes Yay Yellow York Yoghurt Yeast Yearn
+  Young Yore Year Yeehaw Yolk Zig Zag Zippy Zipzee Zen Zesty Zephyr Zip Zoom Zap`.trim().split(/\s+/);
+const AUTO_NAMES = new Map();
+function ponyName(){
+  const pick = () => PONY_WORDS[Math.floor(Math.random() * PONY_WORDS.length)];
+  const a = pick();
+  let b = pick();
+  while (b === a) b = pick();
+  return `${a} ${b} ${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}`;
+}
 function builderText(rows){
   const lines = [], names = [], seen = {}, taken = new Set();
   rows.forEach(u=>{
     const n = Math.max(0, u.size);
     if (!n) return;
-    /* a unit's own name when it has one, else type_a, type_b … — the builder
-       takes 1-50 letters, digits, spaces and underscores, quoted if spaced */
+    /* a unit's own name when it has one, else a pony name (or type_a, type_b …
+       with auto-naming off) — the builder takes 1-50 letters, digits, spaces
+       and underscores, quoted if spaced */
     const own = String(u.nick || "").replace(/[^A-Za-z0-9_ ]+/g, "").replace(/\s+/g, " ").trim().slice(0, 47);
     const base = u.type.toLowerCase();
     let name = own;
+    if (!name && !PREFS.noAutoName){
+      const slot = `${base}#${seen[base] = (seen[base] ?? -1) + 1}`;
+      name = AUTO_NAMES.get(slot);
+      while (!name || taken.has(name.toLowerCase())) name = ponyName();
+      AUTO_NAMES.set(slot, name);
+    }
     /* the builder reads names case-blind, so "Alpha" and "alpha" would clash */
-    if (!name || taken.has(name.toLowerCase())){
+    else if (!name || taken.has(name.toLowerCase())){
       const stem = own || base;
       do name = `${stem}_${bSuffix(seen[stem] = (seen[stem] ?? -1) + 1)}`; while (taken.has(name.toLowerCase()));
     }
@@ -4478,7 +4564,7 @@ let PREFS = {standOpen:false, deathsOpen:false, casOpen:false, logFull:true,
              iconsWA:false, plainHover:false, cardSlash:false, noUnspent:false,
              noPinArt:false, minDmg:false, stripNames:false, hide1x:true, hideAct:false,
              hideSkim:true, hideRaise:false, hidePar:false,
-             fullHits:false, darkLog:false, planTicks:1};
+             fullHits:false, darkLog:false, planTicks:1, noAutoName:false};
 
 /* an exchange log with no choice made opens full when the setting says so */
 const logIsFull = id => LOG_FULL.has(id) ? LOG_FULL.get(id)
@@ -9484,6 +9570,7 @@ function setHorsewife(name){
       if (k === "noUnspent") document.body.classList.toggle("no-unspent", box.checked);
       if (k === "noPinArt") document.body.classList.toggle("no-pin-art", box.checked);
       if (k === "darkLog") document.body.classList.toggle("dark-log", box.checked);
+      if (k === "noAutoName") refreshCosts();
     });
   });
   /* the pretty plan's warticks when the attackers have no one to fight */
