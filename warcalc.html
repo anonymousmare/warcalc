@@ -1762,9 +1762,16 @@ body.snaps-hidden .snap{display:none}
 .as-flip .flip-off{background:linear-gradient(to bottom,var(--btn-info-a),var(--btn-info-b))}
 .as-flip .flip-off::before{background:#fff;box-shadow:0 0 4px rgba(255,255,255,.8)}
 .as-sides{display:grid;grid-template-columns:1fr 1fr;margin-top:9px;
-  font:700 10px/1.3 var(--font);letter-spacing:.1em;text-transform:uppercase;opacity:.7}
-.as-sides span:first-child{color:var(--ia);padding-right:10px}
-.as-sides span:last-child{color:var(--id);padding-left:10px;text-align:right}
+  font:700 10px/1.3 var(--font);letter-spacing:.06em;text-transform:uppercase;opacity:.7}
+/* the tag keeps its place on the first line however long the count grows; a count
+   too long for the line drops under the side's name rather than pushing the tag out */
+.as-sides > span{display:flex;align-items:flex-start;gap:5px;min-width:0}
+.as-sides > span:first-child{color:var(--ia);padding-right:6px}
+.as-sides > span:last-child{color:var(--id);padding-left:6px;justify-content:flex-end}
+.as-sides .who-tag{flex:0 0 auto}
+.as-sides .as-sn{min-width:0;line-height:15px}
+.as-sides > span:last-child .as-sn{text-align:right}
+.as-sides .as-sn > span{white-space:nowrap}
 .as-units{display:grid;grid-template-columns:1fr 1fr;margin-top:3px}
 .as-units > div:first-child{padding-right:10px;color:var(--ia)}
 .as-units > div:last-child{padding-left:10px;color:var(--id)}
@@ -1905,7 +1912,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
       <input type="checkbox" id="hkEnable" checked> Jump hotkeys (Q W E R)</label>
     <label class="hk-toggle" for="bcNoGroup">
       <input type="checkbox" id="bcNoGroup"> Don't group Builder Copy</label>
-    <label class="hk-toggle" title="Builder Copy names an unnamed unit after two random pony words and two digits; tick to fall back to cavalry_a, cavalry_b …">
+    <label class="hk-toggle" title="Builder Copy names an unnamed unit after two random pony words and two digits; tick for three random letters and a digit instead, like qzv4">
       <input type="checkbox" data-pref="noAutoName"> Disable awesome auto-naming</label>
     <label class="hk-toggle"><input type="checkbox" data-pref="stripNames"> Strip names from export/import</label>
   </div>
@@ -3225,26 +3232,31 @@ function ponyName(){
 /* the builder takes a paste of 2,000 characters at most */
 const BUILDER_MAX = 2000;
 const SHORT_NAMES = new Map();      // a name squeezed to letters keeps them from copy to copy
+function plainName(){
+  const letter = () => String.fromCharCode(97 + Math.floor(Math.random() * 26));
+  return letter() + letter() + letter() + Math.floor(Math.random() * 10);
+}
 function builderText(rows, noGroup){
   const units = [], seen = {}, taken = new Set();
   rows.forEach(u=>{
     const n = Math.max(0, u.size);
     if (!n) return;
-    /* a unit's own name when it has one, else a pony name (or type_a, type_b …
-       with auto-naming off) — the builder takes 1-50 letters, digits, spaces
-       and underscores, quoted if spaced */
+    /* a unit's own name when it has one, else a pony name (or three random
+       letters and a digit with auto-naming off) — the builder takes 1-50
+       letters, digits, spaces and underscores, quoted if spaced */
     const own = String(u.nick || "").replace(/[^A-Za-z0-9_ ]+/g, "").replace(/\s+/g, " ").trim().slice(0, 47);
     const base = u.type.toLowerCase();
     let name = own;
-    if (!name && !PREFS.noAutoName){
-      const slot = `${base}#${seen[base] = (seen[base] ?? -1) + 1}`;
+    if (!name){
+      const plain = !!PREFS.noAutoName;
+      const slot = `${plain ? "plain:" : ""}${base}#${seen[base] = (seen[base] ?? -1) + 1}`;
       name = AUTO_NAMES.get(slot);
-      while (!name || taken.has(name.toLowerCase())) name = ponyName();
+      while (!name || taken.has(name.toLowerCase())) name = plain ? plainName() : ponyName();
       AUTO_NAMES.set(slot, name);
     }
     /* the builder reads names case-blind, so "Alpha" and "alpha" would clash */
-    else if (!name || taken.has(name.toLowerCase())){
-      const stem = own || base;
+    else if (taken.has(name.toLowerCase())){
+      const stem = own;
       do name = `${stem}_${bSuffix(seen[stem] = (seen[stem] ?? -1) + 1)}`; while (taken.has(name.toLowerCase()));
     }
     taken.add(name.toLowerCase());
@@ -9734,13 +9746,13 @@ hkBox.addEventListener("change", syncHotkeys);
 const LS_LOG_OPTS = "warcalc.logOpts";
 {
   const o = store.get(LS_LOG_OPTS, {}) || {};
-  /* icons, numbers, the clean log, its training, the swinger's size in front
-   and the damage column start on, everything else off */
+  /* icons, numbers, the clean log, its training, the swinger's size in front,
+   the defenders' vertical align and the damage column start on, everything else off */
   [["logIcons", "icons", "log-icons", true], ["logBoth", "both", "log-both"],
    ["logBothNamed", "bothNamed", "log-both-named"],
    ["logNames", "names", "log-names"], ["logNums", "nums", "log-nums", true],
    ["logClean", "clean", "log-clean", true], ["logALead", "alead", "log-alead", true], ["logTrain", "train", "log-train", true],
-   ["logHits", "hits", "log-hits"], ["logDAlign", "dalign", "log-dalign"],
+   ["logHits", "hits", "log-hits"], ["logDAlign", "dalign", "log-dalign", true],
    ["logDDmg", "ddmg", "log-ddmg", true]].forEach(([id, k, cls, dflt])=>{
     const box = document.getElementById(id);
     box.checked = typeof o[k] === "boolean" ? o[k] : !!dflt;
@@ -11385,7 +11397,7 @@ function asSlip(name, f){
       <div class="slip-name">${esc(name)}</div>
       <div class="slip-meta">${asMeta(f)}</div>
       ${asFlip(name)}
-      <div class="as-sides"><span>${asWho(true)} Attackers · ${asTroops(f.atk.units)}</span><span>Defenders · ${asTroops(f.def.units)} ${asWho(false)}</span></div>
+      <div class="as-sides"><span>${asWho(true)}<span class="as-sn"><span>Attackers ·</span> <span>${asTroops(f.atk.units)}</span></span></span><span><span class="as-sn"><span>Defenders ·</span> <span>${asTroops(f.def.units)}</span></span>${asWho(false)}</span></div>
       <div class="as-units"><div>${f.atk.units.map(asUnitHTML).join("") || `<div class="as-none">nobody</div>`}</div>
         <div>${f.def.units.map(asUnitHTML).join("") || `<div class="as-none">nobody</div>`}</div></div>
       ${f.error ? `<div class="as-err">${esc(f.error)}</div>` : ""}
@@ -11414,7 +11426,7 @@ function asTotal(names, fights){
       <div class="slip-name">Total</div>
       <div class="slip-meta">${names.length} battle${names.length === 1 ? "" : "s"}</div>
       ${asFlip(AS_TOTAL)}
-      <div class="as-sides"><span>${asWho(true)} Attackers</span><span>Defenders ${asWho(false)}</span></div>
+      <div class="as-sides"><span>${asWho(true)}<span class="as-sn">Attackers</span></span><span><span class="as-sn">Defenders</span>${asWho(false)}</span></div>
       <div class="slip-cut double"></div>
       <div class="as-sub">Troops lost, battle by battle</div>
       ${battles}
