@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CurioCalc 2.4 — CLOP</title>
+<title>CurioCalc 2.41 — CLOP</title>
 <style>
 :root{
   --bg:#272b30;
@@ -1861,6 +1861,12 @@ body.snaps-hidden .snap{display:none}
 .as-slip .slip-name{width:fit-content;max-width:100%;box-sizing:border-box;margin:0 auto;
   padding:3px 10px 3px calc(10px + .12em);border-radius:3px;background:#1a1421}
 .as-sub-n{color:var(--note);letter-spacing:.06em}
+/* the Army section folds from its tab, shut until opened */
+summary.as-sub{display:block;cursor:pointer;list-style:none;user-select:none}
+summary.as-sub::-webkit-details-marker{display:none}
+summary.as-sub::before{content:"\25B8";display:inline-block;width:1em;margin-left:-.2em;letter-spacing:0}
+.as-army[open] > summary.as-sub::before{content:"\25BE"}
+.as-army:not([open]) > summary.as-sub{margin-bottom:2px}
 .as-row{display:grid;grid-template-columns:1fr 14px 1fr;align-items:center;padding-top:3px;font-size:12px}
 /* the icon sits between a side's brackets and its figure, once on each side */
 .as-a{display:flex;align-items:center;justify-content:flex-end;gap:5px;color:var(--ia);min-width:0}
@@ -1909,7 +1915,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
 <body>
 
 <div class="tabstrip">
-  <span class="tab-brand">CurioCalc 2.4<button class="gear-btn" id="btnTools"
+  <span class="tab-brand">CurioCalc 2.41<button class="gear-btn" id="btnTools"
     title="Settings, import / export presets" aria-expanded="false"><svg viewBox="0 0 24 24"
     aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path
     d="M10.3 2.5h3.4l.5 2.6a7.6 7.6 0 0 1 2 1.2l2.5-.9 1.7 2.9-2 1.8a7.7 7.7 0 0 1 0 2.3l2 1.8-1.7 2.9-2.5-.9a7.6 7.6 0 0 1-2 1.2l-.5 2.6h-3.4l-.5-2.6a7.6 7.6 0 0 1-2-1.2l-2.5.9-1.7-2.9 2-1.8a7.7 7.7 0 0 1 0-2.3l-2-1.8 1.7-2.9 2.5.9a7.6 7.6 0 0 1 2-1.2z"/><circle
@@ -11690,6 +11696,7 @@ const as = (()=>{
   const o = s && typeof s === "object" ? s : {};
   return {battles: Array.isArray(o.battles) ? o.battles : [], chain: o.chain !== false, travel: o.travel !== false,
           persp: o.persp && typeof o.persp === "object" ? o.persp : {},
+          army: o.army && typeof o.army === "object" ? o.army : {},
           folded: o.folded && typeof o.folded === "object" ? o.folded : {}};
 })();
 const asSave = () => store.set(LS_ASSESS, as);
@@ -11718,7 +11725,8 @@ function asFight(name, b, chain){
   const bonus = b.bonus === "No" ? "No" : "Yes";
   const tally = () => ({troops: 0, bits: 0});
   const lost = {atk: tally(), def: tally()};
-  const addDead = (t, d)=>{ t.troops += d.troops; t.bits += d.hire + d.gear; addRes(t, d.res); };
+  /* the bits a death burns are the Battle tab's: raising, equipment and the crafting fees behind it */
+  const addDead = (t, d)=>{ t.troops += d.troops; t.bits += d.hire + d.gear + d.craftBits; addRes(t, d.res); };
   /* who is on the field this tick, at what is left of them */
   /* those who were there first first, each wave of reinforcements behind the last, as the Battle tab lines them up */
   const field = (all, t) => all.filter(u => u.left > 0 && t > u.reserve).sort((a, b) => a.reserve - b.reserve).map(u => Object.assign({}, u, {
@@ -11744,12 +11752,14 @@ function asFight(name, b, chain){
     if (!dA.troops && !dD.troops && !waiting){ stop = "stall"; break; }
     if (t === CHAIN_MAX + 1) stop = "cap";
   }
-  const side = all=>{
-    const left = survivorValue(all.filter(u => u.left > 0)
-      .map(u => ({origType: u.type, weapon: u.weapon, armor: u.armor, remaining: u.left})));
-    const kept = Object.assign({troops: left.items.reduce((n, it) => n + it.n, 0), bits: left.hire + left.gear}, left.res);
-    return {units: all, kept};
+  /* what so many of each unit are worth: raising, equipment and the crafting fees behind it */
+  const worth = (all, n)=>{
+    const v = survivorValue(all.map(u => ({origType: u.type, weapon: u.weapon, armor: u.armor, remaining: n(u)})));
+    return Object.assign({troops: v.items.reduce((t, it) => t + it.n, 0),
+                          bits: v.hire + v.gear + toRaw(v.res).craftBits}, v.res);
   };
+  /* the army as it was built, reinforcements too, and what is left of it */
+  const side = all => ({units: all, army: worth(all, u => u.size), kept: worth(all, u => u.left)});
   const out = {atk: side(atkAll), def: side(defAll), bonus, error, ticks, stop, chain,
                wiped: {atk: !standing(atkAll), def: !standing(defAll)}};
   out.atk.lost = lost.atk; out.def.lost = lost.def;
@@ -11862,6 +11872,7 @@ function asSlip(name, f){
       ${f.error ? `<div class="as-err">${esc(f.error)}</div>` : ""}
       <div class="slip-cut double"></div>
       ${asUpHTML(asUp(f, "atk"), asUp(f, "def"))}
+      ${asArmyHTML(name, f.atk.army, f.def.army)}
       <div class="as-sub">Losses</div>
       ${asRowsHTML(f.atk.lost, f.def.lost, true)}
       <div class="slip-cut"></div>
@@ -11875,6 +11886,12 @@ function asSlip(name, f){
 const asUpHTML = (a, d) => GS_UPKEEP.some(k => a[k] > 0 || d[k] > 0)
   ? `<div class="as-sub">Upkeep${as.travel ? ` <span class="as-sub-n">+${AS_TRAVEL} travel</span>` : ""}</div>
      ${asRowsHTML(a, d, true, GS_UPKEEP)}<div class="slip-cut"></div>` : "";
+
+/* what each side's army cost to build in the first place; like a loss, less is better.
+   It folds, shut until opened, and stays as it was left */
+const asArmyHTML = (key, a, d) => `<details class="as-army" data-as-army="${esc(key)}"${as.army[key] ? " open" : ""}>
+      <summary class="as-sub">Army</summary>
+      ${asRowsHTML(a, d, true)}</details><div class="slip-cut"></div>`;
 
 /* every picked battle at once on one bigger ticket, with a perspective of its own */
 function asTotal(names, fights){
@@ -11891,6 +11908,7 @@ function asTotal(names, fights){
       ${battles}
       <div class="slip-cut"></div>
       ${asUpHTML(asMerge(fights.map(f => asUp(f, "atk"))), asMerge(fights.map(f => asUp(f, "def"))))}
+      ${asArmyHTML(AS_TOTAL, sum("atk", "army"), sum("def", "army"))}
       <div class="as-sub">Losses</div>
       ${asRowsHTML(sum("atk", "lost"), sum("def", "lost"), true)}
       <div class="slip-cut"></div>
@@ -11937,6 +11955,13 @@ gsEl("viewAssess").addEventListener("click", e=>{
     flip.closest(".as-slip").dataset.persp = p;
   }
 });
+
+gsEl("viewAssess").addEventListener("toggle", e=>{
+  const key = e.target.dataset?.asArmy;
+  if (key == null) return;
+  if (e.target.open) as.army[key] = true; else delete as.army[key];
+  asSave();
+}, true);
 
 gsEl("asTravel").addEventListener("change", ()=>{
   as.travel = gsEl("asTravel").checked;
