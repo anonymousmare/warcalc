@@ -2202,6 +2202,8 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
         <div class="gs-io">
           <button type="button" class="btn btn-xs" id="gsExport">Export</button>
           <button type="button" class="btn btn-xs" id="gsImport">Import</button>
+          <button type="button" class="btn btn-xs btn-danger" id="gsClear"
+            title="Empty the stockpile, the production and the reserves">Clear all</button>
         </div>
       </div>
     </div>
@@ -10464,28 +10466,57 @@ function gsExportText(){
   return sec("Stockpile", "stock", GS_STOCK).concat([""], sec("Production / turn", "prod", GS_PROD), [""], resv).join("\n");
 }
 
-/* a section a paste names replaces that section; a paste with no headings is the stockpile */
+/* a section a paste names replaces that section; a paste with no headings is the stockpile.
+   The game's own tables paste in too, a row to a line with the cells tab-apart:
+   its Weapons and Armor stockpiles fill the reserves (the Qty column), and
+   Alliance Resources fills the production (the Net column, the last on the
+   row; a deficit counts as none). Rows for things not kept here are passed over. */
 function gsImportText(txt){
   const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, "");
-  const byName = k => (bucket === "resv" ? [label(k), k] : [gsName(k), k]).map(norm);
-  let bucket = "stock", keys = GS_STOCK, n = 0;
+  const names = (b, k) => (b === "resv" ? [label(k), k] : [gsName(k), k]).map(norm);
+  const find = (b, ks, name) => ks.find(k => names(b, k).includes(norm(name)));
+  const WEAPONS = GS_GEAR.filter(k => k in WEAPON_COST), ARMOR = GS_GEAR.filter(k => k in ARMOR_COST);
+  let bucket = "stock", keys = GS_STOCK, game = null, n = 0;
   const seen = {};
   const bad = [];
+  const put = (b, k, v)=>{
+    if (!seen[b]){ seen[b] = true; gs[b] = {}; }
+    if (v) gs[b][k] = v; else delete gs[b][k];
+    n++;
+  };
+  /* a game table only replaces its own rows: Weapons leaves the armour alone,
+     and Alliance Resources the bits */
+  const table = (b, ks, pick)=>{
+    bucket = b; keys = ks; game = pick; seen[b] = true;
+    if (pick === "first"){ ks.forEach(k => delete gs.resv[k]); n++; }
+  };
   txt.split(/\r?\n/).forEach(line=>{
     const l = line.trim();
     if (!l) return;
-    if (/^production/i.test(l)){ bucket = "prod"; keys = GS_PROD; return; }
-    if (/^stock/i.test(l)){ bucket = "stock"; keys = GS_STOCK; return; }
+    if (/^weapons$/i.test(l)){ table("resv", WEAPONS, "first"); return; }
+    if (/^armou?r$/i.test(l)){ table("resv", ARMOR, "first"); return; }
+    if (/^alliance resources$/i.test(l)){ table("prod", GS_PROD, "last"); return; }
+    if (/^production/i.test(l)){ bucket = "prod"; keys = GS_PROD; game = null; return; }
+    if (/^stock/i.test(l)){ bucket = "stock"; keys = GS_STOCK; game = null; return; }
     /* only the gear there is some of is written out, so the heading alone clears the rest */
-    if (/^reserve/i.test(l)){ bucket = "resv"; keys = GS_GEAR; seen.resv = true; gs.resv = {}; n++; return; }
+    if (/^reserve/i.test(l)){ bucket = "resv"; keys = GS_GEAR; game = null; seen.resv = true; gs.resv = {}; n++; return; }
+    const cells = l.split(/\t|\s{2,}/).map(c => c.trim()).filter(Boolean);
+    if (cells.length > 1){
+      const nums = cells.slice(1).filter(c => /^-?[\d,]*\.?\d+$/.test(c));
+      if (!nums.length) return;                       // a column header row
+      const v = gsNum(game === "last" ? nums[nums.length - 1] : nums[0]);
+      let k = find(bucket, keys, cells[0]), b = bucket;
+      /* a weapon or armour row pasted with no heading over it is still reserves */
+      if (!k && !game && bucket === "stock"){ k = find("resv", GS_GEAR, cells[0]); b = "resv"; seen.resv = true; }
+      if (k) put(b, k, b === "resv" ? Math.floor(v) : v);
+      else if (!game) bad.push(l);
+      return;
+    }
     const m = l.match(/^(.+?)\s*[:=]\s*([\d,.\s]*)$/);
-    const want = m && norm(m[1]);
-    const k = m && keys.find(k => byName(k).includes(want));
-    if (!k){ bad.push(l); return; }
-    if (!seen[bucket]){ seen[bucket] = true; gs[bucket] = {}; }
+    const k = m && find(bucket, keys, m[1]);
+    if (!k){ if (!game) bad.push(l); return; }
     const v = gsNum(m[2].replace(/\s/g, ""));
-    if (v) gs[bucket][k] = v;
-    n++;
+    put(bucket, k, v);
   });
   return {n, bad};
 }
@@ -10523,7 +10554,8 @@ function gsShowExport(){
 
 function gsShowImport(){
   const w = gsModal("Import stockpile and reserves",
-    `<div class="small muted" style="margin-bottom:6px">Paste an exported stockpile. Sections it names are
+    `<div class="small muted" style="margin-bottom:6px">Paste an exported stockpile, or copy the game's
+       Weapons / Armor stockpile or Alliance Resources table straight off the page. Sections it names are
        replaced; anything else is left alone.</div>
      <textarea class="gs-io-text" id="gsIoText" spellcheck="false" placeholder="Stockpile\nApples: 1,200\n…"></textarea>`,
     `<span class="small muted" id="gsIoMsg"></span><span class="spacer"></span>
@@ -10535,15 +10567,28 @@ function gsShowImport(){
     const r = gsImportText(ta.value);
     if (!r.n){ w.querySelector("#gsIoMsg").textContent = "Nothing in there I could read."; return; }
     gsSave();
-    gsInputs("gsStock", "stock", GS_STOCK);
-    gsInputs("gsProd", "prod", GS_PROD);
-    gsReserves();
-    gsStrip();
-    renderGrand();
+    gsRefill();
     if (r.bad.length) w.querySelector("#gsIoMsg").textContent =
       `Imported ${r.n}; skipped ${r.bad.length} line${r.bad.length === 1 ? "" : "s"}: ${r.bad.slice(0, 3).join(" · ")}`;
     else closeModal();
   });
+}
+
+/* the boxes, filled again from what is saved */
+function gsRefill(){
+  gsInputs("gsStock", "stock", GS_STOCK);
+  gsInputs("gsProd", "prod", GS_PROD);
+  gsReserves();
+  gsStrip();
+  renderGrand();
+}
+
+/* the stockpile, the production and the reserves, all emptied */
+function gsClearAll(){
+  if (!confirm("Clear the whole stockpile, the production and the reserves? This cannot be undone.")) return;
+  gs.stock = {}; gs.prod = {}; gs.resv = {};
+  gsSave();
+  gsRefill();
 }
 
 function renderGrand(){
@@ -10654,6 +10699,7 @@ gsEl("gsColours").addEventListener("click", ()=>{
 });
 gsEl("gsExport").addEventListener("click", gsShowExport);
 gsEl("gsImport").addEventListener("click", gsShowImport);
+gsEl("gsClear").addEventListener("click", gsClearAll);
 
 gsEl("gsWide").addEventListener("change", ()=>{
   gs.wide = gsEl("gsWide").checked;
