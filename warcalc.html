@@ -1704,20 +1704,21 @@ body.snaps-hidden .snap{display:none}
 @media (max-width:700px){.gs-crow{grid-template-columns:1fr;gap:3px}}
 /* the stockpile folds like the reserves; not accounted for, it fades */
 .gs-stockp .gs-top{margin-top:10px;flex-direction:column;gap:12px}
-/* us on the tickets' red, them on their blue */
+/* us on green, them on yellow, clear of the tickets' attacker red and defender blue */
 .gs-prods{display:grid;grid-template-columns:1fr 1fr;width:100%;border-radius:4px;overflow:hidden;
   border:1px solid var(--border-soft)}
 .gs-prods > div{padding:9px 12px 10px}
-.gs-prod-us{background:#3b1d24}
-.gs-prod-them{background:#1a2639}
+.gs-prod-us{background:#1d2e22}
+.gs-prod-them{background:#30291a}
 .gs-prods .gs-h{display:flex;align-items:center;gap:7px;color:#d8d2d6}
 @media (max-width:1100px){.gs-prods{grid-template-columns:1fr}}
 .gs-pimp{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:600;padding:1px 8px}
 /* who is who: on the production columns, and on a ticket's two sides, where they swap with the perspective */
-.who-tag{display:inline-block;padding:1px 6px;border-radius:3px;font:700 10px/1.4 var(--font);letter-spacing:.1em;
-  text-transform:uppercase;color:#fff}
-.who-tag.us{background:var(--btn-danger-b)}
-.who-tag.them{background:var(--btn-info-b)}
+/* the letter-spacing trails the last letter, so the left padding takes as much again to keep the word centred */
+.who-tag{display:inline-flex;align-items:center;justify-content:center;height:15px;padding:0 6px 0 calc(6px + .1em);
+  border-radius:3px;font:700 10px/1 var(--font);letter-spacing:.1em;text-transform:uppercase;color:#fff;vertical-align:middle}
+.who-tag.us{background:#3f9a4c}
+.who-tag.them{background:#b8901c}
 .gs-stockp.off .gs-top{opacity:.45}
 
 /* ---------- assessment ----------
@@ -1772,7 +1773,7 @@ body.snaps-hidden .snap{display:none}
 .as-br b{font-weight:600;color:color-mix(in srgb,var(--ink) 70%,transparent)}
 .as-br.over b{color:var(--atk)}
 .as-diff{text-align:center;line-height:1.2;padding-bottom:3px}
-.as-d{display:inline-block;font:700 11px/1.5 var(--mono);padding:0 6px;border-radius:3px;background:#2b2d31;
+.as-d{display:inline-block;font:700 11px/1.5 var(--mono);padding:0 6px;border-radius:3px;background:#17181a;
   color:color-mix(in srgb,var(--ink) 60%,transparent)}
 .as-d.up{color:var(--good)}
 .as-d.down{color:var(--atk)}
@@ -2299,14 +2300,14 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
       <div class="gs-prod-us">
         <div class="gs-h"><span class="who-tag us">Us</span> Production / turn
           <button type="button" class="btn btn-xs gs-pimp" data-gs-pimp="prod"
-            title="Paste our Alliance Resources table, copied off the game page">Import Us</button></div>
+            title="Paste our Alliance Resources table, copied off the game page">Import</button></div>
         <div class="gs-inputs" id="gsProd"></div>
         <div class="gs-strip-row"><div class="gs-strip" id="gsStrip"></div></div>
       </div>
       <div class="gs-prod-them">
         <div class="gs-h"><span class="who-tag them">Them</span> Production / turn
           <button type="button" class="btn btn-xs gs-pimp" data-gs-pimp="prodThem"
-            title="Paste the other side's Alliance Resources table, copied off the game page">Import Them</button></div>
+            title="Paste the other side's Alliance Resources table, copied off the game page">Import</button></div>
         <div class="gs-inputs" id="gsProdThem"></div>
       </div>
     </div>
@@ -11164,23 +11165,23 @@ const asMerge = list => list.reduce((t, x)=>{ AS_ROWS.forEach(k=>{ t[k] = (t[k] 
 const asNum = (k, n) => k === "bits" ? shortBits(n) : money(n);
 
 /* what a loss comes to, faded, in brackets. Our side's is its share of our
-   stockpile and roughly how many war ticks of our production it took to make;
-   theirs is only the war ticks of their production, their stockpile being
+   stockpile and roughly how many turns of our production it took to make;
+   theirs is only the turns of their production, their stockpile being
    anyone's guess. Nets drift from turn to turn, hence the ~ */
 function asBr(k, n, who){
   if (!gs.stockOn || k === "troops" || !(n > 0)) return "";
   const us = who === "us";
   const have = gsNum(gs.stock[k]);
   const pc = !us ? null : have > 0 ? n / have * 100 : Infinity;
-  const perTick = (us ? gsProdOf(k) : gsProdThemOf(k)) * GS_TICKS;
-  const tw = perTick > 0 ? n / perTick : null;
+  const perTurn = us ? gsProdOf(k) : gsProdThemOf(k);
+  const tw = perTurn > 0 ? n / perTurn : null;
   if (pc == null && tw == null) return "";
   const p = pc == null ? "" : !isFinite(pc) ? "∞" : pc < 1 ? "&lt;1" : Math.round(pc).toLocaleString("en-US");
-  const twTxt = tw == null ? "" : tw < .1 ? "&lt;0.1" : tw < 10 ? String(Math.round(tw * 10) / 10) : Math.round(tw).toLocaleString("en-US");
+  const twTxt = tw == null ? "" : tw < .1 ? "&lt;0.1" : tw < 100 ? String(Math.round(tw * 10) / 10) : Math.round(tw).toLocaleString("en-US");
   const tip = [pc == null ? "" : !isFinite(pc) ? "None stockpiled" : `${p}% of our stockpile`,
-    tw == null ? "" : `about ${twTxt} war ticks of ${us ? "our" : "their"} production`].filter(Boolean).join(" · ");
+    tw == null ? "" : `about ${twTxt} turns of ${us ? "our" : "their"} production`].filter(Boolean).join(" · ");
   return `<span class="as-br${pc > 100 ? " over" : ""}" title="${tip.replace(/&lt;/g, "<")}">(${
-    [pc == null ? "" : `<b>${p}</b>%`, tw == null ? "" : `~<b>${twTxt}</b>TW`].filter(Boolean).join(" ")})</span>`;
+    [pc == null ? "" : `<b>${p}</b>%`, tw == null ? "" : `<b>~${twTxt}</b>TW`].filter(Boolean).join(" ")})</span>`;
 }
 
 /* one resource across the split: attackers left, defenders right, and under
