@@ -1767,8 +1767,13 @@ body.snaps-hidden .snap{display:none}
 .as-flip .flip-off::before{background:#fff;box-shadow:0 0 4px rgba(255,255,255,.8)}
 /* Optimal paints every button black, which left a switch's two faces alike:
    there each face is outlined and glows in its own colour instead */
-[data-theme="optimal"] .flip-face{--fc:var(--good-rgb);background:rgba(var(--fc),.16);color:rgb(var(--fc));
-  box-shadow:inset 0 0 0 1px rgb(var(--fc)),0 0 .45rem rgba(var(--fc),.45)}
+[data-theme="optimal"] .flip-face{--fc:var(--good-rgb);color:rgb(var(--fc));
+  background:linear-gradient(rgba(var(--fc),.16),rgba(var(--fc),.16)),#000;
+  box-shadow:inset 0 0 0 1px rgb(var(--fc)),0 0 .45rem rgba(var(--fc),.45);transition:visibility 0s}
+/* solid faces, and the one turned away put out of sight once the card is
+   past edge-on, so neither it nor its glow shows through the other */
+[data-theme="optimal"] .flip-tog[value="Yes"] .flip-off,
+[data-theme="optimal"] .flip-tog[value="No"] .flip-on{visibility:hidden;transition-delay:.15s}
 [data-theme="optimal"] .flip-face::before{background:currentColor;box-shadow:0 0 4px currentColor}
 [data-theme="optimal"] .flip-off,[data-theme="optimal"] .as-flip .flip-on{--fc:var(--atk-rgb)}
 [data-theme="optimal"] .as-flip .flip-off{--fc:var(--def-rgb)}
