@@ -1113,6 +1113,37 @@ body.log-icons .gear-ic{display:inline-flex}
 .crunch-table tr.crunch-head td{font-weight:700}
 .crunch-short{color:var(--atk)}
 .crunch-over{color:var(--warn)}
+/* the reinforcement checker: a battle's defenders after one tick, beside them as they really stand */
+#reinfChk{margin-top:12px;padding-top:12px;border-top:1px solid var(--border-soft)}
+.reinf-io{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.reinf-io label{display:block;min-width:0}
+.reinf-io textarea{min-height:130px}
+.reinf-lab{display:block;font-size:12px;color:var(--strong);margin-bottom:4px}
+@media (max-width:700px){.reinf-io{grid-template-columns:1fr}}
+#reinfOut:not(:empty){margin-top:12px}
+.reinf-sum{display:flex;gap:6px 18px;flex-wrap:wrap;font-size:12.5px;margin-bottom:10px}
+.reinf-sum b{font-family:var(--mono);color:var(--strong)}
+.reinf-table{width:100%;border-collapse:collapse;font-size:12px}
+.reinf-table th,.reinf-table td{padding:3px 6px;border-bottom:1px solid var(--border-soft);
+  white-space:nowrap;text-align:right;vertical-align:middle}
+.reinf-table th{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);font-weight:500}
+.reinf-table :is(th,td).l{text-align:left}
+.reinf-table td.n{font-family:var(--mono)}
+.reinf-table td.unit{width:100%;white-space:normal}
+.reinf-wrap{overflow-x:auto}
+.reinf-unit{display:flex;align-items:center;gap:8px}
+.reinf-table .sprite{width:56px;height:35px;flex:0 0 auto}
+.reinf-table .of{color:var(--text-dim);font-size:10.5px;margin-left:3px}
+.reinf-tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.04em;
+  text-transform:uppercase;padding:1px 6px;border-radius:3px;border:1px solid currentColor}
+.reinf-tag.new{color:var(--warn)}
+.reinf-tag.more,.reinf-tag.train{color:var(--warn)}
+.reinf-tag.less{color:var(--atk)}
+.reinf-tag.gone{color:var(--atk)}
+.reinf-tag.same{color:var(--good);opacity:.75}
+.reinf-up{color:var(--warn)}
+.reinf-down{color:var(--atk)}
+.reinf-table tr.same td{opacity:.7}
 details summary{cursor:pointer;color:var(--strong);font-size:13px;padding:2px 0}
 .stat-table input{width:62px;text-align:right;font-family:var(--mono);font-size:12px}
 .stat-table td,.stat-table th{padding:3px 5px;font-size:12px}
@@ -2123,6 +2154,21 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
     <button class="btn btn-xs" id="btnImportDef">Import to defenders</button>
     <span class="v-div">|</span>
     <button class="btn btn-xs btn-info" id="btnImportBattle">Import battle</button>
+    <button class="btn btn-xs" id="btnReinfChk" aria-expanded="false"
+      title="Fight a battle code's first tick and hold its defenders up against the army as it stands now">Reinforcement checker</button>
+  </div>
+  <div id="reinfChk" style="display:none">
+    <div class="reinf-io">
+      <label><span class="reinf-lab">Battle code <span class="muted">— fought for one tick</span></span>
+        <textarea id="reinfBattle" spellcheck="false" placeholder="+3F3F-9kQw2&#10;&#10;a whole warcalc link, a battle preset string or JSON works too"></textarea></label>
+      <label><span class="reinf-lab">Defending army now <span class="muted">— pasted off the game</span></span>
+        <textarea id="reinfArmy" spellcheck="false" placeholder="the defenders as the game shows them after the tick&#10;&#10;an army code, the long form, or the army / nation page copied straight off the screen"></textarea></label>
+    </div>
+    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button class="btn btn-xs btn-info" id="btnReinfRun">Check</button>
+      <button class="btn btn-xs" id="btnReinfClear">Clear</button>
+    </div>
+    <div id="reinfOut"></div>
   </div>
 </div>
 
@@ -5787,6 +5833,195 @@ function importBattle(){
   applyShareable(sh);
 }
 
+/* ---- the reinforcement checker ----
+   A battle code's first tick is fought and its defenders' survivors are the
+   prediction; the army pasted beside it is how the defenders really stand
+   after that tick. Every stack is paired up with its likeliest twin, and
+   what is left over on the pasted side came from somewhere else. */
+
+/* the left box: a battle, as a code, a link, a preset string or JSON */
+function reinfReadBattle(text){
+  const t = String(text || "").trim();
+  if (!t) return {error: "Paste a battle code in the left box."};
+  const json = parsePresetJSON(t) || parsePresetString(t);
+  if (json){
+    if (json.error) return json;
+    const names = Object.keys(json.battles);
+    if (!names.length) return {error: "The left box holds army presets, not a battle."};
+    const name = pickPresetName(names, "battles");
+    if (!name) return null;
+    const b = json.battles[name];
+    return {attacker: b.attacker, defender: b.defender, bonus: b.bonus === "Yes" ? "Yes" : "No"};
+  }
+  const sh = parseShareable(t);
+  if (!sh) return {error: 'The left box is not a battle code. One opens with "+" and carries both sides, like +3F3F-9kQw2.'};
+  return sh.battle;
+}
+
+/* the right box: one army, read the way Import to defenders reads it */
+function reinfReadArmy(text){
+  const t = String(text || "").trim();
+  if (!t) return {error: "Paste the defending army as it stands now in the right box."};
+  const json = parsePresetJSON(t) || parsePresetString(t);
+  if (json){
+    if (json.error) return json;
+    const armies = Object.keys(json.armies);
+    if (armies.length){
+      const name = pickPresetName(armies, "armies");
+      return name ? {units: json.armies[name]} : null;
+    }
+    const name = pickPresetName(Object.keys(json.battles), "battles");
+    return name ? {units: json.battles[name].defender} : null;
+  }
+  const battle = decodeBattle(t);
+  if (battle) return {units: battle.defender};
+  if (RE_ARMY_CODE.test(t)){
+    try{ return {units: decodeArmy(t)}; }catch(e){}
+  }
+  const sides = splitLongSides(t);
+  const {units} = parseLongForm(sides ? sides.defender : t);
+  if (!units.length)
+    return {error: sides ? "There are no defenders in the right box."
+                         : "Nothing in the right box reads as an army. Each unit block must end with a Training: line."};
+  return {units};
+}
+
+const reinfUnit = u => ({type: u.type, weapon: u.weapon || "ScroungedWeapons", armor: u.armor || "ScroungedArmor",
+  size: Math.max(0, parseInt(u.size, 10) || 0), training: clampInt(u.training, 0, TRAIN_UNCAPPED),
+  name: String(u.name || "").replace(/\s+/g, " ").trim()});
+
+/* y: the defenders left after the battle's first tick, with whoever is due on tick 2 */
+function reinfPredict(battle){
+  const rows = list => list.map(u => { const r = reinfUnit(u);
+    return Object.assign({}, r, {nick: r.name, name: `${r.type}_${r.weapon}_${r.armor}_size_${r.size}_train_${r.training}`}); });
+  const atk = rows((battle.attacker || []).filter(u => !waitOf(u) && u.type !== "Alicorns"));
+  const def = rows((battle.defender || []).filter(u => !waitOf(u)));
+  const r = simulate(atk, def, battle.bonus);
+  const y = r.repellers.map(u => ({type: u.origType, weapon: u.weapon, armor: u.armor, training: u.training,
+    name: u.nick, size: u.remaining, start: u.size}));
+  (battle.defender || []).filter(u => waitOf(u) === 1)
+    .forEach(u => { const d = reinfUnit(u); y.push(Object.assign(d, {start: d.size, due: true})); });
+  return {y, later: (battle.defender || []).filter(u => waitOf(u) > 1).length,
+          atkFront: atk.length, defFront: def.length};
+}
+
+/* pairs each pasted stack (x) with a predicted one (y): the same kit and
+   training under the same name, then at the same size, then largest to
+   largest, and last of all the same kit at another training */
+function reinfMatch(x, y){
+  const xUsed = new Set(), yUsed = new Set(), pairs = [];
+  const kit = u => `${u.type}|${u.weapon}|${u.armor}`;
+  const nm = u => u.name.toLowerCase();
+  const bySize = list => list.map((u, i) => i).sort((a, b) => list[b].size - list[a].size);
+  function pass(test, sized){
+    const order = sized ? bySize(y) : y.map((u, i) => i);
+    const xOrder = sized ? bySize(x) : x.map((u, i) => i);
+    for (const j of order){
+      if (yUsed.has(j)) continue;
+      const i = xOrder.find(i => !xUsed.has(i) && kit(x[i]) === kit(y[j]) && test(x[i], y[j]));
+      if (i === undefined) continue;
+      xUsed.add(i); yUsed.add(j); pairs.push({x: x[i], y: y[j], xi: i, yi: j});
+    }
+  }
+  const sameTr = (a, b) => a.training === b.training;
+  pass((a, b) => sameTr(a, b) && a.name && nm(a) === nm(b));
+  pass((a, b) => sameTr(a, b) && a.size === b.size);
+  pass(sameTr, true);
+  pass(() => true, true);
+  return {pairs,
+          xOnly: x.map((u, i) => ({x: u, xi: i})).filter(r => !xUsed.has(r.xi)),
+          yOnly: y.map((u, j) => ({y: u, yi: j})).filter(r => !yUsed.has(r.yi))};
+}
+
+const REINF_ORDER = {new: 0, more: 1, less: 2, gone: 3, train: 4, same: 5};
+const REINF_TAG = {new: "New", more: "More", less: "Fewer", gone: "Missing", train: "Training", same: "Same"};
+
+function reinfRowHTML(r){
+  const u = r.x || r.y;
+  const fmt = n => n.toLocaleString("en-US");
+  const tr = r.x && r.y && r.x.training !== r.y.training
+    ? `<span class="reinf-up">T${r.y.training} → T${r.x.training}</span>` : `T${u.training}`;
+  const pred = !r.y ? '<span class="muted">—</span>'
+    : r.y.size ? `${fmt(r.y.size)}${r.y.due ? '<span class="of">due tick 2</span>'
+                  : r.y.start !== r.y.size ? `<span class="of">of ${fmt(r.y.start)}</span>` : ""}`
+    : `<span class="reinf-down">wiped</span><span class="of">of ${fmt(r.y.start)}</span>`;
+  const diff = r.d ? `<span class="${r.d > 0 ? "reinf-up" : "reinf-down"}">${r.d > 0 ? "+" : "−"}${fmt(Math.abs(r.d))}</span>` : "";
+  const name = (r.x && r.x.name) || (r.y && r.y.name);
+  return `<tr class="${r.kind}">
+    <td class="l"><span class="reinf-tag ${r.kind}">${REINF_TAG[r.kind]}</span></td>
+    <td class="l unit"><span class="reinf-unit">${buildSprite(u.type, u.weapon, u.armor, false, {size: u.size, training: u.training})}<span>${
+      name ? `<b>${esc(name)}</b> · ` : ""}${esc(u.type)} <span class="muted">${esc(label(u.weapon))} / ${esc(label(u.armor))}</span></span></span></td>
+    <td class="n">${tr}</td>
+    <td class="n">${pred}</td>
+    <td class="n">${r.x ? fmt(r.x.size) : '<span class="muted">—</span>'}</td>
+    <td class="n">${diff}</td>
+  </tr>`;
+}
+
+function runReinfCheck(){
+  const out = document.getElementById("reinfOut");
+  const battle = reinfReadBattle(document.getElementById("reinfBattle").value);
+  if (!battle) return;
+  if (battle.error){ out.innerHTML = `<div class="note warn">${esc(battle.error)}</div>`; return; }
+  const army = reinfReadArmy(document.getElementById("reinfArmy").value);
+  if (!army) return;
+  if (army.error){ out.innerHTML = `<div class="note warn">${esc(army.error)}</div>`; return; }
+  if (!(battle.defender || []).length){
+    out.innerHTML = `<div class="note warn">That battle code has no defenders to check against.</div>`;
+    return;
+  }
+
+  let pred;
+  try{ pred = reinfPredict(battle); }
+  catch(e){ out.innerHTML = `<div class="note warn">${esc(e.message)}</div>`; return; }
+  const x = army.units.map(reinfUnit).filter(u => u.size > 0);
+  const {pairs, xOnly, yOnly} = reinfMatch(x, pred.y);
+
+  const rows = [];
+  pairs.forEach(p => {
+    const d = p.x.size - p.y.size;
+    rows.push({x: p.x, y: p.y, d, at: p.xi,
+      kind: d > 0 ? "more" : d < 0 ? "less" : p.x.training !== p.y.training ? "train" : "same"});
+  });
+  xOnly.forEach(r => rows.push({x: r.x, d: r.x.size, kind: "new", at: r.xi}));
+  yOnly.forEach(r => rows.push({y: r.y, d: -r.y.size, kind: r.y.size ? "gone" : "same", at: x.length + r.yi}));
+  rows.sort((a, b) => REINF_ORDER[a.kind] - REINF_ORDER[b.kind] || a.at - b.at);
+
+  const sum = list => list.reduce((n, u) => n + u.size, 0);
+  const fmt = n => n.toLocaleString("en-US");
+  const yTroops = sum(pred.y), xTroops = sum(x);
+  const tally = kind => { const r = rows.filter(r => r.kind === kind);
+    return {n: r.length, troops: r.reduce((n, r) => n + Math.abs(r.d), 0)}; };
+  const nw = tally("new"), more = tally("more"), less = tally("less"), gone = tally("gone");
+  const extra = nw.troops + more.troops;
+  const s = n => n === 1 ? "" : "s";
+
+  const verdict = extra
+    ? `<div class="note warn"><strong>Looks reinforced — ${fmt(extra)} troop${s(extra)} more than the battle leaves standing</strong>${
+        nw.n ? `: ${nw.n} new stack${s(nw.n)} (${fmt(nw.troops)})` : ""}${
+        more.n ? `${nw.n ? "," : ":"} ${more.n} stack${s(more.n)} bigger than predicted (+${fmt(more.troops)})` : ""}.</div>`
+    : less.n || gone.n
+      ? `<div class="note">No reinforcements — but ${less.n + gone.n} stack${s(less.n + gone.n)} came out smaller than predicted or are missing.</div>`
+      : `<div class="note">Matches the prediction — no reinforcements.</div>`;
+
+  const sumItem = (lab, v) => `<span>${lab} <b>${v}</b></span>`;
+  out.innerHTML = `${verdict}
+    <div class="reinf-sum">
+      ${sumItem("Predicted (y)", `${fmt(yTroops)}`)}
+      ${sumItem("Pasted (x)", `${fmt(xTroops)}`)}
+      ${sumItem("Difference", `<span class="${xTroops > yTroops ? "reinf-up" : xTroops < yTroops ? "reinf-down" : ""}">${
+        xTroops > yTroops ? "+" : xTroops < yTroops ? "−" : "±"}${fmt(Math.abs(xTroops - yTroops))}</span>`)}
+      ${sumItem("New", nw.n)}${sumItem("Bigger", more.n)}${sumItem("Smaller", less.n)}${sumItem("Missing", gone.n)}
+    </div>
+    <div class="reinf-wrap"><table class="reinf-table">
+      <thead><tr><th class="l"></th><th class="l">Defender</th><th>Tr</th><th>Predicted</th><th>Pasted</th><th>Off by</th></tr></thead>
+      <tbody>${rows.map(reinfRowHTML).join("")}</tbody>
+    </table></div>
+    <div class="small muted" style="margin-top:8px">Tick 1 fought with ${pred.atkFront} attacking and ${pred.defFront} defending
+      stack${s(pred.defFront)}, defender bonus ${battle.bonus === "Yes" ? "on" : "off"}.${
+      pred.later ? ` ${pred.later} defending stack${s(pred.later)} held back past tick 2 left out.` : ""}</div>`;
+}
+
 /* ===================================================================
    6a. ICONS — the preset bars are all glyph, all tooltip
    =================================================================== */
@@ -6371,6 +6606,22 @@ document.getElementById("btnClearAll").addEventListener("click", ()=>{
 document.getElementById("btnImportAtk").addEventListener("click", ()=>importRows("attacker"));
 document.getElementById("btnImportDef").addEventListener("click", ()=>importRows("defender"));
 document.getElementById("btnImportBattle").addEventListener("click", importBattle);
+const LS_REINF = "warcalc.reinfOpen";
+function showReinfChk(open){
+  document.getElementById("reinfChk").style.display = open ? "" : "none";
+  document.getElementById("btnReinfChk").setAttribute("aria-expanded", open ? "true" : "false");
+}
+showReinfChk(!!store.get(LS_REINF, false));
+document.getElementById("btnReinfChk").addEventListener("click", ()=>{
+  const open = document.getElementById("reinfChk").style.display === "none";
+  showReinfChk(open);
+  store.set(LS_REINF, open);
+});
+document.getElementById("btnReinfRun").addEventListener("click", runReinfCheck);
+document.getElementById("btnReinfClear").addEventListener("click", ()=>{
+  ["reinfBattle", "reinfArmy"].forEach(id => { document.getElementById(id).value = ""; });
+  document.getElementById("reinfOut").innerHTML = "";
+});
 
 /* the - and + by a side's Tr heading move every row's training one step */
 document.querySelectorAll("[data-tr-step]").forEach(b=>
