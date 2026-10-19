@@ -1763,7 +1763,7 @@ body.snaps-hidden .snap{display:none}
   font:700 10px/1.3 var(--font);letter-spacing:.12em;text-transform:uppercase;color:color-mix(in srgb,var(--ink) 75%,transparent)}
 .as-sub-n{color:var(--warn);letter-spacing:.06em}
 .as-row{display:grid;grid-template-columns:1fr 14px 1fr;align-items:center;padding-top:3px;font-size:12px}
-/* the icon sits by its figures, once on each side */
+/* the icon sits between a side's brackets and its figure, once on each side */
 .as-a{display:flex;align-items:center;justify-content:flex-end;gap:5px;color:var(--ink-atk);min-width:0}
 .as-b{display:flex;align-items:center;justify-content:flex-start;gap:5px;color:var(--ink-def);min-width:0}
 .as-a.as-lab{justify-content:space-between}
@@ -2358,7 +2358,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
       <span class="spacer"></span>
       <label class="hk-toggle" for="asChain" title="Fight each battle on, tick after tick, until a side is wiped out or nothing more dies (up to 11 ticks, as the Battle tab replays them)">
         <input type="checkbox" id="asChain"> Account for successive battles</label>
-      <label class="hk-toggle" for="asTravel" title="The attackers eat two war ticks of full upkeep on the road before the battle starts">
+      <label class="hk-toggle" for="asTravel" title="The attackers eat one war tick of full upkeep on the road before the battle starts">
         <input type="checkbox" id="asTravel"> Account for travel time upkeep cost</label>
     </div>
     <div id="asOut"></div>
@@ -11098,7 +11098,7 @@ gsEl("gsWide").addEventListener("change", ()=>{
 const LS_ASSESS = "warcalc.assess";
 const AS_TOTAL = "__total__";                          // perspective key for the totals ticket
 const AS_ROWS = ["troops"].concat(GS_COST);
-const AS_TRAVEL = 2;                                   // war ticks an attack spends on the road
+const AS_TRAVEL = 1;                                   // war ticks of upkeep an attack eats on the road
 
 const as = (()=>{
   const s = store.get(LS_ASSESS, null);
@@ -11165,7 +11165,7 @@ function asFight(name, b, chain){
                wiped: {atk: !standing(atkAll), def: !standing(defAll)}};
   out.atk.lost = lost.atk; out.def.lost = lost.def;
   out.atk.upkeep = upkeep.atk; out.def.upkeep = upkeep.def;
-  /* the march there: the whole attacking force, reinforcements too, eats two war ticks' upkeep before the first blow */
+  /* the march there: the whole attacking force, reinforcements too, eats a war tick's upkeep before the first blow */
   out.atk.travel = addRes({}, upkeepOf(atkAll), AS_TRAVEL);
   asFights.set(name, {key, out});
   return out;
@@ -11214,9 +11214,11 @@ function asRow(k, a, d, lossy, lab){
   const br = (n, isAtk) => lossy ? ["attacker", "defender"].map(p =>
     `<span class="as-pb" data-p="${p}">${asBr(k, n, (p === "attacker") === isAtk ? "us" : "them")}</span>`).join("") : "";
   return `<div class="as-row">
-      <span class="as-a${lab ? " as-lab" : ""}">${lab ?? ic}<span class="as-v">${br(a, true)} <span${full(a)}>${asNum(k, a)}</span></span></span>
+      <span class="as-a${lab ? " as-lab" : ""}">${lab ? lab + `<span class="as-v">${br(a, true)} <span${full(a)}>${asNum(k, a)}</span></span>`
+        : `<span class="as-v">${br(a, true)}</span>${ic}<span class="as-v"${full(a)}>${asNum(k, a)}</span>`}</span>
       <span class="as-tl">~</span>
-      <span class="as-b"><span class="as-v"><span${full(d)}>${asNum(k, d)}</span> ${br(d, false)}</span>${lab ? "" : ic}</span>
+      <span class="as-b">${lab ? `<span class="as-v"><span${full(d)}>${asNum(k, d)}</span> ${br(d, false)}</span>`
+        : `<span class="as-v"${full(d)}>${asNum(k, d)}</span>${ic}<span class="as-v">${br(d, false)}</span>`}</span>
     </div>
     <div class="as-diff">${diff("attacker")}${diff("defender")}</div>`;
 }
