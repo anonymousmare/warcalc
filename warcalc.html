@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CurioCalc 2.3 — CLOP</title>
+<title>CurioCalc 2.4 — CLOP</title>
 <style>
 :root{
   --bg:#272b30;
@@ -1702,6 +1702,68 @@ body.snaps-hidden .snap{display:none}
 .gs-seg:only-child{border-radius:4px}
 .gs-seg:hover{filter:brightness(1.2)}
 @media (max-width:700px){.gs-crow{grid-template-columns:1fr;gap:3px}}
+/* the stockpile folds like the reserves; not accounted for, it fades */
+.gs-stockp .gs-top{margin-top:10px}
+.gs-stockp.off .gs-top{opacity:.45}
+
+/* ---------- assessment ----------
+   a battle ticket torn down the middle: the attackers' wine on the left,
+   the defenders' navy on the right, and what it comes to under the seam */
+.slip.as-slip{
+  --pa:#3b1d24;--pd:#1a2639;--ink:#e4dee2;
+  width:372px;background:linear-gradient(90deg,var(--pa) 50%,var(--pd) 50%);
+  background-image:linear-gradient(rgba(255,255,255,.025),rgba(var(--lo),.06)),linear-gradient(90deg,var(--pa) 50%,var(--pd) 50%)}
+.slip.as-slip::after{background:linear-gradient(90deg,var(--pa) 50%,var(--pd) 50%);
+  -webkit-mask:conic-gradient(from 135deg at 50% 0,#000 90deg,transparent 0) 0 0/12px 8px repeat-x;
+  mask:conic-gradient(from 135deg at 50% 0,#000 90deg,transparent 0) 0 0/12px 8px repeat-x}
+.slip.as-slip.as-big{width:560px;max-width:100%;padding:14px 22px 16px}
+.as-big .slip-name{font-size:16px}
+.as-big .as-row{font-size:13px}
+.as-persp{display:flex;align-items:center;justify-content:center;gap:8px;margin:7px 0 2px}
+.as-plab{font:700 10px/1 var(--font);letter-spacing:.1em;text-transform:uppercase;opacity:.6}
+.as-flip{width:112px;height:23px}
+.as-flip .flip-face{font-size:11px}
+.as-flip .flip-on{background:linear-gradient(to bottom,var(--btn-danger-a),var(--btn-danger-b))}
+.as-flip .flip-off{background:linear-gradient(to bottom,var(--btn-info-a),var(--btn-info-b))}
+.as-flip .flip-off::before{background:#fff;box-shadow:0 0 4px rgba(255,255,255,.8)}
+.as-sides{display:grid;grid-template-columns:1fr 1fr;margin-top:9px;
+  font:700 10px/1.3 var(--font);letter-spacing:.1em;text-transform:uppercase;opacity:.7}
+.as-sides span:first-child{color:var(--ink-atk);padding-right:10px}
+.as-sides span:last-child{color:var(--ink-def);padding-left:10px;text-align:right}
+.as-units{display:grid;grid-template-columns:1fr 1fr;margin-top:3px}
+.as-units > div:first-child{padding-right:10px;color:var(--ink-atk)}
+.as-units > div:last-child{padding-left:10px;color:var(--ink-def)}
+.as-u{display:flex;align-items:center;gap:4px;padding:2px 0;font-size:11px;min-width:0;cursor:help}
+.as-u + .as-u{border-top:1px dotted color-mix(in srgb,var(--ink) 16%,transparent)}
+.as-u .q{font-weight:700}
+.as-u .nm{font-family:var(--font);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.as-u .tr{opacity:.6}
+.as-u .lost{color:var(--atk);font-weight:700}
+.as-u .g{margin-left:auto;display:inline-flex;gap:1px;flex:0 0 auto}
+.as-u .gear-img{max-width:20px;max-height:20px}
+.as-none{text-align:center;opacity:.45;font-size:11px;padding:2px 0}
+.as-err{color:var(--warn);font-size:11px;text-align:center;margin-top:6px}
+.as-sub{font:700 10px/1.3 var(--font);letter-spacing:.12em;text-transform:uppercase;text-align:center;
+  opacity:.6;margin:2px 0 4px}
+.as-row{display:grid;grid-template-columns:1fr 14px 1fr;align-items:center;padding-top:3px;font-size:12px}
+.as-a{display:flex;align-items:center;justify-content:space-between;gap:6px;color:var(--ink-atk);min-width:0}
+.as-b{display:flex;align-items:center;justify-content:flex-start;color:var(--ink-def);min-width:0}
+.as-v{white-space:nowrap;font-weight:700}
+.as-tl{text-align:center;opacity:.45}
+.as-tr{font:700 9px/1 var(--font);letter-spacing:.08em;text-transform:uppercase;opacity:.6}
+/* the brackets in grey, their figures a shade lighter */
+.as-br{font-weight:400;font-size:10.5px;color:color-mix(in srgb,var(--ink) 42%,transparent)}
+.as-br b{font-weight:600;color:color-mix(in srgb,var(--ink) 70%,transparent)}
+.as-br.over b{color:var(--atk)}
+.as-diff{text-align:center;line-height:1.2;padding-bottom:3px}
+.as-d{display:none;font:700 11px/1.5 var(--mono);padding:0 6px;border-radius:3px;background:rgba(var(--lo),.28);
+  color:color-mix(in srgb,var(--ink) 60%,transparent)}
+.as-d.up{color:var(--good)}
+.as-d.down{color:var(--atk)}
+.as-slip[data-persp="attacker"] .as-d[data-p="attacker"],
+.as-slip[data-persp="defender"] .as-d[data-p="defender"]{display:inline-block}
+.as-bl{font-family:var(--font);font-weight:600;font-size:11px;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 </style>
 <script>
 /* the theme goes on before anything paints, so a reload never flashes Grey.
@@ -1729,7 +1791,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
 <body>
 
 <div class="tabstrip">
-  <span class="tab-brand">CurioCalc 2.3<button class="gear-btn" id="btnTools"
+  <span class="tab-brand">CurioCalc 2.4<button class="gear-btn" id="btnTools"
     title="Settings, import / export presets" aria-expanded="false"><svg viewBox="0 0 24 24"
     aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path
     d="M10.3 2.5h3.4l.5 2.6a7.6 7.6 0 0 1 2 1.2l2.5-.9 1.7 2.9-2 1.8a7.7 7.7 0 0 1 0 2.3l2 1.8-1.7 2.9-2.5-.9a7.6 7.6 0 0 1-2 1.2l-.5 2.6h-3.4l-.5-2.6a7.6 7.6 0 0 1-2-1.2l-2.5.9-1.7-2.9 2-1.8a7.7 7.7 0 0 1 0-2.3l-2-1.8 1.7-2.9 2.5.9a7.6 7.6 0 0 1 2-1.2z"/><circle
@@ -1737,6 +1799,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
   <button class="tab active" data-tab="battle">Battle</button>
   <button class="tab" data-tab="counter">Counters</button>
   <button class="tab" data-tab="grand">Grand Strategy</button>
+  <button class="tab" data-tab="assess">Assessment</button>
   <span class="ref-btns">
     <button class="ref-btn" data-ref="stats" title="Weapon &amp; armor stat table  (F)">
       <span class="ref-lab">Stats</span><kbd>F</kbd></button>
@@ -2206,7 +2269,11 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
 
 <!-- ============ GRAND STRATEGY ============ -->
 <div id="viewGrand" style="display:none">
-  <div class="panel gs-top">
+  <!-- the one stockpile, carried to Assessment and back as the tabs change -->
+  <div id="gsStockHome"><details class="panel gs-res gs-stockp" id="gsStockPanel">
+    <summary>Stockpile <label class="gs-res-on" title="Weigh the bills, the upkeep and the losses against the stockpile and the production">
+      <input type="checkbox" id="gsStockOn"> Account for</label></summary>
+  <div class="gs-top">
     <div>
       <div class="gs-h">Stockpile</div>
       <div class="gs-inputs" id="gsStock"></div>
@@ -2225,6 +2292,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
       </div>
     </div>
   </div>
+  </details></div>
 
   <details class="panel gs-res" id="gsReserves">
     <summary>Reserves <label class="gs-res-on" title="Take gear the reserves hold off the bills and the equipment list">
@@ -2251,6 +2319,18 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
     <summary>Reader</summary>
     <div id="gsChartBody"></div>
   </details>
+</div>
+
+<!-- ============ ASSESSMENT ============ -->
+<div id="viewAssess" style="display:none">
+  <div id="asStockHome"></div>
+  <div class="panel">
+    <div class="gs-bar">
+      <div class="gs-comps" id="asBattles"></div>
+    </div>
+    <div id="asOut"></div>
+  </div>
+  <div class="gs-total" id="asTotal"></div>
 </div>
 
 <div id="tip"></div>
@@ -9427,7 +9507,7 @@ syncSolveSide();
    9. TABS
    =================================================================== */
 
-const VIEWS = {battle:"viewBattle", counter:"viewCounter", grand:"viewGrand"};
+const VIEWS = {battle:"viewBattle", counter:"viewCounter", grand:"viewGrand", assess:"viewAssess"};
 
 function showTab(name){
   if (!VIEWS[name]) name = "battle";
@@ -9437,6 +9517,9 @@ function showTab(name){
   });
   document.querySelectorAll(".tab").forEach(b=>
     b.classList.toggle("active", b.dataset.tab === name));
+  /* Grand Strategy and Assessment share one stockpile panel; it goes where you are */
+  document.getElementById(name === "assess" ? "asStockHome" : "gsStockHome")
+    .appendChild(document.getElementById("gsStockPanel"));
   store.set(LS_TAB, name);
 }
 
@@ -10297,7 +10380,7 @@ const gs = (()=>{
   const obj = v => v && typeof v === "object" && !Array.isArray(v) ? v : {};
   return {stock: obj(o.stock), prod: obj(o.prod), resv: obj(o.resv),
           comps: Array.isArray(o.comps) ? o.comps : [], colors: obj(o.colors), wide: o.wide === true, upx: GS_TICKS,
-          focus: o.focus === true, resvOn: o.resvOn !== false, gearAll: o.gearAll === true, chartOff: Array.isArray(o.chartOff) ? o.chartOff : [],
+          focus: o.focus === true, resvOn: o.resvOn !== false, stockOn: o.stockOn !== false, gearAll: o.gearAll === true, chartOff: Array.isArray(o.chartOff) ? o.chartOff : [],
           reader: Object.assign({res: true}, obj(o.reader))};    // every visit opens on the x6 view
 })();
 const gsSave = () => store.set(LS_GRAND, gs);
@@ -10463,6 +10546,7 @@ function gsWriteoffHTML(b){
 }
 
 function gsStockHTML(b){
+  if (!gs.stockOn) return "";
   const rows = GS_COST.filter(k => b.res[k] > 0).map(k=>{
     const have = gsNum(gs.stock[k]), prod = gsProdOf(k);
     const turns = b.res[k] > have && prod > 0 ? Math.ceil((b.res[k] - have) / prod) : null;
@@ -10473,8 +10557,14 @@ function gsStockHTML(b){
 }
 
 /* upkeep, and the share of production it eats; past 100% the stockpile
-   makes up the gap, and the row says how many ticks of the chosen view it lasts */
+   makes up the gap, and the row says how many ticks of the chosen view it lasts.
+   With the stockpile not accounted for it is the bare amounts */
 function gsUpkeepHTML(b){
+  if (!gs.stockOn){
+    const rows = GS_UPKEEP.filter(k => b.upkeep[k] > 0)
+      .map(k => gsRow(`${gsIcon(k)} ${esc(gsName(k))}`, money(b.upkeep[k]))).join("");
+    return rows ? `<div class="slip-sub">Upkeep</div>${rows}` : "";
+  }
   const rows = GS_UPKEEP.filter(k => b.upkeep[k] > 0).map(k=>{
     const prod = gsProdOf(k) * gs.upx;
     const gap = b.upkeep[k] - prod;
@@ -10794,6 +10884,7 @@ function gsRefill(){
   gsReserves();
   gsStrip();
   renderGrand();
+  renderAssess();
 }
 
 /* the stockpile, the production and the reserves, all emptied */
@@ -10814,6 +10905,8 @@ function renderGrand(){
   gsEl("gsFocus").checked = gs.focus;
   gsEl("gsResvOn").checked = gs.resvOn;
   gsEl("gsReserves").classList.toggle("off", !gs.resvOn);
+  gsEl("gsStockOn").checked = gs.stockOn;
+  gsEl("gsStockPanel").classList.toggle("off", !gs.stockOn);
   gsEl("viewGrand").classList.toggle("gs-focus", gs.focus);
   gsEl("gsOut").innerHTML = comps.length
     ? `<div class="gs-slips${gs.wide ? " wide" : ""}">${comps.map((c, i) => gsSlip(c, bills[i])).join("")}</div>` : "";
@@ -10829,6 +10922,8 @@ gsInputs("gsProd", "prod", GS_PROD);
 gsReserves();
 gsStrip();
 gsEl("gsReserves").open = false;                        // every visit opens with the reserves folded
+gsEl("gsStockPanel").open = store.get(LS_GRAND + ".stockOpen", true) !== false;
+gsEl("gsStockPanel").addEventListener("toggle", ()=>store.set(LS_GRAND + ".stockOpen", gsEl("gsStockPanel").open));
 gsEl("gsChart").open = store.get(LS_GRAND + ".readerOpen", false) === true;
 /* toggle does not bubble, so the sections inside are caught on the way down */
 gsEl("gsChart").addEventListener("toggle", e=>{
@@ -10837,8 +10932,9 @@ gsEl("gsChart").addEventListener("toggle", e=>{
   else if (d.dataset?.gsSec){ gs.reader[d.dataset.gsSec] = d.open; gsSave(); }
 }, true);
 
-gsEl("viewGrand").addEventListener("input", e=>{
-  const i = e.target.closest("[data-gs-bucket]");
+/* caught on the document, as the stockpile boxes move to Assessment and back */
+document.addEventListener("input", e=>{
+  const i = e.target.closest?.("[data-gs-bucket]");
   if (!i) return;
   gsCommas(i);
   const v = (i.dataset.gsBucket === "prod" ? gsSigned : gsNum)(i.value);
@@ -10847,6 +10943,7 @@ gsEl("viewGrand").addEventListener("input", e=>{
   gsSave();
   if (i.dataset.gsBucket === "prod") gsStrip();
   renderGrand();
+  renderAssess();
 });
 
 gsEl("viewGrand").addEventListener("click", e=>{
@@ -10907,6 +11004,12 @@ gsEl("gsResvOn").addEventListener("change", ()=>{
   gsSave();
   renderGrand();
 });
+gsEl("gsStockOn").addEventListener("change", ()=>{
+  gs.stockOn = gsEl("gsStockOn").checked;
+  gsSave();
+  renderGrand();
+  renderAssess();
+});
 gsEl("gsFocus").addEventListener("change", ()=>{
   gs.focus = gsEl("gsFocus").checked;
   gsSave();
@@ -10926,6 +11029,206 @@ gsEl("gsWide").addEventListener("change", ()=>{
   gsSave();
   renderGrand();
 });
+
+
+/* ===================================================================
+   10b. ASSESSMENT — saved battles fought once each, and what each side
+        loses and keeps, weighed against the Grand Strategy stockpile
+   =================================================================== */
+
+const LS_ASSESS = "warcalc.assess";
+const AS_TOTAL = "__total__";                          // perspective key for the totals ticket
+const AS_ROWS = ["troops"].concat(GS_COST);
+
+const as = (()=>{
+  const s = store.get(LS_ASSESS, null);
+  const o = s && typeof s === "object" ? s : {};
+  return {battles: Array.isArray(o.battles) ? o.battles : [],
+          persp: o.persp && typeof o.persp === "object" ? o.persp : {}};
+})();
+const asSave = () => store.set(LS_ASSESS, as);
+const asPersp = key => as.persp[key] === "defender" ? "defender" : "attacker";
+
+/* a saved battle, fought for one tick the way Resolve battle fights it:
+   reinforcements sit it out and keep everything they brought */
+const asFights = new Map();                            // name -> {key, out}, so typing in the stockpile never refights
+function asFight(name, b){
+  const key = JSON.stringify(b);
+  const hit = asFights.get(name);
+  if (hit && hit.key === key) return hit.out;
+  const rows = (list, isAtk) => (Array.isArray(list) ? list : [])
+    .filter(u => u && UNIT_COST[u.type] && !(isAtk && u.type === "Alicorns") && gsNum(u.size) >= 1)
+    .map(u=>{
+      const weapon = u.weapon || "ScroungedWeapons", armor = u.armor || "ScroungedArmor";
+      const size = Math.floor(gsNum(u.size)), training = clampInt(u.training, 0, TRAIN_UNCAPPED);
+      return {type: u.type, weapon, armor, size, training, nick: u.name || "", reserve: !!u.reserve,
+              name: `${u.type}_${weapon}_${armor}_size_${size}_train_${training}`};
+    });
+  const atkAll = rows(b.attacker, true), defAll = rows(b.defender, false);
+  const bonus = b.bonus === "No" ? "No" : "Yes";
+  let r = null, error = "";
+  try{ r = simulate(atkAll.filter(u => !u.reserve), defAll.filter(u => !u.reserve), bonus); }
+  catch(e){ error = e.message; }
+  const side = isAtk=>{
+    const all = isAtk ? atkAll : defAll;
+    const fought = r ? (isAtk ? r.invaders : r.repellers) : [];
+    const resv = all.filter(u => u.reserve).map(u => ({origType: u.type, weapon: u.weapon, armor: u.armor, remaining: u.size}));
+    const dead = r ? deathCosts(r.units, isAtk) : {troops:0, hire:0, gear:0, res:{}};
+    const left = survivorValue(fought.concat(resv));
+    const tally = (troops, v) => Object.assign({troops, bits: v.hire + v.gear}, v.res);
+    /* each unit with what it lost, front line first */
+    const units = fought.map(u => ({type: u.origType, weapon: u.weapon, armor: u.armor, size: u.size,
+        training: u.training, lost: u.lost || 0}))
+      .concat(all.filter(u => u.reserve).map(u => Object.assign({}, u, {lost: 0})));
+    return {units, lost: tally(dead.troops, dead),
+            kept: tally(left.items.reduce((n, it) => n + it.n, 0), left)};
+  };
+  const out = {atk: side(true), def: side(false), bonus, error};
+  asFights.set(name, {key, out});
+  return out;
+}
+
+const asMerge = list => list.reduce((t, x)=>{ AS_ROWS.forEach(k=>{ t[k] = (t[k] || 0) + (x[k] || 0); }); return t; }, {});
+
+const asNum = (k, n) => k === "bits" ? shortBits(n) : money(n);
+
+/* the share of the stockpile a loss is, and how many war ticks of production
+   it would take to make back, faded, in brackets */
+function asBr(k, n){
+  if (!gs.stockOn || k === "troops" || !(n > 0)) return "";
+  const have = gsNum(gs.stock[k]);
+  const pc = have > 0 ? n / have * 100 : Infinity;
+  const p = !isFinite(pc) ? "∞" : pc < 1 ? "&lt;1" : Math.round(pc).toLocaleString("en-US");
+  const perTick = gsProdOf(k) * GS_TICKS;
+  const tw = perTick > 0 ? n / perTick : null;
+  const twTxt = tw == null ? "" : tw < .1 ? "&lt;0.1" : tw < 10 ? String(Math.round(tw * 10) / 10) : Math.round(tw).toLocaleString("en-US");
+  const tip = `${!isFinite(pc) ? "None stockpiled" : `${p}% of the stockpile`}${tw == null ? ""
+    : ` · ${twTxt} war ticks of production`}`;
+  return `<span class="as-br${pc > 100 ? " over" : ""}" title="${tip.replace(/&lt;/g, "<")}">(<b>${p}</b>%${
+    tw == null ? "" : ` <b>${twTxt}</b>TW`})</span>`;
+}
+
+/* one resource across the split: attackers left, defenders right, and under
+   the seam what it comes to for whichever side the ticket is looking from.
+   Losing less is the good side of a loss; keeping more is the good side of the rest */
+function asRow(k, a, d, lossy, lab){
+  const ic = lab ?? (k === "troops" ? `<span class="as-tr">troops</span>` : gsIcon(k));
+  const full = n => k === "bits" && n >= 1000 ? ` title="${money(n)}"` : "";
+  const diff = p=>{
+    const mine = p === "attacker" ? a : d, theirs = p === "attacker" ? d : a;
+    const v = lossy ? theirs - mine : mine - theirs;
+    const cls = v > 0 ? "up" : v < 0 ? "down" : "";
+    return `<span class="as-d ${cls}" data-p="${p}"${full(Math.abs(v))}>${v > 0 ? "+" : v < 0 ? "−" : "±"}${asNum(k, Math.abs(v))}</span>`;
+  };
+  return `<div class="as-row">
+      <span class="as-a">${ic}<span class="as-v">${lossy ? asBr(k, a) : ""} <span${full(a)}>${asNum(k, a)}</span></span></span>
+      <span class="as-tl">~</span>
+      <span class="as-b"><span class="as-v"><span${full(d)}>${asNum(k, d)}</span> ${lossy ? asBr(k, d) : ""}</span></span>
+    </div>
+    <div class="as-diff">${diff("attacker")}${diff("defender")}</div>`;
+}
+
+function asRowsHTML(a, d, lossy){
+  const rows = AS_ROWS.filter(k => (a[k] || 0) > 0 || (d[k] || 0) > 0)
+    .map(k => asRow(k, a[k] || 0, d[k] || 0, lossy)).join("");
+  return rows || `<div class="as-none">nothing</div>`;
+}
+
+function asFlip(key){
+  const atk = asPersp(key) === "attacker";
+  return `<div class="as-persp"><span class="as-plab">Perspective</span>
+      <button type="button" class="flip-tog as-flip" data-as-flip="${esc(key)}" value="${atk ? "Yes" : "No"}" aria-pressed="${atk}"
+        title="Which side the differences are reckoned for"><span class="flip-card" aria-hidden="true"><span
+        class="flip-face flip-on">Attacker</span><span class="flip-face flip-off">Defender</span></span></button></div>`;
+}
+
+function asUnitHTML(u){
+  return `<div class="as-u" ${tipAttrs(u.type, u.weapon, u.armor, u.size, u.training)}>
+      <span class="q">${u.size.toLocaleString("en-US")}</span><span class="nm">${esc(u.type)}</span>
+      <span class="tr">T${u.training}</span>${u.lost ? `<span class="lost">−${u.lost.toLocaleString("en-US")}</span>` : ""}
+      <span class="g">${gearImg(u.weapon)}${gearImg(u.armor)}</span></div>`;
+}
+
+const asTroops = units => units.reduce((n, u) => n + u.size, 0).toLocaleString("en-US");
+
+function asSlip(name, f){
+  return `<div class="slip as-slip" data-persp="${asPersp(name)}">
+      <div class="slip-name">${esc(name)}</div>
+      <div class="slip-meta">defender bonus ${f.bonus === "Yes" ? "on" : "off"}</div>
+      ${asFlip(name)}
+      <div class="as-sides"><span>Attackers · ${asTroops(f.atk.units)}</span><span>Defenders · ${asTroops(f.def.units)}</span></div>
+      <div class="as-units"><div>${f.atk.units.map(asUnitHTML).join("") || `<div class="as-none">nobody</div>`}</div>
+        <div>${f.def.units.map(asUnitHTML).join("") || `<div class="as-none">nobody</div>`}</div></div>
+      ${f.error ? `<div class="as-err">${esc(f.error)}</div>` : ""}
+      <div class="slip-cut double"></div>
+      <div class="as-sub">Losses</div>
+      ${asRowsHTML(f.atk.lost, f.def.lost, true)}
+      <div class="slip-cut"></div>
+      <div class="as-sub">Standing</div>
+      ${asRowsHTML(f.atk.kept, f.def.kept, false)}
+    </div>`;
+}
+
+/* every picked battle at once on one bigger ticket, with a perspective of its own */
+function asTotal(names, fights){
+  const sum = (s, w) => asMerge(fights.map(f => f[s][w]));
+  const battles = names.map((n, i) => asRow("troops", fights[i].atk.lost.troops, fights[i].def.lost.troops, true,
+    `<span class="as-bl" title="${esc(n)}">${esc(n)}</span>`)).join("");
+  return `<div class="slip as-slip as-big" data-persp="${asPersp(AS_TOTAL)}">
+      <div class="slip-name">Total</div>
+      <div class="slip-meta">${names.length} battle${names.length === 1 ? "" : "s"}</div>
+      ${asFlip(AS_TOTAL)}
+      <div class="as-sides"><span>Attackers</span><span>Defenders</span></div>
+      <div class="slip-cut double"></div>
+      <div class="as-sub">Troops lost, battle by battle</div>
+      ${battles}
+      <div class="slip-cut"></div>
+      <div class="as-sub">Losses</div>
+      ${asRowsHTML(sum("atk", "lost"), sum("def", "lost"), true)}
+      <div class="slip-cut"></div>
+      <div class="as-sub">Standing</div>
+      ${asRowsHTML(sum("atk", "kept"), sum("def", "kept"), false)}
+    </div>`;
+}
+
+function renderAssess(){
+  const all = getBattles();
+  const names = Object.keys(all).sort();
+  as.battles = as.battles.filter(n => all[n]);
+  gsEl("asBattles").innerHTML = names.length ? names.map(n=>`<span class="mark-chip${as.battles.includes(n) ? " on" : ""}"
+      data-as-battle="${esc(n)}"><span class="n">${esc(n)}</span></span>`).join("")
+    : `<span class="small muted">No battle presets yet — save one on the Battle tab.</span>`;
+  /* tickets come out in the order they were picked */
+  const fights = as.battles.map(n => asFight(n, all[n]));
+  gsEl("asOut").innerHTML = fights.length
+    ? `<div class="gs-slips">${as.battles.map((n, i) => asSlip(n, fights[i])).join("")}</div>` : "";
+  gsEl("asTotal").innerHTML = fights.length ? asTotal(as.battles, fights) : "";
+}
+
+/* ---- assessment wiring ---- */
+gsEl("viewAssess").addEventListener("click", e=>{
+  const chip = e.target.closest("[data-as-battle]");
+  if (chip){
+    const n = chip.dataset.asBattle, i = as.battles.indexOf(n);
+    if (i >= 0) as.battles.splice(i, 1); else as.battles.push(n);
+    asSave();
+    renderAssess();
+    return;
+  }
+  /* the card turns over in place; only the differences under the seam change */
+  const flip = e.target.closest("[data-as-flip]");
+  if (flip){
+    const p = asPersp(flip.dataset.asFlip) === "attacker" ? "defender" : "attacker";
+    as.persp[flip.dataset.asFlip] = p;
+    asSave();
+    flip.value = p === "attacker" ? "Yes" : "No";
+    flip.setAttribute("aria-pressed", p === "attacker");
+    flip.closest(".as-slip").dataset.persp = p;
+  }
+});
+
+document.addEventListener("warcalc:presets", renderAssess);
+renderAssess();
 
 
 /* ===================================================================
