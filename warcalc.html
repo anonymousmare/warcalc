@@ -525,7 +525,8 @@ tr.reserve td.col-sprite::before{
 /* the chevrons beside the gear: a side's training drifting over the
    successive ticks, as one sentence of pickers */
 .gear-btn.drill-btn.open svg{transform:none}
-.drill-pop{flex-direction:row;align-items:center;flex-wrap:nowrap;gap:6px;white-space:nowrap;font-size:12px}
+.drill-pop{font-size:12px}
+.drill-line{display:flex;align-items:center;gap:6px;white-space:nowrap}
 .drill-pop select,.drill-pop input{width:auto;margin:0;padding:1px 4px;font-size:12px}
 .drill-pop input{width:52px}
 .run-opts.drill-on .drill-btn{color:var(--gold)}
@@ -1938,18 +1939,22 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
     aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"
     stroke-linecap="round"><path d="M4 5.5l8 5 8-5"/><path d="M4 11l8 5 8-5"/><path d="M4 16.5l8 5 8-5"/></svg></button>
     <div class="run-pop drill-pop" id="drillPop" role="group" aria-label="Training drift">
-      <select id="drillDir" aria-label="Drain or improve">
-        <option value="-1">Drain</option><option value="1">Improve</option></select>
-      training of
+      <div class="drill-line">
+      Shift training of
       <select id="drillSide" aria-label="Which side">
         <option value="">none</option><option value="attacker">attacker</option>
         <option value="defender">defender</option></select>
       by
-      <input type="number" id="drillBy" min="1" max="99" value="1" aria-label="Training points">
+      <input type="number" id="drillBy" min="-99" max="99" value="1"
+        aria-label="Training points, negative to drain">
       every
       <select id="drillEvery" aria-label="How many ticks">
         <option value="1">1</option><option value="2">2</option></select>
       ticks
+      </div>
+      <label class="hk-toggle log-opt" for="drillSkip"
+        title="Tick 2 is fought untouched; the shifting starts counting from tick 3">
+        <input type="checkbox" id="drillSkip"> Ignore next tick</label>
     </div>
     </span>
     </div>
@@ -4178,14 +4183,15 @@ function upkeepOf(rows){
   return res;
 }
 
-/* the chevrons' drift: {side, step, every}, or null while it is set to none */
+/* the chevrons' drift: {side, step, every, skip}, or null while it moves nothing.
+   skip holds the rules off for the next tick, so they count from the one after */
 const LS_DRILL = "warcalc.drill";
 function trainDrift(){
   const side = document.getElementById("drillSide").value;
-  const by = clampInt(+document.getElementById("drillBy").value || 1, 1, 99);
-  if (!side) return null;
-  return {side, step: by * +document.getElementById("drillDir").value,
-          every: +document.getElementById("drillEvery").value || 1};
+  const step = clampInt(document.getElementById("drillBy").value, -99, 99);
+  if (!side || !step) return null;
+  return {side, step, every: +document.getElementById("drillEvery").value || 1,
+          skip: document.getElementById("drillSkip").checked ? 1 : 0};
 }
 
 /* survivors as force rows simulate() will take */
@@ -4199,15 +4205,16 @@ function chainBattles(atkRows, defRows, bonus, drift = trainDrift()){
   const ticks = [];
   let stop = "cap", error = "";
   const cap = drift && trainCap(drift.side);
+  /* reinforcements keep the training they came with */
   const drifting = () => (drift.side === "attacker" ? atk : def)
-    .some(u => drift.step < 0 ? u.training > 0 : u.training < cap);
+    .some(u => !u.reserve && (drift.step < 0 ? u.training > 0 : u.training < cap));
 
   for (let t = 1; t <= CHAIN_MAX; t++){
     /* the shown battle is tick 1, so this is tick t + 1: every drift.every
        ticks the side's training moves before the fight, while it can */
     let moved = 0;
-    if (drift && t % drift.every === 0 && drifting()){
-      const shift = rows => rows.map(u => Object.assign({}, u,
+    if (drift && t > drift.skip && (t - drift.skip) % drift.every === 0 && drifting()){
+      const shift = rows => rows.map(u => u.reserve ? u : Object.assign({}, u,
         {training: Math.min(cap, Math.max(0, u.training + drift.step))}));
       if (drift.side === "attacker") atk = shift(atk); else def = shift(def);
       moved = drift.step;
@@ -9335,10 +9342,12 @@ const LS_LOG_OPTS = "warcalc.logOpts";
   document.addEventListener("click", e=>{ if (!wrap.contains(e.target)) show(false); });
   document.addEventListener("keydown", e=>{ if (e.key === "Escape" && wrap.classList.contains("open")) show(false); });
 
-  const ids = {dir:"drillDir", side:"drillSide", by:"drillBy", every:"drillEvery"};
+  const ids = {side:"drillSide", by:"drillBy", every:"drillEvery", skip:"drillSkip"};
   const saved = store.get(LS_DRILL, {}) || {};
+  if (saved.dir === "-1" && +saved.by > 0) saved.by = -saved.by;   // from the old Drain picker
   Object.entries(ids).forEach(([k, id])=>{
     const el = document.getElementById(id);
+    if (el.type === "checkbox"){ el.checked = saved[k] === true; return; }
     if (saved[k] != null) el.value = saved[k];
     if (el.tagName === "SELECT" && el.selectedIndex < 0) el.selectedIndex = 0;
   });
@@ -9347,9 +9356,10 @@ const LS_LOG_OPTS = "warcalc.logOpts";
   Object.entries(ids).forEach(([k, id])=>
     document.getElementById(id).addEventListener("change", ()=>{
       const el = document.getElementById(id);
-      if (k === "by") el.value = clampInt(+el.value || 1, 1, 99);
+      if (k === "by") el.value = clampInt(el.value, -99, 99);
       const cur = store.get(LS_DRILL, {}) || {};
-      cur[k] = el.value;
+      delete cur.dir;
+      cur[k] = el.type === "checkbox" ? el.checked : el.value;
       store.set(LS_DRILL, cur);
       mark();
       if (document.getElementById("chainOut")?.innerHTML){ toggleChain(); toggleChain(); }
