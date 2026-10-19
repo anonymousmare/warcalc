@@ -1161,7 +1161,10 @@ details summary{cursor:pointer;color:var(--strong);font-size:13px;padding:2px 0}
 .ctr-1x .gear-img{width:auto;max-width:32px;vertical-align:-3px;margin-right:3px;object-position:center}
 
 /* ---------- top bar / presets ---------- */
-.topbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.topbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;position:relative}
+/* Clear all sits over the gap between the two army panels, lifted out of the
+   row so the bar keeps its height */
+.clear-all{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
 .topbar h1{margin:0}
 .caret-btn{
   background:none;border:none;color:var(--text-dim);font-size:20px;line-height:1;
@@ -1738,6 +1741,8 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
     <button class="bp-btn" id="btlLink" data-icon="link"
       title="Copy a link that loads this battle"></button>
   </div>
+  <button class="btn btn-xs clear-all" id="btnClearAll"
+    title="Clear the attackers and the defenders, and close the battle and solver logs">Clear all</button>
   <span class="spacer"></span>
   <div class="battle-presets">
     <span class="bp-lab">battle</span>
@@ -5847,6 +5852,15 @@ document.querySelectorAll("[data-clear]").forEach(b=>
     document.getElementById(b.dataset.clear === "attacker" ? "tbodyAttacker" : "tbodyDefender").innerHTML = "";
     refreshCounts();
   }));
+
+/* both sides at once, and the battle and solver logs with them */
+document.getElementById("btnClearAll").addEventListener("click", ()=>{
+  document.getElementById("tbodyAttacker").innerHTML = "";
+  document.getElementById("tbodyDefender").innerHTML = "";
+  refreshCounts();
+  document.getElementById("btnClearResults").click();
+  document.getElementById("btnSolveClear").click();
+});
 
 document.getElementById("btnImportAtk").addEventListener("click", ()=>importRows("attacker"));
 document.getElementById("btnImportDef").addEventListener("click", ()=>importRows("defender"));
