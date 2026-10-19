@@ -1123,7 +1123,9 @@ body.log-icons .gear-ic{display:inline-flex}
 #reinfTicks{width:46px;padding:2px 4px;font-family:var(--mono);font-size:12px}
 @media (max-width:700px){.reinf-io{grid-template-columns:1fr}}
 #reinfOut:not(:empty){margin-top:12px}
-.reinf-table{border-collapse:collapse;font-size:12px;width:auto}
+.reinf-table{border-collapse:collapse;font-size:12px;width:auto;margin:0 auto;
+  border:1px solid var(--border-soft)}
+.reinf-table tbody tr:last-child td{border-bottom:0}
 .reinf-table th,.reinf-table td{padding:3px 6px;border-bottom:1px solid var(--border-soft);
   white-space:nowrap;text-align:right;vertical-align:middle}
 .reinf-table th{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);font-weight:500}
