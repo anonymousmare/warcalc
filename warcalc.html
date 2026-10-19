@@ -1543,6 +1543,11 @@ body.snaps-hidden .snap{display:none}
 .gs-res > summary:before{content:"▸";display:inline-block;transition:transform .12s}
 .gs-res[open] > summary:before{transform:rotate(90deg)}
 .gs-res > summary:hover{color:var(--strong)}
+.gs-res-on{display:inline-flex;align-items:center;gap:4px;margin-left:8px;text-transform:none;letter-spacing:0;
+  font-weight:400;cursor:pointer}
+.gs-res-on input{width:auto;margin:0}
+/* switched off, the reserves are kept but faded, as nothing counts them */
+.gs-res.off .gs-res-cols{opacity:.45}
 .gs-res-cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:10px}
 .gs-res-cols > div + div{border-left:2px solid rgba(var(--hi),.22);padding-left:18px}
 @media (max-width:1100px){.gs-res-cols{grid-template-columns:1fr}
@@ -2210,7 +2215,8 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
   </div>
 
   <details class="panel gs-res" id="gsReserves">
-    <summary>Reserves</summary>
+    <summary>Reserves <label class="gs-res-on" title="Take gear the reserves hold off the bills and the equipment list">
+      <input type="checkbox" id="gsResvOn"> Account for</label></summary>
     <div class="gs-res-cols">
       <div><div class="gs-h">Weapons</div><div id="gsResW"></div></div>
       <div><div class="gs-h">Armor</div><div id="gsResA"></div></div>
@@ -10099,11 +10105,16 @@ const gs = (()=>{
   const obj = v => v && typeof v === "object" && !Array.isArray(v) ? v : {};
   return {stock: obj(o.stock), prod: obj(o.prod), resv: obj(o.resv),
           comps: Array.isArray(o.comps) ? o.comps : [], colors: obj(o.colors), wide: o.wide === true, upx: GS_TICKS,
-          focus: o.focus === true, gearAll: o.gearAll === true, chartOff: Array.isArray(o.chartOff) ? o.chartOff : [],
+          focus: o.focus === true, resvOn: o.resvOn !== false, gearAll: o.gearAll === true, chartOff: Array.isArray(o.chartOff) ? o.chartOff : [],
           reader: Object.assign({res: true}, obj(o.reader))};    // every visit opens on the x6 view
 })();
 const gsSave = () => store.set(LS_GRAND, gs);
 const gsNum  = v => Math.max(0, Number(String(v ?? "").replace(/,/g, "")) || 0);
+/* production can run at a deficit, so it alone keeps its sign */
+const gsSigned = v => Number(String(v ?? "").replace(/,/g, "")) || 0;
+const gsProdOf = k => gsSigned(gs.prod[k]);
+/* what the reserves hold of a piece of gear, or nothing with them switched off */
+const gsResvOf = k => gs.resvOn ? Math.floor(gsNum(gs.resv[k])) : 0;
 const gsEl   = id => document.getElementById(id);
 
 const gsIcon = k => k === "bits"
@@ -10116,16 +10127,17 @@ const gsVal  = v => v ? gsFmt(v) : "";
    keeping the caret after the same digit */
 function gsCommas(el){
   const raw = el.value, at = el.selectionStart ?? raw.length;
+  const neg = el.dataset.gsBucket === "prod" && /^\s*-/.test(raw) ? "-" : "";
   const digitsBefore = raw.slice(0, at).replace(/[^\d.]/g, "").length;
   let clean = raw.replace(/[^\d.]/g, "");
   const dot = clean.indexOf(".");
   if (dot >= 0) clean = clean.slice(0, dot + 1) + clean.slice(dot + 1).replace(/\./g, "");
   const [whole, frac] = clean.split(".");
-  const out = (whole ? Number(whole).toLocaleString("en-US") : (frac != null ? "0" : "")) +
+  const out = neg + (whole ? Number(whole).toLocaleString("en-US") : (frac != null ? "0" : "")) +
               (frac != null ? "." + frac : "");
   if (out === raw) return;
   el.value = out;
-  let seen = 0, pos = 0;
+  let seen = 0, pos = neg.length;
   while (pos < out.length && seen < digitsBefore){ if (/[\d.]/.test(out[pos])) seen++; pos++; }
   try{ el.setSelectionRange(pos, pos); }catch(e){}
 }
@@ -10138,7 +10150,7 @@ function gsInputs(boxId, bucket, keys){
 
 function gsStrip(){
   gsEl("gsStrip").innerHTML = `<span class="gs-x">×${GS_TICKS}</span>` + GS_STRIP.map(k=>
-    `<span class="res-chip">${gsIcon(k)} <span class="mono">${gsFmt(gsNum(gs.prod[k]) * GS_TICKS)}</span></span>`).join("");
+    `<span class="res-chip">${gsIcon(k)} <span class="mono${gsProdOf(k) < 0 ? " bad" : ""}">${gsFmt(gsProdOf(k) * GS_TICKS)}</span></span>`).join("");
 }
 
 function gsReserves(){
@@ -10260,7 +10272,7 @@ function gsWriteoffHTML(b){
 
 function gsStockHTML(b){
   const rows = GS_COST.filter(k => b.res[k] > 0).map(k=>{
-    const have = gsNum(gs.stock[k]), prod = gsNum(gs.prod[k]);
+    const have = gsNum(gs.stock[k]), prod = gsProdOf(k);
     const turns = b.res[k] > have && prod > 0 ? Math.ceil((b.res[k] - have) / prod) : null;
     return gsRow(`${gsIcon(k)} ${esc(gsName(k))}${turns == null ? ""
       : ` <span class="t">+${turns.toLocaleString("en-US")} turns</span>`}`, gsAmtPct(b.res[k], have));
@@ -10272,7 +10284,7 @@ function gsStockHTML(b){
    makes up the gap, and the row says how many ticks of the chosen view it lasts */
 function gsUpkeepHTML(b){
   const rows = GS_UPKEEP.filter(k => b.upkeep[k] > 0).map(k=>{
-    const prod = gsNum(gs.prod[k]) * gs.upx;
+    const prod = gsProdOf(k) * gs.upx;
     const gap = b.upkeep[k] - prod;
     let left = "";
     if (gap > 0){
@@ -10340,7 +10352,7 @@ function gsGearTotalsHTML(comps){
   comps.forEach(c => c.units.forEach(u => [u.weapon, u.armor].forEach(k=>{
     if (k && !SCROUNGED[k]) need[k] = (need[k] || 0) + gsNum(u.size);
   })));
-  const haveOf = k => gs.gearAll ? 0 : Math.max(0, Math.floor(gsNum(gs.resv[k])));
+  const haveOf = k => gs.gearAll ? 0 : gsResvOf(k);
   const kept = GS_GEAR.filter(k => need[k] > 0);
   const rows = kept.map(k=>{
     const have = haveOf(k);
@@ -10360,7 +10372,7 @@ function gsGearTotalsHTML(comps){
   /* the builder's build line for the lot — less what the reserves already
      hold, unless the box says to build everything */
   const items = GS_GEAR.map(k=>{
-    const n = gs.gearAll ? need[k] || 0 : Math.max(0, (need[k] || 0) - Math.floor(gsNum(gs.resv[k])));
+    const n = Math.max(0, (need[k] || 0) - haveOf(k));
     return n > 0 ? `${bq(label(k))}:${n}` : "";
   }).filter(Boolean);
   const line = items.length ? `build ${items.join(" ")}` : "";
@@ -10460,7 +10472,8 @@ function gsChart(comps, bills){
 /* ---- stockpile in and out, as plain "Name: amount" lines ---- */
 /* the reserves only list the gear there is some of */
 function gsExportText(){
-  const sec = (title, bucket, keys) => [title].concat(keys.map(k => `${gsName(k)}: ${gsFmt(gsNum(gs[bucket][k]))}`));
+  const sec = (title, bucket, keys) => [title].concat(keys.map(k =>
+    `${gsName(k)}: ${gsFmt(bucket === "prod" ? gsProdOf(k) : gsNum(gs[bucket][k]))}`));
   const resv = ["Reserves"].concat(GS_GEAR.filter(k => gsNum(gs.resv[k]) > 0)
     .map(k => `${label(k)}: ${gsFmt(gsNum(gs.resv[k]))}`));
   return sec("Stockpile", "stock", GS_STOCK).concat([""], sec("Production / turn", "prod", GS_PROD), [""], resv).join("\n");
@@ -10469,26 +10482,42 @@ function gsExportText(){
 /* a section a paste names replaces that section; a paste with no headings is the stockpile.
    The game's own tables paste in too, a row to a line with the cells tab-apart:
    its Weapons and Armor stockpiles fill the reserves (the Qty column), and
-   Alliance Resources fills the production (the Net column, the last on the
-   row; a deficit counts as none). Rows for things not kept here are passed over. */
+   Alliance Resources the production (the Net column, the last on the row) —
+   GDP is the bits, and what has no production box, copper and the parts,
+   goes in the stockpile instead. Rows for things not kept here are passed over. */
 function gsImportText(txt){
   const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, "");
-  const names = (b, k) => (b === "resv" ? [label(k), k] : [gsName(k), k]).map(norm);
+  const names = (b, k) => (b === "resv" ? [label(k), k] : k === "bits" ? ["Bits", "GDP"] : [gsName(k), k]).map(norm);
   const find = (b, ks, name) => ks.find(k => names(b, k).includes(norm(name)));
   const WEAPONS = GS_GEAR.filter(k => k in WEAPON_COST), ARMOR = GS_GEAR.filter(k => k in ARMOR_COST);
   let bucket = "stock", keys = GS_STOCK, game = null, n = 0;
   const seen = {};
   const bad = [];
-  const put = (b, k, v)=>{
+  const put = (b, k, raw)=>{
     if (!seen[b]){ seen[b] = true; gs[b] = {}; }
+    const v = b === "prod" ? gsSigned(raw) : b === "resv" ? Math.floor(gsNum(raw)) : gsNum(raw);
     if (v) gs[b][k] = v; else delete gs[b][k];
     n++;
   };
   /* a game table only replaces its own rows: Weapons leaves the armour alone,
-     and Alliance Resources the bits */
+     and Alliance Resources whatever it does not list */
   const table = (b, ks, pick)=>{
     bucket = b; keys = ks; game = pick; seen[b] = true;
     if (pick === "first"){ ks.forEach(k => delete gs.resv[k]); n++; }
+    else seen.stock = true;
+  };
+  /* where a row lands: in the section it is under, or for the alliance table
+     the stockpile when it has no production box */
+  const place = name=>{
+    const k = find(bucket, keys, name);
+    if (k) return [bucket, k];
+    if (game === "last"){ const s = find("stock", GS_STOCK, name); return s ? ["stock", s] : null; }
+    /* a weapon or armour row pasted with no heading over it is still reserves */
+    if (!game && bucket === "stock"){
+      const g = find("resv", GS_GEAR, name);
+      if (g){ seen.resv = true; return ["resv", g]; }
+    }
+    return null;
   };
   txt.split(/\r?\n/).forEach(line=>{
     const l = line.trim();
@@ -10501,22 +10530,18 @@ function gsImportText(txt){
     /* only the gear there is some of is written out, so the heading alone clears the rest */
     if (/^reserve/i.test(l)){ bucket = "resv"; keys = GS_GEAR; game = null; seen.resv = true; gs.resv = {}; n++; return; }
     const cells = l.split(/\t|\s{2,}/).map(c => c.trim()).filter(Boolean);
+    let name, raw;
     if (cells.length > 1){
       const nums = cells.slice(1).filter(c => /^-?[\d,]*\.?\d+$/.test(c));
       if (!nums.length) return;                       // a column header row
-      const v = gsNum(game === "last" ? nums[nums.length - 1] : nums[0]);
-      let k = find(bucket, keys, cells[0]), b = bucket;
-      /* a weapon or armour row pasted with no heading over it is still reserves */
-      if (!k && !game && bucket === "stock"){ k = find("resv", GS_GEAR, cells[0]); b = "resv"; seen.resv = true; }
-      if (k) put(b, k, b === "resv" ? Math.floor(v) : v);
-      else if (!game) bad.push(l);
-      return;
+      name = cells[0]; raw = game === "last" ? nums[nums.length - 1] : nums[0];
+    } else {
+      const m = l.match(/^(.+?)\s*[:=]\s*(-?[\d,.\s]*)$/);
+      if (m){ name = m[1]; raw = m[2].replace(/\s/g, ""); }
     }
-    const m = l.match(/^(.+?)\s*[:=]\s*([\d,.\s]*)$/);
-    const k = m && find(bucket, keys, m[1]);
-    if (!k){ if (!game) bad.push(l); return; }
-    const v = gsNum(m[2].replace(/\s/g, ""));
-    put(bucket, k, v);
+    const at = name != null && place(name);
+    if (at) put(at[0], at[1], raw);
+    else if (!game) bad.push(l);
   });
   return {n, bad};
 }
@@ -10595,10 +10620,12 @@ function renderGrand(){
   clearTips("gs");
   const comps = gsComps();
   const resvLeft = {};
-  GS_GEAR.forEach(k=>{ resvLeft[k] = Math.floor(gsNum(gs.resv[k])); });
+  GS_GEAR.forEach(k=>{ resvLeft[k] = gsResvOf(k); });
   const bills = comps.map(c => gsBill(c.units, resvLeft));
   gsEl("gsWide").checked = gs.wide;
   gsEl("gsFocus").checked = gs.focus;
+  gsEl("gsResvOn").checked = gs.resvOn;
+  gsEl("gsReserves").classList.toggle("off", !gs.resvOn);
   gsEl("viewGrand").classList.toggle("gs-focus", gs.focus);
   gsEl("gsOut").innerHTML = comps.length
     ? `<div class="gs-slips${gs.wide ? " wide" : ""}">${comps.map((c, i) => gsSlip(c, bills[i])).join("")}</div>` : "";
@@ -10626,7 +10653,7 @@ gsEl("viewGrand").addEventListener("input", e=>{
   const i = e.target.closest("[data-gs-bucket]");
   if (!i) return;
   gsCommas(i);
-  const v = gsNum(i.value);
+  const v = (i.dataset.gsBucket === "prod" ? gsSigned : gsNum)(i.value);
   if (v) gs[i.dataset.gsBucket][i.dataset.gsKey] = v;
   else delete gs[i.dataset.gsBucket][i.dataset.gsKey];
   gsSave();
@@ -10684,6 +10711,11 @@ document.addEventListener("click", e=>{
 document.addEventListener("change", e=>{
   if (!e.target.matches?.("[data-gs-gearall]")) return;
   gs.gearAll = e.target.checked;
+  gsSave();
+  renderGrand();
+});
+gsEl("gsResvOn").addEventListener("change", ()=>{
+  gs.resvOn = gsEl("gsResvOn").checked;
   gsSave();
   renderGrand();
 });
