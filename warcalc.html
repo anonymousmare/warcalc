@@ -11718,7 +11718,8 @@ function asFight(name, b, chain){
   const bonus = b.bonus === "No" ? "No" : "Yes";
   const tally = () => ({troops: 0, bits: 0});
   const lost = {atk: tally(), def: tally()};
-  const addDead = (t, d)=>{ t.troops += d.troops; t.bits += d.hire + d.gear; addRes(t, d.res); };
+  /* the bits a death burns are the Battle tab's: raising, equipment and the crafting fees behind it */
+  const addDead = (t, d)=>{ t.troops += d.troops; t.bits += d.hire + d.gear + d.craftBits; addRes(t, d.res); };
   /* who is on the field this tick, at what is left of them */
   /* those who were there first first, each wave of reinforcements behind the last, as the Battle tab lines them up */
   const field = (all, t) => all.filter(u => u.left > 0 && t > u.reserve).sort((a, b) => a.reserve - b.reserve).map(u => Object.assign({}, u, {
