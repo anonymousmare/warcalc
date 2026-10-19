@@ -492,13 +492,20 @@ tbody tr:last-child{border-bottom:none}
 }
 .tr-sw button[data-step="1"]::after{width:1.5px;height:6px}
 .tr-sw button:hover{opacity:1}
-/* a reinforcement sits out tick 1: drained of colour and tabbed in a touch */
+/* a reinforcement sits out tick 1: drained of colour and tabbed in a touch.
+   Each further + holds it back another tick and draws another yellow line */
 tr.reserve .spriteSlot{display:block;transform:translateX(4px)}
 tr.reserve .spriteSlot .sprite{filter:grayscale(1);opacity:.8}
 tr.reserve td.col-sprite::before{
   content:"";position:absolute;left:2px;top:8px;bottom:8px;width:2px;border-radius:1px;
   background:rgba(var(--gold-rgb),.55);
 }
+tr.reserve[data-wait="2"] td.col-sprite::before{box-shadow:3px 0 0 rgba(var(--gold-rgb),.55)}
+tr.reserve[data-wait="3"] td.col-sprite::before{box-shadow:3px 0 0 rgba(var(--gold-rgb),.55),6px 0 0 rgba(var(--gold-rgb),.55)}
+tr.reserve[data-wait="4"] td.col-sprite::before{box-shadow:3px 0 0 rgba(var(--gold-rgb),.55),6px 0 0 rgba(var(--gold-rgb),.55),
+  9px 0 0 rgba(var(--gold-rgb),.55)}
+tr.reserve[data-wait="3"] .spriteSlot{transform:translateX(7px)}
+tr.reserve[data-wait="4"] .spriteSlot{transform:translateX(10px)}
 
 /* ---------- log ---------- */
 .log{
@@ -524,6 +531,8 @@ tr.reserve td.col-sprite::before{
 .run-opts.open .run-pop{display:flex}
 /* the chevrons beside the gear: a side's training drifting over the
    successive ticks, as one sentence of pickers */
+/* nudged up and in toward the gear; its picker rides along */
+#drillOpts{top:-2px;left:-15px}
 .gear-btn.drill-btn.open svg{transform:none}
 .drill-pop{font-size:12px}
 .drill-line{display:flex;align-items:center;gap:6px;white-space:nowrap}
@@ -701,7 +710,7 @@ body.no-pin-art .pinbox .pin-art{display:none}
 .pinbox .pin-close{position:absolute;top:2px;right:3px;z-index:2;background:none;border:none;
   color:var(--text-dim);font-size:16px;line-height:1;cursor:pointer;padding:2px 4px}
 .pinbox .pin-close:hover{color:var(--strong)}
-/* the compare panels wear the Grand Strategy ticket papers: navy for the
+/* the compare panels wear the Staging ticket papers: navy for the
    armour being struck, wine for the weapon swinging */
 .pinbox .pin-col.cmp-armor,.pinbox .pin-col.cmp-weapon{padding:8px 9px;border-radius:3px}
 /* each compare wears its unit's side: wine for the invader, navy for the defender */
@@ -986,6 +995,10 @@ body.log-icons .gear-ic{display:inline-flex}
 .tick-divider .caret::before{content:"\25B8"}
 .chain-wrap[open] > .tick-divider .caret::before{content:"\25BE"}
 .tick-divider .drift{font-size:11px;letter-spacing:.06em;text-transform:none;font-weight:600;color:var(--text-dim)}
+/* the drift a further tick opens with, atop its exchange log */
+.log .xlog-drift{font-family:var(--font);font-size:11px;letter-spacing:.04em;color:var(--text-dim)}
+.xlog-drift.atk b{color:var(--atk)}
+.xlog-drift.def b{color:var(--def)}
 .tick-divider .reinf{font-size:11px;letter-spacing:.06em;text-transform:none;font-weight:600;color:var(--gold)}
 .chain-wrap:first-of-type > .tick-divider{margin-top:14px}
 .chain-wrap:not([open]) > .tick-divider{margin-bottom:0}
@@ -1213,7 +1226,7 @@ details summary{cursor:pointer;color:var(--strong);font-size:13px;padding:2px 0}
   --mx:-999px;--my:-999px;
   -webkit-mask-image:radial-gradient(circle at var(--mx) var(--my),rgba(0,0,0,.08) 0,rgba(0,0,0,.08) 18px,#000 130px);
   mask-image:radial-gradient(circle at var(--mx) var(--my),rgba(0,0,0,.08) 0,rgba(0,0,0,.08) 18px,#000 130px)}
-/* ticket moss, as the Grand Strategy slips wear it */
+/* ticket moss, as the Staging slips wear it */
 .btn-moss{background:var(--paper-moss);background-image:none;color:var(--ink-moss);border-color:rgba(var(--good-rgb),.28)}
 .battle-presets{display:flex;align-items:center;gap:4px;opacity:.45;transition:opacity .15s}
 .battle-presets:hover,.battle-presets:focus-within{opacity:1}
@@ -1320,10 +1333,12 @@ details summary{cursor:pointer;color:var(--strong);font-size:13px;padding:2px 0}
   background:var(--sunken);white-space:nowrap;
 }
 .bp-btn.txt-btn:hover{border-color:var(--text-dim)}
-/* the copy buttons wear the Grand Strategy ticket papers: wine, navy, moss */
+/* the copy buttons wear the Staging ticket papers: wine, navy, moss */
 .bp-btn.txt-btn.u-human  {background:var(--paper-atk);color:var(--ink-atk)}
 .bp-btn.txt-btn.u-sheet  {background:var(--paper-def);color:var(--ink-def)}
 .bp-btn.txt-btn.u-builder{background:var(--paper-moss);color:var(--ink-moss)}
+/* copied, but past what the builder takes */
+.bp-btn.txt-btn.warn{color:var(--warn);border-color:var(--warn)}
 /* the headcount that opens each type's block in the Units list */
 .gear-line.gear-head{color:var(--text);font-weight:700;margin-top:5px}
 .gear-line.gear-head:first-child{margin-top:0}
@@ -1516,7 +1531,7 @@ body.snaps-hidden .snap{display:none}
 .t-unicorns{color:var(--t-uni)}
 .t-naval   {color:var(--t-nav)}
 
-/* ---------- grand strategy ---------- */
+/* ---------- staging ---------- */
 .gs-top{display:flex;gap:6px 22px;flex-wrap:wrap;align-items:flex-start}
 .gs-h{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);
   font-weight:600;margin-bottom:6px}
@@ -1548,6 +1563,8 @@ body.snaps-hidden .snap{display:none}
 .gs-res-on{display:inline-flex;align-items:center;gap:4px;margin-left:8px;text-transform:none;letter-spacing:0;
   font-weight:400;cursor:pointer}
 .gs-res-on input{width:auto;margin:0}
+/* Show %? only matters to Assessment's tickets, and only while the stockpile is accounted for */
+.gs-stockp.off .gs-pc-on,#viewGrand .gs-pc-on{display:none}
 /* switched off, the reserves are kept but faded, as nothing counts them */
 .gs-res.off .gs-res-cols{opacity:.45}
 .gs-res-cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:10px}
@@ -1761,9 +1778,12 @@ body.snaps-hidden .snap{display:none}
 .as-u .gear-img{max-width:20px;max-height:20px}
 .as-none{text-align:center;opacity:.45;font-size:11px;padding:2px 0}
 .as-err{color:var(--note);font-size:11px;text-align:center;margin-top:6px}
-/* a section's name on a little dark purple tab, centred on the seam */
-.as-sub{width:fit-content;margin:2px auto 5px;padding:2px 8px 2px calc(8px + .12em);border-radius:3px;background:#2c2338;
+/* a section's name on a little near-black purple tab, centred on the seam */
+.as-sub{width:fit-content;margin:2px auto 5px;padding:2px 8px 2px calc(8px + .12em);border-radius:3px;background:#1a1421;
   font:700 10px/1.3 var(--font);letter-spacing:.12em;text-transform:uppercase;color:color-mix(in srgb,var(--ink) 75%,transparent)}
+/* the battle's name on the same tab, a size up, at the head of the ticket */
+.as-slip .slip-name{width:fit-content;max-width:100%;box-sizing:border-box;margin:0 auto;
+  padding:3px 10px 3px calc(10px + .12em);border-radius:3px;background:#1a1421}
 .as-sub-n{color:var(--note);letter-spacing:.06em}
 .as-row{display:grid;grid-template-columns:1fr 14px 1fr;align-items:center;padding-top:3px;font-size:12px}
 /* the icon sits between a side's brackets and its figure, once on each side */
@@ -1820,7 +1840,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
     cx="12" cy="12" r="3"/></svg></button></span>
   <button class="tab active" data-tab="battle">Battle</button>
   <button class="tab" data-tab="counter">Counters</button>
-  <button class="tab" data-tab="grand">Grand Strategy</button>
+  <button class="tab" data-tab="grand">Staging</button>
   <button class="tab" data-tab="assess">Assessment</button>
   <span class="ref-btns">
     <button class="ref-btn" data-ref="stats" title="Weapon &amp; armor stat table  (F)">
@@ -2289,12 +2309,14 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
   <div id="ctrOut"></div>
 </div>
 
-<!-- ============ GRAND STRATEGY ============ -->
+<!-- ============ STAGING ============ -->
 <div id="viewGrand" style="display:none">
   <!-- the one stockpile, carried to Assessment and back as the tabs change -->
   <div id="gsStockHome"><details class="panel gs-res gs-stockp" id="gsStockPanel">
     <summary>Stockpile <label class="gs-res-on" title="Weigh the bills, the upkeep and the losses against the stockpile and the production">
-      <input type="checkbox" id="gsStockOn"> Account for</label></summary>
+      <input type="checkbox" id="gsStockOn"> Account for</label><label class="gs-res-on gs-pc-on"
+      title="Show what each loss comes to as a share of our stockpile on the Assessment tickets">
+      <input type="checkbox" id="gsPcOn"> Show %?</label></summary>
   <div class="gs-top">
     <div>
       <div class="gs-h">Stockpile</div>
@@ -2703,6 +2725,16 @@ function spriteMissing(img){
 
 let rowSeq = 0;
 
+/* how many ticks a unit is held back: 0 on the front line, 1 for a
+   reinforcement joining on tick 2, up to REINF_MAX. Older saves and codes
+   wrote reserve:true, which is 1; a wait of 1 is still written that way */
+const REINF_MAX = 4;
+function waitOf(u){
+  const r = u?.reserve;
+  return r === true ? 1 : Math.max(0, Math.min(REINF_MAX, parseInt(r, 10) || 0));
+}
+const packWait = u => { const w = waitOf(u); return w ? {reserve: w === 1 ? true : w} : {}; };
+
 /* training tops out at 20, unless the box beside that side's Barracks is ticked */
 const TRAIN_UNCAPPED = 9999;
 const uncapBox = side => document.querySelector(`[data-uncap="${side}"]`);
@@ -2758,8 +2790,8 @@ function makeRow(side, data){
     <td class="col-name"><input type="text" class="uname" maxlength="50" spellcheck="false"
       placeholder="—" value="${esc(data?.name ?? "")}"></td>
     <td class="col-type"><span class="reinf-sw">
-      <button type="button" data-reinf="0" title="Front line">−</button>
-      <button type="button" data-reinf="1" title="Reinforcement">+</button>
+      <button type="button" data-reinf="0" title="A tick sooner (front line)">−</button>
+      <button type="button" data-reinf="1" title="Reinforcement — press again to hold it back another tick">+</button>
     </span><select class="type">
       ${typeOpts.map(t=>`<option value="${t}">${t}</option>`).join("")}
     </select></td>
@@ -2788,12 +2820,12 @@ function makeRow(side, data){
   tr.querySelector(".size").addEventListener("input", ()=>paintRow(tr));
   tr.querySelector(".del").addEventListener("click", ()=>{ tr.remove(); refreshCounts(); });
   tr.querySelectorAll("[data-reinf]").forEach(b=>b.addEventListener("click", ()=>{
-    const was = tr.classList.contains("reserve");
-    setReserve(tr, b.dataset.reinf === "1");
-    if (was !== tr.classList.contains("reserve")) flagReinfStale();
+    const was = +tr.dataset.wait || 0;
+    setReserve(tr, was + (b.dataset.reinf === "1" ? 1 : -1));
+    if (was !== +tr.dataset.wait) flagReinfStale();
     refreshCosts();
   }));
-  setReserve(tr, !!data?.reserve);
+  setReserve(tr, waitOf(data));
 
   document.getElementById(side === "attacker" ? "tbodyAttacker" : "tbodyDefender").appendChild(tr);
 
@@ -2809,10 +2841,17 @@ function makeRow(side, data){
 }
 
 /* a reinforcement stays out of the battle on screen and arrives with the
-   survivors at the start of the next tick */
-function setReserve(tr, on){
+   survivors at the start of the next tick — or, held back further, the
+   tick after that, one tick for every + */
+function setReserve(tr, wait){
+  const w = Math.max(0, Math.min(REINF_MAX, wait | 0));
+  const on = w > 0;
+  tr.dataset.wait = w;
   tr.classList.toggle("reserve", on);
-  tr.querySelector('[data-reinf="1"]').classList.toggle("on", on);
+  const plus = tr.querySelector('[data-reinf="1"]');
+  plus.classList.toggle("on", on);
+  plus.title = on ? `Joins on tick ${w + 1}` + (w < REINF_MAX ? " — press again to hold it back another tick" : "")
+                  : "Reinforcement — press again to hold it back another tick";
   tr.querySelector('[data-reinf="0"]').classList.toggle("on", !on);
 }
 
@@ -3183,8 +3222,11 @@ function ponyName(){
   while (b === a) b = pick();
   return `${a} ${b} ${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}`;
 }
-function builderText(rows){
-  const lines = [], names = [], seen = {}, taken = new Set();
+/* the builder takes a paste of 2,000 characters at most */
+const BUILDER_MAX = 2000;
+const SHORT_NAMES = new Map();      // a name squeezed to letters keeps them from copy to copy
+function builderText(rows, noGroup){
+  const units = [], seen = {}, taken = new Set();
   rows.forEach(u=>{
     const n = Math.max(0, u.size);
     if (!n) return;
@@ -3206,15 +3248,41 @@ function builderText(rows){
       do name = `${stem}_${bSuffix(seen[stem] = (seen[stem] ?? -1) + 1)}`; while (taken.has(name.toLowerCase()));
     }
     taken.add(name.toLowerCase());
-    name = bq(name);
-    names.push(name);
-    lines.push(`create ${u.type} national ${n} ${name}`);
-    const gear = [u.weapon, u.armor].filter(k => k && !SCROUNGED[k]).map(k => bq(label(k)));
-    if (gear.length) lines.push(`equip ${name} ${gear.join(" ")}`);
+    units.push({u, n, name, auto: !own,
+      gear: [u.weapon, u.armor].filter(k => k && !SCROUNGED[k]).map(k => bq(label(k)))});
   });
-  if (!document.getElementById("bcNoGroup")?.checked)
-    names.slice(1).forEach(n => lines.push(`group ${n} ${names[0]}`));
-  return lines.join("\n");
+  const group = !noGroup && !document.getElementById("bcNoGroup")?.checked;
+  const write = () => {
+    const lines = [];
+    units.forEach(x=>{
+      const name = bq(x.name);
+      lines.push(`create ${x.u.type} national ${x.n} ${name}`);
+      if (x.gear.length) lines.push(`equip ${name} ${x.gear.join(" ")}`);
+    });
+    if (group) units.slice(1).forEach(x => lines.push(`group ${bq(x.name)} ${bq(units[0].name)}`));
+    return lines.join("\n");
+  };
+  let text = write();
+  /* too long for the builder: names turn into a few random letters, the made-up
+     ones before the unit's own, whichever saves the most first, until it fits */
+  if (text.length > BUILDER_MAX){
+    const uses = x => 1 + (x.gear.length ? 1 : 0) + (group && units.length > 1 ? (x === units[0] ? units.length - 1 : 1) : 0);
+    const order = units.slice().sort((a, b) => (b.auto - a.auto) || (bq(b.name).length * uses(b) - bq(a.name).length * uses(a)));
+    const len = units.length > 600 ? 3 : 2;
+    const letters = () => Array.from({length: len}, () => String.fromCharCode(97 + Math.floor(Math.random() * 26))).join("");
+    for (const x of order){
+      if (text.length <= BUILDER_MAX) break;
+      if (x.name.length <= len) continue;
+      taken.delete(x.name.toLowerCase());
+      let short = SHORT_NAMES.get(x.name);
+      while (!short || taken.has(short)) short = letters();
+      SHORT_NAMES.set(x.name, short);
+      taken.add(short);
+      x.name = short;
+      text = write();
+    }
+  }
+  return text;
 }
 
 /* the one builder line that makes the gear itself — build "Item":count …,
@@ -3261,18 +3329,21 @@ function unitsBlock(rows, open, byTick){
   /* with reinforcements, the human copy is split into what is built for
      each tick */
   const roster = byTick
-    ? [["Tick 1", byTick.front], ["Tick 2", byTick.reinf]]
+    ? [["Tick 1", byTick.front]].concat(Array.from({length: REINF_MAX}, (_, i) =>
+        [`Tick ${i + 2}`, byTick.reinf.filter(u => waitOf(u) === i + 1)]))
         .map(([h, r]) => [h, rosterText(r)]).filter(([, t]) => t)
         .map(([h, t]) => `# ${h}\n\n${t}`).join("\n\n")
     : rosterText(rows);
-  const gearText = builderGearText(byTick ? byTick.front : rows);
+  const builderRows = byTick ? byTick.front : rows;
+  const gearText = builderGearText(builderRows);
   const copy = roster
     ? `<button class="bp-btn txt-btn u-copy u-human" title="Copy the roster the way a person reads it"
          data-units-copy="${esc(roster).replace(/\n/g, "&#10;")}">Human Copy</button>` +
       `<button class="bp-btn txt-btn u-copy u-sheet" title="Copy one count a line, ready for a spreadsheet column"
          data-units-copy="${sheetText(rows).replace(/\n/g, "&#10;")}">Spreadsheet Copy</button>` +
-      `<button class="bp-btn txt-btn u-copy u-builder" title="Copy as army-builder commands"
-         data-units-copy="${esc(builderText(byTick ? byTick.front : rows)).replace(/\n/g, "&#10;")}">Builder Copy</button>` +
+      `<button class="bp-btn txt-btn u-copy u-builder" title="Copy as army-builder commands (shift-click leaves out the grouping)"
+         data-units-copy="${esc(builderText(builderRows)).replace(/\n/g, "&#10;")}"
+         data-units-copy-shift="${esc(builderText(builderRows, true)).replace(/\n/g, "&#10;")}">Builder Copy</button>` +
       (gearText ? `<button class="bp-btn txt-btn u-copy u-builder" title="Copy the army-builder commands that build the gear"
          data-units-copy="${esc(gearText).replace(/\n/g, "&#10;")}">Builder Gear Copy</button>` : "")
     : "";
@@ -3291,8 +3362,12 @@ document.addEventListener("click", async e=>{
   if (!b) return;
   e.preventDefault();                    // keep the click off the summary toggle
   e.stopPropagation();
-  if (await copyText(b.dataset.unitsCopy)) flashOk(b, "Copied");
-  else alert("This browser would not let the page reach the clipboard.");
+  /* shift-click on Builder Copy leaves the grouping out */
+  const text = e.shiftKey && b.dataset.unitsCopyShift != null ? b.dataset.unitsCopyShift : b.dataset.unitsCopy;
+  if (!await copyText(text)){ alert("This browser would not let the page reach the clipboard."); return; }
+  /* still too long for the builder even with the names squeezed: copied all the same, and said so */
+  if (b.dataset.unitsCopyShift != null && text.length > BUILDER_MAX) flashOk(b, "Output over 2k chars", "warn");
+  else flashOk(b, "Copied");
 });
 
 /* ---- the pretty plan: one side's whole order, dressed up for a chat ----
@@ -3333,7 +3408,7 @@ function planFight(side){
   if (!foe.length || [...atkAll, ...defAll].some(u => u.size < 1)) return null;
   const bonus = document.getElementById("defBonus").value;
   const atk = atkAll.filter(u=>!u.reserve), def = defAll.filter(u=>!u.reserve);
-  const reinf = rows => rows.filter(u=>u.reserve).map(u => Object.assign({}, u, {fresh:true}));
+  const reinf = rows => rows.filter(u=>u.reserve);      // chainBattles drops each in on its tick
   let r1;
   try { r1 = simulate(atk, def, bonus); } catch(e){ return null; }
 
@@ -3430,7 +3505,7 @@ function readSide(side){
     const size = parseInt(tr.querySelector(".size").value,10) || 0;
     const training = clampInt(tr.querySelector(".training").value, 0, trainCap(side));
     const nick = tr.querySelector(".uname").value.trim();
-    out.push({type, weapon, armor, size, training, nick, reserve: tr.classList.contains("reserve"),
+    out.push({type, weapon, armor, size, training, nick, reserve: +tr.dataset.wait || 0,
       name:`${type}_${weapon}_${armor}_size_${size}_train_${training}`});
   });
   return out;
@@ -4375,8 +4450,10 @@ function applySurvivors(){
   if (!lastResult) return;
 
   survSnapshot = {attacker: packSide("attacker"), defender: packSide("defender")};
+  /* a reinforcement comes a tick nearer: due next tick it is front line now */
   const fwd = rows => rows.map(u=>Object.assign({type:u.type, weapon:u.weapon, armor:u.armor,
-                                     size:u.size, training:u.training}, u.nick ? {name:u.nick} : {}));
+                                     size:u.size, training:u.training}, u.nick ? {name:u.nick} : {},
+                                     packWait({reserve: waitOf(u) - 1})));
   setSide("attacker", survivorRows(lastResult.units, true).concat(fwd(lastReserves.attacker)));
   setSide("defender", survivorRows(lastResult.units, false).concat(fwd(lastReserves.defender)));
   scheduleSave();
@@ -4395,7 +4472,8 @@ function applySurvivors(){
    who starts a tick whether or not they live through it. */
 const CHAIN_MAX = 10;
 let lastBonus = "No";        // the defender bonus the shown battle was fought under
-/* the units held back from the shown battle; they join the survivors on tick 2 */
+/* the units held back from the shown battle; they join the survivors on tick 2,
+   or later for those held back further */
 let lastReserves = {attacker:[], defender:[]};
 const reserveCount = () => lastReserves.attacker.length + lastReserves.defender.length;
 
@@ -4424,8 +4502,11 @@ const chainRows = (units, isAtk) =>
     name:`${u.type}_${u.weapon}_${u.armor}_size_${u.size}_train_${u.training}`}));
 
 function chainBattles(atkRows, defRows, bonus, drift = trainDrift()){
-  let atk = atkRows.map(u => Object.assign({}, u));
-  let def = defRows.map(u => Object.assign({}, u));
+  /* reinforcements wait apart until their tick, then drop in at the back of the list */
+  let atk = atkRows.filter(u => !waitOf(u)).map(u => Object.assign({}, u));
+  let def = defRows.filter(u => !waitOf(u)).map(u => Object.assign({}, u));
+  const atkDue = atkRows.filter(u => waitOf(u)), defDue = defRows.filter(u => waitOf(u));
+  const land = (due, t) => due.filter(u => waitOf(u) === t).map(u => Object.assign({}, u, {fresh:true}));
   const ticks = [];
   let stop = "cap", error = "";
   /* raising stops at 20 even on an uncapped side; a unit already past it keeps its training */
@@ -4435,15 +4516,22 @@ function chainBattles(atkRows, defRows, bonus, drift = trainDrift()){
     .some(u => !u.reserve && (drift.step < 0 ? u.training > 0 : u.training < RAISE_CAP));
 
   for (let t = 1; t <= CHAIN_MAX; t++){
-    /* the shown battle is tick 1, so this is tick t + 1: every drift.every
-       ticks the side's training moves before the fight, while it can */
-    let moved = 0;
+    /* the shown battle is tick 1, so this is tick t + 1: whoever was held
+       back t ticks drops in now */
+    const aIn = land(atkDue, t), dIn = land(defDue, t);
+    atk = atk.concat(aIn); def = def.concat(dIn);
+    /* every drift.every ticks the side's training moves before the fight, while it can */
+    let moved = 0, train = null;
     if (drift && t > drift.skip && (t - drift.skip) % drift.every === 0 && drifting()){
+      const span = rows => { const tr = rows.filter(u => !u.reserve).map(u => u.training);
+                             return [Math.min(...tr), Math.max(...tr)]; };
       const shift = rows => rows.map(u => u.reserve ? u : Object.assign({}, u,
         {training: drift.step < 0 ? Math.max(0, u.training + drift.step)
                   : Math.max(u.training, Math.min(RAISE_CAP, u.training + drift.step))}));
+      const from = span(drift.side === "attacker" ? atk : def);
       if (drift.side === "attacker") atk = shift(atk); else def = shift(def);
       moved = drift.step;
+      train = {side: drift.side, step: drift.step, from, to: span(drift.side === "attacker" ? atk : def)};
     }
     const upA = upkeepOf(atk), upD = upkeepOf(def);
     const atkStart = troopsOf(atk), defStart = troopsOf(def);
@@ -4456,16 +4544,29 @@ function chainBattles(atkRows, defRows, bonus, drift = trainDrift()){
     const atkLeft = r.invaders.reduce((n, u) => n + u.remaining, 0);
     const defLeft = r.repellers.reduce((n, u) => n + u.remaining, 0);
 
-    ticks.push({tick:t, res:r, atkStart, defStart, atkLeft, defLeft, atkDead, defDead, upA, upD, moved});
+    ticks.push({tick:t, res:r, atkStart, defStart, atkLeft, defLeft, atkDead, defDead, upA, upD, moved, train,
+                arrived: aIn.length + dIn.length});
 
     atk = atk.map((u, i) => Object.assign({}, u, {size:r.invaders[i].remaining, fresh:false})).filter(u => u.size > 0);
     def = def.map((u, i) => Object.assign({}, u, {size:r.repellers[i].remaining, fresh:false})).filter(u => u.size > 0);
 
-    if (!atkLeft || !defLeft){ stop = "wipe"; break; }
-    /* every later tick repeats it, unless the training still has somewhere to go */
-    if (!atkDead.troops && !defDead.troops && !(drift && drifting())){ stop = "stall"; break; }
+    /* a side down to nobody is wiped, unless it still has reinforcements to come */
+    if ((!atkLeft && !atkDue.some(u => waitOf(u) > t)) ||
+        (!defLeft && !defDue.some(u => waitOf(u) > t))){ stop = "wipe"; break; }
+    /* every later tick repeats it, unless the training still has somewhere to go
+       or reinforcements are still to come */
+    const due = [...atkDue, ...defDue].some(u => waitOf(u) > t);
+    if (!atkDead.troops && !defDead.troops && !(drift && drifting()) && !due){ stop = "stall"; break; }
   }
   return {ticks, stop, error};
+}
+
+/* the training drift a tick opened with, as the first line of its exchange log */
+function driftNote(d){
+  if (!d) return "";
+  const lv = ([a, b]) => a === b ? `T${a}` : `T${a}–${b}`;
+  return `<div class="xlog-drift${d.side === "attacker" ? " atk" : " def"}">Training drift: ${d.side === "attacker" ? "attackers" : "defenders"}
+    <b>${d.step > 0 ? "+" : "−"}${Math.abs(d.step)}</b> <span class="muted">${lv(d.from)} → ${lv(d.to)}</span></div>`;
 }
 
 /* how many troops both sides lost, for the Deaths heading */
@@ -4485,13 +4586,13 @@ function chainTickBlock(k, cum){
   const r = k.res;
   const all = Object.values(r.units);
   return `<details class="chain-wrap" id="chainTick${n}" open>
-    <summary class="tick-divider"><span class="caret"></span>Tick ${n}${n === 2 && reserveCount()
-      ? `<span class="reinf">+${reserveCount()} reinforcement${reserveCount() === 1 ? "" : "s"}</span>` : ""}${k.moved
+    <summary class="tick-divider"><span class="caret"></span>Tick ${n}${k.arrived
+      ? `<span class="reinf">+${k.arrived} reinforcement${k.arrived === 1 ? "" : "s"}</span>` : ""}${k.moved
       ? `<span class="drift">${trainDrift()?.side === "attacker" ? "Attackers" : "Defenders"} ${k.moved > 0 ? "+" : "−"}${Math.abs(k.moved)} training</span>` : ""}</summary>
     <div class="chain-tick ${TICK_TONES[(k.tick - 1) % TICK_TONES.length]}">
     <div class="chain-body">
       ${stallsNote(r.stalls)}
-      ${exchangeLogBlock(r.units, r.log, lastBonus, `logExchange_t${n}`, "chain", unspentLine(r.units))}
+      ${exchangeLogBlock(r.units, r.log, lastBonus, `logExchange_t${n}`, "chain", unspentLine(r.units), driftNote(k.train))}
       ${casualtiesBlock(r.units, r.casualties, `logCasualties_t${n}`)}
 
       <div style="margin-top:16px">${survivorsGrid(all)}</div>
@@ -4586,10 +4687,9 @@ function chainOutcome(run){
 
 function renderChain(){
   if (!lastResult) return "";
-  /* reinforcements are marked fresh for the one tick they drop in on */
-  const dropIn = rows => rows.map(u => Object.assign({}, u, {fresh:true}));
-  const atk0 = chainRows(lastResult.units, true).concat(dropIn(lastReserves.attacker));
-  const def0 = chainRows(lastResult.units, false).concat(dropIn(lastReserves.defender));
+  /* reinforcements ride along; chainBattles drops each in, fresh, on its tick */
+  const atk0 = chainRows(lastResult.units, true).concat(lastReserves.attacker);
+  const def0 = chainRows(lastResult.units, false).concat(lastReserves.defender);
 
   if (!atk0.length || !def0.length)
     return `<div class="note chain-note">Nothing left to fight.</div>`;
@@ -4740,7 +4840,7 @@ function unspentLine(units){
     `<span class="us-row">${unitRef(u)} — <b>${u.hits.toLocaleString("en-US")}</b></span>`).join("")}</div>`;
 }
 
-function exchangeLogBlock(units, log, bonus, id, ns, tail){
+function exchangeLogBlock(units, log, bonus, id, ns, tail, head){
   /* the widest "before→after" hits figure, in digits, sizes the hits column */
   const left = {};
   const ammoCh = log.reduce((w, l)=>{
@@ -4756,7 +4856,7 @@ function exchangeLogBlock(units, log, bonus, id, ns, tail){
       <span class="spacer"></span>
       ${logToggle(id)}
     </div>
-    <div class="well log xlog${logIsFull(id) ? " log-full" : ""}" id="${id}" style="--ammo-ch:${ammoCh}">${
+    <div class="well log xlog${logIsFull(id) ? " log-full" : ""}" id="${id}" style="--ammo-ch:${ammoCh}">${head || ""}${
       log.length ? log.map((l, i)=>{
         const A = units[l.aid], D = units[l.did];
         const bonusApplied = !!A.attack_mission && bonus === "Yes";
@@ -4957,7 +5057,8 @@ function render(result, atkRaw, defRaw, bonus){
 
    Reinforcements ride behind a "_" as a second army in the same form, so
    "front_reinforcements"; a code without one is all front line, exactly as
-   codes read before reinforcements existed.
+   codes read before reinforcements existed. Those held back further take
+   one more "_" army per tick, "front_tick2_tick3", an empty wave written 0.
 
    Training past 20 takes the wide form: the unit's "there is a unit here"
    digit reads 0 instead of 1, and its training gets a field wide enough for
@@ -5032,10 +5133,12 @@ function sizeParts(n){
 /* built back to front: the last unit goes in first, so the first unit is
    the first one to come back out */
 function encodeArmy(units, barracks){
-  const front = (units || []).filter(u => !u.reserve);
-  const reinf = (units || []).filter(u =>  u.reserve);
-  return encodeStacks(front, barracks) + (reinf.length ? "_" + encodeStacks(reinf, barracks) : "")
-       + encodeNames(front.concat(reinf))
+  const wave = w => (units || []).filter(u => waitOf(u) === w);
+  const waves = [wave(0)];
+  for (let w = 1; w <= REINF_MAX; w++) waves.push(wave(w));
+  while (waves.length > 1 && !waves[waves.length - 1].length) waves.pop();
+  return waves.map(r => encodeStacks(r, barracks)).join("_")
+       + encodeNames(waves.flat())
        + (barracks == null ? "" : "~" + clampInt(barracks, 0, TRAIN_UNCAPPED));   // the side's Barracks level
 }
 
@@ -5084,10 +5187,10 @@ function decodeArmy(code){
   if (tail !== undefined || (brk !== undefined && !/^\d{1,4}$/.test(brk))) throw new Error("not a code");
   const [stacks, names, more] = body.split(".");
   if (more !== undefined) throw new Error("not a code");
-  const [front, reinf, extra] = stacks.split("_");
-  if (extra !== undefined) throw new Error("not a code");
-  const units = decodeStacks(front || "0").concat(
-    reinf ? decodeStacks(reinf).map(u => Object.assign(u, {reserve:true})) : []);
+  const [front, ...waves] = stacks.split("_");
+  if (waves.length > REINF_MAX) throw new Error("not a code");
+  const units = decodeStacks(front || "0").concat(...waves.map((r, i) =>
+    decodeStacks(r).map(u => Object.assign(u, packWait({reserve: i + 1})))));
   if (names) decodeNames(names).forEach((n, i) => {
     if (units[i] && n.trim()) units[i].name = n.trim().slice(0, 50);
   });
@@ -5127,8 +5230,8 @@ const encodeBattle = (atk, def, bonus, brk) =>
   "+" + encodeArmy(atk, brk?.attacker) + (bonus === "No" ? "=" : "-") + encodeArmy(def, brk?.defender);
 const barracksBoth = () => ({attacker: barracksOf("attacker"), defender: barracksOf("defender")});
 
-const RE_ARMY_CODE   = /^(?=.)[0-9A-Za-z]*(_[0-9A-Za-z]+)?(\.[0-9A-Za-z]+)?(~\d{1,4})?$/;
-const RE_BATTLE_CODE = /^\+([0-9A-Za-z]*(?:_[0-9A-Za-z]+)?(?:\.[0-9A-Za-z]+)?(?:~\d{1,4})?)([-=])([0-9A-Za-z]*(?:_[0-9A-Za-z]+)?(?:\.[0-9A-Za-z]+)?(?:~\d{1,4})?)$/;
+const RE_ARMY_CODE   = /^(?=.)[0-9A-Za-z]*(_[0-9A-Za-z]+){0,4}(\.[0-9A-Za-z]+)?(~\d{1,4})?$/;
+const RE_BATTLE_CODE = /^\+([0-9A-Za-z]*(?:_[0-9A-Za-z]+){0,4}(?:\.[0-9A-Za-z]+)?(?:~\d{1,4})?)([-=])([0-9A-Za-z]*(?:_[0-9A-Za-z]+){0,4}(?:\.[0-9A-Za-z]+)?(?:~\d{1,4})?)$/;
 
 /* null when the text is not a battle code at all */
 function decodeBattle(code){
@@ -5440,7 +5543,7 @@ function parsePresetJSON(text){
     size: Math.max(1, parseInt(u.size, 10) || 1),
     training: Math.min(TRAIN_UNCAPPED, Math.max(0, parseInt(u.training, 10) || 0))
   }, typeof u.name === "string" && u.name.trim() ? {name: u.name.trim().slice(0, 50)} : {},
-     u.reserve === true ? {reserve:true} : {});
+     packWait(u));
   const units = a => (Array.isArray(a) ? a : []).filter(u => u && typeof u === "object").map(unit);
   const obj = v => v && typeof v === "object" && !Array.isArray(v) ? v : {};
   if (Array.isArray(data)) return {armies: {"pasted": units(data)}, battles: {}};
@@ -5576,7 +5679,8 @@ function parseLongForm(text){
       for (let j = i + 1; j <= i + 2 && j < lines.length; j++){
         const nm = /^\s*Name:\s*(.*)$/i.exec(lines[j]);
         if (nm && nm[1].trim()) unit.name = nm[1].trim().slice(0, 50);
-        if (/^\s*Reinforcement:\s*yes/i.test(lines[j])) unit.reserve = true;
+        const rf = /^\s*Reinforcement:\s*(yes|\d+)/i.exec(lines[j]);
+        if (rf) Object.assign(unit, packWait({reserve: /^yes$/i.test(rf[1]) ? 1 : rf[1]}));
       }
       units.push(unit);
     }
@@ -5685,14 +5789,14 @@ function paintIcons(root){
 paintIcons();
 
 /* a button that says it worked, then goes back to being a button */
-function flashOk(btn, word){
+function flashOk(btn, word, cls = "ok"){
   if (!btn) return;
   const html = btn.innerHTML, title = btn.title;
   btn.innerHTML = btn.classList.contains("txt-btn")
     ? esc(word || "Done") : iconSvg("ok");
-  btn.classList.add("ok");
+  btn.classList.add(cls);
   btn.title = word || "Done";
-  setTimeout(()=>{ btn.innerHTML = html; btn.classList.remove("ok"); btn.title = title; }, 1200);
+  setTimeout(()=>{ btn.innerHTML = html; btn.classList.remove(cls); btn.title = title; }, cls === "ok" ? 1200 : 2600);
 }
 
 /* ===================================================================
@@ -5723,7 +5827,7 @@ const store = {
 /* a unit stripped down to what is worth saving */
 const packSide = side => readSide(side).map(u=>Object.assign({
   type:u.type, weapon:u.weapon, armor:u.armor, size:u.size, training:u.training},
-  u.nick ? {name:u.nick} : {}, u.reserve ? {reserve:true} : {}));
+  u.nick ? {name:u.nick} : {}, packWait(u)));
 
 function setSide(side, units){
   (units || []).forEach(u=>uncapFor(side, u.training));
@@ -5806,7 +5910,7 @@ function refreshPresetSelects(){
   if (tc) tc.textContent = `${armies.length} army · ${battles.length} battle` +
     (storageOK ? "" : " · storage unavailable");
   renderMarks();
-  document.dispatchEvent(new Event("warcalc:presets"));   // the Grand Strategy list follows
+  document.dispatchEvent(new Event("warcalc:presets"));   // the Staging list follows
 }
 
 /* ---- marked armies: the presets you swap between, one click away ---- */
@@ -6014,7 +6118,7 @@ const compText = units => units.map(u=>[
     `${u.type}_${u.weapon}_${u.armor}`,
     u.type, label(u.weapon), label(u.armor),
     `Size: ${u.size}`, `Training: ${u.training}`
-  ].concat(u.name ? [`Name: ${u.name}`] : [], u.reserve ? ["Reinforcement: yes"] : [])
+  ].concat(u.name ? [`Name: ${u.name}`] : [], waitOf(u) ? [`Reinforcement: ${waitOf(u) === 1 ? "yes" : waitOf(u)}`] : [])
    .join("\n")).join("\n\n");
 
 async function copyText(text){
@@ -6171,7 +6275,7 @@ function importPresetData(data, note){
    imported twice lands on the copy already saved rather than beside it */
 const presetUnits = list => (list || []).map(u => Object.assign(
   {type:u.type, weapon:u.weapon, armor:u.armor, size:u.size, training:u.training},
-  u.name ? {name:u.name} : {}, u.reserve ? {reserve:true} : {}));
+  u.name ? {name:u.name} : {}, packWait(u)));
 
 /* Export army / battle presets (STRING): every preset of the one kind, by name */
 async function exportPresetString(kind, btn){
@@ -6716,12 +6820,12 @@ function solProfile(row){
   const isAli = row.type === "Alicorns";
   const tn = isAli ? 5 : FORCE_TYPES[row.type];
   const es = effectiveStats(row.type, row.weapon, row.armor);
-  /* a reinforcement sits out the first tick and joins on the second, the
-     way the battle view brings it in */
+  /* a reinforcement sits out the first tick and joins on the second, or
+     later if held back further, the way the battle view brings it in */
   return {typeNum: tn, typeName: TYPES[tn], origType: row.type,
           weapon: row.weapon, armor: row.armor,
           training: row.training, size: row.size,
-          arrive: row.reserve ? 2 : 1,
+          arrive: waitOf(row) + 1,
           dmg: es.dmg, arm: es.arm};
 }
 
@@ -8888,8 +8992,8 @@ function solveCosts(rows){
    tick are the forces of the next, wiped stacks drop out, and the losses are
    totalled per starting stack.
    The enemy's reinforcements sit out tick 1 and join whoever is left of the
-   rest on tick 2, behind them in the list, the way the battle view brings
-   them in. Until they have, the enemy is not wiped, a quiet tick is not a
+   rest on tick 2 (or later, held back further), behind them in the list,
+   the way the battle view brings them in. Until they have, the enemy is not wiped, a quiet tick is not a
    deadlock, and they count among the enemy left. */
 function realCheck(ownRows, foeRows, side, bonus, goal, minSurv, ticks, budget, stock){
   const T = Math.max(1, ticks || 1);
@@ -8899,13 +9003,15 @@ function realCheck(ownRows, foeRows, side, bonus, goal, minSurv, ticks, budget, 
   let foe = foeRows.filter(u => !u.reserve).map(u => Object.assign({}, u));
   const reinf = foeRows.filter(u => u.reserve).map(u => Object.assign({}, u));
   let due = reinf.reduce((s, u) => s + u.size, 0);
+  const dueAt = t => reinf.filter(u => waitOf(u) + 1 === t).reduce((s, u) => s + u.size, 0);
   const lost = ownRows.map(() => 0);
   const log = [];
   const up = {};                       // everyone standing at the start of a tick is billed for it
   let wipe = false, left = own.reduce((s, u) => s + u.size, 0), used = 0;
 
   for (let t = 1; t <= T; t++){
-    if (t === 2 && reinf.length){ foe = foe.concat(reinf); due = 0; }
+    const land = reinf.filter(u => waitOf(u) + 1 === t);
+    if (land.length){ foe = foe.concat(land); due -= dueAt(t); }
     if (!own.length || !(foe.length || due)) break;
     addRes(up, upkeepOf(own));
     let r;
@@ -9256,19 +9362,20 @@ async function runSolver(){
   if (solveBusy) return;
   const opts = readSolveOpts();
   const foeSide = opts.side === "defender" ? "attacker" : "defender";
-  /* reinforcements miss the first tick and join the rest on the second, at the
-     back of the list — the order the battle view lines them up in, and the
+  /* reinforcements miss the first tick and join the rest on the second (or
+     later, held back further), at the back of the list — the order the battle view lines them up in, and the
      order that settles any tie in who gets shot first */
   const foeAll = readSide(foeSide);
-  const foeRows = foeAll.filter(u => !u.reserve).concat(foeAll.filter(u => u.reserve));
+  const foeRows = foeAll.slice().sort((a, b) => waitOf(a) - waitOf(b));
   if (!foeRows.length){
     alert(`Add some ${foeSide}s first — the solver needs something to solve against.`);
     return;
   }
   if (foeRows.some(u => u.size < 1)){ alert("Every unit on the fixed side needs a size of at least 1."); return; }
   if (!opts.types.length){ alert("Allow at least one unit type."); return; }
-  if (opts.goal !== "survive" && opts.ticks < 2 && foeRows.some(u => u.reserve)){
-    alert(`The ${foeSide}s' reinforcements only join on tick 2, so they cannot be wiped in one tick. Allow two ticks or more.`);
+  const lastIn = Math.max(0, ...foeRows.map(waitOf)) + 1;
+  if (opts.goal !== "survive" && opts.ticks < lastIn && lastIn > 1){
+    alert(`The ${foeSide}s' last reinforcements only join on tick ${lastIn}, so they cannot be wiped in ${opts.ticks} tick${opts.ticks === 1 ? "" : "s"}. Allow ${lastIn} ticks or more.`);
     return;
   }
 
@@ -9553,7 +9660,7 @@ function showTab(name){
   });
   document.querySelectorAll(".tab").forEach(b=>
     b.classList.toggle("active", b.dataset.tab === name));
-  /* Grand Strategy and Assessment share one stockpile panel; it goes where you are */
+  /* Staging and Assessment share one stockpile panel; it goes where you are */
   document.getElementById(name === "assess" ? "asStockHome" : "gsStockHome")
     .appendChild(document.getElementById("gsStockPanel"));
   store.set(LS_TAB, name);
@@ -10396,7 +10503,7 @@ fillCounterTypes();
 
 
 /* ===================================================================
-   10. GRAND STRATEGY — what a set of saved armies costs against the
+   10. STAGING — what a set of saved armies costs against the
        stockpile, and what their upkeep eats of a war-tick's production
    =================================================================== */
 
@@ -10417,7 +10524,7 @@ const gs = (()=>{
   const obj = v => v && typeof v === "object" && !Array.isArray(v) ? v : {};
   return {stock: obj(o.stock), prod: obj(o.prod), prodThem: obj(o.prodThem), resv: obj(o.resv),
           comps: Array.isArray(o.comps) ? o.comps : [], colors: obj(o.colors), wide: o.wide === true, upx: GS_TICKS,
-          focus: o.focus === true, resvOn: o.resvOn !== false, stockOn: o.stockOn !== false, gearAll: o.gearAll === true, chartOff: Array.isArray(o.chartOff) ? o.chartOff : [],
+          focus: o.focus === true, resvOn: o.resvOn !== false, stockOn: o.stockOn !== false, pcOn: o.pcOn === true, gearAll: o.gearAll === true, chartOff: Array.isArray(o.chartOff) ? o.chartOff : [],
           reader: Object.assign({res: true}, obj(o.reader))};    // every visit opens on the x6 view
 })();
 const gsSave = () => store.set(LS_GRAND, gs);
@@ -10962,6 +11069,7 @@ function renderGrand(){
   gsEl("gsResvOn").checked = gs.resvOn;
   gsEl("gsReserves").classList.toggle("off", !gs.resvOn);
   gsEl("gsStockOn").checked = gs.stockOn;
+  gsEl("gsPcOn").checked = gs.pcOn;
   gsEl("gsStockPanel").classList.toggle("off", !gs.stockOn);
   gsEl("viewGrand").classList.toggle("gs-focus", gs.focus);
   gsEl("gsOut").innerHTML = comps.length
@@ -10972,7 +11080,7 @@ function renderGrand(){
   gsEl("gsChart").classList.toggle("none", !reader);
 }
 
-/* ---- grand strategy wiring ---- */
+/* ---- staging wiring ---- */
 gsInputs("gsStock", "stock", GS_STOCK);
 gsInputs("gsProd", "prod", GS_PROD);
 gsInputs("gsProdThem", "prodThem", GS_PROD);
@@ -11067,6 +11175,11 @@ gsEl("gsStockOn").addEventListener("change", ()=>{
   renderGrand();
   renderAssess();
 });
+gsEl("gsPcOn").addEventListener("change", ()=>{
+  gs.pcOn = gsEl("gsPcOn").checked;
+  gsSave();
+  renderAssess();
+});
 gsEl("gsFocus").addEventListener("change", ()=>{
   gs.focus = gsEl("gsFocus").checked;
   gsSave();
@@ -11095,7 +11208,7 @@ gsEl("gsWide").addEventListener("change", ()=>{
 
 /* ===================================================================
    10b. ASSESSMENT — saved battles fought once each, and what each side
-        loses and keeps, weighed against the Grand Strategy stockpile
+        loses and keeps, weighed against the Staging stockpile
    =================================================================== */
 
 const LS_ASSESS = "warcalc.assess";
@@ -11113,9 +11226,10 @@ const asSave = () => store.set(LS_ASSESS, as);
 const asPersp = key => as.persp[key] === "defender" ? "defender" : "attacker";
 
 /* a saved battle, fought the way the Battle tab fights it: reinforcements sit
-   out tick 1 and drop in on tick 2. With successive battles accounted for the
-   survivors fight on, tick after tick, until a side is wiped out, nothing more
-   dies, or the replay's cap; without, it is tick 1 alone */
+   out tick 1 and drop in on tick 2, or later when held back further. With
+   successive battles accounted for the survivors fight on, tick after tick,
+   until a side is wiped out, nothing more dies, or the replay's cap; without,
+   it is tick 1 alone */
 const asFights = new Map();                            // name -> {key, out}, so typing in the stockpile never refights
 function asFight(name, b, chain){
   const key = JSON.stringify([b, chain]);
@@ -11126,7 +11240,7 @@ function asFight(name, b, chain){
     .map(u=>{
       const weapon = u.weapon || "ScroungedWeapons", armor = u.armor || "ScroungedArmor";
       const size = Math.floor(gsNum(u.size)), training = clampInt(u.training, 0, TRAIN_UNCAPPED);
-      return {type: u.type, weapon, armor, size, training, nick: u.name || "", reserve: !!u.reserve,
+      return {type: u.type, weapon, armor, size, training, nick: u.name || "", reserve: waitOf(u),
               left: size, lost: 0};
     });
   const atkAll = rows(b.attacker, true), defAll = rows(b.defender, false);
@@ -11135,7 +11249,8 @@ function asFight(name, b, chain){
   const lost = {atk: tally(), def: tally()};
   const addDead = (t, d)=>{ t.troops += d.troops; t.bits += d.hire + d.gear; addRes(t, d.res); };
   /* who is on the field this tick, at what is left of them */
-  const field = (all, t) => all.filter(u => u.left > 0 && (t > 1 || !u.reserve)).map(u => Object.assign({}, u, {
+  /* those who were there first first, each wave of reinforcements behind the last, as the Battle tab lines them up */
+  const field = (all, t) => all.filter(u => u.left > 0 && t > u.reserve).sort((a, b) => a.reserve - b.reserve).map(u => Object.assign({}, u, {
     size: u.left, src: u, name: `${u.type}_${u.weapon}_${u.armor}_size_${u.left}_train_${u.training}`}));
   const standing = all => all.some(u => u.left > 0);
   /* upkeep is billed each war tick on everyone who starts it, whether or not they live through it */
@@ -11154,7 +11269,7 @@ function asFight(name, b, chain){
     r.repellers.forEach((u, i)=>{ D[i].src.lost += u.lost; D[i].src.left = u.remaining; });
     if (!standing(atkAll) || !standing(defAll)){ stop = "wipe"; break; }
     /* every later tick would repeat this one, unless reinforcements are still to come */
-    const waiting = t === 1 && [...atkAll, ...defAll].some(u => u.reserve);
+    const waiting = [...atkAll, ...defAll].some(u => u.reserve >= t);
     if (!dA.troops && !dD.troops && !waiting){ stop = "stall"; break; }
     if (t === CHAIN_MAX + 1) stop = "cap";
   }
@@ -11184,12 +11299,12 @@ const asNum = (k, n) => k === "bits" ? shortBits(n) : money(n);
 /* what a loss comes to, faded, in brackets. Our side's is its share of our
    stockpile and roughly how many turns of our production it took to make;
    theirs is only the turns of their production, their stockpile being
-   anyone's guess. Nets drift from turn to turn, hence the ~ */
+   anyone's guess. The share only shows with Show %? ticked. Nets drift from turn to turn, hence the ~ */
 function asBr(k, n, who){
   if (!gs.stockOn || k === "troops" || !(n > 0)) return "";
   const us = who === "us";
   const have = gsNum(gs.stock[k]);
-  const pc = !us ? null : have > 0 ? n / have * 100 : Infinity;
+  const pc = !us || !gs.pcOn ? null : have > 0 ? n / have * 100 : Infinity;
   const perTurn = us ? gsProdOf(k) : gsProdThemOf(k);
   const tw = perTurn > 0 ? n / perTurn : null;
   if (pc == null && tw == null) return "";
