@@ -397,6 +397,22 @@ select{width:100%}
 textarea{width:100%;min-height:170px;font-family:var(--mono);font-size:12px}
 label{font-size:12px;color:var(--text-dim);display:block;margin-bottom:3px}
 
+/* flip toggle: a button whose value ("Yes"/"No") reflects to its attribute, so the card turns
+   over whether a click or a loaded save sets it: green bubble face for on, red for off */
+.flip-tog{display:block;width:100%;height:27px;padding:0;border:0;background:none;cursor:pointer;perspective:300px}
+.flip-tog:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:14px}
+.flip-card{position:relative;display:block;width:100%;height:100%;transform-style:preserve-3d;transition:transform .45s cubic-bezier(.4,1.6,.5,1)}
+.flip-tog[value="No"] .flip-card{transform:rotateX(180deg)}
+.flip-face{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:6px;
+  border-radius:14px;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  font:bold 12px/1 var(--font);letter-spacing:.06em;text-transform:uppercase;color:var(--btn-ink);text-shadow:var(--btn-shadow);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35),inset 0 -2px 3px rgba(0,0,0,.18),0 1px 2px rgba(0,0,0,.35)}
+.flip-face::before{content:"";width:8px;height:8px;border-radius:50%;background:#fff;box-shadow:0 0 4px rgba(255,255,255,.8)}
+.flip-on{background:linear-gradient(to bottom,var(--btn-success-a),var(--btn-success-b))}
+.flip-off{background:linear-gradient(to bottom,var(--btn-danger-a),var(--btn-danger-b));transform:rotateX(180deg)}
+.flip-off::before{background:rgba(255,255,255,.55);box-shadow:none}
+@media (prefers-reduced-motion:reduce){.flip-card{transition:none}}
+
 /* ---------- tables ---------- */
 table{border-collapse:collapse;width:100%}
 th,td{padding:5px 7px;text-align:left;vertical-align:middle}
@@ -1861,7 +1877,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
   <div style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap">
     <div style="width:150px">
       <label for="defBonus">Defender bonus</label>
-      <select id="defBonus"><option value="Yes">Yes</option><option value="No">No</option></select>
+      <button type="button" class="flip-tog" id="defBonus" value="Yes" aria-pressed="true"><span class="flip-card" aria-hidden="true"><span class="flip-face flip-on">On</span><span class="flip-face flip-off">Off</span></span></button>
     </div>
     <div class="run-row">
     <button class="btn btn-success" id="btnRun" style="padding:7px 22px;font-size:14px">Resolve battle</button>
@@ -2108,7 +2124,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
     <div class="ctr-controls">
       <div style="width:130px">
         <label for="ctrBonus">Defender bonus</label>
-        <select id="ctrBonus"><option value="Yes">Yes</option><option value="No">No</option></select>
+        <button type="button" class="flip-tog" id="ctrBonus" value="Yes" aria-pressed="true"><span class="flip-card" aria-hidden="true"><span class="flip-face flip-on">On</span><span class="flip-face flip-off">Off</span></span></button>
       </div>
       <div style="width:96px">
         <label for="ctrMyTrain">Your training</label>
@@ -5956,6 +5972,16 @@ document.getElementById("btnClearResults").addEventListener("click", ()=>{
   refreshJumpDock();
 });
 
+/* flip toggles stand in for Yes/No selects: .value still reads "Yes"/"No", and a click
+   fires "change" just as picking from the select did */
+document.querySelectorAll(".flip-tog").forEach(b => b.addEventListener("click", ()=>{
+  b.value = b.value === "Yes" ? "No" : "Yes";
+  b.dispatchEvent(new Event("change"));
+}));
+/* a loaded save sets .value without a click, so the pressed state follows the attribute */
+const flipObs = new MutationObserver(ms => ms.forEach(m =>
+  m.target.setAttribute("aria-pressed", m.target.value === "Yes")));
+document.querySelectorAll(".flip-tog").forEach(b => flipObs.observe(b, {attributes:true, attributeFilter:["value"]}));
 document.getElementById("defBonus").addEventListener("change", scheduleSave);
 
 document.getElementById("btnRun").addEventListener("click", ()=>{
