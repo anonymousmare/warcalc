@@ -1120,6 +1120,7 @@ body.log-icons .gear-ic{display:inline-flex}
 .reinf-io textarea{min-height:130px}
 .reinf-lab{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--strong);margin-bottom:4px;min-height:24px}
 .reinf-lab label{display:inline;margin:0;font-size:inherit;color:inherit}
+#reinfBpSel{width:auto;max-width:220px;padding:2px 4px;font-size:12px}
 #reinfTicks{width:46px;padding:2px 4px;font-family:var(--mono);font-size:12px}
 @media (max-width:700px){.reinf-io{grid-template-columns:1fr}}
 #reinfOut:not(:empty){margin-top:12px}
@@ -2180,7 +2181,9 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
   </div>
   <div id="reinfChk" style="display:none">
     <div class="reinf-io">
-      <div><label class="reinf-lab" for="reinfBattle">Battle code</label>
+      <div><div class="reinf-lab"><label for="reinfBattle">Battle code</label>
+        <span class="muted">—</span> <select id="reinfBpSel" aria-label="Battle preset"></select>
+        <button type="button" class="btn btn-xs txt-btn" id="btnReinfBpLoad" title="Put this battle preset's code in the box">Load</button></div>
         <textarea id="reinfBattle" spellcheck="false" placeholder="Get a battle code of the battle prior to clashing. Then to the right, CTRL+V the current defending army at the present. Then it'll tell you the difference, if any!"></textarea></div>
       <div><div class="reinf-lab"><label for="reinfArmy">Defending army now</label>
         <span class="muted">— tick</span> <input type="number" id="reinfTicks" min="1" max="4" value="1"
@@ -6257,6 +6260,11 @@ function refreshPresetSelects(){
   bp.innerHTML = `<option value="">—</option>` +
     battles.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("");
   if (battles.includes(keepB)) bp.value = keepB;
+  const rb = document.getElementById("reinfBpSel");
+  const keepR = rb.value;
+  rb.innerHTML = `<option value="">${battles.length ? "battle preset…" : "no battle presets"}</option>` +
+    battles.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("");
+  if (battles.includes(keepR)) rb.value = keepR;
   const tc = document.getElementById("toolsCount");
   if (tc) tc.textContent = `${armies.length} army · ${battles.length} battle` +
     (storageOK ? "" : " · storage unavailable");
@@ -6706,6 +6714,14 @@ document.getElementById("btnReinfChk").addEventListener("click", ()=>{
   store.set(LS_REINF, open);
 });
 document.getElementById("btnReinfRun").addEventListener("click", runReinfCheck);
+/* a saved battle goes into the checker as its code */
+document.getElementById("btnReinfBpLoad").addEventListener("click", e => {
+  const b = getBattles()[document.getElementById("reinfBpSel").value];
+  if (!b){ alert("Pick a battle preset first."); return; }
+  document.getElementById("reinfBattle").value =
+    encodeBattle(b.attacker || [], b.defender || [], b.bonus || "No", b.barracks);
+  flashOk(e.currentTarget, "Loaded");
+});
 document.getElementById("btnReinfThink").addEventListener("click", e => {
   if (!reinfBase) return;
   const t = reinfThink(reinfBase.rows);
