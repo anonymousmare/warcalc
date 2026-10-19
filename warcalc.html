@@ -1063,6 +1063,7 @@ body.log-icons .gear-ic{display:inline-flex}
   color:var(--btn-default-ink-dim);text-shadow:var(--btn-default-shadow);
 }
 .hk-dock.keys-off .hk-key{visibility:hidden}
+.hk-dock.hk-none,.hk-btn[hidden],.hk-ticks[hidden]{display:none}
 .hk-btn.hk-miss{animation:hk-shake .3s}
 @keyframes hk-shake{
   0%,100%{transform:translateX(0)} 25%{transform:translateX(-3px)} 75%{transform:translateX(3px)}
@@ -1684,6 +1685,9 @@ body.snaps-hidden .snap{display:none}
 /* hover to focus: every ticket sits back until the pointer is on it */
 .gs-focus .slip{filter:brightness(.5) saturate(.55);transition:filter .12s}
 .gs-focus .slip:hover,.gs-focus .slip:has(.slip-pop){filter:none}
+/* a folded ticket keeps its name, its line under it and its colour swatch */
+.slip[data-fold] .slip-name{cursor:pointer}
+.slip.folded > :not(.slip-name,.slip-meta,.slip-color,.slip-pop,.slip-wide-head){display:none}
 
 /* who eats what: one 100% bar per resource, split by army */
 .gs-chart.none{display:none}
@@ -1751,7 +1755,7 @@ body.snaps-hidden .snap{display:none}
 .slip.as-slip::after{background:linear-gradient(90deg,var(--pa) 50%,var(--pd) 50%);
   -webkit-mask:conic-gradient(from 135deg at 50% 0,#000 90deg,transparent 0) 0 0/12px 8px repeat-x;
   mask:conic-gradient(from 135deg at 50% 0,#000 90deg,transparent 0) 0 0/12px 8px repeat-x}
-.slip.as-slip.as-big{width:560px;max-width:100%;padding:14px 22px 16px}
+.slip.as-slip.as-big{width:560px;max-width:100%;padding:14px 22px 16px;margin-left:auto;margin-right:auto}
 .as-big .slip-name{font-size:16px}
 .as-big .as-row{font-size:13px}
 .as-persp{display:flex;align-items:center;justify-content:center;gap:8px;margin:7px 0 2px}
@@ -1761,6 +1765,13 @@ body.snaps-hidden .snap{display:none}
 .as-flip .flip-on{background:linear-gradient(to bottom,var(--btn-danger-a),var(--btn-danger-b))}
 .as-flip .flip-off{background:linear-gradient(to bottom,var(--btn-info-a),var(--btn-info-b))}
 .as-flip .flip-off::before{background:#fff;box-shadow:0 0 4px rgba(255,255,255,.8)}
+/* Optimal paints every button black, which left a switch's two faces alike:
+   there each face is outlined and glows in its own colour instead */
+[data-theme="optimal"] .flip-face{--fc:var(--good-rgb);background:rgba(var(--fc),.16);color:rgb(var(--fc));
+  box-shadow:inset 0 0 0 1px rgb(var(--fc)),0 0 .45rem rgba(var(--fc),.45)}
+[data-theme="optimal"] .flip-face::before{background:currentColor;box-shadow:0 0 4px currentColor}
+[data-theme="optimal"] .flip-off,[data-theme="optimal"] .as-flip .flip-on{--fc:var(--atk-rgb)}
+[data-theme="optimal"] .as-flip .flip-off{--fc:var(--def-rgb)}
 .as-sides{display:grid;grid-template-columns:1fr 1fr;margin-top:9px;
   font:700 10px/1.3 var(--font);letter-spacing:.06em;text-transform:uppercase;opacity:.7}
 /* the tag keeps its place on the first line however long the count grows; a count
@@ -6424,9 +6435,15 @@ document.getElementById("bpDel").addEventListener("click", deleteBattlePreset);
 /* --- tools drawer --- */
 const toolsBtn = document.getElementById("btnTools");
 const toolsPanel = document.getElementById("toolsPanel");
+/* the drawer opens on whichever tab is showing, under its top bar */
+function placeTools(tab){
+  const view = document.getElementById(VIEWS[tab] || VIEWS.battle);
+  const bar = view.querySelector(":scope > .topbar");
+  if (bar) bar.after(toolsPanel); else view.prepend(toolsPanel);
+}
 toolsBtn.addEventListener("click", ()=>{
   const open = toolsPanel.style.display === "none";
-  if (open) showTab("battle");            // the drawer lives on the battle tab
+  if (open) placeTools(document.querySelector(".tab.active")?.dataset.tab);
   toolsPanel.style.display = open ? "" : "none";
   toolsBtn.classList.toggle("open", open);
   toolsBtn.setAttribute("aria-expanded", open ? "true" : "false");
@@ -9676,6 +9693,9 @@ function showTab(name){
   document.getElementById(name === "assess" ? "asStockHome" : "gsStockHome")
     .appendChild(document.getElementById("gsStockPanel"));
   store.set(LS_TAB, name);
+  /* the settings drawer, when open, goes along to the tab on show */
+  if (toolsPanel.style.display !== "none") placeTools(name);
+  dockForTab(name);
 }
 
 document.querySelectorAll(".tab").forEach(b=>
@@ -9697,11 +9717,56 @@ const hkBtns = [...hkDock.querySelectorAll(".hk-btn")];
 
 const hkTarget = t => t === "top" ? document.body : document.getElementById(t);
 
+/* Staging and Assessment answer W / E / R with their own sections: the
+   tickets, the total, and on Staging the reader. Counters has nothing to
+   jump to, so the dock steps aside there. A section counts once it shows */
+const hkShown = id => { const el = document.getElementById(id);
+  return el && el.innerHTML.trim() && !el.classList.contains("none") ? el : null; };
+const HK_IC = {
+  tickets:`<path d="M6 3.5h12v17l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5-2 1.5z"/><path d="M9 8.5h6"/><path d="M9 12h6"/><path d="M9 15.5h3"/>`,
+  total:`<path d="M17.5 5H6.5l6 7-6 7h11"/>`,
+  reader:`<path d="M4 20.5h16"/><path d="M7 17V11"/><path d="M12 17V5.5"/><path d="M17 17v-8"/>`
+};
+const HK_TABS = {
+  grand: {w:["Tickets", "tickets", ()=>hkShown("gsOut")?.closest(".panel")],
+          e:["Total", "total", ()=>hkShown("gsTotal")],
+          r:["Reader", "reader", ()=>hkShown("gsChart") && document.getElementById("gsChart")]},
+  assess:{w:["Tickets", "tickets", ()=>hkShown("asOut")?.closest(".panel")],
+          e:["Total", "total", ()=>hkShown("asTotal")]}
+};
+/* the battle tab's own titles and icons, put back on the way home */
+hkBtns.forEach(b=>{ b.dataset.title = b.title; b.dataset.ic = b.querySelector(".hk-ic").innerHTML; });
+let hkTab = "battle";
+
+/* where a button goes on the tab on show, or null with nothing there */
+function hkWhere(b){
+  if (b.dataset.jump === "top" || !b.dataset.key) return hkTarget(b.dataset.jump);
+  const spec = HK_TABS[hkTab];
+  if (!spec) return hkTarget(b.dataset.jump);
+  return spec[b.dataset.key]?.[2]() || null;
+}
+
+/* the dock dresses for the tab: its titles and icons, and the R button
+   gone where there is no fourth section */
+function dockForTab(name){
+  hkTab = name;
+  hkDock.classList.toggle("hk-none", name === "counter");
+  const spec = HK_TABS[name];
+  hkBtns.forEach(b=>{
+    const k = b.dataset.key, own = spec && k !== "q" ? spec[k] : null;
+    b.hidden = !!spec && k !== "q" && !own;
+    b.title = own ? `${own[0]}  (${k.toUpperCase()})` : b.dataset.title;
+    b.querySelector(".hk-ic").innerHTML = own ? HK_IC[own[1]] : b.dataset.ic;
+  });
+  hkTicks.hidden = name !== "battle";
+  refreshJumpDock();
+}
+
 /* a button whose section is not on the page yet sits dimmed rather than gone,
    so the row never shifts under the cursor */
 function refreshJumpDock(){
   hkDock.querySelectorAll(".hk-btn").forEach(b =>
-    b.classList.toggle("hk-off", !hkTarget(b.dataset.jump)));
+    b.classList.toggle("hk-off", !hkWhere(b)));
 }
 
 /* 1 is the battle on screen, 2..n are the replayed ticks below it */
@@ -9721,8 +9786,8 @@ function setChainJumpButtons(count){
 }
 
 function jumpTo(target, btn){
-  if (target !== "top") showTab("battle");   // every section lives on the battle tab
-  const el = hkTarget(target);
+  if (hkTab === "counter") return;
+  const el = btn ? hkWhere(btn) : hkTarget(target);
   if (!el){                                   // nothing to jump to — say so and stay put
     if (btn){ btn.classList.remove("hk-miss"); void btn.offsetWidth; btn.classList.add("hk-miss"); }
     return;
@@ -9945,10 +10010,10 @@ const typingIn = el => !!el && (el.isContentEditable ||
   /^(INPUT|TEXTAREA|SELECT|OPTION)$/.test(el.tagName));
 
 document.addEventListener("keydown", e=>{
-  if (!hotkeysOn() || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+  if (!hotkeysOn() || hkTab === "counter" || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
   if (typingIn(e.target) || typingIn(document.activeElement)) return;
   const btn = hkBtns.find(b => b.dataset.key === String(e.key).toLowerCase());
-  if (!btn) return;
+  if (!btn || btn.hidden) return;
   e.preventDefault();
   jumpTo(btn.dataset.jump, btn);
 });
@@ -10029,11 +10094,11 @@ const HELP_KEYS = [
   [["H"], "Armor build costs"],
   [["?"], "This list"],
   [["Esc"], "Close the window on top"],
-  ["Jump (when Jump hotkeys is on)"],
+  ["Jump (when Jump hotkeys is on, bar Counters)"],
   [["Q"], "Top of the page"],
-  [["W"], "Battle result"],
-  [["E"], "Survivors"],
-  [["R"], "Import units"],
+  [["W"], "Battle result · the tickets on Staging and Assessment"],
+  [["E"], "Survivors · the total on Staging and Assessment"],
+  [["R"], "Import units · the reader on Staging"],
   ["Snapshots"],
   [["Shift", "click"], "Snapshot Box"],
   [["Shift", "scroll"], "Pick a smaller / bigger box to snapshot"],
@@ -10537,7 +10602,7 @@ const gs = (()=>{
   return {stock: obj(o.stock), prod: obj(o.prod), prodThem: obj(o.prodThem), resv: obj(o.resv),
           comps: Array.isArray(o.comps) ? o.comps : [], colors: obj(o.colors), wide: o.wide === true, upx: GS_TICKS,
           focus: o.focus === true, resvOn: o.resvOn !== false, stockOn: o.stockOn !== false, pcOn: o.pcOn === true, gearAll: o.gearAll === true, chartOff: Array.isArray(o.chartOff) ? o.chartOff : [],
-          reader: Object.assign({res: true}, obj(o.reader))};    // every visit opens on the x6 view
+          reader: Object.assign({res: true}, obj(o.reader)), folded: obj(o.folded)};    // every visit opens on the x6 view
 })();
 const gsSave = () => store.set(LS_GRAND, gs);
 const gsNum  = v => Math.max(0, Number(String(v ?? "").replace(/,/g, "")) || 0);
@@ -10684,6 +10749,8 @@ function gsDots(key){
       data-gs-pick="${esc(key)}" style="background:${GS_PAPER[cur].paper}"></button>${pop}`;
 }
 
+const gsFold = key => gs.folded[key] ? " folded" : "";
+
 function gsPaper(key){
   const pc = GS_PAPER[gs.colors[key]] || GS_PAPER[GS_PAPER_DEFAULT];
   return `--paper:${pc.paper};--ink:${pc.ink}`;
@@ -10749,7 +10816,7 @@ function gsUnitHTML(raw){
 
 function gsSlip(c, b){
   const wo = gsWriteoffHTML(b);
-  return `<div class="slip" style="${gsPaper(c.name)}">
+  return `<div class="slip${gsFold(c.name)}" data-fold="${esc(c.name)}" style="${gsPaper(c.name)}">
       ${gsDots(c.name)}
       <div class="slip-name">${esc(c.name)}</div>
       <div class="slip-meta">${b.troops.toLocaleString("en-US")} troops · sat ${satCost(b.troops).toLocaleString("en-US")}</div>
@@ -10767,7 +10834,7 @@ function gsSlip(c, b){
 /* every army at once, on one wide ticket */
 function gsTotal(comps, bills, t){
   const armies = comps.map((c, i)=>gsRow(esc(c.name), bills[i].troops.toLocaleString("en-US"))).join("");
-  return `<div class="slip slip-wide" style="${gsPaper(GS_TOTAL)}">
+  return `<div class="slip slip-wide${gsFold(GS_TOTAL)}" data-fold="${esc(GS_TOTAL)}" style="${gsPaper(GS_TOTAL)}">
       <div class="slip-wide-head">
         <div class="slip-name">Total</div>
         <div class="slip-meta">${t.troops.toLocaleString("en-US")} troops · sat ${satCost(t.troops).toLocaleString("en-US")}</div>
@@ -11090,6 +11157,7 @@ function renderGrand(){
   const reader = gsChart(comps, bills);
   gsEl("gsChartBody").innerHTML = reader;
   gsEl("gsChart").classList.toggle("none", !reader);
+  refreshJumpDock();
 }
 
 /* ---- staging wiring ---- */
@@ -11232,10 +11300,12 @@ const as = (()=>{
   const s = store.get(LS_ASSESS, null);
   const o = s && typeof s === "object" ? s : {};
   return {battles: Array.isArray(o.battles) ? o.battles : [], chain: o.chain !== false, travel: o.travel !== false,
-          persp: o.persp && typeof o.persp === "object" ? o.persp : {}};
+          persp: o.persp && typeof o.persp === "object" ? o.persp : {},
+          folded: o.folded && typeof o.folded === "object" ? o.folded : {}};
 })();
 const asSave = () => store.set(LS_ASSESS, as);
 const asPersp = key => as.persp[key] === "defender" ? "defender" : "attacker";
+const asFold = key => as.folded[key] ? " folded" : "";
 
 /* a saved battle, fought the way the Battle tab fights it: reinforcements sit
    out tick 1 and drop in on tick 2, or later when held back further. With
@@ -11393,7 +11463,7 @@ const asWho = isAtk => ["attacker", "defender"].map(p => (p === "attacker") === 
 const asTroops = units => units.reduce((n, u) => n + u.size, 0).toLocaleString("en-US");
 
 function asSlip(name, f){
-  return `<div class="slip as-slip" data-persp="${asPersp(name)}">
+  return `<div class="slip as-slip${asFold(name)}" data-fold="${esc(name)}" data-persp="${asPersp(name)}">
       <div class="slip-name">${esc(name)}</div>
       <div class="slip-meta">${asMeta(f)}</div>
       ${asFlip(name)}
@@ -11422,7 +11492,7 @@ function asTotal(names, fights){
   const sum = (s, w) => asMerge(fights.map(f => f[s][w]));
   const battles = names.map((n, i) => asRow("troops", fights[i].atk.lost.troops, fights[i].def.lost.troops, true,
     `<span class="as-bl" title="${esc(n)}">${esc(n)}</span>`)).join("");
-  return `<div class="slip as-slip as-big" data-persp="${asPersp(AS_TOTAL)}">
+  return `<div class="slip as-slip as-big${asFold(AS_TOTAL)}" data-fold="${esc(AS_TOTAL)}" data-persp="${asPersp(AS_TOTAL)}">
       <div class="slip-name">Total</div>
       <div class="slip-meta">${names.length} battle${names.length === 1 ? "" : "s"}</div>
       ${asFlip(AS_TOTAL)}
@@ -11454,6 +11524,7 @@ function renderAssess(){
   gsEl("asOut").innerHTML = fights.length
     ? `<div class="gs-slips">${as.battles.map((n, i) => asSlip(n, fights[i])).join("")}</div>` : "";
   gsEl("asTotal").innerHTML = fights.length ? asTotal(as.battles, fights) : "";
+  refreshJumpDock();
 }
 
 /* ---- assessment wiring ---- */
@@ -11491,6 +11562,20 @@ gsEl("asChain").addEventListener("change", ()=>{
 
 document.addEventListener("warcalc:presets", renderAssess);
 renderAssess();
+
+/* a ticket folds down to its name, and back, from a click on its top:
+   the name's line or anything above it. Its buttons keep their own clicks */
+document.addEventListener("click", e=>{
+  const slip = e.target.closest?.("#viewGrand .slip[data-fold],#viewAssess .slip[data-fold]");
+  if (!slip || e.target.closest("button,a,input,select,textarea,label,.slip-pop")) return;
+  const name = slip.querySelector(".slip-name");
+  if (!name || e.clientY > name.getBoundingClientRect().bottom) return;
+  const st = slip.closest("#viewAssess") ? as : gs, key = slip.dataset.fold;
+  if (st.folded[key]) delete st.folded[key]; else st.folded[key] = true;
+  (st === as ? asSave : gsSave)();
+  slip.classList.toggle("folded", !!st.folded[key]);
+  refreshJumpDock();
+});
 
 
 /* ===================================================================
