@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CurioCalc 2.2 — CLOP</title>
+<title>CurioCalc 2.3 — CLOP</title>
 <style>
 :root{
   --bg:#272b30;
@@ -1198,6 +1198,8 @@ details summary{cursor:pointer;color:var(--strong);font-size:13px;padding:2px 0}
   margin-top:10px;padding-top:10px;border-top:1px solid var(--border-soft);
 }
 .set-grid .hk-toggle{white-space:normal}
+/* the JSON exports over their STRING twins */
+.exp-grid{display:inline-grid;grid-template-columns:auto auto auto;gap:4px 8px}
 .theme-pick select{width:auto;padding:1px 4px;font-size:12px}
 /* Darker exchange log only means anything on the pale-logged themes */
 .dark-log-opt{display:none}
@@ -1727,7 +1729,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
 <body>
 
 <div class="tabstrip">
-  <span class="tab-brand">CurioCalc 2.2<button class="gear-btn" id="btnTools"
+  <span class="tab-brand">CurioCalc 2.3<button class="gear-btn" id="btnTools"
     title="Settings, import / export presets" aria-expanded="false"><svg viewBox="0 0 24 24"
     aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path
     d="M10.3 2.5h3.4l.5 2.6a7.6 7.6 0 0 1 2 1.2l2.5-.9 1.7 2.9-2 1.8a7.7 7.7 0 0 1 0 2.3l2 1.8-1.7 2.9-2.5-.9a7.6 7.6 0 0 1-2 1.2l-.5 2.6h-3.4l-.5-2.6a7.6 7.6 0 0 1-2-1.2l-2.5.9-1.7-2.9 2-1.8a7.7 7.7 0 0 1 0-2.3l-2-1.8 1.7-2.9 2.5.9a7.6 7.6 0 0 1 2-1.2z"/><circle
@@ -1774,17 +1776,25 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
 <div class="panel" id="toolsPanel" style="display:none">
   <div class="panel-head"><h2>Settings</h2><span class="spacer"></span>
     <span class="small muted" id="toolsCount"></span></div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
     <label class="hk-toggle theme-pick" for="themeSel">Theme
       <select id="themeSel"></select></label>
     <label class="hk-toggle theme-pick" for="wifeSel">Horsewife
       <select id="wifeSel"></select></label>
     <label class="hk-toggle dark-log-opt"><input type="checkbox" data-pref="darkLog"> Darker exchange log</label>
     <span class="v-div">|</span>
-    <button class="btn btn-xs btn-moss" id="expArmies">Export army presets (JSON)</button>
-    <button class="btn btn-xs" id="expBattles">Export battle presets (JSON)</button>
+    <span class="exp-grid">
+      <button class="btn btn-xs btn-moss" id="expArmies">Export army presets (JSON)</button>
+      <button class="btn btn-xs" id="expBattles">Export battle presets (JSON)</button>
+      <button class="btn btn-xs btn-info" id="impBtn">Import JSON…</button>
+      <button class="btn btn-xs btn-moss txt-btn" id="expArmiesStr"
+        title="Copy every army preset, names and all, as one line of text">Export army presets (STRING)</button>
+      <button class="btn btn-xs txt-btn" id="expBattlesStr"
+        title="Copy every battle preset, names and all, as one line of text">Export battle presets (STRING)</button>
+      <button class="btn btn-xs btn-info" id="impStrBtn"
+        title="Save every preset in a preset string — the one in the import box, or paste it in">Import string…</button>
+    </span>
     <button class="btn btn-xs" id="expAll">Export everything</button>
-    <button class="btn btn-xs btn-info" id="impBtn">Import JSON…</button>
     <input type="file" id="impFile" accept="application/json,.json" style="display:none">
     <label class="hk-toggle" for="hkEnable">
       <input type="checkbox" id="hkEnable" checked> Jump hotkeys (Q W E R)</label>
@@ -1979,7 +1989,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
 <!-- ============ IMPORT ============ -->
 <div class="panel" id="panelImport">
   <div class="panel-head"><h2>Import units</h2></div>
-  <textarea id="txtImport" spellcheck="false" placeholder="an army code &#8212; 3F3F&#10;a battle code &#8212; +3F3F-9kQw2&#10;&#10;or the long form:&#10;4_ACFU_Nope&#10;Cavalry&#10;ACFU&#10;Nope&#10;Size: 200&#10;Training: 20&#10;&#10;or a whole nation page, copied off the screen&#10;&#10;or preset JSON, as the Export buttons write it"></textarea>
+  <textarea id="txtImport" spellcheck="false" placeholder="an army code &#8212; 3F3F&#10;a battle code &#8212; +3F3F-9kQw2&#10;&#10;or the long form:&#10;4_ACFU_Nope&#10;Cavalry&#10;ACFU&#10;Nope&#10;Size: 200&#10;Training: 20&#10;&#10;or a whole nation page, copied off the screen&#10;&#10;or preset JSON, as the Export buttons write it&#10;&#10;or a preset string &#8212; @Name:3F3F@Other:+3F3F-9kQw2"></textarea>
   <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
     <button class="btn btn-xs" id="btnImportAtk">Import to attackers</button>
     <button class="btn btn-xs" id="btnImportDef">Import to defenders</button>
@@ -5015,6 +5025,43 @@ function decodeBattle(code){
   }catch(e){ return null; }
 }
 
+/* ---- preset strings: any number of named presets in one line ----
+   Each preset is "@", its name, ":", then its code: an army code for an
+   army preset, a battle code (the one opening with "+") for a battle, so
+   "@Main:3F3F~20@Siege:+3F3F~20-9kQw2". No code holds a "@", a ":" or a
+   "%", so a name runs to the last ":" before its code and only a "@", a
+   "%" or a control character in it is written out as %40, %25 and so on.
+   Nothing warcalc wrote before ever opened with "@", so every army code,
+   battle code and pasted page reads exactly as it always has, and the codes
+   inside a string are read by the same decoders, older codes included. */
+const presetName   = n => String(n).replace(/[%@\x00-\x1f\x7f]/g,
+  c => "%" + c.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0"));
+const unPresetName = n => n.replace(/%([0-9A-Fa-f]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+const encodePresetString = entries => entries.map(([name, code]) => "@" + presetName(name) + ":" + code).join("");
+
+/* {armies, battles} in the shape parsePresetJSON gives, {error} when it is
+   broken, null when the text is not a preset string at all. Whitespace in a
+   code is dropped, so a string a chat client wrapped still reads. */
+function parsePresetString(text){
+  const t = String(text || "").trim();
+  if (t[0] !== "@") return null;
+  const out = {armies: {}, battles: {}};
+  for (const part of t.slice(1).split("@")){
+    const at = part.lastIndexOf(":");
+    if (at < 0) return {error: 'That preset string is broken \u2014 each preset in it is "@", a name, ":" and a code.'};
+    let name = unPresetName(part.slice(0, at)).replace(/\s+/g, " ").trim() || "unnamed";
+    const code = part.slice(at + 1).replace(/\s+/g, "");
+    const battle = code[0] === "+" ? decodeBattle(code) : null;
+    let army = null;
+    if (!battle && RE_ARMY_CODE.test(code)) try{ army = decodeArmy(code); }catch(e){}
+    if (!battle && !army) return {error: `"${name}" in that preset string does not carry a code warcalc can read.`};
+    const into = battle ? out.battles : out.armies;
+    while (Object.hasOwn(into, name)) name += " (2)";
+    into[name] = battle || army;
+  }
+  return out;
+}
+
 
 /* ---- the crunch: the roster spreadsheet's 43 counts, in one cell ----
    The sheet tracks stock, not pairings — how many cavalry, how many ACFU,
@@ -5300,7 +5347,7 @@ function parsePresetJSON(text){
 /* one name out of several: the only one, or ask */
 function pickPresetName(names, what){
   if (names.length <= 1) return names[0] || null;
-  const ans = prompt(`That JSON holds ${names.length} ${what}. Which one?\n\n`
+  const ans = prompt(`That paste holds ${names.length} ${what}. Which one?\n\n`
     + names.map((n, i) => `${i + 1}. ${n}`).join("\n"), "1");
   if (ans == null) return null;
   const i = parseInt(ans, 10);
@@ -5313,8 +5360,9 @@ function importRows(side){
   const text = ta.value;
   const code = text.trim();
 
-  /* preset JSON: an army goes whole onto this side, a battle gives its half */
-  const json = parsePresetJSON(code);
+  /* preset JSON or a preset string: an army goes whole onto this side, a
+     battle gives its half */
+  const json = parsePresetJSON(code) || parsePresetString(code);
   if (json){
     if (json.error){ alert(json.error); return; }
     const armyNames = Object.keys(json.armies);
@@ -5446,12 +5494,12 @@ function splitLongSides(text){
    adding to them — the same thing loading a battle preset does */
 function importBattle(){
   const ta = document.getElementById("txtImport");
-  const json = parsePresetJSON(ta.value);
+  const json = parsePresetJSON(ta.value) || parsePresetString(ta.value);
   if (json){
     if (json.error){ alert(json.error); return; }
     const names = Object.keys(json.battles);
     if (!names.length){
-      alert("That JSON holds army presets, not a battle — use Import to attackers / defenders.");
+      alert("That paste holds army presets, not a battle — use Import to attackers / defenders.");
       return;
     }
     const name = pickPresetName(names, "battles");
@@ -5969,7 +6017,11 @@ function importJSON(text){
   let data;
   try{ data = JSON.parse(text); }
   catch(e){ alert("That file isn't valid JSON."); return; }
+  importPresetData(data);
+}
 
+/* saves presets in the shape the JSON export writes, whichever way they came */
+function importPresetData(data, note){
   const armies  = noNamesEach(data.armyPresets   || (data.kind === "armyPresets"   ? data.presets : null), noNames);
   const battles = noNamesEach(data.battlePresets || (data.kind === "battlePresets" ? data.presets : null), noNamesBattle);
   if (!armies && !battles){ alert("No presets found in that file."); return; }
@@ -5979,7 +6031,7 @@ function importJSON(text){
     const all = getArmies();
     Object.entries(armies).forEach(([n,v])=>{
       let name = n;
-      while (all[name] && JSON.stringify(all[name]) !== JSON.stringify(v)) name += " (imported)";
+      while (Object.hasOwn(all, name) && JSON.stringify(all[name]) !== JSON.stringify(v)) name += " (imported)";
       all[name] = v; added++;
       const brk = data.armyBarracks && data.armyBarracks[n];
       if (brk != null) setArmyBarracks(name, brk);
@@ -5990,13 +6042,60 @@ function importJSON(text){
     const all = getBattles();
     Object.entries(battles).forEach(([n,v])=>{
       let name = n;
-      while (all[name] && JSON.stringify(all[name]) !== JSON.stringify(v)) name += " (imported)";
+      while (Object.hasOwn(all, name) && JSON.stringify(all[name]) !== JSON.stringify(v)) name += " (imported)";
       all[name] = v; added++;
     });
     store.set(LS_BATL, all);
   }
   refreshPresetSelects();
-  alert(`Imported ${added} preset(s).`);
+  alert(`Imported ${added} preset(s).` + (note || ""));
+}
+
+/* the same units the presets themselves keep, field for field, so a string
+   imported twice lands on the copy already saved rather than beside it */
+const presetUnits = list => (list || []).map(u => Object.assign(
+  {type:u.type, weapon:u.weapon, armor:u.armor, size:u.size, training:u.training},
+  u.name ? {name:u.name} : {}, u.reserve ? {reserve:true} : {}));
+
+/* Export army / battle presets (STRING): every preset of the one kind, by name */
+async function exportPresetString(kind, btn){
+  const brk = getArmyBarracks();
+  const entries = kind === "army"
+    ? Object.entries(getArmies()).map(([n, units]) => [n, encodeArmy(noNames(units), brk[n])])
+    : Object.entries(getBattles()).map(([n, b]) => [n,
+        encodeBattle(noNames(b.attacker), noNames(b.defender), b.bonus, b.barracks)]);
+  if (!entries.length){ alert(`There are no ${kind} presets to export.`); return; }
+  const text = encodePresetString(entries);
+  if (await copyText(text)) flashOk(btn, "Copied");
+  else prompt("This browser would not let the page reach the clipboard \u2014 copy the string from here:", text);
+}
+
+/* Import string…: the import box when it holds one, otherwise ask for it */
+function importPresetString(){
+  const ta = document.getElementById("txtImport");
+  const fromBox = ta.value.trim()[0] === "@";
+  const text = fromBox ? ta.value : prompt('Paste a preset string (it opens with "@"):', "");
+  if (text == null || !text.trim()) return;
+  const p = parsePresetString(text);
+  if (!p){ alert('That is not a preset string. A preset string opens with "@", like @Main:3F3F.'); return; }
+  if (p.error){ alert(p.error); return; }
+  if (fromBox) ta.value = "";
+  let lifted = 0;
+  const lift = l => { lifted += l.lifted || 0; return l.barracks; };
+  const armyBarracks = {};
+  Object.entries(p.armies).forEach(([n, l]) => { const b = lift(l); if (b != null) armyBarracks[n] = b; });
+  importPresetData({
+    armyPresets: Object.keys(p.armies).length
+      ? Object.fromEntries(Object.entries(p.armies).map(([n, l]) => [n, presetUnits(l)])) : null,
+    armyBarracks,
+    battlePresets: Object.keys(p.battles).length
+      ? Object.fromEntries(Object.entries(p.battles).map(([n, b]) => {
+          const ba = lift(b.attacker), bd = lift(b.defender);
+          return [n, Object.assign({attacker: presetUnits(b.attacker), defender: presetUnits(b.defender),
+            bonus: b.bonus}, ba != null || bd != null ? {barracks: {attacker: ba, defender: bd}} : {})];
+        })) : null
+  }, lifted ? `\n\n${lifted} stack${lifted === 1 ? "" : "s"} came from codes copied before they could hold`
+            + " training past 20, and were read back at the Barracks level \u2014 check the Training column." : "");
 }
 
 /* ===================================================================
@@ -6112,6 +6211,12 @@ document.getElementById("expAll").addEventListener("click", ()=>
                 armyBarracks:barracksFor(Object.keys(getArmies())),
                 battlePresets:noNamesEach(getBattles(), noNamesBattle)},
                `curiocalc-presets-${stamp()}.json`));
+
+document.getElementById("expArmiesStr").addEventListener("click", e=>
+  exportPresetString("army", e.currentTarget));
+document.getElementById("expBattlesStr").addEventListener("click", e=>
+  exportPresetString("battle", e.currentTarget));
+document.getElementById("impStrBtn").addEventListener("click", importPresetString);
 
 document.getElementById("impBtn").addEventListener("click", ()=>
   document.getElementById("impFile").click());
