@@ -1758,8 +1758,10 @@ body.snaps-hidden .snap{display:none}
 .as-u .gear-img{max-width:20px;max-height:20px}
 .as-none{text-align:center;opacity:.45;font-size:11px;padding:2px 0}
 .as-err{color:var(--warn);font-size:11px;text-align:center;margin-top:6px}
-.as-sub{font:700 10px/1.3 var(--font);letter-spacing:.12em;text-transform:uppercase;text-align:center;
-  opacity:.6;margin:2px 0 4px}
+/* a section's name on a little dark purple tab, centred on the seam */
+.as-sub{width:fit-content;margin:2px auto 5px;padding:2px 8px 2px calc(8px + .12em);border-radius:3px;background:#2c2338;
+  font:700 10px/1.3 var(--font);letter-spacing:.12em;text-transform:uppercase;color:color-mix(in srgb,var(--ink) 75%,transparent)}
+.as-sub-n{color:var(--warn);letter-spacing:.06em}
 .as-row{display:grid;grid-template-columns:1fr 14px 1fr;align-items:center;padding-top:3px;font-size:12px}
 /* the icon sits by its figures, once on each side */
 .as-a{display:flex;align-items:center;justify-content:flex-end;gap:5px;color:var(--ink-atk);min-width:0}
@@ -2356,6 +2358,8 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
       <span class="spacer"></span>
       <label class="hk-toggle" for="asChain" title="Fight each battle on, tick after tick, until a side is wiped out or nothing more dies (up to 11 ticks, as the Battle tab replays them)">
         <input type="checkbox" id="asChain"> Account for successive battles</label>
+      <label class="hk-toggle" for="asTravel" title="The attackers eat two war ticks of full upkeep on the road before the battle starts">
+        <input type="checkbox" id="asTravel"> Account for travel time upkeep cost</label>
     </div>
     <div id="asOut"></div>
   </div>
@@ -11094,11 +11098,12 @@ gsEl("gsWide").addEventListener("change", ()=>{
 const LS_ASSESS = "warcalc.assess";
 const AS_TOTAL = "__total__";                          // perspective key for the totals ticket
 const AS_ROWS = ["troops"].concat(GS_COST);
+const AS_TRAVEL = 2;                                   // war ticks an attack spends on the road
 
 const as = (()=>{
   const s = store.get(LS_ASSESS, null);
   const o = s && typeof s === "object" ? s : {};
-  return {battles: Array.isArray(o.battles) ? o.battles : [], chain: o.chain !== false,
+  return {battles: Array.isArray(o.battles) ? o.battles : [], chain: o.chain !== false, travel: o.travel !== false,
           persp: o.persp && typeof o.persp === "object" ? o.persp : {}};
 })();
 const asSave = () => store.set(LS_ASSESS, as);
@@ -11130,6 +11135,8 @@ function asFight(name, b, chain){
   const field = (all, t) => all.filter(u => u.left > 0 && (t > 1 || !u.reserve)).map(u => Object.assign({}, u, {
     size: u.left, src: u, name: `${u.type}_${u.weapon}_${u.armor}_size_${u.left}_train_${u.training}`}));
   const standing = all => all.some(u => u.left > 0);
+  /* upkeep is billed each war tick on everyone who starts it, whether or not they live through it */
+  const upkeep = {atk: {}, def: {}};
   let ticks = 0, stop = "", error = "";
   for (let t = 1; t <= (chain ? CHAIN_MAX + 1 : 1); t++){
     const A = field(atkAll, t), D = field(defAll, t);
@@ -11137,6 +11144,7 @@ function asFight(name, b, chain){
     try{ r = simulate(A, D, bonus); }
     catch(e){ error = e.message; break; }
     ticks = t;
+    addRes(upkeep.atk, upkeepOf(A)); addRes(upkeep.def, upkeepOf(D));
     const dA = deathCosts(r.units, true), dD = deathCosts(r.units, false);
     addDead(lost.atk, dA); addDead(lost.def, dD);
     r.invaders.forEach((u, i)=>{ A[i].src.lost += u.lost; A[i].src.left = u.remaining; });
@@ -11156,11 +11164,17 @@ function asFight(name, b, chain){
   const out = {atk: side(atkAll), def: side(defAll), bonus, error, ticks, stop, chain,
                wiped: {atk: !standing(atkAll), def: !standing(defAll)}};
   out.atk.lost = lost.atk; out.def.lost = lost.def;
+  out.atk.upkeep = upkeep.atk; out.def.upkeep = upkeep.def;
+  /* the march there: the whole attacking force, reinforcements too, eats two war ticks' upkeep before the first blow */
+  out.atk.travel = addRes({}, upkeepOf(atkAll), AS_TRAVEL);
   asFights.set(name, {key, out});
   return out;
 }
 
-const asMerge = list => list.reduce((t, x)=>{ AS_ROWS.forEach(k=>{ t[k] = (t[k] || 0) + (x[k] || 0); }); return t; }, {});
+const asMerge = list => list.reduce((t, x) => addRes(t, x), {});
+
+/* a side's upkeep over the battle, with the march there when it is counted */
+const asUp = (f, s) => s === "atk" && as.travel ? addRes(addRes({}, f.atk.upkeep), f.atk.travel) : f[s].upkeep;
 
 const asNum = (k, n) => k === "bits" ? shortBits(n) : money(n);
 
@@ -11207,8 +11221,8 @@ function asRow(k, a, d, lossy, lab){
     <div class="as-diff">${diff("attacker")}${diff("defender")}</div>`;
 }
 
-function asRowsHTML(a, d, lossy){
-  const rows = AS_ROWS.filter(k => (a[k] || 0) > 0 || (d[k] || 0) > 0)
+function asRowsHTML(a, d, lossy, keys = AS_ROWS){
+  const rows = keys.filter(k => (a[k] || 0) > 0 || (d[k] || 0) > 0)
     .map(k => asRow(k, a[k] || 0, d[k] || 0, lossy)).join("");
   return rows || `<div class="as-none">nothing</div>`;
 }
@@ -11256,6 +11270,7 @@ function asSlip(name, f){
         <div>${f.def.units.map(asUnitHTML).join("") || `<div class="as-none">nobody</div>`}</div></div>
       ${f.error ? `<div class="as-err">${esc(f.error)}</div>` : ""}
       <div class="slip-cut double"></div>
+      ${asUpHTML(asUp(f, "atk"), asUp(f, "def"))}
       <div class="as-sub">Losses</div>
       ${asRowsHTML(f.atk.lost, f.def.lost, true)}
       <div class="slip-cut"></div>
@@ -11263,6 +11278,12 @@ function asSlip(name, f){
       ${asRowsHTML(f.atk.kept, f.def.kept, false)}
     </div>`;
 }
+
+/* what both sides eat over the battle; it is spent, so like a loss less is better.
+   Its brackets weigh it against a regular tick's production, six to a war tick */
+const asUpHTML = (a, d) => GS_UPKEEP.some(k => a[k] > 0 || d[k] > 0)
+  ? `<div class="as-sub">Upkeep${as.travel ? ` <span class="as-sub-n">+${AS_TRAVEL} travel</span>` : ""}</div>
+     ${asRowsHTML(a, d, true, GS_UPKEEP)}<div class="slip-cut"></div>` : "";
 
 /* every picked battle at once on one bigger ticket, with a perspective of its own */
 function asTotal(names, fights){
@@ -11278,6 +11299,7 @@ function asTotal(names, fights){
       <div class="as-sub">Troops lost, battle by battle</div>
       ${battles}
       <div class="slip-cut"></div>
+      ${asUpHTML(asMerge(fights.map(f => asUp(f, "atk"))), asMerge(fights.map(f => asUp(f, "def"))))}
       <div class="as-sub">Losses</div>
       ${asRowsHTML(sum("atk", "lost"), sum("def", "lost"), true)}
       <div class="slip-cut"></div>
@@ -11295,6 +11317,7 @@ function renderAssess(){
     : `<span class="small muted">No battle presets yet — save one on the Battle tab.</span>`;
   /* tickets come out in the order they were picked */
   gsEl("asChain").checked = as.chain;
+  gsEl("asTravel").checked = as.travel;
   const fights = as.battles.map(n => asFight(n, all[n], as.chain));
   gsEl("asOut").innerHTML = fights.length
     ? `<div class="gs-slips">${as.battles.map((n, i) => asSlip(n, fights[i])).join("")}</div>` : "";
@@ -11323,6 +11346,11 @@ gsEl("viewAssess").addEventListener("click", e=>{
   }
 });
 
+gsEl("asTravel").addEventListener("change", ()=>{
+  as.travel = gsEl("asTravel").checked;
+  asSave();
+  renderAssess();
+});
 gsEl("asChain").addEventListener("change", ()=>{
   as.chain = gsEl("asChain").checked;
   asSave();
