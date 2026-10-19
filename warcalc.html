@@ -1850,6 +1850,7 @@ body.snaps-hidden .snap{display:none}
 .as-u .nm{font-family:var(--font);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .as-u .tr{opacity:.6}
 .as-u .lost{color:var(--down);font-weight:700}
+.as-u .rf{color:var(--gold);font-weight:700}
 .as-u .g{margin-left:auto;display:inline-flex;gap:1px;flex:0 0 auto}
 .as-u .gear-img{max-width:20px;max-height:20px}
 .as-none{text-align:center;opacity:.45;font-size:11px;padding:2px 0}
@@ -2481,7 +2482,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
     <div class="gs-bar">
       <div class="gs-comps" id="asBattles"></div>
       <span class="spacer"></span>
-      <label class="hk-toggle" for="asChain" title="Fight each battle on, tick after tick, until a side is wiped out or nothing more dies (up to 11 ticks, as the Battle tab replays them)">
+      <label class="hk-toggle" for="asChain" title="Fight each battle on, tick after tick, until a side is wiped out or nothing more dies (up to 11 ticks, as the Battle tab replays them). Off, a battle runs only until its last reinforcements have joined">
         <input type="checkbox" id="asChain"> Account for successive battles</label>
       <label class="hk-toggle" for="asTravel" title="The attackers eat one war tick of full upkeep on the road before the battle starts">
         <input type="checkbox" id="asTravel"> Account for travel time upkeep cost</label>
@@ -11700,7 +11701,7 @@ const asFold = key => as.folded[key] ? " folded" : "";
    out tick 1 and drop in on tick 2, or later when held back further. With
    successive battles accounted for the survivors fight on, tick after tick,
    until a side is wiped out, nothing more dies, or the replay's cap; without,
-   it is tick 1 alone */
+   it is tick 1 and however many more it takes the last reinforcements to join */
 const asFights = new Map();                            // name -> {key, out}, so typing in the stockpile never refights
 function asFight(name, b, chain){
   const key = JSON.stringify([b, chain]);
@@ -11727,7 +11728,8 @@ function asFight(name, b, chain){
   /* upkeep is billed each war tick on everyone who starts it, whether or not they live through it */
   const upkeep = {atk: {}, def: {}};
   let ticks = 0, stop = "", error = "";
-  for (let t = 1; t <= (chain ? CHAIN_MAX + 1 : 1); t++){
+  const last = chain ? CHAIN_MAX + 1 : 1 + Math.max(0, ...atkAll.concat(defAll).map(u => u.reserve));
+  for (let t = 1; t <= last; t++){
     const A = field(atkAll, t), D = field(defAll, t);
     let r;
     try{ r = simulate(A, D, bonus); }
@@ -11742,7 +11744,7 @@ function asFight(name, b, chain){
     /* every later tick would repeat this one, unless reinforcements are still to come */
     const waiting = [...atkAll, ...defAll].some(u => u.reserve >= t);
     if (!dA.troops && !dD.troops && !waiting){ stop = "stall"; break; }
-    if (t === CHAIN_MAX + 1) stop = "cap";
+    if (chain && t === CHAIN_MAX + 1) stop = "cap";
   }
   const side = all=>{
     const left = survivorValue(all.filter(u => u.left > 0)
@@ -11829,14 +11831,14 @@ function asFlip(key){
 function asUnitHTML(u){
   return `<div class="as-u" ${tipAttrs(u.type, u.weapon, u.armor, u.size, u.training)}>
       <span class="q">${u.size.toLocaleString("en-US")}</span><span class="nm">${esc(u.type)}</span>
-      <span class="tr">T${u.training}</span>${u.lost ? `<span class="lost">−${u.lost.toLocaleString("en-US")}</span>` : ""}
+      <span class="tr">T${u.training}</span>${u.reserve ? `<span class="rf" title="Reinforcement, joins on tick ${u.reserve + 1}">+${u.reserve}</span>` : ""}${u.lost ? `<span class="lost">−${u.lost.toLocaleString("en-US")}</span>` : ""}
       <span class="g">${gearImg(u.weapon)}${gearImg(u.armor)}</span></div>`;
 }
 
-/* the bonus, and with successive battles how long it went and how it ended */
+/* the bonus, and with successive battles or reinforcements how long it went and how it ended */
 function asMeta(f){
   const bits = [`defender bonus ${f.bonus === "Yes" ? "on" : "off"}`];
-  if (f.chain){
+  if (f.chain || f.ticks > 1){
     bits.push(`${f.ticks} tick${f.ticks === 1 ? "" : "s"}`);
     if (f.stop === "wipe") bits.push(f.wiped.atk && f.wiped.def ? "both wiped" : f.wiped.atk ? "attackers wiped" : "defenders wiped");
     else if (f.stop === "stall") bits.push("nothing more dies");
