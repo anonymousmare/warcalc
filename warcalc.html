@@ -522,6 +522,15 @@ tr.reserve td.col-sprite::before{
   flex-direction:column;align-items:flex-start;gap:7px;padding:10px 14px 11px;
   background:var(--raised);border:1px solid var(--border);border-radius:4px;box-shadow:0 8px 22px rgba(var(--lo),.55)}
 .run-opts.open .run-pop{display:flex}
+/* the chevrons beside the gear: a side's training drifting over the
+   successive ticks, as one sentence of pickers */
+.gear-btn.drill-btn.open svg{transform:none}
+.drill-pop{font-size:12px}
+.drill-line{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.drill-pop select,.drill-pop input{width:auto;margin:0;padding:1px 4px;font-size:12px}
+.drill-pop input{width:52px}
+.run-opts.drill-on .drill-btn{color:var(--atk)}
+.drill-pop .run-sep{margin:0}
 .run-sep{align-self:stretch;margin:2px 0;border:0;border-top:1px solid var(--border-soft)}
 #logBothWrap,#logNumsWrap,#logTrainWrap,#logHitsWrap,#logDDmgWrap{margin-left:18px}
 #logBothNamedWrap{margin-left:36px}
@@ -976,6 +985,7 @@ body.log-icons .gear-ic{display:inline-flex}
 .tick-divider .caret{font-size:11px;letter-spacing:0;color:var(--text-dim);width:9px;margin-right:-6px}
 .tick-divider .caret::before{content:"\25B8"}
 .chain-wrap[open] > .tick-divider .caret::before{content:"\25BE"}
+.tick-divider .drift{font-size:11px;letter-spacing:.06em;text-transform:none;font-weight:600;color:var(--text-dim)}
 .tick-divider .reinf{font-size:11px;letter-spacing:.06em;text-transform:none;font-weight:600;color:var(--gold)}
 .chain-wrap:first-of-type > .tick-divider{margin-top:14px}
 .chain-wrap:not([open]) > .tick-divider{margin-bottom:0}
@@ -1161,7 +1171,10 @@ details summary{cursor:pointer;color:var(--strong);font-size:13px;padding:2px 0}
 .ctr-1x .gear-img{width:auto;max-width:32px;vertical-align:-3px;margin-right:3px;object-position:center}
 
 /* ---------- top bar / presets ---------- */
-.topbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.topbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;position:relative}
+/* Clear all sits over the gap between the two army panels, lifted out of the
+   row so the bar keeps its height */
+.clear-all{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
 .topbar h1{margin:0}
 .caret-btn{
   background:none;border:none;color:var(--text-dim);font-size:20px;line-height:1;
@@ -1738,6 +1751,8 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
     <button class="bp-btn" id="btlLink" data-icon="link"
       title="Copy a link that loads this battle"></button>
   </div>
+  <button class="btn btn-xs clear-all" id="btnClearAll"
+    title="Clear the attackers and the defenders, and close the battle and solver logs">Clear all</button>
   <span class="spacer"></span>
   <div class="battle-presets">
     <span class="bp-lab">battle</span>
@@ -1917,6 +1932,33 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
         <input type="checkbox" id="logDAlign"> Defender vertical align</label>
       <label class="hk-toggle log-opt opt-purple" for="logDDmg" id="logDDmgWrap">
         <input type="checkbox" id="logDDmg"> Align damage</label>
+    </div>
+    </span>
+    <span class="run-opts" id="drillOpts">
+    <button class="gear-btn run-gear drill-btn" id="btnDrill" title="Training drift over the successive ticks"
+      aria-expanded="false" aria-controls="drillPop"><svg viewBox="0 0 24 24"
+    aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"
+    stroke-linecap="round"><path d="M4 5.5l8 5 8-5"/><path d="M4 11l8 5 8-5"/><path d="M4 16.5l8 5 8-5"/></svg></button>
+    <div class="run-pop drill-pop" id="drillPop" role="group" aria-label="Training drift">
+      <label class="hk-toggle log-opt" for="drillOn">
+        <input type="checkbox" id="drillOn"> Enabled</label>
+      <hr class="run-sep">
+      <div class="drill-line">
+      Shift training of
+      <select id="drillSide" aria-label="Which side">
+        <option value="">none</option><option value="attacker">attacker</option>
+        <option value="defender">defender</option></select>
+      by
+      <input type="number" id="drillBy" min="-99" max="99" value="1"
+        aria-label="Training points, negative to drain">
+      every
+      <select id="drillEvery" aria-label="How many ticks">
+        <option value="1">1</option><option value="2">2</option></select>
+      ticks
+      </div>
+      <label class="hk-toggle log-opt" for="drillSkip"
+        title="Tick 2 is fought untouched; the shifting starts counting from tick 3">
+        <input type="checkbox" id="drillSkip"> Ignore next tick</label>
     </div>
     </span>
     </div>
@@ -4145,18 +4187,44 @@ function upkeepOf(rows){
   return res;
 }
 
+/* the chevrons' drift: {side, step, every, skip}, or null while it is off or moves nothing.
+   skip holds the rules off for the next tick, so they count from the one after */
+const LS_DRILL = "warcalc.drill";
+function trainDrift(){
+  const side = document.getElementById("drillSide").value;
+  const step = clampInt(document.getElementById("drillBy").value, -99, 99);
+  if (!document.getElementById("drillOn").checked || !side || !step) return null;
+  return {side, step, every: +document.getElementById("drillEvery").value || 1,
+          skip: document.getElementById("drillSkip").checked ? 1 : 0};
+}
+
 /* survivors as force rows simulate() will take */
 const chainRows = (units, isAtk) =>
   survivorRows(units, isAtk).map(u => Object.assign({}, u, {nick: u.name || "",
     name:`${u.type}_${u.weapon}_${u.armor}_size_${u.size}_train_${u.training}`}));
 
-function chainBattles(atkRows, defRows, bonus){
+function chainBattles(atkRows, defRows, bonus, drift = trainDrift()){
   let atk = atkRows.map(u => Object.assign({}, u));
   let def = defRows.map(u => Object.assign({}, u));
   const ticks = [];
   let stop = "cap", error = "";
+  /* raising stops at 20 even on an uncapped side; a unit already past it keeps its training */
+  const RAISE_CAP = 20;
+  /* reinforcements keep the training they came with */
+  const drifting = () => (drift.side === "attacker" ? atk : def)
+    .some(u => !u.reserve && (drift.step < 0 ? u.training > 0 : u.training < RAISE_CAP));
 
   for (let t = 1; t <= CHAIN_MAX; t++){
+    /* the shown battle is tick 1, so this is tick t + 1: every drift.every
+       ticks the side's training moves before the fight, while it can */
+    let moved = 0;
+    if (drift && t > drift.skip && (t - drift.skip) % drift.every === 0 && drifting()){
+      const shift = rows => rows.map(u => u.reserve ? u : Object.assign({}, u,
+        {training: drift.step < 0 ? Math.max(0, u.training + drift.step)
+                  : Math.max(u.training, Math.min(RAISE_CAP, u.training + drift.step))}));
+      if (drift.side === "attacker") atk = shift(atk); else def = shift(def);
+      moved = drift.step;
+    }
     const upA = upkeepOf(atk), upD = upkeepOf(def);
     const atkStart = troopsOf(atk), defStart = troopsOf(def);
 
@@ -4168,13 +4236,14 @@ function chainBattles(atkRows, defRows, bonus){
     const atkLeft = r.invaders.reduce((n, u) => n + u.remaining, 0);
     const defLeft = r.repellers.reduce((n, u) => n + u.remaining, 0);
 
-    ticks.push({tick:t, res:r, atkStart, defStart, atkLeft, defLeft, atkDead, defDead, upA, upD});
+    ticks.push({tick:t, res:r, atkStart, defStart, atkLeft, defLeft, atkDead, defDead, upA, upD, moved});
 
     atk = atk.map((u, i) => Object.assign({}, u, {size:r.invaders[i].remaining, fresh:false})).filter(u => u.size > 0);
     def = def.map((u, i) => Object.assign({}, u, {size:r.repellers[i].remaining, fresh:false})).filter(u => u.size > 0);
 
     if (!atkLeft || !defLeft){ stop = "wipe"; break; }
-    if (!atkDead.troops && !defDead.troops){ stop = "stall"; break; }   // every later tick repeats it
+    /* every later tick repeats it, unless the training still has somewhere to go */
+    if (!atkDead.troops && !defDead.troops && !(drift && drifting())){ stop = "stall"; break; }
   }
   return {ticks, stop, error};
 }
@@ -4197,7 +4266,8 @@ function chainTickBlock(k, cum){
   const all = Object.values(r.units);
   return `<details class="chain-wrap" id="chainTick${n}" open>
     <summary class="tick-divider"><span class="caret"></span>Tick ${n}${n === 2 && reserveCount()
-      ? `<span class="reinf">+${reserveCount()} reinforcement${reserveCount() === 1 ? "" : "s"}</span>` : ""}</summary>
+      ? `<span class="reinf">+${reserveCount()} reinforcement${reserveCount() === 1 ? "" : "s"}</span>` : ""}${k.moved
+      ? `<span class="drift">${trainDrift()?.side === "attacker" ? "Attackers" : "Defenders"} ${k.moved > 0 ? "+" : "−"}${Math.abs(k.moved)} training</span>` : ""}</summary>
     <div class="chain-tick ${TICK_TONES[(k.tick - 1) % TICK_TONES.length]}">
     <div class="chain-body">
       ${stallsNote(r.stalls)}
@@ -5847,6 +5917,15 @@ document.querySelectorAll("[data-clear]").forEach(b=>
     document.getElementById(b.dataset.clear === "attacker" ? "tbodyAttacker" : "tbodyDefender").innerHTML = "";
     refreshCounts();
   }));
+
+/* both sides at once, and the battle and solver logs with them */
+document.getElementById("btnClearAll").addEventListener("click", ()=>{
+  document.getElementById("tbodyAttacker").innerHTML = "";
+  document.getElementById("tbodyDefender").innerHTML = "";
+  refreshCounts();
+  document.getElementById("btnClearResults").click();
+  document.getElementById("btnSolveClear").click();
+});
 
 document.getElementById("btnImportAtk").addEventListener("click", ()=>importRows("attacker"));
 document.getElementById("btnImportDef").addEventListener("click", ()=>importRows("defender"));
@@ -9258,6 +9337,39 @@ const LS_LOG_OPTS = "warcalc.logOpts";
   btn.addEventListener("click", ()=>show(!wrap.classList.contains("open")));
   document.addEventListener("click", e=>{ if (!wrap.contains(e.target)) show(false); });
   document.addEventListener("keydown", e=>{ if (e.key === "Escape" && wrap.classList.contains("open")) show(false); });
+}
+/* the chevrons open the training drift the same way; a change is kept and,
+   with the successive ticks showing, plays them out again */
+{
+  const wrap = document.getElementById("drillOpts"), btn = document.getElementById("btnDrill");
+  const show = on => { wrap.classList.toggle("open", on); btn.classList.toggle("open", on);
+                       btn.setAttribute("aria-expanded", on); };
+  btn.addEventListener("click", ()=>show(!wrap.classList.contains("open")));
+  document.addEventListener("click", e=>{ if (!wrap.contains(e.target)) show(false); });
+  document.addEventListener("keydown", e=>{ if (e.key === "Escape" && wrap.classList.contains("open")) show(false); });
+
+  const ids = {on:"drillOn", side:"drillSide", by:"drillBy", every:"drillEvery", skip:"drillSkip"};
+  const saved = store.get(LS_DRILL, {}) || {};
+  if (saved.dir === "-1" && +saved.by > 0) saved.by = -saved.by;   // from the old Drain picker
+  Object.entries(ids).forEach(([k, id])=>{
+    const el = document.getElementById(id);
+    if (el.type === "checkbox"){ el.checked = saved[k] === true; return; }
+    if (saved[k] != null) el.value = saved[k];
+    if (el.tagName === "SELECT" && el.selectedIndex < 0) el.selectedIndex = 0;
+  });
+  const mark = () => wrap.classList.toggle("drill-on", !!trainDrift());
+  mark();
+  Object.entries(ids).forEach(([k, id])=>
+    document.getElementById(id).addEventListener("change", ()=>{
+      const el = document.getElementById(id);
+      if (k === "by") el.value = clampInt(el.value, -99, 99);
+      const cur = store.get(LS_DRILL, {}) || {};
+      delete cur.dir;
+      cur[k] = el.type === "checkbox" ? el.checked : el.value;
+      store.set(LS_DRILL, cur);
+      mark();
+      if (document.getElementById("chainOut")?.innerHTML){ toggleChain(); toggleChain(); }
+    }));
 }
 /* Auto-successive: Resolve battle carries straight on into Check successive
    battles. Ticking it with a battle on screen opens that one's too */
