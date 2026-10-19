@@ -1123,17 +1123,19 @@ body.log-icons .gear-ic{display:inline-flex}
 #reinfTicks{width:46px;padding:2px 4px;font-family:var(--mono);font-size:12px}
 @media (max-width:700px){.reinf-io{grid-template-columns:1fr}}
 #reinfOut:not(:empty){margin-top:12px}
-.reinf-table{width:100%;border-collapse:collapse;font-size:12px}
+.reinf-table{border-collapse:collapse;font-size:12px;width:auto}
 .reinf-table th,.reinf-table td{padding:3px 6px;border-bottom:1px solid var(--border-soft);
   white-space:nowrap;text-align:right;vertical-align:middle}
 .reinf-table th{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);font-weight:500}
 .reinf-table :is(th,td).l{text-align:left}
 .reinf-table td.n{font-family:var(--mono)}
-.reinf-table td.unit{width:100%;white-space:normal}
+.reinf-table td.unit{white-space:normal;padding-right:18px}
+.reinf-table :is(th,td).n{padding-left:14px}
 .reinf-wrap{overflow-x:auto}
-.reinf-unit{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.reinf-unit{display:flex;align-items:center;gap:8px}
 /* the add buttons show while the row is hovered, and stay once pressed */
-.reinf-adds{margin-left:auto;display:flex;gap:4px;visibility:hidden}
+.reinf-table td.act{padding-left:18px}
+.reinf-adds{display:flex;gap:4px;visibility:hidden}
 .reinf-table tr:is(:hover,:focus-within) .reinf-adds,.reinf-adds:has(.done){visibility:visible}
 @media (hover:none){.reinf-adds{visibility:visible}}
 .reinf-adds .btn.done{background:var(--raised);background-image:none;color:var(--good);text-shadow:none;
@@ -1151,6 +1153,13 @@ body.log-icons .gear-ic{display:inline-flex}
 .reinf-tag.less{color:var(--atk)}
 .reinf-tag.gone{color:var(--atk)}
 .reinf-tag.same{color:var(--good)}
+.reinf-tag.swap{color:var(--strong)}
+/* a stack the battle wipes out, and that is gone: as expected, but grey and struck */
+.reinf-table tr.wiped .reinf-tag{color:var(--text-dim)}
+.reinf-table tr.wiped .unit-txt{text-decoration:line-through}
+.reinf-table .swapped{color:var(--atk)}
+.reinf-table .was{color:var(--text-dim);font-size:10.5px;margin-left:6px}
+.btn-think{background-image:linear-gradient(to bottom,#a98be0,#7a55c9);color:#fff;text-shadow:var(--btn-shadow)}
 .reinf-up{color:var(--warn)}
 .reinf-down{color:var(--atk)}
 .reinf-table tr.same td{opacity:.7}
@@ -2179,6 +2188,11 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
     <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       <button class="btn btn-xs btn-info" id="btnReinfRun">Check</button>
       <button class="btn btn-xs" id="btnReinfClear">Clear</button>
+    </div>
+    <div id="reinfThinkBar" style="margin-top:8px;display:none;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-xs btn-think" id="btnReinfThink"
+        title="Work out which differences are one stack re-geared — a missing stack and a new or bigger one of the same type, at the same troop count">Think</button>
+      <button class="btn btn-xs" id="btnReinfRevert" style="display:none" title="Back to the plain comparison">Revert</button>
     </div>
     <div id="reinfOut"></div>
   </div>
@@ -5954,8 +5968,8 @@ function reinfMatch(x, y){
           yOnly: y.map((u, j) => ({y: u, yi: j})).filter(r => !yUsed.has(r.yi))};
 }
 
-const REINF_ORDER = {new: 0, more: 1, less: 2, gone: 3, train: 4, expected: 5, same: 6};
-const REINF_TAG = {new: "New", more: "More", less: "Fewer", gone: "Missing", train: "Training", expected: "Expected", same: "Same"};
+const REINF_ORDER = {new: 0, more: 1, less: 2, gone: 3, swap: 4, train: 5, expected: 6, same: 7};
+const REINF_TAG = {new: "New", more: "More", less: "Fewer", gone: "Missing", swap: "Swap", train: "Training", expected: "Expected", same: "Same"};
 
 /* what a row's add buttons put on the defenders: the troops over the
    prediction when there are any, otherwise the stack as it stands */
@@ -5983,25 +5997,33 @@ function reinfRowHTML(r, i, ticks){
   /* training only gets a word when the two sides disagree on it */
   const tr = r.x && r.y && r.x.training !== r.y.training
     ? `<span class="tr-off reinf-up">T${r.y.training} → T${r.x.training}</span>` : "";
-  const pred = !r.y ? '<span class="muted">—</span>'
+  const pred = r.kind === "swap" ? fmt(r.exp)
+    : !r.y ? '<span class="muted">—</span>'
     : r.y.size ? `${fmt(r.y.size)}${r.y.start !== r.y.size ? `<span class="of">of ${fmt(r.y.start)}</span>` : ""}`
     : `<span class="reinf-down">wiped</span><span class="of">of ${fmt(r.y.start)}</span>`;
   const diff = r.d ? `<span class="${r.d > 0 ? "reinf-up" : "reinf-down"}">${r.d > 0 ? "+" : "−"}${fmt(Math.abs(r.d))}</span>` : "";
-  const name = (r.x && r.x.name) || (r.y && r.y.name);
-  return `<tr class="${r.kind}">
+  const name = (r.x && r.x.name) || (r.y && r.y.name) || (r.from && r.from.name);
+  /* a swap reds the gear that changed, with what it was beside it */
+  const gear = (key, old) => r.from && key !== old
+    ? `<span class="swapped" title="was ${esc(label(old))}">${esc(label(key))}</span>` : esc(label(key));
+  const was = r.from ? ["weapon", "armor"].map(k => r.from[k] !== u[k] ? label(r.from[k]) : null).filter(Boolean) : [];
+  const wiped = r.kind === "same" && !r.x;
+  return `<tr class="${r.kind}${wiped ? " wiped" : ""}">
     <td class="l"><span class="reinf-tag ${r.kind}">${REINF_TAG[r.kind]}</span></td>
-    <td class="l unit"><span class="reinf-unit">${buildSprite(u.type, u.weapon, u.armor, false, {size: u.size, training: u.training})}<span>${
-      name ? `<b>${esc(name)}</b> · ` : ""}${esc(u.type)} <span class="muted">${esc(label(u.weapon))} / ${esc(label(u.armor))}</span>${tr}</span>
-      <span class="reinf-adds">${reinfAdds(r, i, ticks)}</span></span></td>
+    <td class="l unit"><span class="reinf-unit">${buildSprite(u.type, u.weapon, u.armor, false, {size: u.size, training: u.training})}<span><span class="unit-txt">${
+      name ? `<b>${esc(name)}</b> · ` : ""}${esc(u.type)} <span class="muted">${gear(u.weapon, r.from?.weapon)} / ${gear(u.armor, r.from?.armor)}</span></span>${
+      was.length ? `<span class="was">was ${esc(was.join(" / "))}</span>` : ""}${tr}</span></span></td>
     <td class="n">${pred}</td>
     <td class="n">${r.x ? fmt(r.x.size) : '<span class="muted">—</span>'}</td>
     <td class="n">${diff}</td>
+    <td class="l act"><span class="reinf-adds">${reinfAdds(r, i, ticks)}</span></td>
   </tr>`;
 }
 
 const LS_REINF_TICKS = "warcalc.reinfTicks";
 const reinfTicks = () => clampInt(document.getElementById("reinfTicks").value, 1, REINF_MAX);
 let reinfRows = [];
+let reinfBase = null;      // the plain comparison, for Revert
 
 /* an add button drops its unit on the defenders and says so, staying lit */
 function reinfAdd(btn){
@@ -6018,6 +6040,7 @@ function reinfAdd(btn){
 
 function runReinfCheck(){
   const out = document.getElementById("reinfOut");
+  document.getElementById("reinfThinkBar").style.display = "none";
   const battle = reinfReadBattle(document.getElementById("reinfBattle").value);
   if (!battle) return;
   if (battle.error){ out.innerHTML = `<div class="note warn">${esc(battle.error)}</div>`; return; }
@@ -6044,14 +6067,45 @@ function runReinfCheck(){
   });
   xOnly.forEach(r => rows.push({x: r.x, d: r.x.size, kind: "new", at: r.xi}));
   yOnly.forEach(r => rows.push({y: r.y, d: -r.y.size, kind: r.y.size ? "gone" : "same", at: x.length + r.yi}));
-  rows.sort((a, b) => REINF_ORDER[a.kind] - REINF_ORDER[b.kind] || a.at - b.at);
-  reinfRows = rows;
+  reinfBase = {rows, ticks};
+  reinfRender(rows, ticks);
+}
 
-  out.innerHTML = `
+function reinfRender(rows, ticks, thought){
+  rows = rows.slice().sort((a, b) => REINF_ORDER[a.kind] - REINF_ORDER[b.kind] || a.at - b.at);
+  reinfRows = rows;
+  document.getElementById("reinfOut").innerHTML = `
     <div class="reinf-wrap"><table class="reinf-table">
-      <thead><tr><th class="l"></th><th class="l">Defender</th><th>Expected</th><th>Actual</th><th>Off by</th></tr></thead>
+      <thead><tr><th class="l"></th><th class="l">Defender</th><th class="n">Expected</th><th class="n">Actual</th><th class="n">Off by</th><th></th></tr></thead>
       <tbody>${rows.map((r, i) => reinfRowHTML(r, i, ticks)).join("")}</tbody>
     </table></div>`;
+  /* Think, once there is something to think about; Revert once it has */
+  const odd = rows.some(r => !["same", "expected"].includes(r.kind));
+  document.getElementById("reinfThinkBar").style.display = odd || thought ? "flex" : "none";
+  document.getElementById("btnReinfThink").style.display = thought ? "none" : "";
+  document.getElementById("btnReinfRevert").style.display = thought ? "" : "none";
+}
+
+/* a stack gone missing and a stack of the same type, other gear, that is new
+   or grew by exactly as many troops: the one was re-geared into the other */
+function reinfThink(rows){
+  const out = rows.slice();
+  const kit = u => `${u.weapon}|${u.armor}`;
+  const nm = u => (u.name || "").toLowerCase();
+  let found = 0;
+  out.filter(r => r.kind === "gone").sort((a, b) => b.y.size - a.y.size).forEach(src => {
+    const fits = out.filter(r => (r.kind === "new" || r.kind === "more") && r.d === src.y.size
+      && r.x.type === src.y.type && kit(r.x) !== kit(src.y));
+    if (!fits.length) return;
+    /* the same name first, then the same training */
+    const dst = fits.find(r => nm(src.y) && nm(r.x) === nm(src.y))
+             || fits.find(r => r.x.training === src.y.training) || fits[0];
+    out.splice(out.indexOf(src), 1);
+    out.splice(out.indexOf(dst), 1, {x: dst.x, y: dst.y, from: src.y, d: 0, kind: "swap", at: dst.at,
+      exp: (dst.y ? dst.y.size : 0) + src.y.size});
+    found++;
+  });
+  return {rows: out, found};
 }
 
 /* ===================================================================
@@ -6650,6 +6704,20 @@ document.getElementById("btnReinfChk").addEventListener("click", ()=>{
   store.set(LS_REINF, open);
 });
 document.getElementById("btnReinfRun").addEventListener("click", runReinfCheck);
+document.getElementById("btnReinfThink").addEventListener("click", e => {
+  if (!reinfBase) return;
+  const t = reinfThink(reinfBase.rows);
+  if (!t.found){
+    const b = e.currentTarget;
+    b.textContent = "Nothing to work out";
+    setTimeout(() => { b.textContent = "Think"; }, 1600);
+    return;
+  }
+  reinfRender(t.rows, reinfBase.ticks, true);
+});
+document.getElementById("btnReinfRevert").addEventListener("click", () => {
+  if (reinfBase) reinfRender(reinfBase.rows, reinfBase.ticks);
+});
 (() => {
   const el = document.getElementById("reinfTicks");
   el.value = clampInt(store.get(LS_REINF_TICKS, 1), 1, REINF_MAX);
@@ -6666,6 +6734,8 @@ document.getElementById("reinfOut").addEventListener("click", e => {
 document.getElementById("btnReinfClear").addEventListener("click", ()=>{
   ["reinfBattle", "reinfArmy"].forEach(id => { document.getElementById(id).value = ""; });
   document.getElementById("reinfOut").innerHTML = "";
+  document.getElementById("reinfThinkBar").style.display = "none";
+  reinfBase = null;
 });
 
 /* the - and + by a side's Tr heading move every row's training one step */
