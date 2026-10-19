@@ -10482,9 +10482,8 @@ function gsExportText(){
 /* a section a paste names replaces that section; a paste with no headings is the stockpile.
    The game's own tables paste in too, a row to a line with the cells tab-apart:
    its Weapons and Armor stockpiles fill the reserves (the Qty column), and
-   Alliance Resources the production (the Net column, the last on the row) —
-   GDP is the bits, and what has no production box, copper and the parts,
-   goes in the stockpile instead. Rows for things not kept here are passed over. */
+   Alliance Resources the production (the Net column, the last on the row;
+   GDP is the bits). Rows for things not kept here are passed over. */
 function gsImportText(txt){
   const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, "");
   const names = (b, k) => (b === "resv" ? [label(k), k] : k === "bits" ? ["Bits", "GDP"] : [gsName(k), k]).map(norm);
@@ -10504,14 +10503,11 @@ function gsImportText(txt){
   const table = (b, ks, pick)=>{
     bucket = b; keys = ks; game = pick; seen[b] = true;
     if (pick === "first"){ ks.forEach(k => delete gs.resv[k]); n++; }
-    else seen.stock = true;
   };
-  /* where a row lands: in the section it is under, or for the alliance table
-     the stockpile when it has no production box */
+  /* where a row lands: in the section it is under */
   const place = name=>{
     const k = find(bucket, keys, name);
     if (k) return [bucket, k];
-    if (game === "last"){ const s = find("stock", GS_STOCK, name); return s ? ["stock", s] : null; }
     /* a weapon or armour row pasted with no heading over it is still reserves */
     if (!game && bucket === "stock"){
       const g = find("resv", GS_GEAR, name);
