@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CurioCalc 2.5 — CLOP</title>
+<title>CurioCalc 2.6 — CLOP</title>
 <style>
 :root{
   --bg:#272b30;
@@ -2002,7 +2002,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
 <body>
 
 <div class="tabstrip">
-  <span class="tab-brand">CurioCalc 2.5<button class="gear-btn" id="btnTools"
+  <span class="tab-brand">CurioCalc 2.6<button class="gear-btn" id="btnTools"
     title="Settings, import / export presets" aria-expanded="false"><svg viewBox="0 0 24 24"
     aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path
     d="M10.3 2.5h3.4l.5 2.6a7.6 7.6 0 0 1 2 1.2l2.5-.9 1.7 2.9-2 1.8a7.7 7.7 0 0 1 0 2.3l2 1.8-1.7 2.9-2.5-.9a7.6 7.6 0 0 1-2 1.2l-.5 2.6h-3.4l-.5-2.6a7.6 7.6 0 0 1-2-1.2l-2.5.9-1.7-2.9 2-1.8a7.7 7.7 0 0 1 0-2.3l-2-1.8 1.7-2.9 2.5.9a7.6 7.6 0 0 1 2-1.2z"/><circle
@@ -3389,8 +3389,8 @@ function rosterText(rows){
 const bq = t => /\s/.test(t) ? `"${t}"` : t;
 const bSuffix = i => { let s = ""; i++; while (i > 0){ i--; s = String.fromCharCode(97 + i % 26) + s; i = Math.floor(i / 26); } return s; };
 /* the awesome auto-naming: a unit with no name of its own is called after
-   two words off this list and two digits, e.g. "Cloudy Pumpkin 42". Each
-   unnamed slot keeps its name for the session, so a redraw doesn't reroll it */
+   two words off this list and two digits, e.g. "Cloudy Pumpkin 42". Nothing
+   is kept: every Builder Copy click draws all of them afresh */
 const PONY_WORDS = `
   Abracadabra Aloha Amazing Apple Amber Alphabittle Alphabet April August Art Artsy Aurora Autumn
   Azaela Anvil Ace Adante Affero Aloe Amaranthine Amethyst Apricot Aquamarine Argyle Aunt Auntie
@@ -3457,7 +3457,6 @@ const PONY_WORDS = `
   Wisp Wither Wave Wind Windy Wonder Wonderful Whinny Whoa Written Wigwam Whirly Woosie Withers
   Wrangler Xylophone Xtra Xyla Xanthea Xenon Yummy Yum Yes Yay Yellow York Yoghurt Yeast Yearn
   Young Yore Year Yeehaw Yolk Zig Zag Zippy Zipzee Zen Zesty Zephyr Zip Zoom Zap`.trim().split(/\s+/);
-const AUTO_NAMES = new Map();
 function ponyName(){
   const pick = () => PONY_WORDS[Math.floor(Math.random() * PONY_WORDS.length)];
   const a = pick();
@@ -3467,7 +3466,6 @@ function ponyName(){
 }
 /* the builder takes a paste of 2,000 characters at most */
 const BUILDER_MAX = 2000;
-const SHORT_NAMES = new Map();      // a name squeezed to letters keeps them from copy to copy
 function plainName(){
   const letter = () => String.fromCharCode(97 + Math.floor(Math.random() * 26));
   return letter() + letter() + letter() + Math.floor(Math.random() * 10);
@@ -3481,14 +3479,10 @@ function builderText(rows, noGroup){
        letters and a digit with auto-naming off) — the builder takes 1-50
        letters, digits, spaces and underscores, quoted if spaced */
     const own = String(u.nick || "").replace(/[^A-Za-z0-9_ ]+/g, "").replace(/\s+/g, " ").trim().slice(0, 47);
-    const base = u.type.toLowerCase();
     let name = own;
     if (!name){
       const plain = !!PREFS.noAutoName;
-      const slot = `${plain ? "plain:" : ""}${base}#${seen[base] = (seen[base] ?? -1) + 1}`;
-      name = AUTO_NAMES.get(slot);
-      while (!name || taken.has(name.toLowerCase())) name = plain ? plainName() : ponyName();
-      AUTO_NAMES.set(slot, name);
+      do name = plain ? plainName() : ponyName(); while (taken.has(name.toLowerCase()));
     }
     /* the builder reads names case-blind, so "Alpha" and "alpha" would clash */
     else if (taken.has(name.toLowerCase())){
@@ -3522,9 +3516,8 @@ function builderText(rows, noGroup){
       if (text.length <= BUILDER_MAX) break;
       if (x.name.length <= len) continue;
       taken.delete(x.name.toLowerCase());
-      let short = SHORT_NAMES.get(x.name);
-      while (!short || taken.has(short)) short = letters();
-      SHORT_NAMES.set(x.name, short);
+      let short;
+      do short = letters(); while (taken.has(short));
       taken.add(short);
       x.name = short;
       text = write();
@@ -3592,8 +3585,7 @@ function unitsBlock(rows, open, byTick){
       `<button class="bp-btn txt-btn u-copy u-sheet" title="Copy one count a line, ready for a spreadsheet column"
          data-units-copy="${sheetText(rows).replace(/\n/g, "&#10;")}">Spreadsheet Copy</button>` +
       `<button class="bp-btn txt-btn u-copy u-builder" title="Copy as army-builder commands (shift-click leaves out the grouping)"
-         data-units-copy="${esc(builderText(builderRows)).replace(/\n/g, "&#10;")}"
-         data-units-copy-shift="${esc(builderText(builderRows, true)).replace(/\n/g, "&#10;")}">Builder Copy</button>` +
+         data-units-copy="" data-builder="${keepBuilderRows(builderRows)}">Builder Copy</button>` +
       (gearText ? `<button class="bp-btn txt-btn u-copy u-builder" title="Copy the army-builder commands that build the gear"
          data-units-copy="${esc(gearText).replace(/\n/g, "&#10;")}">Builder Gear Copy</button>` : "")
     : "";
@@ -3606,6 +3598,19 @@ function unitsBlock(rows, open, byTick){
     </details>`;
 }
 
+/* Builder Copy writes its text on the click, not on the draw, so the made-up
+   names are new every time; the button only holds a key to its rows. Keys
+   whose button has left the page are dropped once a few pile up */
+const BUILDER_ROWS = new Map();
+let builderKey = 0;
+function keepBuilderRows(rows){
+  if (BUILDER_ROWS.size > 64)
+    for (const k of BUILDER_ROWS.keys())
+      if (!document.querySelector(`[data-builder="${k}"]`)) BUILDER_ROWS.delete(k);
+  BUILDER_ROWS.set(++builderKey, rows);
+  return builderKey;
+}
+
 /* one delegated handler, so every Units drop gets it wherever it renders */
 document.addEventListener("click", async e=>{
   const b = e.target.closest("[data-units-copy]");
@@ -3613,10 +3618,11 @@ document.addEventListener("click", async e=>{
   e.preventDefault();                    // keep the click off the summary toggle
   e.stopPropagation();
   /* shift-click on Builder Copy leaves the grouping out */
-  const text = e.shiftKey && b.dataset.unitsCopyShift != null ? b.dataset.unitsCopyShift : b.dataset.unitsCopy;
+  const rows = b.dataset.builder != null && BUILDER_ROWS.get(+b.dataset.builder);
+  const text = rows ? builderText(rows, e.shiftKey) : b.dataset.unitsCopy;
   if (!await copyText(text)){ alert("This browser would not let the page reach the clipboard."); return; }
   /* still too long for the builder even with the names squeezed: copied all the same, and said so */
-  if (b.dataset.unitsCopyShift != null && text.length > BUILDER_MAX) flashOk(b, "Output over 2k chars", "warn");
+  if (rows && text.length > BUILDER_MAX) flashOk(b, "Output over 2k chars", "warn");
   else flashOk(b, "Copied");
 });
 
