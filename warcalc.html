@@ -663,6 +663,7 @@ body.no-unspent .log .unspent{display:none}
   padding:10px;min-width:230px;max-width:400px;box-shadow:0 8px 22px rgba(var(--lo),.6);
 }
 #tip.tip-wide{max-width:none}
+#tip .tip-fid{position:absolute;top:5px;right:8px;font:10px/1 var(--mono);color:var(--text-dim);opacity:.6}
 /* a unit that lost troops: what it went in as, drained of colour, beside
    what is left of it */
 .tip-dual{display:flex;gap:18px;align-items:flex-start}
@@ -2895,7 +2896,7 @@ function spritePath(type, weapon, armor){
 
 function buildSprite(type, weapon, armor, big, meta){
   const tip = typeof tipAttrs === "function"
-    ? tipAttrs(type, weapon, armor, meta?.size, meta?.training) +
+    ? tipAttrs(type, weapon, armor, meta?.size, meta?.training, meta?.fid) +
       (meta?.left != null ? ` data-tip-left="${esc(meta.left)}"` : "") : "";
   return `<img class="sprite${big ? " sprite-lg" : ""}" src="${esc(spritePath(type, weapon, armor))}"
     alt="${esc(type)} — ${esc(label(weapon))} / ${esc(label(armor))}" loading="lazy"
@@ -3113,12 +3114,14 @@ function paintRow(tr){
 
   // keep the same <img> when only size/training moved — avoids a sprite reload
   const cur = slot.querySelector("[data-tip-t]");
+  const fid = fidPre(tr.dataset.side) + tr.dataset.fid;
   if (type && cur && cur.dataset.tipT === type && cur.dataset.tipW === weapon && cur.dataset.tipA === armor){
     cur.dataset.tipSize = size;
     cur.dataset.tipTrain = training;
+    cur.dataset.tipFid = fid;
   } else {
     slot.innerHTML = type
-      ? buildSprite(type, weapon, armor, false, {size, training})
+      ? buildSprite(type, weapon, armor, false, {size, training, fid})
       : `<span class="muted small">—</span>`;
   }
   refreshCosts();
@@ -4041,9 +4044,10 @@ function tipHTML(type, weapon, armor, size, training){
     </div>`;
 }
 
-function tipAttrs(type, weapon, armor, size, training){
+function tipAttrs(type, weapon, armor, size, training, fid){
   return `data-tip-t="${esc(type)}" data-tip-w="${esc(weapon)}" data-tip-a="${esc(armor)}"` +
-         (size != null ? ` data-tip-size="${esc(size)}" data-tip-train="${esc(training)}"` : "");
+         (size != null ? ` data-tip-size="${esc(size)}" data-tip-train="${esc(training)}"` : "") +
+         (fid ? ` data-tip-fid="${esc(fid)}"` : "");      // its force id, faint in the card's corner
 }
 
 /* both the long name and the unit's own name go out; the Names box picks
@@ -4067,7 +4071,7 @@ function unitRef(u, gear, swing, x){
   const chg = x.was != null
     ? `<span class="n-chg">(<span class="n-was">${money(x.was)}</span><span class="n-arr">→</span>${money(x.now)})</span>` : "";
   return `${ammo}${ic}<span class="unit-ref ${u.attack_mission ? "ref-atk" : "ref-def"}${swing ? " ref-swinger" : ""}"
-    ${tipAttrs(u.origType, u.weapon, u.armor, u.size, u.training)}><span class="ref-sys">${esc(u.name).replace(/size_\d+/, "<span class=\"ref-size\">$&</span>")}</span>${
+    ${tipAttrs(u.origType, u.weapon, u.armor, u.size, u.training, u.fid)}><span class="ref-sys">${esc(u.name).replace(/size_\d+/, "<span class=\"ref-size\">$&</span>")}</span>${
     swing ? `<span class="ref-num ref-lead">${x.leadW > String(u.size).length
       ? `<span class="lead-pad">${"\u2007".repeat(x.leadW - String(u.size).length)}</span>` : ""}${esc(u.size)}</span>` : ""}<span class="ref-kit">${
     esc(label(u.weapon))} + ${esc(label(u.armor))}</span>${
@@ -4581,7 +4585,7 @@ function pinUnit(U, swings, now){
     <span class="pu-size">${swings || now == null || now >= U.size ? money(U.size)
       : `<span class="pu-was">${money(U.size)}</span> → ${money(now)}`}</span>
     <span class="pu-left">${swings && now != null ? `${money(now)} <span class="muted">swings left</span>` : "&nbsp;"}</span>
-    ${buildSprite(U.origType, U.weapon, U.armor, true, {size: U.size, training: U.training})}
+    ${buildSprite(U.origType, U.weapon, U.armor, true, {size: U.size, training: U.training, fid: U.fid})}
     <span class="pu-gear${swings ? "" : " pu-off"}">${esc(label(U.weapon))}</span>
     <span class="pu-gear${swings ? " pu-off" : ""}">${esc(label(U.armor))}</span>
     <span class="pu-train">training ${esc(U.training)}</span>
@@ -5229,7 +5233,7 @@ function survivorsGrid(all){
           side.length ? side.map(u=>`<div class="surv-card ${cls}${u.dead ? " surv-dead" : ""}${u.fresh ? " surv-fresh" : ""}"
               ${pickAttrs(u.origType, u.weapon, u.armor, u.size, u.training)}>
               ${u.fid ? `<span class="surv-fid">${esc(u.fid)}</span>` : ""}
-              ${buildSprite(u.origType, u.weapon, u.armor, true, {size:u.size, training:u.training,
+              ${buildSprite(u.origType, u.weapon, u.armor, true, {size:u.size, training:u.training, fid:u.fid,
                   left: u.remaining < u.size ? Math.max(0, u.remaining || 0) : null})}
               ${u.nick ? `<div class="small" style="margin-top:6px;font-weight:600;word-break:break-all">${esc(u.nick)}</div>` : ""}
               ${cardGear(u.weapon, u.armor)}
@@ -6359,7 +6363,7 @@ function reinfRowHTML(r, i, ticks){
     : ` title="New — joins as ${esc(fid)} when Add changes to defence brings it in"`}>${esc(fid)}</span>` : "";
   return `<tr class="${r.kind}${wiped ? " wiped" : ""}">
     <td class="l"><span class="reinf-tag ${r.kind}">${REINF_TAG[r.kind]}</span></td>
-    <td class="l unit"><span class="reinf-unit">${buildSprite(u.type, u.weapon, u.armor, false, {size: u.size, training: u.training})}<span>${fidTag}<span class="unit-txt">${
+    <td class="l unit"><span class="reinf-unit">${buildSprite(u.type, u.weapon, u.armor, false, {size: u.size, training: u.training, fid})}<span>${fidTag}<span class="unit-txt">${
       name ? `<b>${esc(name)}</b> · ` : ""}${esc(u.type)} <span class="muted">${gear(u.weapon, r.from?.weapon)} / ${gear(u.armor, r.from?.armor)}</span></span>${
       was.length ? `<span class="was">was ${esc(was.join(" / "))}</span>` : ""}${tr}</span></span></td>
     <td class="n">${pred}</td>
@@ -8265,6 +8269,7 @@ document.addEventListener("mouseover", e=>{
     tipEl.innerHTML = tipHTML(d.tipT, d.tipW, d.tipA,
       d.tipSize !== undefined ? d.tipSize : null, d.tipTrain);
   }
+  if (d.tipFid && !d.tipKey && !full) tipEl.insertAdjacentHTML("afterbegin", `<span class="tip-fid">${esc(d.tipFid)}</span>`);
   if (!d.tipLeft || PREFS.plainHover || d.tipKey) tipEl.classList.remove("tip-wide");
   if (full){
     tipEl.classList.add("tip-wide");
@@ -12528,7 +12533,7 @@ function gsUnitHTML(raw){
 /* what an army's instructions raise or re-equip, under its units */
 function gsInsHTML(u){
   const gear = (k, keep) => `<span class="g${keep || SCROUNGED[k] ? " none" : ""}" title="${esc(label(k))}">${gearImg(k)}<span class="gn">${esc(gsShort(k))}</span></span>`;
-  return `<div class="slip-u slip-u-ins" ${tipAttrs(u.type, u.weapon, u.armor, u.size, u.training)}>
+  return `<div class="slip-u slip-u-ins" ${tipAttrs(u.type, u.weapon, u.armor, u.size, u.training, u.fid)}>
       <div class="slip-u1"><span class="q">${u.kind === "raise" ? "+" : ""}${u.size.toLocaleString("en-US")}</span><span class="nm">${esc(u.type)}</span>
         <span class="tr">${u.kind === "raise" ? "raised" : "swapped"} · tick ${u.tick}</span></div>
       <div class="slip-u2">${gear(u.weapon, u.noW)}<span class="plus">+</span>${gear(u.armor, u.noA)}</div></div>`;
@@ -13222,7 +13227,7 @@ function asFlip(key){
 }
 
 function asUnitHTML(u){
-  return `<div class="as-u" ${tipAttrs(u.type, u.weapon, u.armor, u.size, u.training)}>
+  return `<div class="as-u" ${tipAttrs(u.type, u.weapon, u.armor, u.size, u.training, u.fid)}>
       <span class="q">${u.size.toLocaleString("en-US")}</span><span class="nm">${esc(u.type)}</span>
       <span class="tr">T${u.training}</span>${u.lost ? `<span class="lost">−${u.lost.toLocaleString("en-US")}</span>` : ""}
       <span class="g">${gearImg(u.weapon)}${gearImg(u.armor)}</span></div>`;
