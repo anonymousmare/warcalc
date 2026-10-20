@@ -6127,7 +6127,14 @@ function reinfPredict(battle, ticks){
     dead.push(...def.filter(u => !u.size));
     def = def.filter(u => u.size > 0);
   }
-  const y = def.concat(dead, defAll.filter(u => waitOf(u) === ticks).map(u => row(u, true)))
+  /* who is due next tick lands, and the next tick's own instructions run, so the
+     prediction is the army as it stands going into that tick */
+  def = def.concat(defAll.filter(u => waitOf(u) === ticks).map(u => row(u, true)));
+  if (orders){
+    atk = atk.concat(atkAll.filter(u => waitOf(u) === ticks).map(u => row(u, false)));
+    def = ordRun(prog, ticks + 1, atk, def, dmg).def.map(u => Object.assign({start: u.size, due: false, nick: ""}, u));
+  }
+  const y = def.concat(dead)
     .map(u => ({type: u.type, weapon: u.weapon, armor: u.armor, training: u.training,
                 name: u.nick, size: u.size, start: u.start, due: u.due}));
   return {y};
@@ -6216,7 +6223,14 @@ function reinfApply(){
   catch(e){ say(`Could not replay the battle: ${esc(e.message)}`, true); return; }
   const acts = reinfDiffActs(x, base);
   const n = Object.values(acts).reduce((t, l) => t + l.length, 0);
-  if (!n){ say(`Nothing to add — at the start of tick ${tick} the defenders already match the pasted army.`); return; }
+  /* the left box takes the battle as it now stands, its instructions in it, and
+     the comparison is run again on that, so the table says what the note does */
+  const recheck = () => {
+    document.getElementById("reinfBattle").value = encodeBattle(liveSide("attacker"), liveSide("defender"),
+      document.getElementById("defBonus").value, barracksBoth());
+    runReinfCheck();
+  };
+  if (!n){ recheck(); say(`Nothing to add — at the start of tick ${tick} the defenders already match the pasted army.`); return; }
 
   const on = Object.assign(ordNew("onTick", "defender"), {x: tick});
   ORD.defender.push(on);
@@ -6250,8 +6264,10 @@ function reinfApply(){
   ordChanged(true);
   const d = ordEl("defender")?.querySelector(".ord-drop");
   if (d) d.open = true;
+  recheck();
   say(`<strong>Added an on tick ${tick} block</strong> with ${on.body.length} instruction${on.body.length === 1 ? "" : "s"} to the defenders. `
-    + `Verified: at the start of tick ${tick} the defenders match the pasted army, all ${x.length} stack${x.length === 1 ? "" : "s"}.`);
+    + `Verified: at the start of tick ${tick} the defenders match the pasted army, all ${x.length} stack${x.length === 1 ? "" : "s"}. `
+    + `The battle code on the left now carries the block, and the table below is checked against it.`);
 }
 
 /* pairs each pasted stack (x) with a predicted one (y): the same kit and
