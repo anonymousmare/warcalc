@@ -1081,6 +1081,7 @@ body.log-icons .gear-ic{display:inline-flex}
   padding:8px 11px;border-radius:0 3px 3px 0;font-size:12.5px;margin-bottom:14px;
 }
 .note.warn{border-left-color:var(--warn);background:rgba(var(--warn-rgb),.07)}
+.note.ok{border-left-color:var(--good);background:rgba(var(--good-rgb),.07)}
 
 /* the crunch report — a link can carry the spreadsheet's own totals, and a
    mismatch has to be impossible to click past */
@@ -1415,6 +1416,8 @@ body.align-costs .forces-grid > .panel{display:grid;grid-row:span 4;grid-templat
 .blk-x:hover{opacity:1;background:rgba(0,0,0,.25)}
 .ord-caret{height:3px;margin:-1px 0;border-radius:2px;background:var(--accent);flex:0 0 auto}
 .ord-bar{display:flex;align-items:center;gap:8px;margin-top:8px}
+.reinf-apply{margin-top:8px}
+.reinf-apply div{margin-top:4px}
 .cost-other-note{margin:-2px 0 6px}
 /* what the instructions did, atop the tick's exchange log */
 .log .xlog-ord{font-family:var(--font);font-size:11px;letter-spacing:.02em;color:var(--text-dim);margin-bottom:6px}
@@ -2289,7 +2292,10 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
       <button class="btn btn-xs btn-think" id="btnReinfThink"
         title="Work out which differences are one stack re-geared — a missing stack and a new or bigger one of the same type, at the same troop count">Think</button>
       <button class="btn btn-xs" id="btnReinfRevert" style="display:none" title="Back to the plain comparison">Revert</button>
+      <button class="btn btn-xs btn-warning" id="btnReinfApply"
+        title="Write the defenders an on-tick instruction block that turns them into the pasted army at the start of the next tick, and check that it does">Add changes to defence</button>
     </div>
+    <div id="reinfApplyOut"></div>
     <div id="reinfOut"></div>
   </div>
 </div>
@@ -4753,7 +4759,9 @@ const chainRows = (units, isAtk) =>
     name:`${u.type}_${u.weapon}_${u.armor}_size_${u.size}_train_${u.training}`}));
 
 /* `orders`, when the advanced instructions are in play: {prog, dmg}, the
-   scripts the battle was resolved with and the damage tick 1 dealt each force */
+   scripts the battle was resolved with and the damage tick 1 dealt each force.
+   With orders.peek set to a tick, the replay stops at that tick's start, once
+   its instructions have run, and hands back who is on the field as peek */
 function chainBattles(atkRows, defRows, bonus, drift = trainDrift(), orders = null){
   /* reinforcements wait apart until their tick, then drop in at the back of the list */
   let atk = atkRows.filter(u => !waitOf(u)).map(u => Object.assign({}, u));
@@ -4793,6 +4801,7 @@ function chainBattles(atkRows, defRows, bonus, drift = trainDrift(), orders = nu
       const o = ordRun(orders.prog, t + 1, atk, def, prevDmg);
       atk = o.atk; def = o.def; notes = o.notes; ordered = o.changed; buys = o.buys; links = o.links;
     }
+    if (orders?.peek === t + 1) return {ticks, stop: "peek", error, peek: {atk, def}};
     const upA = upkeepOf(atk), upD = upkeepOf(def);
     const atkStart = troopsOf(atk), defStart = troopsOf(def);
 
@@ -4811,6 +4820,8 @@ function chainBattles(atkRows, defRows, bonus, drift = trainDrift(), orders = nu
     atk = atk.map((u, i) => Object.assign({}, u, {size:r.invaders[i].remaining, fresh:false})).filter(u => u.size > 0);
     def = def.map((u, i) => Object.assign({}, u, {size:r.repellers[i].remaining, fresh:false})).filter(u => u.size > 0);
 
+    /* a peek goes on to its tick whatever happens before it */
+    if (orders?.peek > t + 1) continue;
     /* a side down to nobody is wiped, unless it still has reinforcements to come */
     if ((!atkLeft && !atkDue.some(u => waitOf(u) > t)) ||
         (!defLeft && !defDue.some(u => waitOf(u) > t))){ stop = "wipe"; break; }
@@ -6122,6 +6133,127 @@ function reinfPredict(battle, ticks){
   return {y};
 }
 
+/* ---- Add changes to defence ----
+   The battle on the Battle tab is replayed to the start of the tick after the
+   ones fought, its instructions and all, and the defenders there are held up
+   against the pasted army. Whatever differs becomes one "on tick" block in
+   the defenders' script, run at that tick's start: training moved, stacks
+   re-geared (a missing stack and a new or grown one of the same type and
+   troop count, as Think finds them), troops cut, stacks destroyed, troops
+   raised and merged into the stack they joined. The replay is run again with
+   the block in, and the block is only kept if the defenders then match. */
+
+/* the defenders on the field at the start of `tick`, once its instructions
+   have run, for the battle on screen under `prog` */
+function reinfPeek(prog, tick){
+  const atkAll = readSide("attacker"), defAll = readSide("defender");
+  const bonus = document.getElementById("defBonus").value;
+  const o = ordRun(prog, 1, atkAll.filter(u => !waitOf(u)), defAll.filter(u => !waitOf(u)), null);
+  const r1 = simulate(o.atk, o.def, bonus);
+  const a0 = chainRows(r1.units, true).concat(atkAll.filter(u => waitOf(u)));
+  const d0 = chainRows(r1.units, false).concat(defAll.filter(u => waitOf(u)));
+  const run = chainBattles(a0, d0, bonus, trainDrift(), {prog, dmg: ordDmg(r1), peek: tick});
+  if (run.error) throw new Error(run.error);
+  return (run.peek?.def || []).filter(u => u.size > 0).map(u => ({type: u.type, weapon: u.weapon, armor: u.armor,
+    size: u.size, training: u.training, name: u.nick || "", fid: u.fid}));
+}
+
+/* what turns `base` (the replayed defenders) into `x` (the pasted army) */
+function reinfDiffActs(x, base){
+  const acts = {train: [], swap: [], trim: [], destroy: [], raise: [], merge: []};
+  const {pairs, xOnly, yOnly} = reinfMatch(x, base);
+  const P = pairs.map(p => ({x: p.x, y: p.y, d: p.x.size - p.y.size}));
+  const xs = xOnly.map(r => r.x), ys = yOnly.map(r => r.y);
+  const nm = u => (u.name || "").toLowerCase(), kit = u => `${u.weapon}|${u.armor}`;
+  ys.slice().sort((a, b) => b.size - a.size).forEach(src => {
+    const of = c => c.x || c;
+    const pick = list => list.find(c => nm(src) && nm(of(c)) === nm(src)) || list.find(c => of(c).training === src.training) || list[0];
+    const n = pick(xs.filter(u => u.type === src.type && u.size === src.size && kit(u) !== kit(src)));
+    const m = n ? null : pick(P.filter(p => p.d === src.size && p.x.type === src.type && kit(p.x) !== kit(src)));
+    const to = n || m?.x;
+    if (!to) return;
+    ys.splice(ys.indexOf(src), 1);
+    acts.swap.push({fid: src.fid, from: src, to});
+    if (to.training !== src.training) acts.train.push({fid: src.fid, d: to.training - src.training});
+    if (n) xs.splice(xs.indexOf(n), 1);
+    else { m.d = 0; acts.merge.push({fid: m.y.fid, fid2: src.fid}); }
+  });
+  P.forEach(p => {
+    if (p.x.training !== p.y.training) acts.train.push({fid: p.y.fid, d: p.x.training - p.y.training});
+    if (p.d < 0) acts.trim.push({fid: p.y.fid, n: -p.d});
+    if (p.d > 0) acts.raise.push({u: p.x, n: p.d, into: p.y.fid});
+  });
+  xs.forEach(u => acts.raise.push({u, n: u.size}));
+  ys.forEach(u => acts.destroy.push({fid: u.fid}));
+  return acts;
+}
+
+/* the stacks one list has that the other has not, kit, training and size alike */
+function reinfLeftover(a, b){
+  const key = u => `${u.type}|${u.weapon}|${u.armor}|${u.training}|${u.size}`;
+  const left = b.map(key);
+  return a.filter(u => { const i = left.indexOf(key(u)); if (i < 0) return true; left.splice(i, 1); return false; });
+}
+
+function reinfApply(){
+  const out = document.getElementById("reinfApplyOut");
+  const say = (html, warn) => { out.innerHTML = `<div class="note ${warn ? "warn" : "ok"} reinf-apply">${html}</div>`; };
+  if (!reinfBase?.battle || !reinfBase.x) return;
+  const tick = reinfBase.ticks + 1;
+  /* the block is written for the battle on the Battle tab, so that has to be this one */
+  if (!reinfIsLoaded(reinfBase.battle)){
+    if (!confirm("The battle loaded above is not the one in the checker. Load the checker's battle into the "
+        + "Battle tab (its attackers, defenders, bonus and instructions) and add the changes to that?")) return;
+    const b = reinfBase.battle;
+    setSide("attacker", noNames(b.attacker));
+    setSide("defender", noNames(b.defender));
+    document.getElementById("defBonus").value = b.bonus === "No" ? "No" : "Yes";
+    scheduleSave();
+  }
+  const x = reinfBase.x;
+  let base;
+  try{ base = reinfPeek(ordSnap(), tick); }
+  catch(e){ say(`Could not replay the battle: ${esc(e.message)}`, true); return; }
+  const acts = reinfDiffActs(x, base);
+  const n = Object.values(acts).reduce((t, l) => t + l.length, 0);
+  if (!n){ say(`Nothing to add — at the start of tick ${tick} the defenders already match the pasted army.`); return; }
+
+  const on = Object.assign(ordNew("onTick", "defender"), {x: tick});
+  ORD.defender.push(on);
+  const add = (k, f) => { const b = Object.assign(ordNew(k, "defender"), f); on.body.push(b); return b; };
+  acts.train.forEach(a => add("train", {dir: a.d < 0 ? "lower" : "raise", scope: "unit", fid: a.fid, x: Math.abs(a.d)}));
+  acts.swap.forEach(a => add("swap", {fid: a.fid, weapon: a.to.weapon !== a.from.weapon ? a.to.weapon : "",
+                                      armor: a.to.armor !== a.from.armor ? a.to.armor : ""}));
+  acts.trim.forEach(a => add("trim", {fid: a.fid, n: a.n}));
+  acts.destroy.forEach(a => add("destroy", {fid: a.fid}));
+  acts.raise.forEach(a => {
+    const b = add("raise", {n: a.n, type: a.u.type, weapon: a.u.weapon, armor: a.u.armor, training: a.u.training});
+    if (a.into) acts.merge.push({fid: a.into, fid2: ordMadeFid(b, "defender")});
+  });
+  acts.merge.forEach(a => add("merge", {fid: a.fid, fid2: a.fid2}));
+
+  /* the proof: the replay with the block in has to land on the pasted army */
+  let got, err = "";
+  try{ got = reinfPeek(ordSnap(), tick); }catch(e){ err = e.message; }
+  const miss = got ? reinfLeftover(x, got) : x, extra = got ? reinfLeftover(got, x) : [];
+  if (err || miss.length || extra.length){
+    ORD.defender.splice(ORD.defender.indexOf(on), 1);
+    ordSyncSig = "";
+    const line = u => `${money(u.size)} ${esc(u.type)} ${esc(label(u.weapon))} + ${esc(label(u.armor))} T${u.training}`;
+    say(`<strong>Could not make the defenders match, so nothing was added.</strong>${err ? " " + esc(err) : ""}${
+      miss.length ? `<div>Still missing: ${miss.map(line).join("; ")}</div>` : ""}${
+      extra.length ? `<div>Left over: ${extra.map(line).join("; ")}</div>` : ""}${
+      x.some(u => u.training > trainCap("defender")) ? `<div>Some training is past the defenders' cap — tick the box beside their Barracks.</div>` : ""}`, true);
+    return;
+  }
+  ORD.open.defender = true;
+  ordChanged(true);
+  const d = ordEl("defender")?.querySelector(".ord-drop");
+  if (d) d.open = true;
+  say(`<strong>Added an on tick ${tick} block</strong> with ${on.body.length} instruction${on.body.length === 1 ? "" : "s"} to the defenders. `
+    + `Verified: at the start of tick ${tick} the defenders match the pasted army, all ${x.length} stack${x.length === 1 ? "" : "s"}.`);
+}
+
 /* pairs each pasted stack (x) with a predicted one (y): the same kit and
    training under the same name, then at the same size, then largest to
    largest, and last of all the same kit at another training */
@@ -6240,6 +6372,7 @@ function reinfAdd(btn){
 
 function runReinfCheck(){
   const out = document.getElementById("reinfOut");
+  document.getElementById("reinfApplyOut").innerHTML = "";
   document.getElementById("reinfThinkBar").style.display = "none";
   const battle = reinfReadBattle(document.getElementById("reinfBattle").value);
   if (!battle) return;
@@ -6267,7 +6400,7 @@ function runReinfCheck(){
   });
   xOnly.forEach(r => rows.push({x: r.x, d: r.x.size, kind: "new", at: r.xi}));
   yOnly.forEach(r => rows.push({y: r.y, d: -r.y.size, kind: r.y.size ? "gone" : "same", at: x.length + r.yi}));
-  reinfBase = {rows, ticks, battle};
+  reinfBase = {rows, ticks, battle, x};
   reinfRender(rows, ticks);
 }
 
@@ -7828,6 +7961,7 @@ document.getElementById("btnReinfThink").addEventListener("click", e => {
   }
   reinfRender(t.rows, reinfBase.ticks, true);
 });
+document.getElementById("btnReinfApply").addEventListener("click", reinfApply);
 document.getElementById("btnReinfRevert").addEventListener("click", () => {
   if (reinfBase) reinfRender(reinfBase.rows, reinfBase.ticks);
 });
@@ -7848,6 +7982,7 @@ document.getElementById("btnReinfClear").addEventListener("click", ()=>{
   ["reinfBattle", "reinfArmy"].forEach(id => { document.getElementById(id).value = ""; });
   document.getElementById("reinfOut").innerHTML = "";
   document.getElementById("reinfThinkBar").style.display = "none";
+  document.getElementById("reinfApplyOut").innerHTML = "";
   reinfBase = null;
 });
 
