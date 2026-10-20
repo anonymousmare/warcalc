@@ -6432,7 +6432,7 @@ function restoreAutosave(){
    to their own ticks. Forces go by their force ids, the grey A1 / D1 under each
    row's name. A split or a raise makes a force of its own, whose id the block
    shows so the others can call it by it; run again while that force stands,
-   it adds to it instead. */
+   it makes another, lettered after it (D3b, D3c …). */
 
 const LS_ORD = "warcalc.orders";
 const ORD_SIDES = ["attacker", "defender"];
@@ -7032,7 +7032,7 @@ function ordRun(prog, tick, atk, def, prevDmg){
   const buy = (u, o) => buys.push(Object.assign({type: u.type, weapon: u.weapon, armor: u.armor, size: u.size,
     training: u.training, fid: u.fid, tick, side: fidSide(u.fid)}, o));
   const at = fid => {
-    if (!/^[AD]\d+$/.test(fid || "")) return null;
+    if (!/^[AD]\d+[b-z]?$/.test(fid || "")) return null;
     const list = L[fidSide(fid)], i = list.findIndex(u => u.fid === fid);
     return i < 0 ? null : {list, i, u: list[i]};
   };
@@ -7040,18 +7040,17 @@ function ordRun(prog, tick, atk, def, prevDmg){
   const put = (f, patch) => { f.list[f.i] = Object.assign({}, f.u, patch); changed = true; return f.list[f.i]; };
   const cut = f => { f.list.splice(f.i, 1); changed = true; };
   const kit = u => `${esc(label(u.weapon))} + ${esc(label(u.armor))}`;
-  /* a split or a raise lands on its own id: a new force, or more of the one it made before */
+  /* a split or a raise always makes a stack of its own. The first time, it
+     takes the id its block shows; run again while that one still stands,
+     it takes the same id with a letter after it, D3b, D3c … */
   function make(fid, u, where){
-    const f = at(fid);
-    if (f){
-      if (f.u.type !== u.type || f.u.training !== u.training) return {why: `${fidHTML(fid)} is already out as ${
-        esc(f.u.type)} at training ${f.u.training}`};
-      return {more: true, size: put(f, {size: f.u.size + u.size}).size};
-    }
+    let id = fid;
+    for (const c of "bcdefghijklmnopqrstuvwxyz"){ if (!at(id)) break; id = fid + c; }
+    if (at(id)) return null;
     const list = L[fidSide(fid)];
-    list.splice(where == null ? list.length : where, 0, Object.assign({nick: "", reserve: 0}, u, {fid, fresh: false}));
+    list.splice(where == null ? list.length : where, 0, Object.assign({nick: "", reserve: 0}, u, {fid: id, fresh: false}));
     changed = true;
-    return {size: u.size};
+    return id;
   }
   const lift = (u, d, cap) => d < 0 ? Math.max(0, u.training + d) : Math.max(u.training, Math.min(cap, u.training + d));
 
@@ -7102,11 +7101,10 @@ function ordRun(prog, tick, atk, def, prevDmg){
         const u = {type: b.type, size: n, training: clampInt(b.training, 0, trainCap(side)),
                    weapon: set.weapons.includes(b.weapon) ? b.weapon : set.weapons[0],
                    armor: set.armor.includes(b.armor) ? b.armor : set.armor[0]};
-        const r = make(fid, u);
-        if (!r.why) buy(Object.assign({fid}, u), {kind: "raise"});
-        if (r.why) say(`Raise skipped — ${r.why}`, "ord-skip");
-        else say(r.more ? `Raised ${money(n)} more into ${fidHTML(fid)} (${money(r.size)})`
-                        : `Raised ${fidHTML(fid)}: ${money(n)} ${esc(u.type)}, ${kit(u)}, training ${u.training}`);
+        const id = make(fid, u);
+        if (!id){ say(`Raise skipped — ${fidHTML(fid)} has run out of letters`, "ord-skip"); break; }
+        buy(Object.assign({fid: id}, u), {kind: "raise"});
+        say(`Raised ${fidHTML(id)}: ${money(n)} ${esc(u.type)}, ${kit(u)}, training ${u.training}`);
         break;
       }
       case "split": {
@@ -7114,11 +7112,11 @@ function ordRun(prog, tick, atk, def, prevDmg){
         const n = f ? Math.min(f.u.size, Math.max(0, Math.floor(+b.n) || 0)) : 0;
         const fid = ordMadeFid(b, side);
         if (!n || fid === b.fid) break;
-        const r = make(fid, {type: f.u.type, weapon: f.u.weapon, armor: f.u.armor, training: f.u.training, size: n}, f.i + 1);
-        if (r.why){ say(`Split skipped — ${r.why}`, "ord-skip"); break; }
-        links.push({from: b.fid, to: fid});
+        const id = make(fid, {type: f.u.type, weapon: f.u.weapon, armor: f.u.armor, training: f.u.training, size: n}, f.i + 1);
+        if (!id){ say(`Split skipped — ${fidHTML(fid)} has run out of letters`, "ord-skip"); break; }
+        links.push({from: b.fid, to: id});
         if (n >= f.u.size) cut(f); else put(f, {size: f.u.size - n});      // the new force sits after it, so f.i still holds
-        say(`Split ${money(n)} off ${fidHTML(b.fid)} into ${fidHTML(fid)}${r.more ? ` (${money(r.size)})` : ""}${
+        say(`Split ${money(n)} off ${fidHTML(b.fid)} into ${fidHTML(id)}${
           n >= f.u.size ? `, which is all of it` : `, ${money(f.u.size - n)} left`}`);
         break;
       }
