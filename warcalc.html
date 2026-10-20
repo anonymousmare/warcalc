@@ -1356,7 +1356,7 @@ body.align-costs .forces-grid > .panel{display:grid;grid-row:span 4;grid-templat
 /* the force id the advanced instructions call a row by, tucked under its
    name box in the room the sprite already gives the row */
 .force-table td.col-name{position:relative}
-.fid-tag{position:absolute;left:7px;top:calc(50% + 14px);font:9px/1 var(--mono);letter-spacing:.04em;
+.fid-tag{position:absolute;left:7px;top:calc(50% + 17px);font:9px/1 var(--mono);letter-spacing:.04em;
   color:var(--text-dim);opacity:.8;pointer-events:none}
 .surv-fid{position:absolute;left:4px;top:3px;font:9px/1 var(--mono);color:var(--text-dim)}
 
@@ -1406,6 +1406,9 @@ body.align-costs .forces-grid > .panel{display:grid;grid-row:span 4;grid-templat
   background:#c9c5bf;color:#1d1f22;font:600 11px/1.2 var(--font);text-shadow:none}
 .blk .ord-num{width:5.2em;text-align:center}
 .blk .ord-txt{width:14em;border-radius:4px}
+.blk .ord-fid{width:4.6em;text-align:center;font-family:var(--mono)}
+.blk .ord-fid::-webkit-calendar-picker-indicator{opacity:.5}
+.blk .ord-fid.ord-gone{box-shadow:inset 0 0 0 2px var(--warn)}
 .blk .ord-made{font:700 10px/1 var(--mono);background:rgba(0,0,0,.24);padding:4px 7px;border-radius:9px}
 .blk-x{all:unset;position:absolute;right:5px;top:6px;width:16px;height:16px;border-radius:50%;cursor:pointer;
   text-align:center;font:700 12px/16px var(--font);color:#e6e2dc;opacity:.6;z-index:3}
@@ -2970,6 +2973,11 @@ document.querySelectorAll("[data-barracks]").forEach(el=>{
    the forces the instructions' splits and raises will make, unless a whole
    list is being laid down at once, when it simply counts up from 1 */
 const fidPre  = side => side === "attacker" ? "A" : "D";
+/* "D3b" -> {pre:"D", n:3, suf:"b"}: the letter marks another stack a split or
+   raise made on a later run (see ordRun); null for anything else */
+const fidParts = fid => { const m = /^([AD])(\d+)([b-z]?)$/.exec(fid || ""); return m ? {pre: m[1], n: +m[2], suf: m[3]} : null; };
+/* what someone typed as a force id, tidied: "d3B" -> "D3b" */
+const fidTidy = t => { const m = /^\s*([ad])\s*(\d+)\s*([b-z]?)\s*$/i.exec(t || ""); return m ? m[1].toUpperCase() + (+m[2]) + m[3].toLowerCase() : String(t || "").trim(); };
 const fidSide = fid => String(fid).charAt(0) === "A" ? "attacker" : "defender";
 const tbodyOf = side => document.getElementById(side === "attacker" ? "tbodyAttacker" : "tbodyDefender");
 let fidCountUp = false;
@@ -6520,7 +6528,8 @@ function ordMaps(){
 
 function ordPack(list, side, maps){
   const num = (s, n) => maps?.[s] ? (maps[s].get(+n) ?? 0) : (+n || 0);
-  const rel = fid => /^[AD]\d+$/.test(fid || "") ? (fidSide(fid) === side ? "S" : "F") + num(fidSide(fid), fid.slice(1)) : "";
+  const rel = fid => { const p = fidParts(fid);
+    return p ? (fidSide(fid) === side ? "S" : "F") + num(fidSide(fid), p.n) + p.suf : ""; };
   const txt = t => encodeURIComponent(String(t || "")).replace(/[()!*'~.]/g, c => "%" + c.charCodeAt(0).toString(16).toUpperCase());
   const op = o => o === "<" ? "l" : "g";
   const one = b => {
@@ -6547,7 +6556,7 @@ function ordPack(list, side, maps){
 /* packed text -> blocks for `side`, forces at the numbers the text gives them */
 function ordUnpack(text, side){
   const s = String(text || ""), foe = side === "attacker" ? "defender" : "attacker";
-  const abs = r => { const m = /^([SF])(\d+)$/.exec(r || ""); return m ? fidPre(m[1] === "S" ? side : foe) + m[2] : ""; };
+  const abs = r => { const m = /^([SF])(\d+)([b-z]?)$/.exec(r || ""); return m ? fidPre(m[1] === "S" ? side : foe) + m[2] + m[3] : ""; };
   const n = v => isFinite(parseFloat(v)) ? Math.max(0, parseFloat(v)) : 0;
   const op = v => v === "l" ? "<" : ">";
   let i = 0;
@@ -6629,7 +6638,7 @@ function ordAdopt(side, text, newRows){
   ORD_SIDES.forEach(sd => ordWalk(ORD[sd], (b, s) => { if ((b.k === "split" || b.k === "raise") && ordMadeSide(b, s) === side) held.add(+b.nid); }, sd));
   const next = () => { let n = 1; while (held.has(n)) n++; held.add(n); return n; };
   ordWalk(list, (b, s) => { if ((b.k === "split" || b.k === "raise") && ordMadeSide(b, s) === side && !map.has(+b.nid)) map.set(+b.nid, next()); }, side);
-  const fix = fid => fid && fid.charAt(0) === pre && map.has(+fid.slice(1)) ? pre + map.get(+fid.slice(1)) : fid;
+  const fix = fid => { const p = fidParts(fid); return p && p.pre === pre && map.has(p.n) ? pre + map.get(p.n) + p.suf : fid; };
   ordWalk(list, (b, s) => {
     const made = (b.k === "split" || b.k === "raise") && ordMadeSide(b, s) === side;
     b.fid = fix(b.fid); if (b.fid2) b.fid2 = fix(b.fid2);
@@ -6665,7 +6674,7 @@ const ordersFor = names => Object.fromEntries(Object.entries(getArmyOrders()).fi
 
 /* the side a split or a raise makes its force on: a raise its own script's,
    a split the side of the force it splits */
-const ordMadeSide = (b, side) => b.k === "split" && /^[AD]\d+$/.test(b.fid || "") ? fidSide(b.fid) : side;
+const ordMadeSide = (b, side) => b.k === "split" && fidParts(b.fid) ? fidSide(b.fid) : side;
 const ordMadeFid  = (b, side) => fidPre(ordMadeSide(b, side)) + b.nid;
 function ordMade(){
   const out = [];
@@ -6681,7 +6690,8 @@ function ordRehome(side){
     const was = fidPre(side) + m.b.nid;
     m.b.nid = freeFid(side, {b: m.b});
     const now = fidPre(side) + m.b.nid;
-    ordEach(ORD, b => ["fid", "fid2"].forEach(k => { if (b[k] === was) b[k] = now; }));
+    ordEach(ORD, b => ["fid", "fid2"].forEach(k => { const p = fidParts(b[k]);
+      if (p && p.pre + p.n === was) b[k] = now + p.suf; }));
     moved = true;
   });
   if (moved){ ordSave(); ordSyncSig = ""; }
@@ -6699,10 +6709,31 @@ function ordForces(){
   for (let pass = 0; pass < 4; pass++) made.forEach(([b, side]) => {
     const fid = ordMadeFid(b, side);
     if (m.get(fid)?.row) return;                   // a row standing there wins
-    const type = b.k === "raise" ? b.type : m.get(b.fid)?.type;
+    const src = fidParts(b.fid);
+    const type = b.k === "raise" ? b.type : m.get(b.fid)?.type || (src && m.get(src.pre + src.n)?.type);
     if (type || !m.has(fid)) m.set(fid, {side: fidSide(fid), type: type || ""});
   });
   return m;
+}
+
+/* the type a block's force id stands for: a row, a made force, or a later
+   run of one (D3b goes by D3); "" when nothing holds it */
+function ordFidType(F, fid){
+  const p = fidParts(fid);
+  if (!p) return "";
+  const base = F.get(p.pre + p.n);
+  return base ? base.type || "?" : "";
+}
+/* the suggestions under every force box: each force, and the next few runs of what the splits and raises make */
+function ordFidList(F){
+  let dl = document.getElementById("ordFidList");
+  if (!dl) dl = document.body.appendChild(Object.assign(document.createElement("datalist"), {id: "ordFidList"}));
+  const short = t => ORD_TYPE_SHORT[t] || t || "";
+  dl.innerHTML = [...F.keys()].sort(fidSort).flatMap(k => {
+    const t = short(F.get(k).type);
+    const later = F.get(k).row ? [] : ["b", "c", "d"].map(c => [k + c, `${t} · ${c === "b" ? "2nd" : c === "c" ? "3rd" : "4th"} run`]);
+    return [[k, t]].concat(later);
+  }).map(([v, t]) => `<option value="${esc(v)}" label="${esc(t)}"></option>`).join("");
 }
 
 /* ---- the editor ---- */
@@ -6762,11 +6793,12 @@ const ordNum = (f, v, min, max, step) => `<input class="ord-in ord-num" type="nu
 
 function ordBlockHTML(b, side, F){
   let bad = false;
+  /* a force is typed, or picked from the suggestions; one nobody holds is flagged */
   const fs = (f, cur) => {
-    const opts = [...F.keys()].sort(fidSort).map(k => [k, k + (F.get(k).type ? " · " + (ORD_TYPE_SHORT[F.get(k).type] || F.get(k).type) : "")]);
-    if (!cur){ opts.unshift(["", "—"]); bad = true; }
-    else if (!F.has(cur)){ opts.unshift([cur, cur + " · gone"]); bad = true; }
-    return ordSel(f, opts, cur);
+    const ok = !!ordFidType(F, cur);
+    if (!ok) bad = true;
+    return `<input class="ord-in ord-fid${ok ? "" : " ord-gone"}" type="text" data-f="${f}" list="ordFidList" maxlength="6"
+      spellcheck="false" autocomplete="off" placeholder="D1" value="${esc(cur || "")}"${ok ? "" : ` title="No force holds ${esc(cur || "that")}"`}>`;
   };
   const made = fid => `<span class="ord-made" title="The force this block makes — other blocks can call it ${fid}">→ ${fid}</span>`;
   let head = "";
@@ -6778,7 +6810,7 @@ function ordBlockHTML(b, side, F){
     case "everyTick": head = "every tick"; break;
     case "everyN":    head = `every ${ordNum("x", b.x, 1, ORD_LAST)} ticks`; break;
     case "swap": {
-      const set = LOADOUTS[F.get(b.fid)?.type] || {weapons: [], armor: []};
+      const set = LOADOUTS[ordFidType(F, b.fid)] || {weapons: [], armor: []};
       if (b.weapon && !set.weapons.includes(b.weapon)) b.weapon = "";
       if (b.armor && !set.armor.includes(b.armor)) b.armor = "";
       head = `swap ${fs("fid", b.fid)} to ${ordSel("weapon", [["", "untouched"], ...set.weapons.map(w => [w, label(w)])], b.weapon)
@@ -6844,6 +6876,7 @@ function ordRender(side){
   if (!el) return;
   if (!el.firstElementChild) ordFrame(side, el);
   const F = ordForces();
+  ordFidList(F);
   if (!ordSlotList(side, ordArmed[side])) ordArmed[side] = "root";
   el.querySelector(".ord-drop").classList.toggle("has-ord", ORD[side].length > 0);
   el.querySelector(".ord-script").innerHTML = ordSlotHTML(ORD[side], "root", side, F,
@@ -6895,7 +6928,8 @@ ORD_SIDES.forEach(side => {
     if (!inp || inp.tagName === "SELECT") return;
     const r = blockOf(inp);
     if (!r) return;
-    if (inp.type === "text") r.b[inp.dataset.f] = inp.value;
+    if (inp.type === "text" && inp.classList.contains("ord-fid")){ ordSetFid(r.b, inp.dataset.f, inp.value, false); }
+    else if (inp.type === "text") r.b[inp.dataset.f] = inp.value;
     else if (inp.value !== "" && isFinite(+inp.value)) r.b[inp.dataset.f] = +inp.value;
     else return;
     ordChanged(false);
@@ -6906,6 +6940,11 @@ ORD_SIDES.forEach(side => {
     const r = blockOf(inp);
     if (!r) return;
     const f = inp.dataset.f, b = r.b;
+    if (inp.classList.contains("ord-fid")){
+      inp.value = fidTidy(inp.value);
+      ordSetFid(b, f, inp.value, true);
+      return;
+    }
     if (inp.tagName === "SELECT"){
       const was = b.k === "split" ? ordMadeSide(b, side) : null;
       b[f] = inp.value;
@@ -6923,6 +6962,20 @@ ORD_SIDES.forEach(side => {
       ordChanged(false);
     }
   });
+
+  /* a typed force id: kept as it is typed, tidied and acted on once it is in */
+  function ordSetFid(b, f, text, done){
+    const was = b.k === "split" ? ordMadeSide(b, side) : null;
+    b[f] = done ? fidTidy(text) : fidTidy(text);
+    if (!done){ ordSave(); return; }
+    if (b.k === "swap" && f === "fid"){
+      const set = LOADOUTS[ordFidType(ordForces(), b.fid)] || {weapons: [], armor: []};
+      if (!set.weapons.includes(b.weapon)) b.weapon = "";
+      if (!set.armor.includes(b.armor)) b.armor = "";
+    }
+    if (was && ordMadeSide(b, side) !== was) b.nid = freeFid(ordMadeSide(b, side), {b});
+    ordChanged(true);
+  }
 
   el.addEventListener("click", e => {
     if (e.target.closest(".blk-x")){
