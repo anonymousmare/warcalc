@@ -2280,7 +2280,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
         <button type="button" class="btn btn-xs txt-btn" id="btnReinfBpLoad" title="Put this battle preset's code in the box">Load</button></div>
         <textarea id="reinfBattle" spellcheck="false" placeholder="Get a battle code of the battle prior to clashing. Then to the right, CTRL+V the current defending army at the present. Then it'll tell you the difference, if any!"></textarea></div>
       <div><div class="reinf-lab"><label for="reinfArmy">Defending army now</label>
-        <span class="muted">— tick</span> <input type="number" id="reinfTicks" min="1" max="4" value="1"
+        <span class="muted">— prior war ticks:</span> <input type="number" id="reinfTicks" min="1" max="4" value="1"
           aria-label="Ticks fought before the army was copied" title="How many ticks the battle has fought by now (1–4)"></div>
         <textarea id="reinfArmy" spellcheck="false" placeholder="Paste"></textarea></div>
     </div>
