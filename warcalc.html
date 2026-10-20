@@ -1163,6 +1163,8 @@ body.log-icons .gear-ic{display:inline-flex}
 .reinf-table tr.wiped .unit-txt{text-decoration:line-through}
 .reinf-table .swapped{color:var(--atk)}
 .reinf-table .was{color:var(--text-dim);font-size:10.5px;margin-left:6px}
+.reinf-table .reinf-fid{font:600 10.5px/1 var(--mono);color:var(--text-dim);margin-right:6px}
+.reinf-table .reinf-fid.new{color:var(--gold)}
 .btn-think{background-image:linear-gradient(to bottom,#a98be0,#7a55c9);color:#fff;text-shadow:var(--btn-shadow)}
 .reinf-up{color:var(--warn)}
 .reinf-down{color:var(--atk)}
@@ -6136,7 +6138,7 @@ function reinfPredict(battle, ticks){
   }
   const y = def.concat(dead)
     .map(u => ({type: u.type, weapon: u.weapon, armor: u.armor, training: u.training,
-                name: u.nick, size: u.size, start: u.start, due: u.due}));
+                name: u.nick, size: u.size, start: u.start, due: u.due, fid: u.fid}));
   return {y};
 }
 
@@ -6232,6 +6234,15 @@ function reinfApply(){
   };
   if (!n){ recheck(); say(`Nothing to add — at the start of tick ${tick} the defenders already match the pasted army.`); return; }
 
+  /* troops that turned up are reinforcements, joining on that tick, each on the
+     id the table showed; troops that joined a stack already there are merged in */
+  const ids = reinfPlanIds(acts, reinfHeld());
+  const uncapWas = !!uncapBox("defender")?.checked;          // a row past 20 ticks the box; put back if this fails
+  const rows = acts.raise.map((a, i) => makeRow("defender", Object.assign({type: a.u.type, weapon: a.u.weapon,
+    armor: a.u.armor, size: a.n, training: a.u.training, fid: "D" + ids[i]}, !a.into && a.u.name ? {name: a.u.name} : {},
+    packWait({reserve: tick - 1}))));
+  acts.raise.forEach((a, i) => { if (a.into) acts.merge.push({fid: a.into, fid2: "D" + rows[i].dataset.fid}); });
+  /* everything else is one on-tick block, if there is anything else */
   const on = Object.assign(ordNew("onTick", "defender"), {x: tick});
   ORD.defender.push(on);
   const add = (k, f) => { const b = Object.assign(ordNew(k, "defender"), f); on.body.push(b); return b; };
@@ -6240,19 +6251,19 @@ function reinfApply(){
                                       armor: a.to.armor !== a.from.armor ? a.to.armor : ""}));
   acts.trim.forEach(a => add("trim", {fid: a.fid, n: a.n}));
   acts.destroy.forEach(a => add("destroy", {fid: a.fid}));
-  acts.raise.forEach(a => {
-    const b = add("raise", {n: a.n, type: a.u.type, weapon: a.u.weapon, armor: a.u.armor, training: a.u.training});
-    if (a.into) acts.merge.push({fid: a.into, fid2: ordMadeFid(b, "defender")});
-  });
   acts.merge.forEach(a => add("merge", {fid: a.fid, fid2: a.fid2}));
+  if (!on.body.length) ORD.defender.splice(ORD.defender.indexOf(on), 1);
 
   /* the proof: the replay with the block in has to land on the pasted army */
   let got, err = "";
   try{ got = reinfPeek(ordSnap(), tick); }catch(e){ err = e.message; }
   const miss = got ? reinfLeftover(x, got) : x, extra = got ? reinfLeftover(got, x) : [];
   if (err || miss.length || extra.length){
-    ORD.defender.splice(ORD.defender.indexOf(on), 1);
+    if (ORD.defender.includes(on)) ORD.defender.splice(ORD.defender.indexOf(on), 1);
+    rows.forEach(tr => tr.remove());
+    setUncap("defender", uncapWas);
     ordSyncSig = "";
+    refreshCounts();
     const line = u => `${money(u.size)} ${esc(u.type)} ${esc(label(u.weapon))} + ${esc(label(u.armor))} T${u.training}`;
     say(`<strong>Could not make the defenders match, so nothing was added.</strong>${err ? " " + esc(err) : ""}${
       miss.length ? `<div>Still missing: ${miss.map(line).join("; ")}</div>` : ""}${
@@ -6265,9 +6276,13 @@ function reinfApply(){
   const d = ordEl("defender")?.querySelector(".ord-drop");
   if (d) d.open = true;
   recheck();
-  say(`<strong>Added an on tick ${tick} block</strong> with ${on.body.length} instruction${on.body.length === 1 ? "" : "s"} to the defenders. `
-    + `Verified: at the start of tick ${tick} the defenders match the pasted army, all ${x.length} stack${x.length === 1 ? "" : "s"}. `
-    + `The battle code on the left now carries the block, and the table below is checked against it.`);
+  const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+  const did = [rows.length ? `<strong>${plural(rows.length, "reinforcement")}</strong> joining on tick ${tick} (${
+      rows.map(tr => "D" + tr.dataset.fid).join(", ")})` : "",
+    on.body.length ? `<strong>an on tick ${tick} block</strong> with ${plural(on.body.length, "instruction")}` : ""].filter(Boolean);
+  say(`Added ${did.join(" and ")} to the defenders. `
+    + `Verified: at the start of tick ${tick} the defenders match the pasted army, all ${plural(x.length, "stack")}. `
+    + `The battle code on the left now carries the change, and the table below is checked against it.`);
 }
 
 /* pairs each pasted stack (x) with a predicted one (y): the same kit and
@@ -6338,9 +6353,13 @@ function reinfRowHTML(r, i, ticks){
     ? `<span class="swapped" title="was ${esc(label(old))}">${esc(label(key))}</span>` : esc(label(key));
   const was = r.from ? ["weapon", "armor"].map(k => r.from[k] !== u[k] ? label(r.from[k]) : null).filter(Boolean) : [];
   const wiped = r.kind === "same" && !r.x;
+  const has = r.y?.fid || r.from?.fid || (r.x && reinfBase?.oldId?.get(r.x));
+  const fid = has ? reinfBase?.fidOf?.(has) || has : r.x && reinfBase?.newId?.get(r.x);
+  const fidTag = fid ? `<span class="reinf-fid${has ? "" : " new"}"${has ? ""
+    : ` title="New — joins as ${esc(fid)} when Add changes to defence brings it in"`}>${esc(fid)}</span>` : "";
   return `<tr class="${r.kind}${wiped ? " wiped" : ""}">
     <td class="l"><span class="reinf-tag ${r.kind}">${REINF_TAG[r.kind]}</span></td>
-    <td class="l unit"><span class="reinf-unit">${buildSprite(u.type, u.weapon, u.armor, false, {size: u.size, training: u.training})}<span><span class="unit-txt">${
+    <td class="l unit"><span class="reinf-unit">${buildSprite(u.type, u.weapon, u.armor, false, {size: u.size, training: u.training})}<span>${fidTag}<span class="unit-txt">${
       name ? `<b>${esc(name)}</b> · ` : ""}${esc(u.type)} <span class="muted">${gear(u.weapon, r.from?.weapon)} / ${gear(u.armor, r.from?.armor)}</span></span>${
       was.length ? `<span class="was">was ${esc(was.join(" / "))}</span>` : ""}${tr}</span></span></td>
     <td class="n">${pred}</td>
@@ -6416,9 +6435,44 @@ function runReinfCheck(){
   });
   xOnly.forEach(r => rows.push({x: r.x, d: r.x.size, kind: "new", at: r.xi}));
   yOnly.forEach(r => rows.push({y: r.y, d: -r.y.size, kind: r.y.size ? "gone" : "same", at: x.length + r.yi}));
-  reinfBase = {rows, ticks, battle, x};
+  reinfBase = Object.assign({rows, ticks, battle, x}, reinfIds(battle, x, pred.y, ticks));
   reinfRender(rows, ticks);
 }
+
+/* the force ids the table shows. A stack the battle already has goes by its
+   id on the Battle tab when that is this battle (by the code's numbering when
+   not); one Add changes to defence would bring in new gets the id its row
+   would take, shown in yellow */
+function reinfIds(battle, x, y, ticks){
+  const out = {fidOf: f => f, newId: new Map(), oldId: new Map()};
+  try{
+    let base, held;
+    if (reinfIsLoaded(battle)){
+      const inv = new Map([...ordMaps().defender].map(([live, code]) => [code, live]));
+      out.fidOf = f => { const p = fidParts(f); return p && p.pre === "D" && inv.has(p.n) ? "D" + inv.get(p.n) + p.suf : f; };
+      base = reinfPeek(ordSnap(), ticks + 1);
+      held = reinfHeld();
+    } else {
+      base = y.filter(u => u.size > 0);
+      held = new Set((battle.defender || []).map((u, i) => i + 1));
+      ORD_SIDES.forEach(side => ordWalk(progOf(battle)[side], (b, sd) => {
+        if ((b.k === "split" || b.k === "raise") && ordMadeSide(b, sd) === "defender") held.add(+b.nid); }, side));
+    }
+    const acts = reinfDiffActs(x, base);
+    reinfPlanIds(acts, held).forEach((n, i) => { if (!acts.raise[i].into) out.newId.set(acts.raise[i].u, "D" + n); });
+    /* a stack that is another one re-geared goes by that one's id */
+    acts.swap.forEach(a => { if (!acts.merge.some(m => m.fid2 === a.fid)) out.oldId.set(a.to, a.fid); });
+  }catch(e){}
+  return out;
+}
+/* the defender numbers the Battle tab already holds: its rows, and what the scripts make */
+function reinfHeld(){
+  const held = new Set([...tbodyOf("defender").querySelectorAll("tr")].map(tr => +tr.dataset.fid));
+  ordMade().forEach(m => { if (m.side === "defender") held.add(+m.b.nid); });
+  return held;
+}
+/* the id each new reinforcement row will take, in the order they are added */
+const reinfPlanIds = (acts, held) => acts.raise.map(() => { let n = 1; while (held.has(n)) n++; held.add(n); return n; });
 
 function reinfRender(rows, ticks, thought){
   rows = rows.slice().sort((a, b) => REINF_ORDER[a.kind] - REINF_ORDER[b.kind] || a.at - b.at);
