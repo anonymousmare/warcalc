@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CurioCalc 2.41 — CLOP</title>
+<title>CurioCalc 2.5 — CLOP</title>
 <style>
 :root{
   --bg:#272b30;
@@ -1370,42 +1370,49 @@ body.align-costs .forces-grid > .panel{display:grid;grid-row:span 4;grid-templat
 .ord-pal .pal-lab{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin:0 2px 0 6px}
 .ord-pal .pal-lab:first-child{margin-left:0}
 .blk,.blk-pal{--b:#4c97ff;--bd:#3373cc}
-.bt-ctl{--b:#ffab19;--bd:#cf8b17}
-.bt-evt{--b:#d9a400;--bd:#a88000}
-.bt-look{--b:#9966ff;--bd:#774dcb}
-.bt-make{--b:#3fae4f;--bd:#2e8a3c}
-.bt-kill{--b:#f0506a;--bd:#c7314b}
-.bt-say{--b:#cf63cf;--bd:#a83fa8}
-.blk-pal{display:inline-block;cursor:grab;user-select:none;color:#fff;font:600 11px/1 var(--font);
+.bt-ctl{--b:#93590f;--bd:#5f3a09}
+.bt-evt{--b:#7d6614;--bd:#51420b}
+.bt-look{--b:#523a8c;--bd:#35255d}
+.bt-make{--b:#2b6234;--bd:#1b4021}
+.bt-kill{--b:#8a2b39;--bd:#5c1c26}
+.bt-say{--b:#76357a;--bd:#4e2251}
+.blk-pal{display:inline-block;cursor:grab;user-select:none;color:#e6e2dc;font:600 11px/1 var(--font);
   padding:4px 7px;border-radius:4px;background:var(--b);border:1px solid var(--bd);text-shadow:0 1px 0 rgba(0,0,0,.25)}
 .blk-pal:hover{filter:brightness(1.1)}
 .ord-script{background:var(--sunken);border:1px solid var(--border-soft);border-radius:4px;padding:8px 8px 10px}
-.ord-slot{display:flex;flex-direction:column;gap:5px;min-height:22px;border-radius:4px}
+.ord-slot{display:flex;flex-direction:column;min-height:22px;border-radius:4px}
 .ord-slot:empty::before{content:attr(data-hint);font:11px/22px var(--font);color:var(--text-dim);padding:0 6px}
 .ord-slot.armed{box-shadow:inset 0 0 0 1px var(--accent)}
 .blk{position:relative;background:var(--b);border:1px solid var(--bd);border-radius:5px;
-  color:#fff;font:600 12px/1.2 var(--font);text-shadow:0 1px 0 rgba(0,0,0,.25)}
-/* the jigsaw: a notch cut in every block's top and a tab hung off its foot */
-.blk::before{content:"";position:absolute;left:12px;top:-1px;width:14px;height:4px;
-  background:var(--sunken);border-radius:0 0 3px 3px}
-.blk::after{content:"";position:absolute;left:12px;bottom:-5px;width:14px;height:4px;z-index:1;
-  background:var(--b);border:1px solid var(--bd);border-top:none;border-radius:0 0 3px 3px}
+  color:#e6e2dc;font:600 12px/1.2 var(--font);text-shadow:0 1px 0 rgba(0,0,0,.35)}
+/* the jigsaw: blocks stack flush, each with a socket cut in its top and a
+   tab hung off its foot, and the tab of the block above sits in the socket of
+   the one below. An if or an event hangs a tab off its head (and its else)
+   into the first block of its mouth */
+.blk::before{content:"";position:absolute;left:12px;top:-1px;width:14px;height:5px;z-index:1;
+  background:var(--sunken);border:1px solid var(--bd);border-top:none;border-radius:0 0 4px 4px}
+.blk::after,.blk-head::after,.blk-mid::after{content:"";position:absolute;left:12px;bottom:-6px;width:14px;height:5px;z-index:2;
+  background:var(--b);border:1px solid var(--bd);border-top:none;border-radius:0 0 4px 4px}
+.blk-head,.blk-mid{position:relative}
+.blk-head::after,.blk-mid::after{display:none;left:27px;bottom:-5px}
+.blk:has(> .ord-slot) > :is(.blk-head,.blk-mid)::after{display:block}
 .blk.dragging{opacity:.4}
 .blk.blk-bad{outline:2px dashed var(--warn);outline-offset:1px}
 .blk-head,.blk-mid{display:flex;flex-wrap:wrap;align-items:center;gap:5px;padding:6px 26px 6px 8px;cursor:grab}
 .blk-mid{padding:4px 8px}
-.blk > .ord-slot{margin-left:14px;padding:5px 6px 5px 0;background:var(--sunken);border-radius:4px 0 0 4px}
-.blk-foot{height:9px}
+.blk > .ord-slot{margin-left:14px;padding:0;background:var(--sunken);border-radius:4px 0 0 4px}
+.blk-foot{height:11px}
 .blk .ord-in{width:auto;height:20px;margin:0;padding:1px 6px;border:none;border-radius:10px;
-  background:#fff;color:#2a2d31;font:600 11px/1.2 var(--font);text-shadow:none}
+  background:#c9c5bf;color:#1d1f22;font:600 11px/1.2 var(--font);text-shadow:none}
 .blk .ord-num{width:5.2em;text-align:center}
 .blk .ord-txt{width:14em;border-radius:4px}
 .blk .ord-made{font:700 10px/1 var(--mono);background:rgba(0,0,0,.24);padding:4px 7px;border-radius:9px}
-.blk-x{all:unset;position:absolute;right:5px;top:5px;width:16px;height:16px;border-radius:50%;cursor:pointer;
-  text-align:center;font:700 12px/16px var(--font);color:#fff;opacity:.6}
+.blk-x{all:unset;position:absolute;right:5px;top:6px;width:16px;height:16px;border-radius:50%;cursor:pointer;
+  text-align:center;font:700 12px/16px var(--font);color:#e6e2dc;opacity:.6;z-index:3}
 .blk-x:hover{opacity:1;background:rgba(0,0,0,.25)}
 .ord-caret{height:3px;margin:-1px 0;border-radius:2px;background:var(--accent);flex:0 0 auto}
 .ord-bar{display:flex;align-items:center;gap:8px;margin-top:8px}
+.cost-other-note{margin:-2px 0 6px}
 /* what the instructions did, atop the tick's exchange log */
 .log .xlog-ord{font-family:var(--font);font-size:11px;letter-spacing:.02em;color:var(--text-dim);margin-bottom:6px}
 .xlog-ord .ord-l::before{content:"\25B8 ";opacity:.6}
@@ -1766,6 +1773,9 @@ body.snaps-hidden .snap{display:none}
 .slip-u2 .plus{flex:0 0 auto;color:#7d8187;font-weight:700}
 .slip-u2 .g{display:flex;align-items:center;gap:4px;min-width:0}
 .slip-u2 .g.none{opacity:.45}
+/* an army's advanced instructions, under its units */
+.slip-ins{margin:6px 0 2px;font:700 10px/1 var(--font);letter-spacing:.08em;text-transform:uppercase;opacity:.6}
+.slip-u-ins .q{font-style:italic}
 .slip-u2 .gn{font-family:var(--font);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .slip .gear-img{flex:0 0 auto;width:auto;max-width:32px}
 .slip-u2 .g{gap:3px}
@@ -1983,7 +1993,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
 <body>
 
 <div class="tabstrip">
-  <span class="tab-brand">CurioCalc 2.41<button class="gear-btn" id="btnTools"
+  <span class="tab-brand">CurioCalc 2.5<button class="gear-btn" id="btnTools"
     title="Settings, import / export presets" aria-expanded="false"><svg viewBox="0 0 24 24"
     aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path
     d="M10.3 2.5h3.4l.5 2.6a7.6 7.6 0 0 1 2 1.2l2.5-.9 1.7 2.9-2 1.8a7.7 7.7 0 0 1 0 2.3l2 1.8-1.7 2.9-2.5-.9a7.6 7.6 0 0 1-2 1.2l-.5 2.6h-3.4l-.5-2.6a7.6 7.6 0 0 1-2-1.2l-2.5.9-1.7-2.9 2-1.8a7.7 7.7 0 0 1 0-2.3l-2-1.8 1.7-2.9 2.5.9a7.6 7.6 0 0 1 2-1.2z"/><circle
@@ -3131,13 +3141,17 @@ function costsOf(rows){
   const upkeep = {}, gearRes = {};
   const items = [];
 
+  /* a row the advanced instructions add may be gear alone: a swap pays for
+     the weapon or armour it puts on (noW / noA when it keeps that one) and
+     raises nobody (noHire) */
+  const NONE = {bits:0, res:{}};
   rows.forEach(u=>{
     const n = Math.max(0, u.size);            // every cost is per troop
-    const uc = UNIT_COST[u.type] || {hire:0, upkeep:{}};
+    const uc = u.noHire ? {hire:0, upkeep:{}} : UNIT_COST[u.type] || {hire:0, upkeep:{}};
     hire += uc.hire * n;
     addRes(upkeep, uc.upkeep, n);
 
-    const w = gearCost("weapon", u.weapon), a = gearCost("armor", u.armor);
+    const w = u.noW ? NONE : gearCost("weapon", u.weapon), a = u.noA ? NONE : gearCost("armor", u.armor);
     const gb = (w.bits + a.bits) * n;
     gearBits += gb;
     addRes(gearRes, w.res, n); addRes(gearRes, a.res, n);
@@ -3159,7 +3173,8 @@ function breakdownTip(title, items, cell, countFmt){
     <div class="small muted" style="margin-top:4px">No units yet.</div>`;
   const count = countFmt || (it=>"×" + it.n);
   const rows = items.map(it=>`<tr>
-      <td class="u">${esc(it.u.type)} <span class="muted mono">${count(it)}</span>
+      <td class="u">${esc(it.u.type)} <span class="muted mono">${count(it)}</span>${it.u.kind
+        ? ` <span class="muted small">${it.u.kind}, tick ${it.u.tick}</span>` : ""}
         <div class="small muted">${esc(label(it.u.weapon))} / ${esc(label(it.u.armor))}</div></td>
       <td style="text-align:right">${cell(it)}</td></tr>`).join("");
   return `<div class="tip-title">${esc(title)}</div>
@@ -3168,10 +3183,12 @@ function breakdownTip(title, items, cell, countFmt){
 
 /* with reinforcements on the list the costs can be read for the whole force,
    the front line alone, or the reinforcements alone */
+/* Other is what the advanced instructions raise and re-equip over the battle */
 const COST_TABS = [
-  {id:"total", name:"Total",          pick:(f, r)=>f.concat(r)},
-  {id:"t1",    name:"Tick 1",         pick:(f, r)=>f},
-  {id:"reinf", name:"Reinforcements", pick:(f, r)=>r}
+  {id:"total", name:"Total",          pick:(f, r, o)=>f.concat(r, o)},
+  {id:"t1",    name:"Tick 1",         pick:(f, r, o)=>f},
+  {id:"reinf", name:"Reinforcements", pick:(f, r, o)=>r},
+  {id:"other", name:"Other",          pick:(f, r, o)=>o}
 ];
 const costTab = {attacker:"total", defender:"total"};
 
@@ -3180,14 +3197,18 @@ function renderCosts(side){
   if (!el) return;
   const all = readSide(side);
   const front = all.filter(u=>!u.reserve), reinf = all.filter(u=>u.reserve);
-  const tabs = reinf.length > 0;
-  const tab = (tabs && COST_TABS.find(t=>t.id === costTab[side])) || COST_TABS[0];
-  const c = costsOf(tab.pick(front, reinf));
-  const tabBar = tabs ? `<div class="cost-tabs">${COST_TABS.map(t=>
+  const ex = ordExtras(), other = ex[side];
+  const tabs = reinf.length > 0 || other.length > 0;
+  const shown = COST_TABS.filter(t => t.id === "reinf" ? reinf.length : t.id === "other" ? other.length : true);
+  const tab = (tabs && shown.find(t=>t.id === costTab[side])) || COST_TABS[0];
+  const c = costsOf(tab.pick(front, reinf, other));
+  const tabBar = tabs ? `<div class="cost-tabs">${shown.map(t=>
       `<button type="button" class="cost-tab${t === tab ? " active" : ""}"
-         data-cost-tab="${t.id}" data-cost-side="${side}">${t.name}</button>`).join("")}</div>` : "";
+         data-cost-tab="${t.id}" data-cost-side="${side}">${t.name}</button>`).join("")}</div>${tab.id === "other"
+      ? `<div class="small muted cost-other-note">What the advanced instructions raise and re-equip${
+          ex.dry ? ", played out with nobody fighting" : " over the battle"}</div>` : ""}` : "";
   /* the Total tab's human copy splits the roster by the tick it is built for */
-  const roster = tabs && tab.id === "total" ? {front, reinf} : null;
+  const roster = tabs && tab.id === "total" ? {front, reinf, other} : null;
 
   const hireTipKey = regTip(breakdownTip("Raise army — money cost", c.items, it=>
     `<span class="bits">${money(it.hire)}</span>`
@@ -3282,7 +3303,7 @@ function resourceBlock(o){
 }
 
 /* 1 satisfaction a turn for every 2 troops past 20 */
-const troopTotal = rows => rows.reduce((s,u)=>s + Math.max(0, u.size), 0);
+const troopTotal = rows => rows.reduce((s,u)=>s + (u.noHire ? 0 : Math.max(0, u.size)), 0);
 const satCost = troops => Math.max(0, Math.ceil((troops - 20) / 2));
 
 const SCROUNGED = {ScroungedWeapons:1, ScroungedArmor:1};
@@ -3310,8 +3331,8 @@ function unitTally(rows){
   const head = {}, gear = {};
   rows.forEach(u=>{
     const n = Math.max(0, u.size);
-    head[u.type] = (head[u.type] || 0) + n;
-    [u.weapon, u.armor].forEach(k=>{
+    if (!u.noHire) head[u.type] = (head[u.type] || 0) + n;
+    [u.noW ? "" : u.weapon, u.noA ? "" : u.armor].forEach(k=>{
       if (!k || SCROUNGED[k]) return;
       gear[k] = (gear[k] || 0) + n;
     });
@@ -3536,14 +3557,16 @@ function unitsBlock(rows, open, byTick){
   const nWidth = `--gear-n-w:${widest}ch`;
   /* with reinforcements, the human copy is split into what is built for
      each tick */
+  /* the troops the instructions raise are built for the tick they are raised on */
+  const raised = (byTick?.other || []).filter(u => !u.noHire);
   const roster = byTick
-    ? [["Tick 1", byTick.front]].concat(Array.from({length: REINF_MAX}, (_, i) =>
-        [`Tick ${i + 2}`, byTick.reinf.filter(u => waitOf(u) === i + 1)]))
+    ? Array.from({length: ORD_LAST}, (_, i) => [`Tick ${i + 1}`, (i ? [] : byTick.front)
+        .concat(byTick.reinf.filter(u => waitOf(u) === i), raised.filter(u => u.tick === i + 1))])
         .map(([h, r]) => [h, rosterText(r)]).filter(([, t]) => t)
         .map(([h, t]) => `# ${h}\n\n${t}`).join("\n\n")
-    : rosterText(rows);
-  const builderRows = byTick ? byTick.front : rows;
-  const gearText = builderGearText(builderRows);
+    : rosterText(rows.filter(u => !u.noHire));
+  const builderRows = (byTick ? byTick.front : rows).filter(u => !u.noHire);
+  const gearText = builderGearText(byTick ? byTick.front : rows);
   const copy = roster
     ? `<button class="bp-btn txt-btn u-copy u-human" title="Copy the roster the way a person reads it"
          data-units-copy="${esc(roster).replace(/\n/g, "&#10;")}">Human Copy</button>` +
@@ -3615,17 +3638,18 @@ function planFight(side){
   const foe = isAtk ? defAll : atkAll;
   if (!foe.length || [...atkAll, ...defAll].some(u => u.size < 1)) return null;
   const bonus = document.getElementById("defBonus").value;
-  const atk = atkAll.filter(u=>!u.reserve), def = defAll.filter(u=>!u.reserve);
   const reinf = rows => rows.filter(u=>u.reserve);      // chainBattles drops each in on its tick
-  let r1;
-  try { r1 = simulate(atk, def, bonus); } catch(e){ return null; }
+  /* fought under the advanced instructions, as Resolve battle fights it */
+  let b;
+  try { b = ordBattle(atkAll, defAll, bonus, ordAny(ORD) ? ordSnap() : null, trainDrift()); } catch(e){ return null; }
+  const r1 = b.r1;
 
-  const up = upkeepOf(isAtk ? atk : def);
+  const up = upkeepOf(isAtk ? b.o.atk : b.o.def);
   const a0 = chainRows(r1.units, true).concat(reinf(atkAll));
   const d0 = chainRows(r1.units, false).concat(reinf(defAll));
   let ticks = 1, left = troopsOf(isAtk ? a0 : d0);
   if (a0.length && d0.length){
-    const run = chainBattles(a0, d0, bonus);
+    const run = b.run;
     run.ticks.forEach(k => addRes(up, isAtk ? k.upA : k.upD));
     ticks += run.ticks.length;
     if (run.ticks.length){
@@ -3639,9 +3663,11 @@ function planFight(side){
 function prettyPlan(side, noFight){
   const rows = readSide(side);
   if (!rows.some(u => u.size > 0)) return "";
-  const c = costsOf(rows);
+  /* what the advanced instructions raise and re-equip is billed with the rest */
+  const extra = ordExtras()[side];
+  const c = costsOf(rows.concat(extra));
   const fence = (lang, body) => "```" + lang + "\n" + body + "\n```";
-  const out = ["`" + encodeArmy(noNames(packSide(side)), barracksOf(side)) + "`"];
+  const out = ["`" + encodeArmy(liveSide(side), barracksOf(side)) + "`"];
 
   /* the roster, a type's stacks together */
   const order = [], byType = new Map();
@@ -3651,16 +3677,21 @@ function prettyPlan(side, noFight){
     if (!byType.has(u.type)){ byType.set(u.type, []); order.push(u.type); }
     byType.get(u.type).push(`${n.toLocaleString("en-US")} ${u.type} ${label(u.weapon)} + ${label(u.armor)}`);
   });
-  out.push(fence("cs", order.map(t => byType.get(t).join("\n")).join("\n\n")));
+  const ins = extra.map(u => u.kind === "raise"
+    ? `+${u.size.toLocaleString("en-US")} ${u.type} ${label(u.weapon)} + ${label(u.armor)} (raised, tick ${u.tick})`
+    : `${u.size.toLocaleString("en-US")} ${u.type} -> ${u.noW ? "" : label(u.weapon)}${u.noW || u.noA ? "" : " + "}${
+        u.noA ? "" : label(u.armor)} (swapped, tick ${u.tick})`);
+  out.push(fence("cs", order.map(t => byType.get(t).join("\n")).join("\n\n") +
+    (ins.length ? "\n\n# Instructions\n" + ins.join("\n") : "")));
 
-  const sat = satCost(troopTotal(rows));
+  const sat = satCost(troopTotal(rows.concat(extra)));
   out.push(fence("glsl", `☹ ${sat ? "-" + sat.toLocaleString("en-US") : 0} Sat\n\n` +
     `₿ ${money(c.hire + c.gearBits + c.craftBits)}\n` +
     ` ├── ${money(c.hire)} Raise\n` +
     ` └── ${money(c.gearBits)} Equipment`));
 
   out.push("`Nerd Stuff`");
-  const build = builderGearText(rows);
+  const build = builderGearText(rows.concat(extra));
   if (build) out.push(fence("prolog", build));
 
   const fight = noFight ? null : planFight(side);
@@ -4749,10 +4780,10 @@ function chainBattles(atkRows, defRows, bonus, drift = trainDrift(), orders = nu
       train = {side: drift.side, step: drift.step, from, to: span(drift.side === "attacker" ? atk : def)};
     }
     /* then the instructions, on everyone now on the field */
-    let notes = [], ordered = false;
+    let notes = [], ordered = false, buys = [], links = [];
     if (orders){
       const o = ordRun(orders.prog, t + 1, atk, def, prevDmg);
-      atk = o.atk; def = o.def; notes = o.notes; ordered = o.changed;
+      atk = o.atk; def = o.def; notes = o.notes; ordered = o.changed; buys = o.buys; links = o.links;
     }
     const upA = upkeepOf(atk), upD = upkeepOf(def);
     const atkStart = troopsOf(atk), defStart = troopsOf(def);
@@ -4766,8 +4797,8 @@ function chainBattles(atkRows, defRows, bonus, drift = trainDrift(), orders = nu
     const defLeft = r.repellers.reduce((n, u) => n + u.remaining, 0);
 
     ticks.push({tick:t, res:r, atkStart, defStart, atkLeft, defLeft, atkDead, defDead, upA, upD, moved, train,
-                arrived: aIn.length + dIn.length, notes});
-    if (orders) prevDmg = ordDmg(r.units);
+                arrived: aIn.length + dIn.length, notes, buys, links});
+    if (orders) prevDmg = ordDmg(r);
 
     atk = atk.map((u, i) => Object.assign({}, u, {size:r.invaders[i].remaining, fresh:false})).filter(u => u.size > 0);
     def = def.map((u, i) => Object.assign({}, u, {size:r.repellers[i].remaining, fresh:false})).filter(u => u.size > 0);
@@ -4920,7 +4951,7 @@ function renderChain(){
     return `<div class="note chain-note">Nothing left to fight.</div>`;
 
   const run = chainBattles(atk0, def0, lastBonus, trainDrift(),
-                           lastOrders ? {prog: lastOrders, dmg: ordDmg(lastResult.units)} : null);
+                           lastOrders ? {prog: lastOrders, dmg: ordDmg(lastResult)} : null);
   if (!run.ticks.length)
     return `<div class="note warn chain-note"><strong>Nothing to replay.</strong>
       ${esc(run.error || "The next tick could not be resolved.")}</div>`;
@@ -5366,7 +5397,8 @@ function encodeArmy(units, barracks){
   while (waves.length > 1 && !waves[waves.length - 1].length) waves.pop();
   return waves.map(r => encodeStacks(r, barracks)).join("_")
        + encodeNames(waves.flat())
-       + (barracks == null ? "" : "~" + clampInt(barracks, 0, TRAIN_UNCAPPED));   // the side's Barracks level
+       + (barracks == null ? "" : "~" + clampInt(barracks, 0, TRAIN_UNCAPPED))    // the side's Barracks level
+       + (units?.orders ? "!" + ordToCode(units.orders) : "");                    // its advanced instructions
 }
 
 /* unit names ride after a ".", only when a unit has one: the names in stack
@@ -5410,7 +5442,9 @@ function encodeStacks(units, barracks){
 }
 
 function decodeArmy(code){
-  const [body, brk, tail] = String(code).split("~");
+  const [main, ord, extra] = String(code).split("!");
+  if (extra !== undefined || (ord !== undefined && !/^[0-9A-Za-z]+$/.test(ord))) throw new Error("not a code");
+  const [body, brk, tail] = main.split("~");
   if (tail !== undefined || (brk !== undefined && !/^\d{1,4}$/.test(brk))) throw new Error("not a code");
   const [stacks, names, more] = body.split(".");
   if (more !== undefined) throw new Error("not a code");
@@ -5430,6 +5464,7 @@ function decodeArmy(code){
     delete u.capped;
   });
   if (lifted) units.lifted = lifted;
+  units.orders = ord ? ordFromCode(ord) : "";       // a code without a script clears the side's
   return units;
 }
 
@@ -5457,8 +5492,8 @@ const encodeBattle = (atk, def, bonus, brk) =>
   "+" + encodeArmy(atk, brk?.attacker) + (bonus === "No" ? "=" : "-") + encodeArmy(def, brk?.defender);
 const barracksBoth = () => ({attacker: barracksOf("attacker"), defender: barracksOf("defender")});
 
-const RE_ARMY_CODE   = /^(?=.)[0-9A-Za-z]*(_[0-9A-Za-z]+){0,4}(\.[0-9A-Za-z]+)?(~\d{1,4})?$/;
-const RE_BATTLE_CODE = /^\+([0-9A-Za-z]*(?:_[0-9A-Za-z]+){0,4}(?:\.[0-9A-Za-z]+)?(?:~\d{1,4})?)([-=])([0-9A-Za-z]*(?:_[0-9A-Za-z]+){0,4}(?:\.[0-9A-Za-z]+)?(?:~\d{1,4})?)$/;
+const RE_ARMY_CODE   = /^(?=.)[0-9A-Za-z]*(_[0-9A-Za-z]+){0,4}(\.[0-9A-Za-z]+)?(~\d{1,4})?(![0-9A-Za-z]+)?$/;
+const RE_BATTLE_CODE = /^\+([0-9A-Za-z]*(?:_[0-9A-Za-z]+){0,4}(?:\.[0-9A-Za-z]+)?(?:~\d{1,4})?(?:![0-9A-Za-z]+)?)([-=])([0-9A-Za-z]*(?:_[0-9A-Za-z]+){0,4}(?:\.[0-9A-Za-z]+)?(?:~\d{1,4})?(?:![0-9A-Za-z]+)?)$/;
 
 /* null when the text is not a battle code at all */
 function decodeBattle(code){
@@ -5629,7 +5664,7 @@ function crunchDiff(want, units){
    defender second, either may be left empty. The fragment rather than a
    query string so the "+" that opens the attackers stays a "+". */
 
-const battleFragment = () => encodeBattle(noNames(packSide("attacker")), noNames(packSide("defender")),
+const battleFragment = () => encodeBattle(liveSide("attacker"), liveSide("defender"),
                                           document.getElementById("defBonus").value, barracksBoth());
 const battleLink = () => location.href.split("#")[0] + "#" + battleFragment();
 
@@ -5746,10 +5781,13 @@ function addUnits(side, units){
   units = noNames(units);
   setBarracks(side, units?.barracks);
   let skipped = 0;
+  const kept = [], rows = [];
   (units || []).forEach(u=>{
     if (side === "attacker" && u.type === "Alicorns"){ skipped++; return; }
-    makeRow(side, u);
+    kept.push(u); rows.push(makeRow(side, u));
   });
+  /* a script riding on the list takes over the side, pointed at the rows it just made */
+  if (units?.orders) ordAdopt(side, units.orders, canonOrder(kept).map(i => rows[i]));
   refreshCounts();
   if (skipped) alert(`Alicorns can only be fielded as defenders — skipped ${skipped}.`);
   return (units || []).length - skipped;
@@ -5777,13 +5815,13 @@ function parsePresetJSON(text){
   const armies  = data.armyPresets   || (data.kind === "armyPresets"   ? data.presets : null) || {};
   const battles = data.battlePresets || (data.kind === "battlePresets" ? data.presets : null) || {};
   const out = {armies: {}, battles: {}};
-  const brk = obj(data.armyBarracks);
-  const withBrk = (list, n) => { if (n != null) list.barracks = n; return list; };
-  Object.entries(armies).forEach(([n, v]) => { out.armies[n] = withBrk(units(v), brk[n]); });
+  const brk = obj(data.armyBarracks), ord = obj(data.armyOrders);
+  const withBrk = (list, n, o) => { if (n != null) list.barracks = n; list.orders = typeof o === "string" ? o : ""; return list; };
+  Object.entries(armies).forEach(([n, v]) => { out.armies[n] = withBrk(units(v), brk[n], ord[n]); });
   Object.entries(battles).forEach(([n, b]) => {
     if (b && typeof b === "object")
-      out.battles[n] = {attacker: withBrk(units(b.attacker), obj(b.barracks).attacker),
-                        defender: withBrk(units(b.defender), obj(b.barracks).defender), bonus: b.bonus};
+      out.battles[n] = {attacker: withBrk(units(b.attacker), obj(b.barracks).attacker, obj(b.orders).attacker),
+                        defender: withBrk(units(b.defender), obj(b.barracks).defender, obj(b.orders).defender), bonus: b.bonus};
   });
   if (!Object.keys(out.armies).length && !Object.keys(out.battles).length)
     return {error: "No army or battle presets found in that JSON."};
@@ -6047,15 +6085,24 @@ const reinfUnit = u => ({type: u.type, weapon: u.weapon || "ScroungedWeapons", a
    dropping in on theirs, with whoever is due on the tick after */
 function reinfPredict(battle, ticks){
   const row = (u, due) => { const r = reinfUnit(u);
-    return Object.assign({}, r, {nick: r.name, start: r.size, due,
+    return Object.assign({}, r, {nick: r.name, start: r.size, due, fid: u.fid,
       name: `${r.type}_${r.weapon}_${r.armor}_size_${r.size}_train_${r.training}`}); };
-  const atkAll = (battle.attacker || []).filter(u => u.type !== "Alicorns"), defAll = battle.defender || [];
-  let atk = [], def = [];
+  /* the code's advanced instructions run on each tick, as Resolve battle runs them */
+  const prog = progOf(battle), orders = ordAny(prog);
+  const atkAll = withFids((battle.attacker || []).filter(u => u.type !== "Alicorns"), "attacker");
+  const defAll = withFids(battle.defender || [], "defender");
+  let atk = [], def = [], dmg = null;
   const dead = [];
   for (let t = 1; t <= ticks; t++){
     atk = atk.concat(atkAll.filter(u => waitOf(u) === t - 1).map(u => row(u, false)));
     def = def.concat(defAll.filter(u => waitOf(u) === t - 1).map(u => row(u, t > 1)));
+    if (orders){
+      const o = ordRun(prog, t, atk, def, dmg);
+      atk = o.atk;
+      def = o.def.map(u => Object.assign({start: u.size, due: false, nick: ""}, u));
+    }
     const r = simulate(atk, def, battle.bonus);
+    if (orders) dmg = ordDmg(r);
     atk = atk.map((u, i) => Object.assign({}, u, {size: r.invaders[i].remaining})).filter(u => u.size > 0);
     def = def.map((u, i) => Object.assign({}, u, {size: r.repellers[i].remaining}));
     dead.push(...def.filter(u => !u.size));
@@ -6153,9 +6200,27 @@ let reinfRows = [];
 let reinfBase = null;      // the plain comparison, for Revert
 
 /* an add button drops its unit on the defenders and says so, staying lit */
+/* whether the battle in the checker is the one loaded above: the same
+   stacks on both sides and the same bonus, names, Barracks and scripts aside */
+function reinfIsLoaded(battle){
+  const norm = l => (Array.isArray(l) ? l : []).filter(u => u && u.type).map(u => Object.assign({type: u.type,
+    weapon: u.weapon || "ScroungedWeapons", armor: u.armor || "ScroungedArmor", size: parseInt(u.size, 10) || 0,
+    training: clampInt(u.training, 0, TRAIN_UNCAPPED)}, packWait(u)));
+  const code = (a, d, bonus) => encodeBattle(norm(a), norm(d), bonus === "No" ? "No" : "Yes");
+  return code(battle.attacker, battle.defender, battle.bonus)
+     === code(packSide("attacker"), packSide("defender"), document.getElementById("defBonus").value);
+}
+
 function reinfAdd(btn){
   const r = reinfRows[+btn.dataset.reinfAdd];
   if (!r) return;
+  /* adding to a different battle than the one checked is asked about once a check
+     (after the first add the lists differ from the code anyway) */
+  if (reinfBase?.battle && !reinfBase.asked){
+    if (!reinfIsLoaded(reinfBase.battle) && !confirm("The battle code in the checker is not the battle loaded above "
+        + "— the attackers, the defenders or the defender bonus differ.\n\nAdd to the defenders on screen anyway?")) return;
+    reinfBase.asked = true;
+  }
   const u = reinfAddUnit(r), wait = +btn.dataset.wait;
   makeRow("defender", Object.assign(noNames([u])[0], packWait({reserve: wait})));
   const n = (+btn.dataset.added || 0) + 1;
@@ -6194,7 +6259,7 @@ function runReinfCheck(){
   });
   xOnly.forEach(r => rows.push({x: r.x, d: r.x.size, kind: "new", at: r.xi}));
   yOnly.forEach(r => rows.push({y: r.y, d: -r.y.size, kind: r.y.size ? "gone" : "same", at: x.length + r.yi}));
-  reinfBase = {rows, ticks};
+  reinfBase = {rows, ticks, battle};
   reinfRender(rows, ticks);
 }
 
@@ -6310,13 +6375,14 @@ function setSide(side, units){
   (units || []).forEach(u=>uncapFor(side, u.training));
   setBarracks(side, units?.barracks);
   document.getElementById(side === "attacker" ? "tbodyAttacker" : "tbodyDefender").innerHTML = "";
-  /* a list laid down fresh counts its ids up from 1, and any force the
-     instructions make that it lands on moves out of the way */
+  /* a list that carries a script (a preset, a code) brings it along, and
+     one without any clears the side's */
+  if (typeof units?.orders === "string") ordLoad(side, units.orders);
+  /* a list laid down fresh counts its ids up from 1, front line first, and any
+     force the instructions make that it lands on moves out of the way */
   fidCountUp = !(units || []).some(u => u?.fid);
-  (units || []).forEach(u=>{
-    if (side === "attacker" && u.type === "Alicorns") return;   // attackers can't field them
-    makeRow(side, u);
-  });
+  const kept = (units || []).filter(u => !(side === "attacker" && u.type === "Alicorns"));   // attackers can't field them
+  (fidCountUp ? withFids(kept, side) : kept).forEach(u => makeRow(side, u));
   if (fidCountUp) ordRehome(side);
   fidCountUp = false;
   refreshCounts();
@@ -6415,6 +6481,187 @@ const ORD = (() => {
   return o;
 })();
 const ordSave = () => store.set(LS_ORD, ORD);
+
+/* ---- carrying a script about ----
+   Codes and presets keep a script as packed text: a letter for each block,
+   its settings after it split by ",", the blocks inside an if or an event
+   in brackets after that, blocks one after another split by ";". Forces are
+   written S (this side) or F (the other side) and the number they will have
+   once the list is laid down again — the front line from 1 in its order, then
+   each wave of reinforcements, then whatever the splits and raises make — so
+   a script travels with its army and finds the same stacks wherever the army
+   lands. In a code the text rides after a "!" at the end of the army it
+   belongs to, as UTF-8 bytes read as one base-62 number, the way the names do */
+const ORD_LET = {onTick: "t", everyTick: "e", everyN: "n", ifTick: "i", ifTickElse: "j", ifForce: "f", swap: "w",
+                 train: "r", split: "s", merge: "m", raise: "u", trim: "k", destroy: "d", print: "p"};
+const ORD_OF_LET = Object.fromEntries(Object.entries(ORD_LET).map(([k, l]) => [l, k]));
+const byId = o => Object.fromEntries(Object.entries(o).map(([k, v]) => [v, k]));
+const WEAPON_OF_ID = byId(WEAPON_IDS), ARMOR_OF_ID = byId(ARMOR_IDS), TYPE_OF_NUM = byId(FORCE_TYPES);
+
+/* the order a list is laid down in, as indexes into it */
+function canonOrder(list){
+  const out = [];
+  for (let w = 0; w <= REINF_MAX; w++) list.forEach((u, i) => { if (waitOf(u) === w) out.push(i); });
+  return out;
+}
+/* each side's force numbers now -> the numbers they will be laid down at */
+function ordMaps(){
+  const maps = {};
+  ORD_SIDES.forEach(side => {
+    const m = new Map();
+    let n = 0;
+    const rows = [...tbodyOf(side).querySelectorAll("tr")].map(tr => ({fid: +tr.dataset.fid, reserve: +tr.dataset.wait || 0}));
+    canonOrder(rows).forEach(i => m.set(rows[i].fid, ++n));
+    ordMade().forEach(x => { if (x.side === side && !m.has(+x.b.nid)) m.set(+x.b.nid, ++n); });
+    maps[side] = m;
+  });
+  return maps;
+}
+
+function ordPack(list, side, maps){
+  const num = (s, n) => maps?.[s] ? (maps[s].get(+n) ?? 0) : (+n || 0);
+  const rel = fid => /^[AD]\d+$/.test(fid || "") ? (fidSide(fid) === side ? "S" : "F") + num(fidSide(fid), fid.slice(1)) : "";
+  const txt = t => encodeURIComponent(String(t || "")).replace(/[()!*'~.]/g, c => "%" + c.charCodeAt(0).toString(16).toUpperCase());
+  const op = o => o === "<" ? "l" : "g";
+  const one = b => {
+    let f = [];
+    switch (b.k){
+      case "onTick": case "everyN": f = [b.x]; break;
+      case "ifTick": case "ifTickElse": f = [op(b.op), b.x]; break;
+      case "ifForce": f = [rel(b.fid), b.stat === "damage" ? "d" : "s", op(b.op), b.x]; break;
+      case "swap":    f = [rel(b.fid), b.weapon ? WEAPON_IDS[b.weapon] : "", b.armor ? ARMOR_IDS[b.armor] : ""]; break;
+      case "train":   f = [b.dir === "lower" ? "l" : "r", b.scope === "entire" ? "e" : "u",
+                           b.scope === "entire" ? (b.side === side ? "S" : "F") : rel(b.fid), b.x]; break;
+      case "split":   f = [b.n, rel(b.fid), num(ordMadeSide(b, side), b.nid)]; break;
+      case "merge":   f = [rel(b.fid), rel(b.fid2)]; break;
+      case "raise":   f = [b.n, FORCE_TYPES[b.type], WEAPON_IDS[b.weapon], ARMOR_IDS[b.armor], b.training, num(side, b.nid)]; break;
+      case "trim":    f = [b.n, rel(b.fid)]; break;
+      case "destroy": f = [rel(b.fid)]; break;
+      case "print":   f = [txt(b.text)]; break;
+    }
+    return ORD_LET[b.k] + f.map(v => v ?? "").join(",") + ordSlots(b).map(sl => "(" + (b[sl] || []).map(one).join(";") + ")").join("");
+  };
+  return (list || []).map(one).join(";");
+}
+
+/* packed text -> blocks for `side`, forces at the numbers the text gives them */
+function ordUnpack(text, side){
+  const s = String(text || ""), foe = side === "attacker" ? "defender" : "attacker";
+  const abs = r => { const m = /^([SF])(\d+)$/.exec(r || ""); return m ? fidPre(m[1] === "S" ? side : foe) + m[2] : ""; };
+  const n = v => isFinite(parseFloat(v)) ? Math.max(0, parseFloat(v)) : 0;
+  const op = v => v === "l" ? "<" : ">";
+  let i = 0;
+  function blocks(){
+    const out = [];
+    while (i < s.length && s[i] !== ")"){
+      const b = block();
+      if (b) out.push(b);
+      if (s[i] === ";") i++;
+    }
+    return out;
+  }
+  function block(){
+    const k = ORD_OF_LET[s[i++]];
+    let j = i;
+    while (j < s.length && !"();".includes(s[j])) j++;
+    const f = s.slice(i, j).split(",");
+    i = j;
+    const kids = [];
+    while (s[i] === "("){ i++; kids.push(blocks()); if (s[i] === ")") i++; }
+    if (!k) return null;
+    const b = {id: "o" + ++ordSeq, k};
+    switch (k){
+      case "onTick": case "everyN": b.x = Math.max(1, Math.floor(n(f[0]))); break;
+      case "ifTick": case "ifTickElse": Object.assign(b, {op: op(f[0]), x: n(f[1])}); break;
+      case "ifForce": Object.assign(b, {fid: abs(f[0]), stat: f[1] === "d" ? "damage" : "size", op: op(f[2]), x: n(f[3])}); break;
+      case "swap": Object.assign(b, {fid: abs(f[0]), weapon: f[1] === "" ? "" : WEAPON_OF_ID[f[1]] || "",
+                                     armor: f[2] === "" ? "" : ARMOR_OF_ID[f[2]] || ""}); break;
+      case "train": Object.assign(b, {dir: f[0] === "l" ? "lower" : "raise", scope: f[1] === "e" ? "entire" : "unit",
+        fid: f[1] === "e" ? "" : abs(f[2]), side: f[1] === "e" ? (f[2] === "F" ? foe : side) : side, x: Math.floor(n(f[3]))}); break;
+      case "split": Object.assign(b, {n: Math.floor(n(f[0])), fid: abs(f[1]), nid: Math.floor(n(f[2]))}); break;
+      case "merge": Object.assign(b, {fid: abs(f[0]), fid2: abs(f[1])}); break;
+      case "raise": {
+        const type = TYPE_OF_NUM[f[1]] || "Cavalry";
+        Object.assign(b, {n: Math.floor(n(f[0])), type, weapon: WEAPON_OF_ID[f[2]] || LOADOUTS[type].weapons[0],
+          armor: ARMOR_OF_ID[f[3]] || LOADOUTS[type].armor[0], training: Math.floor(n(f[4])), nid: Math.floor(n(f[5]))});
+        break;
+      }
+      case "trim": Object.assign(b, {n: Math.floor(n(f[0])), fid: abs(f[1])}); break;
+      case "destroy": b.fid = abs(f[0]); break;
+      case "print": try{ b.text = decodeURIComponent(f[0] || "").slice(0, 120); }catch(e){ b.text = ""; } break;
+    }
+    ordSlots(b).forEach((sl, x) => { b[sl] = kids[x] || []; });
+    return b;
+  }
+  try{ return blocks(); }catch(e){ return []; }
+}
+
+const ordToCode = text => {
+  let v = 1n;
+  for (const b of new TextEncoder().encode(text)) v = v * 256n + BigInt(b);
+  return b62(v);
+};
+function ordFromCode(code){
+  let v = unb62(code);
+  const bytes = [];
+  while (v > 1n){ bytes.unshift(Number(v % 256n)); v /= 256n; }
+  if (v !== 1n) throw new Error("not a code");
+  return new TextDecoder().decode(new Uint8Array(bytes));
+}
+
+/* the script a side carries out of the page, packed */
+const liveOrders = side => ordPack(ORD[side], side, ordMaps());
+/* a side as a code or a preset takes it: its units, with its script riding along */
+const liveSide = side => Object.assign(noNames(packSide(side)), {orders: liveOrders(side)});
+/* a packed script coming in replaces the side's (an empty one clears it) */
+function ordLoad(side, text){
+  ORD[side] = ordUnpack(text, side);
+  ordArmed[side] = "root";
+  ordSyncSig = "";
+  ordSave();
+}
+/* a list added to the rows already there: its script's own stacks are the
+   rows it just made, and what its splits and raises make takes free numbers */
+function ordAdopt(side, text, newRows){
+  const list = ordUnpack(text, side), pre = fidPre(side);
+  const map = new Map(newRows.map((tr, k) => [k + 1, +tr.dataset.fid]));
+  const held = new Set([...tbodyOf(side).querySelectorAll("tr")].map(tr => +tr.dataset.fid));
+  ORD_SIDES.forEach(sd => ordWalk(ORD[sd], (b, s) => { if ((b.k === "split" || b.k === "raise") && ordMadeSide(b, s) === side) held.add(+b.nid); }, sd));
+  const next = () => { let n = 1; while (held.has(n)) n++; held.add(n); return n; };
+  ordWalk(list, (b, s) => { if ((b.k === "split" || b.k === "raise") && ordMadeSide(b, s) === side && !map.has(+b.nid)) map.set(+b.nid, next()); }, side);
+  const fix = fid => fid && fid.charAt(0) === pre && map.has(+fid.slice(1)) ? pre + map.get(+fid.slice(1)) : fid;
+  ordWalk(list, (b, s) => {
+    const made = (b.k === "split" || b.k === "raise") && ordMadeSide(b, s) === side;
+    b.fid = fix(b.fid); if (b.fid2) b.fid2 = fix(b.fid2);
+    if (made && map.has(+b.nid)) b.nid = map.get(+b.nid);
+  }, side);
+  ORD[side] = list;
+  ordArmed[side] = "root";
+  ordSyncSig = "";
+  ordSave();
+}
+/* a list laid down fresh numbers its forces from 1, front line first */
+function withFids(list, side){
+  const out = (list || []).map(u => Object.assign({}, u));
+  canonOrder(out).forEach((i, k) => { out[i].fid = fidPre(side) + (k + 1); });
+  return out;
+}
+/* a battle preset's or a decoded battle's two scripts, as blocks */
+const packedOf = (b, side) => typeof b?.orders?.[side] === "string" ? b.orders[side]
+  : typeof b?.[side]?.orders === "string" ? b[side].orders : "";
+const progOf = b => ({attacker: ordUnpack(packedOf(b, "attacker"), "attacker"), defender: ordUnpack(packedOf(b, "defender"), "defender")});
+
+/* army presets keep their scripts beside them, as they keep their Barracks */
+const LS_AORD = "warcalc.armyOrders";
+const getArmyOrders = () => { const m = store.get(LS_AORD, {}); return m && typeof m === "object" ? m : {}; };
+function setArmyOrders(name, text, rename){
+  const m = getArmyOrders();
+  if (rename !== undefined){ if (name in m) m[rename] = m[name]; delete m[name]; }
+  else if (!text) delete m[name];
+  else m[name] = String(text);
+  store.set(LS_AORD, m);
+}
+const ordersFor = names => Object.fromEntries(Object.entries(getArmyOrders()).filter(([n]) => names.includes(n)));
 
 /* the side a split or a raise makes its force on: a raise its own script's,
    a split the side of the force it splits */
@@ -6525,7 +6772,7 @@ function ordBlockHTML(b, side, F){
   let head = "";
   switch (b.k){
     case "ifTick": case "ifTickElse": head = `if tick ${ordSel("op", OP_OPTS, b.op)} ${ordNum("x", b.x, 0, 99)}`; break;
-    case "ifForce": head = `if ${fs("fid", b.fid)} ${ordSel("stat", [["size", "size"], ["damage", "damage"]], b.stat)
+    case "ifForce": head = `if ${fs("fid", b.fid)} ${ordSel("stat", [["size", "size"], ["damage", "damage dealt"]], b.stat)
       } ${ordSel("op", OP_OPTS, b.op)} ${ordNum("x", b.x, 0, null, "any")}`; break;
     case "onTick":    head = `on tick ${ordNum("x", b.x, 1, ORD_LAST)}`; break;
     case "everyTick": head = "every tick"; break;
@@ -6583,8 +6830,6 @@ function ordFrame(side, el){
           `<span class="blk-pal bt-${ORD_KINDS[k].tone}" draggable="true" data-pal="${k}">${ORD_KINDS[k].pal}</span>`).join("")).join("")}</div>
       <div class="ord-script"></div>
       <div class="ord-bar">
-        <span class="small muted">Runs at the start of every tick, attackers first. Loose blocks run every tick;
-          click an if or an event to fill it.</span>
         <span class="spacer"></span>
         <button type="button" class="btn btn-xs btn-danger ord-clear" title="Bin every block in this script">Clear</button>
       </div>
@@ -6620,6 +6865,7 @@ function ordSync(){
 function ordChanged(redraw){
   ordSave();
   if (redraw) ordRenderAll();
+  refreshCosts();
   const el = document.getElementById("reinfStale");
   if (el && lastResult) el.innerHTML = `<div class="note warn"><strong>Instructions changed — run again.</strong></div>`;
 }
@@ -6761,10 +7007,13 @@ ORD_SIDES.forEach(side => {
 /* ---- running them ---- */
 const ordCmp = (v, op, x) => op === "<" ? v < x : v > x;
 const fidHTML = fid => fid ? `<b class="${fid.charAt(0) === "A" ? "fa" : "fd"}">${esc(fid)}</b>` : "—";
-/* the damage each force took in a fought tick, for the if-force blocks of the next */
-function ordDmg(units){
+/* the damage each force dealt in a fought tick, for the if-force blocks of the next */
+function ordDmg(res){
   const m = new Map();
-  Object.values(units || {}).forEach(u => { if (u.fid) m.set(u.fid, round3(u.damage || 0)); });
+  (res?.log || []).forEach(l => {
+    const fid = res.units[l.aid]?.fid;
+    if (fid) m.set(fid, round6((m.get(fid) || 0) + l.damage));
+  });
   return m;
 }
 
@@ -6773,8 +7022,15 @@ function ordDmg(units){
 function ordRun(prog, tick, atk, def, prevDmg){
   const L = {attacker: atk.map(u => Object.assign({}, u)), defender: def.map(u => Object.assign({}, u))};
   const notes = [];
+  /* buys: what has to be raised or made for this tick — every raise, and the
+     new gear every swap puts on. links: a force made out of another (a split)
+     or folded into one (a merge), so losses can be traced back to the stack
+     they started as */
+  const buys = [], links = [];
   let changed = false;
   const say = (html, cls) => notes.push({html, cls: cls || ""});
+  const buy = (u, o) => buys.push(Object.assign({type: u.type, weapon: u.weapon, armor: u.armor, size: u.size,
+    training: u.training, fid: u.fid, tick, side: fidSide(u.fid)}, o));
   const at = fid => {
     if (!/^[AD]\d+$/.test(fid || "")) return null;
     const list = L[fidSide(fid)], i = list.findIndex(u => u.fid === fid);
@@ -6821,7 +7077,9 @@ function ordRun(prog, tick, atk, def, prevDmg){
         if (!set.weapons.includes(w) || !set.armor.includes(a)){
           say(`Swap skipped — ${fidHTML(b.fid)} is ${esc(f.u.type)} and can't carry ${esc(label(w))} + ${esc(label(a))}`, "ord-skip"); break; }
         if (w === f.u.weapon && a === f.u.armor) break;
-        say(`${fidHTML(b.fid)} swapped to ${kit(put(f, {weapon: w, armor: a}))}`);
+        const now = put(f, {weapon: w, armor: a});
+        buy(now, {kind: "swap", noHire: true, noW: w === f.u.weapon, noA: a === f.u.armor});
+        say(`${fidHTML(b.fid)} swapped to ${kit(now)}`);
         break;
       }
       case "destroy": {
@@ -6845,6 +7103,7 @@ function ordRun(prog, tick, atk, def, prevDmg){
                    weapon: set.weapons.includes(b.weapon) ? b.weapon : set.weapons[0],
                    armor: set.armor.includes(b.armor) ? b.armor : set.armor[0]};
         const r = make(fid, u);
+        if (!r.why) buy(Object.assign({fid}, u), {kind: "raise"});
         if (r.why) say(`Raise skipped — ${r.why}`, "ord-skip");
         else say(r.more ? `Raised ${money(n)} more into ${fidHTML(fid)} (${money(r.size)})`
                         : `Raised ${fidHTML(fid)}: ${money(n)} ${esc(u.type)}, ${kit(u)}, training ${u.training}`);
@@ -6857,6 +7116,7 @@ function ordRun(prog, tick, atk, def, prevDmg){
         if (!n || fid === b.fid) break;
         const r = make(fid, {type: f.u.type, weapon: f.u.weapon, armor: f.u.armor, training: f.u.training, size: n}, f.i + 1);
         if (r.why){ say(`Split skipped — ${r.why}`, "ord-skip"); break; }
+        links.push({from: b.fid, to: fid});
         if (n >= f.u.size) cut(f); else put(f, {size: f.u.size - n});      // the new force sits after it, so f.i still holds
         say(`Split ${money(n)} off ${fidHTML(b.fid)} into ${fidHTML(fid)}${r.more ? ` (${money(r.size)})` : ""}${
           n >= f.u.size ? `, which is all of it` : `, ${money(f.u.size - n)} left`}`);
@@ -6870,6 +7130,8 @@ function ordRun(prog, tick, atk, def, prevDmg){
         if (fidSide(b.fid) !== fidSide(b.fid2)){ no("they fight on different sides"); break; }
         if (a.u.type !== c.u.type){ no(`${esc(a.u.type)} and ${esc(c.u.type)}`); break; }
         if (a.u.training !== c.u.training){ no(`training ${a.u.training} and ${c.u.training}`); break; }
+        if (a.u.weapon !== c.u.weapon || a.u.armor !== c.u.armor){ no(`${kit(a.u)} and ${kit(c.u)} — swap them to the same gear first`); break; }
+        links.push({from: b.fid, to: b.fid2});
         const size = put(a, {size: a.u.size + c.u.size}).size;
         c.list.splice(c.i, 1);                          // put() swaps in place, so c.i still holds
         say(`Merged ${fidHTML(b.fid2)} into ${fidHTML(b.fid)}: ${money(size)} ${kit(a.u)}`);
@@ -6901,7 +7163,7 @@ function ordRun(prog, tick, atk, def, prevDmg){
   run(prog.attacker, "attacker");
   run(prog.defender, "defender");
   const named = u => Object.assign(u, {name: `${u.type}_${u.weapon}_${u.armor}_size_${u.size}_train_${u.training}`});
-  return {atk: L.attacker.map(named), def: L.defender.map(named), notes, changed};
+  return {atk: L.attacker.map(named), def: L.defender.map(named), notes, changed, buys, links};
 }
 
 /* whether some block could still fire differently on a tick after this one,
@@ -6917,6 +7179,65 @@ function ordLater(prog, tick){
       later = ahead(t => ordCmp(t, b.op, +b.x) !== ordCmp(tick, b.op, +b.x));
   });
   return later;
+}
+
+/* a whole battle the way the Battle tab fights it — tick 1 under the
+   instructions, then the successive ticks — for whoever needs to know what
+   the instructions will do in it: what they buy, whose losses are whose.
+   `prog` may be null for a battle without any. Throws as simulate() does */
+function ordBattle(atkAll, defAll, bonus, prog, drift = null, chain = true){
+  const atk = atkAll.filter(u => !waitOf(u)), def = defAll.filter(u => !waitOf(u));
+  const o = prog ? ordRun(prog, 1, atk, def, null) : {atk, def, notes: [], buys: [], links: [], changed: false};
+  const r1 = simulate(o.atk, o.def, bonus);
+  const a0 = chainRows(r1.units, true).concat(atkAll.filter(u => waitOf(u)));
+  const d0 = chainRows(r1.units, false).concat(defAll.filter(u => waitOf(u)));
+  const run = chain && a0.length && d0.length
+    ? chainBattles(a0, d0, bonus, drift, prog ? {prog, dmg: ordDmg(r1)} : null) : {ticks: [], stop: "", error: ""};
+  return {o, r1, run,
+          buys: o.buys.concat(...run.ticks.map(k => k.buys || [])),
+          links: o.links.concat(...run.ticks.map(k => k.links || []))};
+}
+
+/* with nobody to fight, the instructions are played out on their own, no one
+   dying, up to the last tick they name (tick 1 if they name none) */
+function ordSpan(prog){
+  let t = 1;
+  ordEach(prog, b => {
+    if (b.k === "onTick" || b.k === "everyN") t = Math.max(t, Math.floor(+b.x) || 1);
+    if ((b.k === "ifTick" || b.k === "ifTickElse") && b.op !== "<") t = Math.max(t, (Math.floor(+b.x) || 0) + 1);
+  });
+  return Math.min(ORD_LAST, t);
+}
+function ordDry(atkAll, defAll, prog){
+  let atk = [], def = [];
+  const buys = [], links = [], T = ordSpan(prog);
+  for (let t = 1; t <= T; t++){
+    atk = atk.concat(atkAll.filter(u => waitOf(u) === t - 1));
+    def = def.concat(defAll.filter(u => waitOf(u) === t - 1));
+    const o = ordRun(prog, t, atk, def, null);
+    atk = o.atk; def = o.def; buys.push(...o.buys); links.push(...o.links);
+  }
+  return {buys, links, ticks: T};
+}
+
+/* what the instructions buy for the battle on screen, side by side: fought
+   out when both sides have a front line, played out alone when not.
+   Remembered until the lists, the scripts or the battle's settings change */
+let ordExtraMemo = {key: "", val: null};
+function ordExtras(){
+  if (!ordAny(ORD)) return {attacker: [], defender: [], dry: false};
+  const atk = readSide("attacker"), def = readSide("defender");
+  const bonus = document.getElementById("defBonus").value, drift = trainDrift();
+  const key = JSON.stringify([atk, def, ORD.attacker, ORD.defender, bonus, drift, trainCap("attacker"), trainCap("defender")]);
+  if (ordExtraMemo.key === key) return ordExtraMemo.val;
+  const prog = ordSnap();
+  const fights = atk.some(u => !waitOf(u)) && def.some(u => !waitOf(u)) && ![...atk, ...def].some(u => u.size < 1);
+  let buys = [], dry = !fights;
+  try{ buys = fights ? ordBattle(atk, def, bonus, prog, drift).buys : ordDry(atk, def, prog).buys; }
+  catch(e){ dry = true; try{ buys = ordDry(atk, def, prog).buys; }catch(e2){ buys = []; } }
+  const val = {attacker: buys.filter(b => b.side === "attacker"), defender: buys.filter(b => b.side === "defender"), dry};
+  ordExtraMemo = {key, val};
+  return val;
 }
 
 /* what the instructions did, atop a tick's exchange log */
@@ -7023,6 +7344,7 @@ function saveArmyPreset(side){
   all[name] = units;
   if (!store.set(LS_ARMY, all)) alert("Could not save — this browser is blocking local storage.");
   setArmyBarracks(name, barracksOf(side));
+  setArmyOrders(name, liveOrders(side));
   refreshPresetSelects();
   document.querySelectorAll("[data-ap-sel]").forEach(sel=>{ sel.value = name; });
   renderMarks();
@@ -7035,6 +7357,7 @@ function loadArmyPreset(side){
   const units = getArmies()[name];
   if (!units) return;
   setBarracks(side, getArmyBarracks()[name]);
+  units.orders = getArmyOrders()[name] || "";       // its script replaces the side's, or clears it
   setSide(side, units);
 }
 
@@ -7052,6 +7375,7 @@ function updateArmyPreset(side, btn){
   all[name] = units;
   if (!store.set(LS_ARMY, all)){ alert("Could not save \u2014 this browser is blocking local storage."); return; }
   setArmyBarracks(name, barracksOf(side));
+  setArmyOrders(name, liveOrders(side));
   flashOk(btn, "Updated");
 }
 
@@ -7065,6 +7389,7 @@ function deleteArmyPreset(side){
   delete all[name];
   store.set(LS_ARMY, all);
   setArmyBarracks(name, null);
+  setArmyOrders(name, "");
   setMarks(getMarks().filter(n => n !== name));
   refreshPresetSelects();
 }
@@ -7082,6 +7407,7 @@ function renameArmyPreset(side){
   delete all[name];
   if (!store.set(LS_ARMY, all)){ alert("Could not save — this browser is blocking local storage."); return; }
   setArmyBarracks(name, null, next);
+  setArmyOrders(name, null, next);
   const marks = getMarks();
   const i = marks.indexOf(name);
   if (i >= 0){ marks[i] = next; setMarks(marks); }
@@ -7091,13 +7417,24 @@ function renameArmyPreset(side){
 }
 
 /* ---- battle presets (both sides + bonus) ---- */
+/* the battle on screen as a preset keeps it, scripts and all */
+function battleNow(strip){
+  const pack = side => strip ? noNames(packSide(side)) : packSide(side);
+  const b = {attacker: pack("attacker"), defender: pack("defender"),
+             bonus: document.getElementById("defBonus").value, barracks: barracksBoth()};
+  const orders = {attacker: liveOrders("attacker"), defender: liveOrders("defender")};
+  if (orders.attacker || orders.defender) b.orders = orders;
+  return b;
+}
+/* a battle preset's lists, each carrying its script, for setSide */
+const battleLists = b => ({attacker: Object.assign(b.attacker || [], {orders: packedOf(b, "attacker")}),
+                           defender: Object.assign(b.defender || [], {orders: packedOf(b, "defender")})});
 function saveBattlePreset(){
   const name = (prompt("Name this battle:", "") || "").trim();
   if (!name) return;
   const all = getBattles();
   if (all[name] && !confirm(`Overwrite "${name}"?`)) return;
-  all[name] = {attacker: packSide("attacker"), defender: packSide("defender"),
-               bonus: document.getElementById("defBonus").value, barracks: barracksBoth()};
+  all[name] = battleNow(false);
   if (!store.set(LS_BATL, all)) alert("Could not save — this browser is blocking local storage.");
   refreshPresetSelects();
   document.getElementById("bpSel").value = name;
@@ -7110,8 +7447,9 @@ function loadBattlePreset(){
   if (!b) return;
   setBarracks("attacker", b.barracks?.attacker);
   setBarracks("defender", b.barracks?.defender);
-  setSide("attacker", b.attacker);
-  setSide("defender", b.defender);
+  const l = battleLists(b);
+  setSide("attacker", l.attacker);
+  setSide("defender", l.defender);
   if (b.bonus) document.getElementById("defBonus").value = b.bonus;
   scheduleSave();
 }
@@ -7122,8 +7460,7 @@ function updateBattlePreset(btn){
   const all = getBattles();
   if (!all[name]) return;
   if (!confirm(`Update battle preset "${name}" with the current battle? The saved version is replaced.`)) return;
-  all[name] = {attacker: packSide("attacker"), defender: packSide("defender"),
-               bonus: document.getElementById("defBonus").value, barracks: barracksBoth()};
+  all[name] = battleNow(false);
   if (!store.set(LS_BATL, all)){ alert("Could not save \u2014 this browser is blocking local storage."); return; }
   flashOk(btn, "Updated");
 }
@@ -7162,6 +7499,7 @@ function noNames(units){
     const {name, ...rest} = u; return rest; });
   if (units.barracks != null) out.barracks = units.barracks;
   if (units.lifted) out.lifted = units.lifted;
+  if (units.orders != null) out.orders = units.orders;
   return out;
 }
 const noNamesBattle = b => b && typeof b === "object"
@@ -7202,7 +7540,7 @@ async function copyText(text){
 /* a plain click gives the short code, shift gives the long readable block
    the original page used */
 async function copyComposition(side, btn, longForm){
-  const units = noNames(packSide(side));
+  const units = liveSide(side);
   if (!units.length){ alert("Nothing to copy — that side is empty."); return; }
   const text = longForm ? `Barracks: ${barracksOf(side)}\n\n${compText(units)}`
                         : encodeArmy(units, barracksOf(side));
@@ -7211,7 +7549,7 @@ async function copyComposition(side, btn, longForm){
 }
 
 async function copyBattleCode(btn, longForm){
-  const atk = noNames(packSide("attacker")), def = noNames(packSide("defender"));
+  const atk = liveSide("attacker"), def = liveSide("defender");
   if (!atk.length && !def.length){ alert("Nothing to copy — both sides are empty."); return; }
   const bonus = document.getElementById("defBonus").value;
   const text = longForm
@@ -7250,18 +7588,18 @@ const safeFile = n => (String(n || "").replace(/[^A-Za-z0-9._-]+/g, "-")
 function exportArmyComposition(side){
   const units = noNames(packSide(side));
   if (!units.length){ alert("Nothing to export — that side is empty."); return; }
+  const orders = liveOrders(side);
   const sel = document.querySelector(`[data-ap-sel="${side}"]`);
   const name = (prompt("Name this army composition:",
     sel && sel.value ? sel.value : (side === "attacker" ? "attackers" : "defenders")) || "").trim();
   if (!name) return;
-  downloadJSON({kind:"armyPresets", armyPresets:{[name]: units},
-                armyBarracks:{[name]: barracksOf(side)}},
+  downloadJSON(Object.assign({kind:"armyPresets", armyPresets:{[name]: units},
+                armyBarracks:{[name]: barracksOf(side)}}, orders ? {armyOrders:{[name]: orders}} : {}),
                `curiocalc-army-${safeFile(name)}-${stamp()}.json`);
 }
 
 function exportBattle(){
-  const battle = {attacker: noNames(packSide("attacker")), defender: noNames(packSide("defender")),
-                  bonus: document.getElementById("defBonus").value, barracks: barracksBoth()};
+  const battle = battleNow(true);
   if (!battle.attacker.length && !battle.defender.length){
     alert("Nothing to export — both sides are empty."); return;
   }
@@ -7279,6 +7617,7 @@ function deleteAllArmyPresets(){
   if (!confirm(`Delete all ${n} army preset${n === 1 ? "" : "s"}? This cannot be undone.`)) return;
   store.set(LS_ARMY, {});
   store.set(LS_ABRK, {});
+  store.set(LS_AORD, {});
   setMarks([]);
   refreshPresetSelects();
 }
@@ -7313,6 +7652,7 @@ function importPresetData(data, note){
       all[name] = v; added++;
       const brk = data.armyBarracks && data.armyBarracks[n];
       if (brk != null) setArmyBarracks(name, brk);
+      setArmyOrders(name, typeof data.armyOrders?.[n] === "string" ? data.armyOrders[n] : "");
     });
     store.set(LS_ARMY, all);
   }
@@ -7339,9 +7679,10 @@ const presetUnits = list => (list || []).map(u => Object.assign(
 async function exportPresetString(kind, btn){
   const brk = getArmyBarracks();
   const entries = kind === "army"
-    ? Object.entries(getArmies()).map(([n, units]) => [n, encodeArmy(noNames(units), brk[n])])
-    : Object.entries(getBattles()).map(([n, b]) => [n,
-        encodeBattle(noNames(b.attacker), noNames(b.defender), b.bonus, b.barracks)]);
+    ? Object.entries(getArmies()).map(([n, units]) => [n,
+        encodeArmy(Object.assign(noNames(units), {orders: getArmyOrders()[n] || ""}), brk[n])])
+    : Object.entries(getBattles()).map(([n, b]) => { const l = battleLists(b); return [n,
+        encodeBattle(noNames(l.attacker), noNames(l.defender), b.bonus, b.barracks)]; });
   if (!entries.length){ alert(`There are no ${kind} presets to export.`); return; }
   const text = encodePresetString(entries);
   if (await copyText(text)) flashOk(btn, "Copied");
@@ -7360,17 +7701,19 @@ function importPresetString(){
   if (fromBox) ta.value = "";
   let lifted = 0;
   const lift = l => { lifted += l.lifted || 0; return l.barracks; };
-  const armyBarracks = {};
-  Object.entries(p.armies).forEach(([n, l]) => { const b = lift(l); if (b != null) armyBarracks[n] = b; });
+  const armyBarracks = {}, armyOrders = {};
+  Object.entries(p.armies).forEach(([n, l]) => { const b = lift(l); if (b != null) armyBarracks[n] = b;
+                                                  if (l.orders) armyOrders[n] = l.orders; });
   importPresetData({
     armyPresets: Object.keys(p.armies).length
       ? Object.fromEntries(Object.entries(p.armies).map(([n, l]) => [n, presetUnits(l)])) : null,
-    armyBarracks,
+    armyBarracks, armyOrders,
     battlePresets: Object.keys(p.battles).length
       ? Object.fromEntries(Object.entries(p.battles).map(([n, b]) => {
           const ba = lift(b.attacker), bd = lift(b.defender);
           return [n, Object.assign({attacker: presetUnits(b.attacker), defender: presetUnits(b.defender),
-            bonus: b.bonus}, ba != null || bd != null ? {barracks: {attacker: ba, defender: bd}} : {})];
+            bonus: b.bonus}, ba != null || bd != null ? {barracks: {attacker: ba, defender: bd}} : {},
+            b.attacker.orders || b.defender.orders ? {orders: {attacker: b.attacker.orders || "", defender: b.defender.orders || ""}} : {})];
         })) : null
   }, lifted ? `\n\n${lifted} stack${lifted === 1 ? "" : "s"} came from codes copied before they could hold`
             + " training past 20, and were read back at the Barracks level \u2014 check the Training column." : "");
@@ -7386,6 +7729,7 @@ document.querySelectorAll("[data-add]").forEach(b=>
 document.querySelectorAll("[data-clear]").forEach(b=>
   b.addEventListener("click", ()=>{
     document.getElementById(b.dataset.clear === "attacker" ? "tbodyAttacker" : "tbodyDefender").innerHTML = "";
+    ordLoad(b.dataset.clear, "");                      // its instructions go with it
     refreshCounts();
   }));
 
@@ -7393,6 +7737,7 @@ document.querySelectorAll("[data-clear]").forEach(b=>
 document.getElementById("btnClearAll").addEventListener("click", ()=>{
   document.getElementById("tbodyAttacker").innerHTML = "";
   document.getElementById("tbodyDefender").innerHTML = "";
+  ORD_SIDES.forEach(side => ordLoad(side, ""));
   refreshCounts();
   document.getElementById("btnClearResults").click();
   document.getElementById("btnSolveClear").click();
@@ -7540,12 +7885,14 @@ toolsBtn.addEventListener("click", ()=>{
 
 document.getElementById("expArmies").addEventListener("click", ()=>
   downloadJSON({kind:"armyPresets", armyPresets:noNamesEach(getArmies(), noNames),
-                armyBarracks:barracksFor(Object.keys(getArmies()))}, `curiocalc-armies-${stamp()}.json`));
+                armyBarracks:barracksFor(Object.keys(getArmies())),
+                armyOrders:ordersFor(Object.keys(getArmies()))}, `curiocalc-armies-${stamp()}.json`));
 document.getElementById("expBattles").addEventListener("click", ()=>
   downloadJSON({kind:"battlePresets", battlePresets:noNamesEach(getBattles(), noNamesBattle)}, `curiocalc-battles-${stamp()}.json`));
 document.getElementById("expAll").addEventListener("click", ()=>
   downloadJSON({kind:"warcalcPresets", armyPresets:noNamesEach(getArmies(), noNames),
                 armyBarracks:barracksFor(Object.keys(getArmies())),
+                armyOrders:ordersFor(Object.keys(getArmies())),
                 battlePresets:noNamesEach(getBattles(), noNamesBattle)},
                `curiocalc-presets-${stamp()}.json`));
 
@@ -11785,9 +12132,21 @@ function gsComps(){
   gs.comps = gs.comps.filter(n => armies[n]);
   gsEl("gsComps").innerHTML = names.map(n=>`<span class="mark-chip${gs.comps.includes(n) ? " on" : ""}"
       data-gs-comp="${esc(n)}"><span class="n">${esc(n)}</span></span>`).join("");
-  /* slips come out in the order they were picked, and take reserves in that order */
-  return gs.comps.map(n => ({name: n, units: armies[n]}));
+  /* slips come out in the order they were picked, and take reserves in that order.
+     An army's advanced instructions bill what they raise and re-equip as well */
+  const ords = getArmyOrders();
+  return gs.comps.map(n => ({name: n, units: armies[n], extra: ords[n] ? gsExtras(armies[n], ords[n]) : []}));
 }
+/* an army with nobody in front of it: its script played out alone, as the
+   defenders (who may raise anything), up to the last tick the script names */
+function gsExtras(units, packed){
+  const list = (Array.isArray(units) ? units : []).filter(u => u && UNIT_COST[u.type] && gsNum(u.size) >= 1).map(u => ({
+    type: u.type, weapon: u.weapon || "ScroungedWeapons", armor: u.armor || "ScroungedArmor",
+    size: Math.floor(gsNum(u.size)), training: clampInt(u.training, 0, TRAIN_UNCAPPED), reserve: waitOf(u)}));
+  try{ return ordDry([], withFids(list, "defender"), {attacker: [], defender: ordUnpack(packed, "defender")}).buys; }
+  catch(e){ return []; }
+}
+const gsAll = c => c.units.concat(c.extra || []);
 
 /* one army's bill; reserves it draws on are taken out of resvLeft */
 function gsBill(units, resvLeft){
@@ -11795,11 +12154,13 @@ function gsBill(units, resvLeft){
   const upkeep = {}, need = {}, res = {}, used = {};
   units.forEach(u=>{
     const n = gsNum(u.size);
-    troops += n;
-    const uc = UNIT_COST[u.type] || {hire:0, upkeep:{}};
-    hire += uc.hire * n;
-    addRes(upkeep, uc.upkeep, n);
-    [u.weapon, u.armor].forEach(k=>{ if (k && !SCROUNGED[k]) need[k] = (need[k] || 0) + n; });
+    if (!u.noHire){                     // a swap from the instructions raises nobody
+      troops += n;
+      const uc = UNIT_COST[u.type] || {hire:0, upkeep:{}};
+      hire += uc.hire * n;
+      addRes(upkeep, uc.upkeep, n);
+    }
+    [u.noW ? "" : u.weapon, u.noA ? "" : u.armor].forEach(k=>{ if (k && !SCROUNGED[k]) need[k] = (need[k] || 0) + n; });
   });
   GS_GEAR.filter(k => need[k] > 0).forEach(k=>{
     const from = Math.min(need[k], resvLeft[k] || 0);
@@ -11908,6 +12269,15 @@ function gsUnitHTML(raw){
       <div class="slip-u2">${gear(u.weapon)}<span class="plus">+</span>${gear(u.armor)}</div></div>`;
 }
 
+/* what an army's instructions raise or re-equip, under its units */
+function gsInsHTML(u){
+  const gear = (k, keep) => `<span class="g${keep || SCROUNGED[k] ? " none" : ""}" title="${esc(label(k))}">${gearImg(k)}<span class="gn">${esc(gsShort(k))}</span></span>`;
+  return `<div class="slip-u slip-u-ins" ${tipAttrs(u.type, u.weapon, u.armor, u.size, u.training)}>
+      <div class="slip-u1"><span class="q">${u.kind === "raise" ? "+" : ""}${u.size.toLocaleString("en-US")}</span><span class="nm">${esc(u.type)}</span>
+        <span class="tr">${u.kind === "raise" ? "raised" : "swapped"} · tick ${u.tick}</span></div>
+      <div class="slip-u2">${gear(u.weapon, u.noW)}<span class="plus">+</span>${gear(u.armor, u.noA)}</div></div>`;
+}
+
 function gsSlip(c, b){
   const wo = gsWriteoffHTML(b);
   return `<div class="slip${gsFold(c.name)}" data-fold="${esc(c.name)}" style="${gsPaper(c.name)}">
@@ -11916,6 +12286,7 @@ function gsSlip(c, b){
       <div class="slip-meta">${b.troops.toLocaleString("en-US")} troops · sat ${satCost(b.troops).toLocaleString("en-US")}</div>
       <div class="slip-cut"></div>
       ${c.units.map(gsUnitHTML).join("")}
+      ${c.extra?.length ? `<div class="slip-ins">Instructions</div>${c.extra.map(gsInsHTML).join("")}` : ""}
       <div class="slip-cut"></div>
       ${gsBillHTML(b)}
       ${wo ? `<div class="slip-cut"></div>${wo}` : ""}
@@ -11951,7 +12322,7 @@ function gsTotal(comps, bills, t){
    in brackets; with the box ticked the stockpile is ignored outright */
 function gsGearTotalsHTML(comps){
   const need = {};
-  comps.forEach(c => c.units.forEach(u => [u.weapon, u.armor].forEach(k=>{
+  comps.forEach(c => gsAll(c).forEach(u => [u.noW ? "" : u.weapon, u.noA ? "" : u.armor].forEach(k=>{
     if (k && !SCROUNGED[k]) need[k] = (need[k] || 0) + gsNum(u.size);
   })));
   const haveOf = k => gs.gearAll ? 0 : gsResvOf(k);
@@ -12049,18 +12420,18 @@ function gsChart(comps, bills){
   /* troops by unit type, and troops carrying each piece of gear */
   const count = (keyOf) => {
     const m = {};
-    comps.forEach((c, i) => c.units.forEach(u=>{
+    comps.forEach((c, i) => gsAll(c).forEach(u=>{
       const k = keyOf(u);
       if (!k) return;
       (m[k] = m[k] || comps.map(() => 0))[i] += gsNum(u.size);
     }));
     return m;
   };
-  const byType = count(u => u.type);
+  const byType = count(u => u.noHire ? null : u.type);
   const typesHTML = UNIT_ORDER.filter(g => byType[g.type]).map(g =>
     line(`<span class="g-name t-${g.type.toLowerCase()}">${esc(g.type)}</span>`, byType[g.type], "")).join("");
   const gearHTML = kind => {
-    const m = count(u => { const k = u[kind]; return k && !SCROUNGED[k] ? k : null; });
+    const m = count(u => { const k = (kind === "weapon" ? u.noW : u.noA) ? "" : u[kind]; return k && !SCROUNGED[k] ? k : null; });
     const costs = kind === "weapon" ? WEAPON_COST : ARMOR_COST;
     return UNIT_ORDER.flatMap(g => g.gear.filter(k => k in costs && m[k]).map(k =>
       line(`${gearImg(k)}<span class="g-name t-${g.type.toLowerCase()}">${esc(label(k))}</span>`, m[k], gearImg(k)))).join("");
@@ -12236,7 +12607,7 @@ function renderGrand(){
   const comps = gsComps();
   const resvLeft = {};
   GS_GEAR.forEach(k=>{ resvLeft[k] = gsResvOf(k); });
-  const bills = comps.map(c => gsBill(c.units, resvLeft));
+  const bills = comps.map(c => gsBill(gsAll(c), resvLeft));
   gsEl("gsWide").checked = gs.wide;
   gsEl("gsFocus").checked = gs.focus;
   gsEl("gsResvOn").checked = gs.resvOn;
@@ -12422,6 +12793,13 @@ function asFight(name, b, chain){
     });
   const atkAll = rows(b.attacker, true), defAll = rows(b.defender, false);
   const bonus = b.bonus === "No" ? "No" : "Yes";
+  /* a battle with advanced instructions is fought the Battle tab's way, scripts and all */
+  const prog = progOf(b);
+  if (ordAny(prog)){
+    const out = asFightOrd(atkAll, defAll, bonus, prog, chain);
+    asFights.set(name, {key, out});
+    return out;
+  }
   const tally = () => ({troops: 0, bits: 0});
   const lost = {atk: tally(), def: tally()};
   /* the bits a death burns are the Battle tab's: raising, equipment and the crafting fees behind it */
@@ -12470,6 +12848,58 @@ function asFight(name, b, chain){
 }
 
 const asMerge = list => list.reduce((t, x) => addRes(t, x), {});
+
+/* asFight for a battle that carries advanced instructions. Splits and merges
+   move troops between stacks, so each death is put down to the stack it
+   started in; what the scripts raise shows as stacks of its own, and the
+   Army counts what they raise and re-equip on top of what was built */
+function asFightOrd(atkAll, defAll, bonus, prog, chain){
+  const named = u => Object.assign(u, {name: `${u.type}_${u.weapon}_${u.armor}_size_${u.size}_train_${u.training}`});
+  const A = withFids(atkAll, "attacker").map(named), D = withFids(defAll, "defender").map(named);
+  const tally = () => ({troops: 0, bits: 0});
+  const lost = {atk: tally(), def: tally()}, upkeep = {atk: {}, def: {}};
+  const addDead = (t, d)=>{ t.troops += d.troops; t.bits += d.hire + d.gear + d.craftBits; addRes(t, d.res); };
+  let b = null, error = "";
+  try{ b = ordBattle(A, D, bonus, prog, null, chain); }catch(e){ error = e.message; }
+  const fought = b ? [{res: b.r1, upA: upkeepOf(b.o.atk), upD: upkeepOf(b.o.def)}].concat(b.run.ticks) : [];
+  if (b?.run.error) error = b.run.error;
+  /* a made stack's losses go to the one it was split from or merged into */
+  const from = new Map((b?.links || []).map(l => [l.to, l.from]));
+  const root = fid => { for (let i = 0; i < 50 && from.has(fid); i++) fid = from.get(fid); return fid; };
+  const lostBy = new Map();
+  fought.forEach(k => {
+    addRes(upkeep.atk, k.upA); addRes(upkeep.def, k.upD);
+    addDead(lost.atk, deathCosts(k.res.units, true)); addDead(lost.def, deathCosts(k.res.units, false));
+    Object.values(k.res.units).forEach(u => { if (u.lost) lostBy.set(root(u.fid), (lostBy.get(root(u.fid)) || 0) + u.lost); });
+  });
+  const last = fought.length ? fought[fought.length - 1].res.units : {};
+  const worth = list => {
+    const v = survivorValue(list);
+    return Object.assign({troops: v.items.reduce((t, it) => t + it.n, 0), bits: v.hire + v.gear + toRaw(v.res).craftBits}, v.res);
+  };
+  const side = (orig, isAtk) => {
+    const sd = isAtk ? "attacker" : "defender";
+    const buys = (b?.buys || []).filter(x => x.side === sd);
+    const raised = new Map();
+    buys.filter(x => x.kind === "raise").forEach(x => {
+      const r = raised.get(x.fid);
+      if (r) r.size += x.size; else raised.set(x.fid, Object.assign({}, x));
+    });
+    const units = orig.concat([...raised.values()]).map(u => Object.assign({}, u, {lost: Math.min(u.size, lostBy.get(u.fid) || 0)}));
+    const ex = costsOf(buys);
+    const army = addRes(worth(orig.map(u => ({origType: u.type, weapon: u.weapon, armor: u.armor, remaining: u.size}))),
+      Object.assign({troops: troopTotal(buys), bits: ex.hire + ex.gearBits + ex.craftBits}, ex.gearRes));
+    /* who is left: the last tick's survivors, and reinforcements that never got to fight */
+    const left = Object.values(last).filter(u => !!u.attack_mission === isAtk)
+      .concat(chain ? [] : orig.filter(u => waitOf(u)).map(u => ({origType: u.type, weapon: u.weapon, armor: u.armor, remaining: u.size})));
+    return {units, army, kept: worth(left), lost: isAtk ? lost.atk : lost.def, upkeep: isAtk ? upkeep.atk : upkeep.def};
+  };
+  const out = {atk: side(A, true), def: side(D, false), bonus, error, chain,
+               ticks: fought.length, stop: b ? (chain ? b.run.stop || "wipe" : "") : ""};
+  out.wiped = {atk: !out.atk.kept.troops, def: !out.def.kept.troops};
+  out.atk.travel = addRes({}, upkeepOf(atkAll), AS_TRAVEL);
+  return out;
+}
 
 /* a side's upkeep over the battle, with the march there when it is counted */
 const asUp = (f, s) => s === "atk" && as.travel ? addRes(addRes({}, f.atk.upkeep), f.atk.travel) : f[s].upkeep;
