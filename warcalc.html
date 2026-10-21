@@ -13032,14 +13032,7 @@ function gsRefill(){
 /* the stockpile, the reserves and the production typed in by hand, all emptied.
    A side added up from its alliances keeps its alliances, and what it had typed in by hand */
 function gsClearAll(){
-  const who = x => x === "us" ? "our" : "their";
-  const hand = ["us", "them"].filter(x => gs.manual[x]), auto = ["us", "them"].filter(x => !gs.manual[x]);
-  const what = ["the whole stockpile", hand.length === 2 ? "both productions" : hand.length ? `${who(hand[0])} production` : "",
-    "the reserves"].filter(Boolean);
-  const kept = auto.length === 2 ? "Both productions are added up from the alliances and stay as they are."
-    : auto.length ? `${auto[0] === "us" ? "Our" : "Their"} production is added up from the alliances and stays as it is.` : "";
-  if (!confirm(`Clear ${what.slice(0, -1).join(", ")} and ${what[what.length - 1]}? This cannot be undone.` +
-    (kept ? `\n\n${kept}` : ""))) return;
+  if (!confirm("Confirm")) return;
   gs.stock = {}; gs.resv = {};
   if (gs.manual.us) gs.prod = {};
   if (gs.manual.them) gs.prodThem = {};
