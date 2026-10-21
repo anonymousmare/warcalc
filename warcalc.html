@@ -12886,7 +12886,9 @@ function gsExportText(){
    GDP is the bits). Rows for things not kept here are passed over.
    With `only` naming a production ("prod" or "prodThem"), the paste's
    production and Alliance Resources rows all land there, and any other
-   section in it is passed over. */
+   section in it is passed over. A side added up from its alliances takes
+   no production: its section is passed over, so the numbers typed in for
+   it by hand are still there when Manually define is ticked again. */
 function gsImportText(txt, only){
   const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, "");
   const names = (b, k) => (b === "resv" ? [label(k), k] : k === "bits" ? ["Bits", "GDP"] : [gsName(k), k]).map(norm);
@@ -12909,6 +12911,9 @@ function gsImportText(txt, only){
   };
   /* a section the one production being filled has no room for */
   const skip = ()=>{ bucket = null; game = "skip"; };
+  /* a production section, unless that side is added up from its alliances */
+  const skipped = new Set();
+  const prod = b => { if (gs.manual[GS_SIDE[b]]) return true; skipped.add(GS_SIDE[b]); skip(); return false; };
   /* where a row lands: in the section it is under */
   const place = name=>{
     if (!bucket) return null;
@@ -12926,9 +12931,9 @@ function gsImportText(txt, only){
     if (!l) return;
     if (/^weapons$/i.test(l)){ if (only) skip(); else table("resv", WEAPONS, "first"); return; }
     if (/^armou?r$/i.test(l)){ if (only) skip(); else table("resv", ARMOR, "first"); return; }
-    if (/^alliance resources$/i.test(l)){ table(only || "prod", GS_PROD, "last"); return; }
-    if (/^production.*\bthem$/i.test(l)){ bucket = only || "prodThem"; keys = GS_PROD; game = null; return; }
-    if (/^production/i.test(l)){ bucket = only || "prod"; keys = GS_PROD; game = null; return; }
+    if (/^alliance resources$/i.test(l)){ if (prod(only || "prod")) table(only || "prod", GS_PROD, "last"); return; }
+    if (/^production.*\bthem$/i.test(l)){ if (prod(only || "prodThem")){ bucket = only || "prodThem"; keys = GS_PROD; game = null; } return; }
+    if (/^production/i.test(l)){ if (prod(only || "prod")){ bucket = only || "prod"; keys = GS_PROD; game = null; } return; }
     if (/^stock/i.test(l)){ if (only) skip(); else { bucket = "stock"; keys = GS_STOCK; game = null; } return; }
     /* only the gear there is some of is written out, so the heading alone clears the rest */
     if (/^reserve/i.test(l)){ if (only){ skip(); return; }
@@ -12947,7 +12952,7 @@ function gsImportText(txt, only){
     if (at) put(at[0], at[1], raw);
     else if (!game) bad.push(l);
   });
-  return {n, bad};
+  return {n, bad, skipped: [...skipped]};
 }
 
 function gsModal(title, bodyHTML, footHTML){
@@ -13000,11 +13005,15 @@ function gsShowImport(only){
   ta.focus();
   w.querySelector("#gsIoGo").addEventListener("click", ()=>{
     const r = gsImportText(ta.value, only);
-    if (!r.n){ w.querySelector("#gsIoMsg").textContent = "Nothing in there I could read."; return; }
+    /* production left alone because that side is added up from its alliances */
+    const left = r.skipped.length ? `${r.skipped.map(x => x === "us" ? "Us" : "Them").join(" and ")} production left alone: ${
+      r.skipped.length > 1 ? "both are" : "it's"} added up from the alliances (tick Manually define to import it)` : "";
+    if (!r.n){ w.querySelector("#gsIoMsg").textContent = left ? `Nothing imported. ${left}.` : "Nothing in there I could read."; return; }
     gsSave();
     gsRefill();
-    if (r.bad.length) w.querySelector("#gsIoMsg").textContent =
-      `Imported ${r.n}; skipped ${r.bad.length} line${r.bad.length === 1 ? "" : "s"}: ${r.bad.slice(0, 3).join(" · ")}`;
+    const notes = [left, r.bad.length ? `skipped ${r.bad.length} line${r.bad.length === 1 ? "" : "s"}: ${r.bad.slice(0, 3).join(" · ")}` : ""]
+      .filter(Boolean);
+    if (notes.length) w.querySelector("#gsIoMsg").textContent = `Imported ${r.n}; ${notes.join("; ")}`;
     else closeModal();
   });
 }
