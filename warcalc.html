@@ -12345,8 +12345,9 @@ const LS_GRAND = "warcalc.grand";
 const GS_TICKS = 6;                                   // turns produced per war tick
 const GS_STOCK = ["apples","coffee","gems","gasoline","copper","composites","machinery",
                   "vehicle","precision","plastics","tungsten","bits"];
-/* everything stockpiled is produced too; the parts only matter to Assessment's ticks' worth */
-const GS_PROD  = GS_STOCK;
+/* everything stockpiled is produced too, bar the parts only ever crafted by hand */
+const GS_MADE  = ["composites","precision"];
+const GS_PROD  = GS_STOCK.filter(k => !GS_MADE.includes(k));
 const GS_STRIP = ["apples","coffee","gems","gasoline"];
 const GS_COST  = ["bits","copper","tungsten","plastics","machinery","vehicle","precision","composites"];
 const GS_UPKEEP = ["apples","coffee","gems","gasoline"];
@@ -12368,9 +12369,9 @@ const gsSave = () => store.set(LS_GRAND, gs);
 const gsNum  = v => Math.max(0, Number(String(v ?? "").replace(/,/g, "")) || 0);
 /* production can run at a deficit, so it alone keeps its sign */
 const gsSigned = v => Number(String(v ?? "").replace(/,/g, "")) || 0;
-const gsProdOf = k => gs.manual.us ? gsSigned(gs.prod[k]) : syncNet("us", k);
+const gsProdOf = k => !GS_PROD.includes(k) ? 0 : gs.manual.us ? gsSigned(gs.prod[k]) : syncNet("us", k);
 /* the other side's, which only Assessment reads */
-const gsProdThemOf = k => gs.manual.them ? gsSigned(gs.prodThem[k]) : syncNet("them", k);
+const gsProdThemOf = k => !GS_PROD.includes(k) ? 0 : gs.manual.them ? gsSigned(gs.prodThem[k]) : syncNet("them", k);
 const GS_SIGNED = ["prod", "prodThem"];
 const GS_SIDE = {prod: "us", prodThem: "them"};
 const gsProdFor = (b, k) => b === "prod" ? gsProdOf(k) : gsProdThemOf(k);
@@ -12954,7 +12955,8 @@ function gsImportText(txt, only){
     }
     const at = name != null && place(name);
     if (at) put(at[0], at[1], raw);
-    else if (!game) bad.push(l);
+    /* older exports list the hand-crafted parts under production; there is no room for them now */
+    else if (!game && !(name != null && bucket in GS_SIDE && find(bucket, GS_MADE, name))) bad.push(l);
   });
   return {n, bad, skipped: [...skipped]};
 }
