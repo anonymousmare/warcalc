@@ -1535,7 +1535,7 @@ body.align-costs .forces-grid > .panel{display:grid;grid-row:span 4;grid-templat
 .sync-age{background:none;border:none;padding:0 8px;cursor:pointer;color:var(--text-dim);
   font:500 11px/1 inherit;letter-spacing:.04em;white-space:nowrap}
 .sync-age:hover{text-decoration:underline}
-.sync-age.recent{color:var(--atk)}
+.sync-age.stale{color:var(--atk)}
 .sync-age.busy{opacity:.6;cursor:progress}
 .strip-div{align-self:stretch;width:1px;background:var(--border-soft);margin:0 6px 0 2px}
 .ref-btn{
@@ -1874,25 +1874,44 @@ body.snaps-hidden .snap{display:none}
 .gs-stockp .gs-top{margin-top:10px;flex-direction:column;gap:12px}
 /* us on green, them on yellow, clear of the tickets' attacker red and defender blue;
    washes rather than paints, so they sit on every theme's panel */
-.gs-prods{display:grid;grid-template-columns:1fr 1fr;width:100%;border-radius:4px;overflow:hidden;
+.gs-prods{display:grid;grid-template-columns:1fr 1fr;width:100%;border-radius:4px;
   border:1px solid var(--border-soft)}
+/* rounded by hand rather than clipped, so the alliance dropdown can hang out of its column */
+.gs-prods > div:first-child{border-radius:3px 0 0 3px}
+.gs-prods > div:last-child{border-radius:0 3px 3px 0}
 .gs-prods > div{padding:9px 12px 10px}
 .gs-prod-us{background:rgba(63,154,76,.17)}
 .gs-prod-them{background:rgba(196,152,28,.17)}
 .gs-prods .gs-h{display:flex;align-items:center;gap:7px}
-@media (max-width:1100px){.gs-prods{grid-template-columns:1fr}}
+@media (max-width:1100px){.gs-prods{grid-template-columns:1fr}
+  .gs-prods > div:first-child{border-radius:3px 3px 0 0}.gs-prods > div:last-child{border-radius:0 0 3px 3px}}
 .gs-pimp{text-transform:none;letter-spacing:0;font-weight:600;padding:1px 8px}
 .gs-man{display:inline-flex;align-items:center;gap:4px;margin-left:auto;text-transform:none;letter-spacing:0;
   font-weight:400;cursor:pointer}
 .gs-man input{width:auto;margin:0}
 /* typed in by hand, the alliances step aside; added up from them, there is nothing to import */
 .gs-prods > .manual .gs-allies,.gs-prods > :not(.manual) .gs-pimp{display:none}
-.gs-allies{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
-.gs-ally{display:inline-flex;align-items:center;gap:5px;margin:0;padding:2px 8px 2px 5px;font-size:11px;cursor:pointer;
-  background:rgba(var(--lo),.18);border:1px solid var(--border-soft);border-radius:4px;color:var(--text-dim)}
+.gs-allies{margin-bottom:8px}
+/* the alliances to add up: a box naming the ones ticked, opening on the full list, biggest first */
+.gs-dd{position:relative;width:360px;max-width:100%}
+.gs-dd > summary{display:flex;align-items:center;gap:8px;list-style:none;cursor:pointer;user-select:none;
+  padding:4px 8px;font-size:12px;background:var(--sunken);border:1px solid var(--border-soft);border-radius:4px;color:var(--strong)}
+.gs-dd > summary::-webkit-details-marker{display:none}
+.gs-dd > summary:hover{border-color:rgba(var(--hi),.35)}
+.gs-dd > summary::after{content:"\25BE";margin-left:auto;color:var(--text-dim)}
+.gs-dd[open] > summary::after{content:"\25B4"}
+.gs-dd .picked{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gs-dd .none{color:var(--text-dim)}
+.gs-dd .tot{flex:0 0 auto;font:600 10px/1 var(--mono);color:var(--text-dim)}
+.gs-dd-menu{position:absolute;left:0;right:0;top:calc(100% + 3px);z-index:30;max-height:300px;overflow-y:auto;padding:3px 0;
+  background:var(--raised);border:1px solid var(--border-soft);border-radius:4px;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.gs-ally{display:flex;align-items:center;gap:7px;margin:0;padding:4px 9px;font-size:12px;cursor:pointer;color:var(--text-dim)}
+.gs-ally:hover{background:rgba(var(--hi),.07)}
 .gs-ally input{width:auto;margin:0}
-.gs-ally:has(input:checked){color:var(--strong);background:rgba(var(--hi),.08)}
-.gs-ally .n{font:600 10px/1 var(--mono);opacity:.6}
+.gs-ally:has(input:checked){color:var(--strong)}
+.gs-ally .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gs-ally .n{margin-left:auto;font:600 10px/1 var(--mono);opacity:.6}
+.gs-ally.loose{border-top:1px solid var(--border-soft);margin-top:3px;padding-top:6px}
 /* added up from the alliances, the boxes are read, not typed in */
 .gs-in input[readonly]{background:transparent;color:var(--strong);border-color:transparent;box-shadow:none;outline:none;cursor:default}
 /* who is who: on the production columns, and on a ticket's two sides, where they swap with the perspective */
@@ -12362,7 +12381,7 @@ const gsProdFor = (b, k) => b === "prod" ? gsProdOf(k) : gsProdThemOf(k);
    GDP is the bits, as it is on the game's Alliance Resources table */
 const LS_SYNC = "warcalc.sync";
 const SYNC_URL = "https://4clop.org/api/public/v1.1.php";
-const SYNC_RECENT = 2 * 3600e3;                        // a sync younger than this shows red
+const SYNC_STALE = 2 * 3600e3;                         // a sync older than this shows red
 let sync = (()=>{
   const s = store.get(LS_SYNC, null);
   return s && typeof s === "object" && Array.isArray(s.alliances) && s.at > 0 ? s : null;
@@ -12386,10 +12405,10 @@ function syncSum(d){
       if (k) a.net[k] = (a.net[k] || 0) + (Number(r.net) || 0);
     });
   });
-  /* the empty ones have nothing to add; nations in none go last, under a name of their own */
+  /* the empty ones have nothing to add; biggest first, and nations in none last, under a name of their own */
   const nm = a => a.id ? a.name : "No alliance";
   return [...byId.values()].filter(a => a.n).map(a => Object.assign(a, {name: nm(a)}))
-    .sort((a, b) => !a.id - !b.id || a.name.localeCompare(b.name));
+    .sort((a, b) => !a.id - !b.id || b.n - a.n || a.name.localeCompare(b.name));
 }
 
 const syncNet = (side, k) => !sync ? 0 : sync.alliances
@@ -12425,7 +12444,7 @@ function syncPaint(){
   el.textContent = syncBusy && !sync ? "Syncing…"
     : syncErr ? (sync ? `Sync failed · last ${syncAgo(age)}` : "Sync failed")
     : sync ? `Synced ${syncAgo(age)}` : "Not synced";
-  el.classList.toggle("recent", age < SYNC_RECENT);
+  el.classList.toggle("stale", age > SYNC_STALE);
   el.classList.toggle("busy", syncBusy);
   el.title = [sync ? `Alliance production last synced from 4clop.org at ${new Date(sync.at).toLocaleString()}` : "",
     syncErr ? `The last try failed: ${syncErr}` : "", "Click to sync again"].filter(Boolean).join("\n");
@@ -12472,12 +12491,27 @@ function gsProdCol(bucket){
   const man = gs.manual[side];
   gsEl("gsCol" + Side).classList.toggle("manual", man);
   gsEl("gsCol" + Side).querySelector("[data-gs-man]").checked = man;
+  /* a sync lists them afresh, biggest first; the list stays as it was, open or shut */
+  const by = sync ? [...sync.alliances].sort((a, b) => !a.id - !b.id || b.n - a.n || a.name.localeCompare(b.name)) : [];
   gsEl("gsAlly" + Side).innerHTML = man ? "" : !sync
     ? `<span class="small muted">${syncBusy ? "Fetching the alliances…" : "No alliances yet — click the sync time up top to fetch them."}</span>`
-    : sync.alliances.map(a => `<label class="gs-ally" title="${a.n} nation${a.n === 1 ? "" : "s"}"><input type="checkbox"
-        data-gs-ally="${side}" value="${a.id}"${gs.ally[side].includes(a.id) ? " checked" : ""}> ${esc(a.name)}
-        <span class="n">${a.n}</span></label>`).join("");
+    : `<details class="gs-dd" data-gs-dd="${side}"${gsDdOpen === side ? " open" : ""}>
+        <summary>${gsAllyPicked(side)}</summary>
+        <div class="gs-dd-menu">${by.map(a => `<label class="gs-ally${a.id ? "" : " loose"}"><input type="checkbox"
+          data-gs-ally="${side}" value="${a.id}"${gs.ally[side].includes(a.id) ? " checked" : ""}><span class="nm">${esc(a.name)}</span>
+          <span class="n" title="${a.n} nation${a.n === 1 ? "" : "s"}">${a.n}</span></label>`).join("")}</div></details>`;
   gsInputs(bucket === "prod" ? "gsProd" : "gsProdThem", bucket, GS_PROD);
+}
+
+/* the dropdown's face: the alliances ticked, biggest first, and how many nations they come to */
+let gsDdOpen = null;
+function gsAllyPicked(side){
+  const on = (sync?.alliances || []).filter(a => gs.ally[side].includes(a.id))
+    .sort((a, b) => !a.id - !b.id || b.n - a.n || a.name.localeCompare(b.name));
+  if (!on.length) return `<span class="picked none">Pick alliances…</span>`;
+  const n = on.reduce((t, a) => t + a.n, 0);
+  const names = on.map(a => a.name).join(", ");
+  return `<span class="picked" title="${esc(names)}">${esc(names)}</span><span class="tot">${n} nation${n === 1 ? "" : "s"}</span>`;
 }
 
 function gsStrip(){
@@ -13136,15 +13170,36 @@ gsEl("gsStockPanel").addEventListener("click", e=>{
 });
 gsEl("gsStockPanel").addEventListener("change", e=>{
   const man = e.target.closest("[data-gs-man]"), ally = e.target.closest("[data-gs-ally]");
-  if (man) gs.manual[man.dataset.gsMan] = man.checked;
-  else if (ally){
-    const list = gs.ally[ally.dataset.gsAlly], id = Number(ally.value);
-    gs.ally[ally.dataset.gsAlly] = ally.checked ? list.concat(id) : list.filter(x => x !== id);
+  if (man){
+    gs.manual[man.dataset.gsMan] = man.checked;
+    gsSave();
+    gsRefill();
+    return;
   }
-  else return;
+  if (!ally) return;
+  /* the list stays open, and the tick keeps its focus: only the face and the figures change */
+  const side = ally.dataset.gsAlly, list = gs.ally[side], id = Number(ally.value);
+  gs.ally[side] = ally.checked ? list.concat(id) : list.filter(x => x !== id);
   gsSave();
-  gsRefill();
+  ally.closest(".gs-dd").querySelector("summary").innerHTML = gsAllyPicked(side);
+  const bucket = side === "us" ? "prod" : "prodThem";
+  gsInputs(bucket === "prod" ? "gsProd" : "gsProdThem", bucket, GS_PROD);
+  gsStrip();
+  renderGrand();
+  renderAssess();
 });
+/* one alliance list open at a time; a click anywhere else, or Escape, puts it away */
+gsEl("gsStockPanel").addEventListener("toggle", e=>{
+  const dd = e.target.dataset?.gsDd;
+  if (dd == null) return;
+  if (e.target.open){
+    gsDdOpen = dd;
+    gsEl("gsStockPanel").querySelectorAll(".gs-dd[open]").forEach(d => { if (d !== e.target) d.open = false; });
+  } else if (gsDdOpen === dd) gsDdOpen = null;
+}, true);
+const gsDdShut = () => document.querySelectorAll(".gs-dd[open]").forEach(d => { d.open = false; });
+document.addEventListener("click", e=>{ if (gsDdOpen && !e.target.closest?.(".gs-dd")) gsDdShut(); });
+document.addEventListener("keydown", e=>{ if (gsDdOpen && e.key === "Escape") gsDdShut(); });
 
 /* fetched fresh on every load, and again from a click on the time */
 gsEl("syncAge").addEventListener("click", syncNow);
