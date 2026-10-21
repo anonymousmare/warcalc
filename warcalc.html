@@ -2589,8 +2589,6 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
     <div class="gs-io">
       <button type="button" class="btn btn-xs" id="gsExport">Export</button>
       <button type="button" class="btn btn-xs" id="gsImport">Import</button>
-      <button type="button" class="btn btn-xs btn-danger" id="gsClear"
-        title="Empty the stockpile, both productions and the reserves">Clear all</button>
     </div>
   </div>
   </details></div>
@@ -13029,14 +13027,6 @@ function gsRefill(){
   renderAssess();
 }
 
-/* the stockpile, the production and the reserves, all emptied */
-function gsClearAll(){
-  if (!confirm("Clear the whole stockpile, both productions and the reserves? This cannot be undone.")) return;
-  gs.stock = {}; gs.prod = {}; gs.prodThem = {}; gs.resv = {};
-  gsSave();
-  gsRefill();
-}
-
 function renderGrand(){
   clearTips("gs");
   const comps = gsComps();
@@ -13215,7 +13205,6 @@ gsEl("syncAge").addEventListener("click", syncNow);
 setInterval(syncPaint, 30e3);
 syncPaint();
 syncNow();
-gsEl("gsClear").addEventListener("click", gsClearAll);
 
 gsEl("gsWide").addEventListener("change", ()=>{
   gs.wide = gsEl("gsWide").checked;
