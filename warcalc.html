@@ -2584,6 +2584,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
             title="Paste the other side's Alliance Resources table, copied off the game page">Import</button></div>
         <div class="gs-allies" id="gsAllyThem"></div>
         <div class="gs-inputs" id="gsProdThem"></div>
+        <div class="gs-strip-row"><div class="gs-strip" id="gsStripThem"></div></div>
       </div>
     </div>
     <div class="gs-io">
@@ -12514,9 +12515,12 @@ function gsAllyPicked(side){
   return `<span class="picked" title="${esc(names)}">${esc(names)}</span><span class="tot">${n} nation${n === 1 ? "" : "s"}</span>`;
 }
 
+/* a war tick's worth of each side's production, under its column */
 function gsStrip(){
-  gsEl("gsStrip").innerHTML = `<span class="gs-x">×${GS_TICKS}</span>` + GS_STRIP.map(k=>
-    `<span class="res-chip">${gsIcon(k)} <span class="mono${gsProdOf(k) < 0 ? " bad" : ""}">${gsFmt(gsProdOf(k) * GS_TICKS)}</span></span>`).join("");
+  const strip = of => `<span class="gs-x">×${GS_TICKS}</span>` + GS_STRIP.map(k=>
+    `<span class="res-chip">${gsIcon(k)} <span class="mono${of(k) < 0 ? " bad" : ""}">${gsFmt(of(k) * GS_TICKS)}</span></span>`).join("");
+  gsEl("gsStrip").innerHTML = strip(gsProdOf);
+  gsEl("gsStripThem").innerHTML = strip(gsProdThemOf);
 }
 
 function gsReserves(){
@@ -13089,7 +13093,7 @@ document.addEventListener("input", e=>{
   if (v) gs[i.dataset.gsBucket][i.dataset.gsKey] = v;
   else delete gs[i.dataset.gsBucket][i.dataset.gsKey];
   gsSave();
-  if (i.dataset.gsBucket === "prod") gsStrip();
+  if (i.dataset.gsBucket in GS_SIDE) gsStrip();
   renderGrand();
   renderAssess();
 });
