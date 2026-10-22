@@ -15311,7 +15311,7 @@ function mgPlan(x, armies, ords){
    over the nets' own war ticks; only what it runs short of is sent, unless
    it uses its own supply, when what it makes pays toward its armies first.
    A stockpile it declares pays next, but never below what the nation itself
-   uses over those same ticks; with no use off the API to go by, it stays whole */
+   uses a tick; with no use off the API to go by, it stays whole */
 function mgCalc(p, armies, ords){
   const plans = p.plans.map(x => mgPlan(x, armies, ords));
   const twN = mg.tw;
@@ -15327,7 +15327,7 @@ function mgCalc(p, armies, ords){
   const nat = mgNation(p.id), stock = {}, keep = {}, spend = {};
   MG_RES.forEach(k=>{
     stock[k] = gsNum(p.stock[k]);
-    keep[k] = nat?.used ? Math.min(stock[k], GS_TICKS * twN * (nat.used[k] || 0)) : stock[k];
+    keep[k] = nat?.used ? Math.min(stock[k], nat.used[k] || 0) : stock[k];
     const take = Math.min(stock[k] - keep[k], need[k] || 0);
     if (take <= 0) return;
     spend[k] = take;
@@ -15414,7 +15414,7 @@ function mgStockRow(p, i, t){
   const kept = MG_RES.some(k => t.keep[k]), spent = MG_RES.some(k => t.spend[k]);
   return `<div class="mg-row">${head}${boxes}${has ? `<span class="mg-eat">${kept ? `<i class="mg-sk">keeps</i>${mgChips(t.keep)}` : ""}${
       spent ? `<i class="mg-sk">covers</i>${mgChips(neg(t.spend))}` : ""}${!kept && !spent ? `<i class="mg-sk">nothing needed</i>` : ""}${
-      kept ? `<span class="mg-ticks">its own use over ${GS_TICKS * t.twN} ticks</span>` : ""}</span>` : ""}</div>`;
+      kept ? `<span class="mg-ticks">its own use a tick</span>` : ""}</span>` : ""}</div>`;
 }
 function mgBlock(p, i, t, names){
   const nat = mgNation(p.id);
