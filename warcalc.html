@@ -1531,6 +1531,13 @@ body.align-costs .forces-grid > .panel{display:grid;grid-row:span 4;grid-templat
 
 /* ---------- reference overlays ---------- */
 .ref-btns{display:flex;align-items:center;gap:2px;margin-left:auto}
+/* how long ago the alliances were synced, then a rule off from the reference buttons */
+.sync-age{background:none;border:none;padding:0 8px;cursor:pointer;color:var(--text-dim);
+  font:500 11px/1 inherit;letter-spacing:.04em;white-space:nowrap}
+.sync-age:hover{text-decoration:underline}
+.sync-age.stale{color:var(--atk)}
+.sync-age.busy{opacity:.6;cursor:progress}
+.strip-div{align-self:stretch;width:1px;background:var(--border-soft);margin:0 6px 0 2px}
 .ref-btn{
   display:inline-flex;align-items:center;gap:5px;
   background:none;border:none;border-bottom:2px solid transparent;
@@ -1867,14 +1874,49 @@ body.snaps-hidden .snap{display:none}
 .gs-stockp .gs-top{margin-top:10px;flex-direction:column;gap:12px}
 /* us on green, them on yellow, clear of the tickets' attacker red and defender blue;
    washes rather than paints, so they sit on every theme's panel */
-.gs-prods{display:grid;grid-template-columns:1fr 1fr;width:100%;border-radius:4px;overflow:hidden;
+.gs-prods{display:grid;grid-template-columns:1fr 1fr;width:100%;border-radius:4px;
   border:1px solid var(--border-soft)}
+/* rounded by hand rather than clipped, so the alliance dropdown can hang out of its column */
+.gs-prods > div:first-child{border-radius:3px 0 0 3px}
+.gs-prods > div:last-child{border-radius:0 3px 3px 0}
 .gs-prods > div{padding:9px 12px 10px}
 .gs-prod-us{background:rgba(63,154,76,.17)}
 .gs-prod-them{background:rgba(196,152,28,.17)}
 .gs-prods .gs-h{display:flex;align-items:center;gap:7px}
-@media (max-width:1100px){.gs-prods{grid-template-columns:1fr}}
-.gs-pimp{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:600;padding:1px 8px}
+@media (max-width:1100px){.gs-prods{grid-template-columns:1fr}
+  .gs-prods > div:first-child{border-radius:3px 3px 0 0}.gs-prods > div:last-child{border-radius:0 0 3px 3px}}
+.gs-pimp{text-transform:none;letter-spacing:0;font-weight:600;padding:1px 8px}
+.gs-man{display:inline-flex;align-items:center;gap:4px;margin-left:auto;text-transform:none;letter-spacing:0;
+  font-weight:400;cursor:pointer}
+.gs-man input{width:auto;margin:0}
+/* with the alliances put away there is no box to tick, and Import takes its place on the right */
+.gs-prods.no-allies .gs-man{display:none}
+.gs-prods.no-allies .gs-pimp{margin-left:auto}
+/* typed in by hand, the alliances step aside; added up from them, there is nothing to import */
+.gs-prods > .manual .gs-allies,.gs-prods > :not(.manual) .gs-pimp{display:none}
+.gs-allies{margin-bottom:8px}
+/* the alliances to add up: a box naming the ones ticked, opening on the full list, biggest first */
+.gs-dd{position:relative;width:360px;max-width:100%}
+.gs-dd > summary{display:flex;align-items:center;gap:8px;list-style:none;cursor:pointer;user-select:none;
+  padding:4px 8px;font-size:12px;background:var(--sunken);border:1px solid var(--border-soft);border-radius:4px;color:var(--strong)}
+.gs-dd > summary::-webkit-details-marker{display:none}
+.gs-dd > summary:hover{border-color:rgba(var(--hi),.35)}
+.gs-dd > summary::after{content:"\25BE";margin-left:auto;color:var(--text-dim)}
+.gs-dd[open] > summary::after{content:"\25B4"}
+.gs-dd .picked{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gs-dd .none{color:var(--text-dim)}
+.gs-dd .tot{flex:0 0 auto;font:600 10px/1 var(--mono);color:var(--text-dim)}
+.gs-dd-menu{position:absolute;left:0;right:0;top:calc(100% + 3px);z-index:30;max-height:300px;overflow-y:auto;padding:3px 0;
+  background:var(--raised);border:1px solid var(--border-soft);border-radius:4px;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.gs-ally{display:flex;align-items:center;gap:7px;margin:0;padding:4px 9px;font-size:12px;cursor:pointer;color:var(--text-dim)}
+.gs-ally:hover{background:rgba(var(--hi),.07)}
+.gs-ally input{width:auto;margin:0}
+.gs-ally:has(input:checked){color:var(--strong)}
+.gs-ally .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gs-ally .n{margin-left:auto;font:600 10px/1 var(--mono);opacity:.6}
+.gs-ally.loose{border-top:1px solid var(--border-soft);margin-top:3px;padding-top:6px}
+/* added up from the alliances, the boxes are read, not typed in */
+.gs-in input[readonly]{background:transparent;color:var(--strong);border-color:transparent;box-shadow:none;outline:none;cursor:default}
 /* who is who: on the production columns, and on a ticket's two sides, where they swap with the perspective */
 /* the letter-spacing trails the last letter, so the left padding takes as much again to keep the word centred */
 .who-tag{display:inline-flex;align-items:center;justify-content:center;height:15px;padding:0 6px 0 calc(6px + .1em);
@@ -2012,6 +2054,9 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
   <button class="tab" data-tab="grand">Staging</button>
   <button class="tab" data-tab="assess">Assessment</button>
   <span class="ref-btns">
+    <!-- when the alliances' production was last fetched from 4clop.org; a click fetches it again -->
+    <button class="sync-age" id="syncAge" type="button">Not synced</button>
+    <span class="strip-div" id="syncDiv" aria-hidden="true"></span>
     <button class="ref-btn" data-ref="stats" title="Weapon &amp; armor stat table  (F)">
       <span class="ref-lab">Stats</span><kbd>F</kbd></button>
     <button class="ref-btn" data-ref="wcost" title="Weapon build costs  (G)">
@@ -2523,26 +2568,33 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
       <div class="gs-inputs" id="gsStock"></div>
     </div>
     <!-- production in two: ours, and the other side's, whichever that is on a ticket -->
-    <div class="gs-prods">
-      <div class="gs-prod-us">
+    <div class="gs-prods" id="gsProds">
+      <div class="gs-prod-us" id="gsColUs">
         <div class="gs-h"><span class="who-tag us">Us</span> Production / turn
+          <label class="gs-man" title="Type our production in by hand, or paste it in, instead of adding up the alliances ticked below">
+            <input type="checkbox" data-gs-man="us"> Manually define</label>
           <button type="button" class="btn btn-xs gs-pimp" data-gs-pimp="prod"
             title="Paste our Alliance Resources table, copied off the game page">Import</button></div>
+        <div class="gs-allies" id="gsAllyUs"></div>
         <div class="gs-inputs" id="gsProd"></div>
         <div class="gs-strip-row"><div class="gs-strip" id="gsStrip"></div></div>
       </div>
-      <div class="gs-prod-them">
+      <div class="gs-prod-them" id="gsColThem">
         <div class="gs-h"><span class="who-tag them">Them</span> Production / turn
+          <label class="gs-man" title="Type the other side's production in by hand, or paste it in, instead of adding up the alliances ticked below">
+            <input type="checkbox" data-gs-man="them"> Manually define</label>
           <button type="button" class="btn btn-xs gs-pimp" data-gs-pimp="prodThem"
             title="Paste the other side's Alliance Resources table, copied off the game page">Import</button></div>
+        <div class="gs-allies" id="gsAllyThem"></div>
         <div class="gs-inputs" id="gsProdThem"></div>
+        <div class="gs-strip-row"><div class="gs-strip" id="gsStripThem"></div></div>
       </div>
     </div>
     <div class="gs-io">
       <button type="button" class="btn btn-xs" id="gsExport">Export</button>
       <button type="button" class="btn btn-xs" id="gsImport">Import</button>
       <button type="button" class="btn btn-xs btn-danger" id="gsClear"
-        title="Empty the stockpile, both productions and the reserves">Clear all</button>
+        title="Empty the stockpile, the reserves and any production typed in by hand; a side added up from its alliances is left as it is">Clear all</button>
     </div>
   </div>
   </details></div>
@@ -12296,12 +12348,18 @@ const LS_GRAND = "warcalc.grand";
 const GS_TICKS = 6;                                   // turns produced per war tick
 const GS_STOCK = ["apples","coffee","gems","gasoline","copper","composites","machinery",
                   "vehicle","precision","plastics","tungsten","bits"];
-/* everything stockpiled is produced too; the parts only matter to Assessment's ticks' worth */
-const GS_PROD  = GS_STOCK;
+/* everything stockpiled is produced too, bar the parts only ever crafted by hand */
+const GS_MADE  = ["composites","precision"];
+const GS_PROD  = GS_STOCK.filter(k => !GS_MADE.includes(k));
 const GS_STRIP = ["apples","coffee","gems","gasoline"];
 const GS_COST  = ["bits","copper","tungsten","plastics","machinery","vehicle","precision","composites"];
 const GS_UPKEEP = ["apples","coffee","gems","gasoline"];
 const GS_GEAR  = UNIT_ORDER.flatMap(g => g.gear);
+
+/* adding a side's production up from its alliances is put away for now, waiting
+   on a change to the game's API: both sides are typed in by hand, and the
+   Manually define boxes are hidden. Set this to true to bring it back */
+const GS_ALLIES = false;
 
 const gs = (()=>{
   const s = store.get(LS_GRAND, null);
@@ -12310,16 +12368,97 @@ const gs = (()=>{
   return {stock: obj(o.stock), prod: obj(o.prod), prodThem: obj(o.prodThem), resv: obj(o.resv),
           comps: Array.isArray(o.comps) ? o.comps : [], colors: obj(o.colors), wide: o.wide === true, upx: GS_TICKS,
           focus: o.focus === true, resvOn: o.resvOn !== false, stockOn: o.stockOn !== false, pcOn: o.pcOn === true, gearAll: o.gearAll === true, chartOff: Array.isArray(o.chartOff) ? o.chartOff : [],
-          reader: Object.assign({res: true}, obj(o.reader)), folded: obj(o.folded)};    // every visit opens on the x6 view
+          reader: Object.assign({res: true}, obj(o.reader)), folded: obj(o.folded),    // every visit opens on the x6 view
+          /* each side's production is typed in by hand, or added up from the alliances ticked for it */
+          manual: GS_ALLIES ? Object.assign({us: true, them: true}, obj(o.manual)) : {us: true, them: true},
+          ally: {us: Array.isArray(o.ally?.us) ? o.ally.us : [], them: Array.isArray(o.ally?.them) ? o.ally.them : []}};
 })();
 const gsSave = () => store.set(LS_GRAND, gs);
 const gsNum  = v => Math.max(0, Number(String(v ?? "").replace(/,/g, "")) || 0);
 /* production can run at a deficit, so it alone keeps its sign */
 const gsSigned = v => Number(String(v ?? "").replace(/,/g, "")) || 0;
-const gsProdOf = k => gsSigned(gs.prod[k]);
+const gsProdOf = k => !GS_PROD.includes(k) ? 0 : gs.manual.us ? gsSigned(gs.prod[k]) : syncNet("us", k);
 /* the other side's, which only Assessment reads */
-const gsProdThemOf = k => gsSigned(gs.prodThem[k]);
+const gsProdThemOf = k => !GS_PROD.includes(k) ? 0 : gs.manual.them ? gsSigned(gs.prodThem[k]) : syncNet("them", k);
 const GS_SIGNED = ["prod", "prodThem"];
+const GS_SIDE = {prod: "us", prodThem: "them"};
+const gsProdFor = (b, k) => b === "prod" ? gsProdOf(k) : gsProdThemOf(k);
+
+/* ---- the alliances' production, synced from 4clop.org ----
+   The public API lists every nation with its alliance, its GDP and each
+   resource's net per turn. Only each alliance's sums are kept, and a side
+   not typed in by hand is the sum of the alliances ticked for it.
+   GDP is the bits, as it is on the game's Alliance Resources table */
+const LS_SYNC = "warcalc.sync";
+const SYNC_URL = "https://4clop.org/api/public/v1.1.php";
+const SYNC_STALE = 2 * 3600e3;                         // a sync older than this shows red
+let sync = (()=>{
+  const s = store.get(LS_SYNC, null);
+  return s && typeof s === "object" && Array.isArray(s.alliances) && s.at > 0 ? s : null;
+})();
+let syncBusy = false, syncErr = "";
+
+function syncSum(d){
+  const norm = x => String(x).toLowerCase().replace(/[^a-z0-9]/g, "");
+  const keyOf = {};
+  GS_PROD.forEach(k => { if (k !== "bits") keyOf[norm(gsName(k))] = k; });
+  const byId = new Map();
+  (d.alliances || []).forEach(a => byId.set(a.alliance_id, {id: a.alliance_id, name: String(a.name), n: 0, net: {}}));
+  (d.nations || []).forEach(nat=>{
+    const id = nat.alliance_id ?? 0;
+    let a = byId.get(id);
+    if (!a) byId.set(id, a = {id, name: id ? `Alliance ${id}` : "", n: 0, net: {}});
+    a.n++;
+    a.net.bits = (a.net.bits || 0) + (Number(nat.gdp_last_turn) || 0);
+    (nat.resources || []).forEach(r=>{
+      const k = keyOf[norm(r.name)];
+      if (k) a.net[k] = (a.net[k] || 0) + (Number(r.net) || 0);
+    });
+  });
+  /* the empty ones have nothing to add; biggest first, and nations in none last, under a name of their own */
+  const nm = a => a.id ? a.name : "No alliance";
+  return [...byId.values()].filter(a => a.n).map(a => Object.assign(a, {name: nm(a)}))
+    .sort((a, b) => !a.id - !b.id || b.n - a.n || a.name.localeCompare(b.name));
+}
+
+const syncNet = (side, k) => !sync ? 0 : sync.alliances
+  .reduce((t, a) => t + (gs.ally[side].includes(a.id) ? a.net[k] || 0 : 0), 0);
+
+async function syncNow(){
+  if (syncBusy) return;
+  syncBusy = true;
+  syncPaint();
+  if (!sync){ gsProdCol("prod"); gsProdCol("prodThem"); }
+  try{
+    const r = await fetch(SYNC_URL, {cache: "no-store"});
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const alliances = syncSum(await r.json());
+    if (!alliances.length) throw new Error("no nations in the reply");
+    sync = {at: Date.now(), alliances};
+    syncErr = "";
+    store.set(LS_SYNC, sync);
+  }catch(e){ syncErr = e.message || String(e); }
+  syncBusy = false;
+  syncPaint();
+  gsRefill();
+}
+
+const syncAgo = ms=>{
+  const m = Math.floor(ms / 60e3);
+  return m < 1 ? "just now" : m < 60 ? `${m} min ago` : m < 48 * 60 ? `${Math.floor(m / 60)} h ago` : `${Math.floor(m / 1440)} d ago`;
+};
+
+function syncPaint(){
+  const el = gsEl("syncAge");
+  const age = sync ? Date.now() - sync.at : Infinity;
+  el.textContent = syncBusy && !sync ? "Syncing…"
+    : syncErr ? (sync ? `Sync failed · last ${syncAgo(age)}` : "Sync failed")
+    : sync ? `Synced ${syncAgo(age)}` : "Not synced";
+  el.classList.toggle("stale", age > SYNC_STALE);
+  el.classList.toggle("busy", syncBusy);
+  el.title = [sync ? `Alliance production last synced from 4clop.org at ${new Date(sync.at).toLocaleString()}` : "",
+    syncErr ? `The last try failed: ${syncErr}` : "", "Click to sync again"].filter(Boolean).join("\n");
+}
 /* what the reserves hold of a piece of gear, or nothing with them switched off */
 const gsResvOf = k => gs.resvOn ? Math.floor(gsNum(gs.resv[k])) : 0;
 const gsEl   = id => document.getElementById(id);
@@ -12350,14 +12489,47 @@ function gsCommas(el){
 }
 
 function gsInputs(boxId, bucket, keys){
+  const auto = bucket in GS_SIDE && !gs.manual[GS_SIDE[bucket]];
   gsEl(boxId).innerHTML = keys.map(k=>`<label class="gs-in" title="${esc(gsName(k))}">${gsIcon(k)}
       <input type="text" inputmode="decimal" autocomplete="off" data-gs-bucket="${bucket}" data-gs-key="${k}"
-        value="${gsVal(gs[bucket][k])}" placeholder="0"></label>`).join("");
+        value="${gsVal(auto ? gsProdFor(bucket, k) : gs[bucket][k])}" placeholder="0"${auto ? " readonly tabindex=\"-1\"" : ""}></label>`).join("");
 }
 
+/* a production column: by hand, or the alliances to add up and what they come to */
+function gsProdCol(bucket){
+  const side = GS_SIDE[bucket], Side = side === "us" ? "Us" : "Them";
+  const man = gs.manual[side];
+  gsEl("gsCol" + Side).classList.toggle("manual", man);
+  gsEl("gsCol" + Side).querySelector("[data-gs-man]").checked = man;
+  /* a sync lists them afresh, biggest first; the list stays as it was, open or shut */
+  const by = sync ? [...sync.alliances].sort((a, b) => !a.id - !b.id || b.n - a.n || a.name.localeCompare(b.name)) : [];
+  gsEl("gsAlly" + Side).innerHTML = man ? "" : !sync
+    ? `<span class="small muted">${syncBusy ? "Fetching the alliances…" : "No alliances yet — click the sync time up top to fetch them."}</span>`
+    : `<details class="gs-dd" data-gs-dd="${side}"${gsDdOpen === side ? " open" : ""}>
+        <summary>${gsAllyPicked(side)}</summary>
+        <div class="gs-dd-menu">${by.map(a => `<label class="gs-ally${a.id ? "" : " loose"}"><input type="checkbox"
+          data-gs-ally="${side}" value="${a.id}"${gs.ally[side].includes(a.id) ? " checked" : ""}><span class="nm">${esc(a.name)}</span>
+          <span class="n" title="${a.n} nation${a.n === 1 ? "" : "s"}">${a.n}</span></label>`).join("")}</div></details>`;
+  gsInputs(bucket === "prod" ? "gsProd" : "gsProdThem", bucket, GS_PROD);
+}
+
+/* the dropdown's face: the alliances ticked, biggest first, and how many nations they come to */
+let gsDdOpen = null;
+function gsAllyPicked(side){
+  const on = (sync?.alliances || []).filter(a => gs.ally[side].includes(a.id))
+    .sort((a, b) => !a.id - !b.id || b.n - a.n || a.name.localeCompare(b.name));
+  if (!on.length) return `<span class="picked none">Pick alliances…</span>`;
+  const n = on.reduce((t, a) => t + a.n, 0);
+  const names = on.map(a => a.name).join(", ");
+  return `<span class="picked" title="${esc(names)}">${esc(names)}</span><span class="tot">${n} nation${n === 1 ? "" : "s"}</span>`;
+}
+
+/* a war tick's worth of each side's production, under its column */
 function gsStrip(){
-  gsEl("gsStrip").innerHTML = `<span class="gs-x">×${GS_TICKS}</span>` + GS_STRIP.map(k=>
-    `<span class="res-chip">${gsIcon(k)} <span class="mono${gsProdOf(k) < 0 ? " bad" : ""}">${gsFmt(gsProdOf(k) * GS_TICKS)}</span></span>`).join("");
+  const strip = of => `<span class="gs-x">×${GS_TICKS}</span>` + GS_STRIP.map(k=>
+    `<span class="res-chip">${gsIcon(k)} <span class="mono${of(k) < 0 ? " bad" : ""}">${gsFmt(of(k) * GS_TICKS)}</span></span>`).join("");
+  gsEl("gsStrip").innerHTML = strip(gsProdOf);
+  gsEl("gsStripThem").innerHTML = strip(gsProdThemOf);
 }
 
 function gsReserves(){
@@ -12713,7 +12885,7 @@ function gsChart(comps, bills){
 /* the reserves only list the gear there is some of */
 function gsExportText(){
   const sec = (title, bucket, keys) => [title].concat(keys.map(k =>
-    `${gsName(k)}: ${gsFmt(GS_SIGNED.includes(bucket) ? gsSigned(gs[bucket][k]) : gsNum(gs[bucket][k]))}`));
+    `${gsName(k)}: ${gsFmt(GS_SIGNED.includes(bucket) ? gsProdFor(bucket, k) : gsNum(gs[bucket][k]))}`));
   const resv = ["Reserves"].concat(GS_GEAR.filter(k => gsNum(gs.resv[k]) > 0)
     .map(k => `${label(k)}: ${gsFmt(gsNum(gs.resv[k]))}`));
   return sec("Stockpile", "stock", GS_STOCK).concat([""], sec("Production / turn", "prod", GS_PROD),
@@ -12727,7 +12899,9 @@ function gsExportText(){
    GDP is the bits). Rows for things not kept here are passed over.
    With `only` naming a production ("prod" or "prodThem"), the paste's
    production and Alliance Resources rows all land there, and any other
-   section in it is passed over. */
+   section in it is passed over. A side added up from its alliances takes
+   no production: its section is passed over, so the numbers typed in for
+   it by hand are still there when Manually define is ticked again. */
 function gsImportText(txt, only){
   const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, "");
   const names = (b, k) => (b === "resv" ? [label(k), k] : k === "bits" ? ["Bits", "GDP"] : [gsName(k), k]).map(norm);
@@ -12750,6 +12924,9 @@ function gsImportText(txt, only){
   };
   /* a section the one production being filled has no room for */
   const skip = ()=>{ bucket = null; game = "skip"; };
+  /* a production section, unless that side is added up from its alliances */
+  const skipped = new Set();
+  const prod = b => { if (gs.manual[GS_SIDE[b]]) return true; skipped.add(GS_SIDE[b]); skip(); return false; };
   /* where a row lands: in the section it is under */
   const place = name=>{
     if (!bucket) return null;
@@ -12767,9 +12944,9 @@ function gsImportText(txt, only){
     if (!l) return;
     if (/^weapons$/i.test(l)){ if (only) skip(); else table("resv", WEAPONS, "first"); return; }
     if (/^armou?r$/i.test(l)){ if (only) skip(); else table("resv", ARMOR, "first"); return; }
-    if (/^alliance resources$/i.test(l)){ table(only || "prod", GS_PROD, "last"); return; }
-    if (/^production.*\bthem$/i.test(l)){ bucket = only || "prodThem"; keys = GS_PROD; game = null; return; }
-    if (/^production/i.test(l)){ bucket = only || "prod"; keys = GS_PROD; game = null; return; }
+    if (/^alliance resources$/i.test(l)){ if (prod(only || "prod")) table(only || "prod", GS_PROD, "last"); return; }
+    if (/^production.*\bthem$/i.test(l)){ if (prod(only || "prodThem")){ bucket = only || "prodThem"; keys = GS_PROD; game = null; } return; }
+    if (/^production/i.test(l)){ if (prod(only || "prod")){ bucket = only || "prod"; keys = GS_PROD; game = null; } return; }
     if (/^stock/i.test(l)){ if (only) skip(); else { bucket = "stock"; keys = GS_STOCK; game = null; } return; }
     /* only the gear there is some of is written out, so the heading alone clears the rest */
     if (/^reserve/i.test(l)){ if (only){ skip(); return; }
@@ -12786,9 +12963,10 @@ function gsImportText(txt, only){
     }
     const at = name != null && place(name);
     if (at) put(at[0], at[1], raw);
-    else if (!game) bad.push(l);
+    /* older exports list the hand-crafted parts under production; there is no room for them now */
+    else if (!game && !(name != null && bucket in GS_SIDE && find(bucket, GS_MADE, name))) bad.push(l);
   });
-  return {n, bad};
+  return {n, bad, skipped: [...skipped]};
 }
 
 function gsModal(title, bodyHTML, footHTML){
@@ -12841,11 +13019,15 @@ function gsShowImport(only){
   ta.focus();
   w.querySelector("#gsIoGo").addEventListener("click", ()=>{
     const r = gsImportText(ta.value, only);
-    if (!r.n){ w.querySelector("#gsIoMsg").textContent = "Nothing in there I could read."; return; }
+    /* production left alone because that side is added up from its alliances */
+    const left = r.skipped.length ? `${r.skipped.map(x => x === "us" ? "Us" : "Them").join(" and ")} production left alone: ${
+      r.skipped.length > 1 ? "both are" : "it's"} added up from the alliances (tick Manually define to import it)` : "";
+    if (!r.n){ w.querySelector("#gsIoMsg").textContent = left ? `Nothing imported. ${left}.` : "Nothing in there I could read."; return; }
     gsSave();
     gsRefill();
-    if (r.bad.length) w.querySelector("#gsIoMsg").textContent =
-      `Imported ${r.n}; skipped ${r.bad.length} line${r.bad.length === 1 ? "" : "s"}: ${r.bad.slice(0, 3).join(" · ")}`;
+    const notes = [left, r.bad.length ? `skipped ${r.bad.length} line${r.bad.length === 1 ? "" : "s"}: ${r.bad.slice(0, 3).join(" · ")}` : ""]
+      .filter(Boolean);
+    if (notes.length) w.querySelector("#gsIoMsg").textContent = `Imported ${r.n}; ${notes.join("; ")}`;
     else closeModal();
   });
 }
@@ -12853,18 +13035,21 @@ function gsShowImport(only){
 /* the boxes, filled again from what is saved */
 function gsRefill(){
   gsInputs("gsStock", "stock", GS_STOCK);
-  gsInputs("gsProd", "prod", GS_PROD);
-  gsInputs("gsProdThem", "prodThem", GS_PROD);
+  gsProdCol("prod");
+  gsProdCol("prodThem");
   gsReserves();
   gsStrip();
   renderGrand();
   renderAssess();
 }
 
-/* the stockpile, the production and the reserves, all emptied */
+/* the stockpile, the reserves and the production typed in by hand, all emptied.
+   A side added up from its alliances keeps its alliances, and what it had typed in by hand */
 function gsClearAll(){
-  if (!confirm("Clear the whole stockpile, both productions and the reserves? This cannot be undone.")) return;
-  gs.stock = {}; gs.prod = {}; gs.prodThem = {}; gs.resv = {};
+  if (!confirm("Confirm")) return;
+  gs.stock = {}; gs.resv = {};
+  if (gs.manual.us) gs.prod = {};
+  if (gs.manual.them) gs.prodThem = {};
   gsSave();
   gsRefill();
 }
@@ -12893,9 +13078,10 @@ function renderGrand(){
 }
 
 /* ---- staging wiring ---- */
+gsEl("gsProds").classList.toggle("no-allies", !GS_ALLIES);
 gsInputs("gsStock", "stock", GS_STOCK);
-gsInputs("gsProd", "prod", GS_PROD);
-gsInputs("gsProdThem", "prodThem", GS_PROD);
+gsProdCol("prod");
+gsProdCol("prodThem");
 gsReserves();
 gsStrip();
 gsEl("gsReserves").open = false;                        // every visit opens with the reserves folded
@@ -12918,7 +13104,7 @@ document.addEventListener("input", e=>{
   if (v) gs[i.dataset.gsBucket][i.dataset.gsKey] = v;
   else delete gs[i.dataset.gsBucket][i.dataset.gsKey];
   gsSave();
-  if (i.dataset.gsBucket === "prod") gsStrip();
+  if (i.dataset.gsBucket in GS_SIDE) gsStrip();
   renderGrand();
   renderAssess();
 });
@@ -13009,6 +13195,50 @@ gsEl("gsStockPanel").addEventListener("click", e=>{
   const b = e.target.closest("[data-gs-pimp]");
   if (b) gsShowImport(b.dataset.gsPimp);
 });
+gsEl("gsStockPanel").addEventListener("change", e=>{
+  const man = e.target.closest("[data-gs-man]"), ally = e.target.closest("[data-gs-ally]");
+  if (man){
+    gs.manual[man.dataset.gsMan] = man.checked;
+    gsSave();
+    gsRefill();
+    return;
+  }
+  if (!ally) return;
+  /* the list stays open, and the tick keeps its focus: only the face and the figures change */
+  const side = ally.dataset.gsAlly, list = gs.ally[side], id = Number(ally.value);
+  gs.ally[side] = ally.checked ? list.concat(id) : list.filter(x => x !== id);
+  gsSave();
+  ally.closest(".gs-dd").querySelector("summary").innerHTML = gsAllyPicked(side);
+  const bucket = side === "us" ? "prod" : "prodThem";
+  gsInputs(bucket === "prod" ? "gsProd" : "gsProdThem", bucket, GS_PROD);
+  gsStrip();
+  renderGrand();
+  renderAssess();
+});
+/* one alliance list open at a time; a click anywhere else, or Escape, puts it away */
+gsEl("gsStockPanel").addEventListener("toggle", e=>{
+  const dd = e.target.dataset?.gsDd;
+  if (dd == null) return;
+  if (e.target.open){
+    gsDdOpen = dd;
+    gsEl("gsStockPanel").querySelectorAll(".gs-dd[open]").forEach(d => { if (d !== e.target) d.open = false; });
+  } else if (gsDdOpen === dd) gsDdOpen = null;
+}, true);
+const gsDdShut = () => document.querySelectorAll(".gs-dd[open]").forEach(d => { d.open = false; });
+document.addEventListener("click", e=>{ if (gsDdOpen && !e.target.closest?.(".gs-dd")) gsDdShut(); });
+document.addEventListener("keydown", e=>{ if (gsDdOpen && e.key === "Escape") gsDdShut(); });
+
+/* fetched fresh on every load, and again from a click on the time. With the
+   alliances put away nothing reads it, so it is neither fetched nor shown */
+if (GS_ALLIES){
+  gsEl("syncAge").addEventListener("click", syncNow);
+  setInterval(syncPaint, 30e3);
+  syncPaint();
+  syncNow();
+} else {
+  gsEl("syncAge").style.display = "none";
+  gsEl("syncDiv").style.display = "none";
+}
 gsEl("gsClear").addEventListener("click", gsClearAll);
 
 gsEl("gsWide").addEventListener("change", ()=>{
