@@ -2126,8 +2126,8 @@ summary.as-sub::before{content:"\25B8";display:inline-block;width:1em;margin-lef
 .lib-bud input[type=number]{width:62px;flex:none;font:11px/1.2 var(--mono);padding:2px 4px}
 .lib-bud input[type=number]::placeholder{font-size:10px}
 .lib-bud input.over{color:var(--atk);border-color:var(--atk)}
-.lib-rig{display:inline-flex;align-items:center;gap:2px;margin:0;font-size:10px;color:var(--text-dim);cursor:pointer;white-space:nowrap}
-.lib-rig input{margin:0}
+.lib-ela{display:inline-flex;align-items:center;gap:2px;margin:0;font-size:10px;color:var(--text-dim);cursor:pointer;white-space:nowrap}
+.lib-ela input{margin:0}
 .lib-slide{display:flex;align-items:center;gap:10px;margin:14px 0 8px}
 .lib-slide input[type=range]{flex:1;accent-color:var(--accent);padding:0}
 .lib-k{display:inline-flex;align-items:center;gap:2px;font-family:var(--mono);color:var(--text-dim)}
@@ -7747,9 +7747,11 @@ const builtinNote = name => alert(`"${name}" is built in and cannot be changed \
 const LS_LIB = "warcalc.library";
 const LIB_FIXED = "universal";                          // the folder nobody can delete
 const lib = (()=>{
-  const d = {folders: [], where: {}, colour: {}, stasis: {}, shut: {}, view: "ratio", sel: "", budget: {}, rigid: {}};
+  const d = {folders: [], where: {}, colour: {}, stasis: {}, shut: {}, view: "ratio", sel: "", budget: {}, elastic: {}};
   const s = store.get(LS_LIB, {});
-  return Object.assign(d, s && typeof s === "object" ? s : {});
+  Object.assign(d, s && typeof s === "object" ? s : {});
+  if (d.rigid){ d.elastic = Object.assign({}, d.rigid, d.elastic); delete d.rigid; }   // its first name
+  return d;
 })();
 const libSave = () => store.set(LS_LIB, lib);
 const inStasis = name => !!lib.stasis[name];
@@ -13902,11 +13904,11 @@ function libBudget(r){
 /* The ratio grown to k times over, k times its troops in all. A budget caps
    the upkeep its resource may eat: the stacks on a resource that hits its cap
    stop growing there, and the troops they could not take go to the stacks
-   still free to grow, the ratio kept among them. A Rigid budget caps nothing
+   still free to grow, the ratio kept among them. An Elastic budget caps nothing
    and only shows where it is passed. */
 function libScaled(ratio, k){
   const caps = {};
-  LIB_BUDGET.forEach(r => { const b = libBudget(r); if (b != null && !lib.rigid[r]) caps[r] = b; });
+  LIB_BUDGET.forEach(r => { const b = libBudget(r); if (b != null && !lib.elastic[r]) caps[r] = b; });
   const resOf = u => Object.keys(UNIT_COST[u.type].upkeep)[0];
   const perOf = u => UNIT_COST[u.type].upkeep[resOf(u)];
   const want = k * ratio.reduce((t, u) => t + u.size, 0);
@@ -14150,9 +14152,9 @@ function libSaveAs(btn){
 /* ---- wiring ---- */
 libEl("libBuds").innerHTML = LIB_BUDGET.map(r => `<div class="lib-bud">${resIcon(r)}<input type="number" min="0" step="1"
     data-lib-budget="${r}" placeholder="no cap" value="${esc(lib.budget[r] ?? "")}"
-    title="${RESOURCES[r].name} the army may eat in upkeep every 12 hours"><label class="lib-rig"
+    title="${RESOURCES[r].name} the army may eat in upkeep every 12 hours"><label class="lib-ela"
     title="Grow past this budget anyway, and show where it goes over in red"><input type="checkbox"
-    data-lib-rigid="${r}"${lib.rigid[r] ? " checked" : ""}> Rigid</label></div>`).join("");
+    data-lib-elastic="${r}"${lib.elastic[r] ? " checked" : ""}> Elastic</label></div>`).join("");
 
 const viewLib = libEl("viewLibrary");
 viewLib.addEventListener("input", e => {
@@ -14166,7 +14168,7 @@ viewLib.addEventListener("input", e => {
 });
 viewLib.addEventListener("change", e => {
   const t = e.target;
-  if (t.dataset.libRigid){ lib.rigid[t.dataset.libRigid] = t.checked; libSave(); libScaler(); }
+  if (t.dataset.libElastic){ lib.elastic[t.dataset.libElastic] = t.checked; libSave(); libScaler(); }
   else if (t.id === "libKn"){ libScale = clampInt(t.value, 1, 1e6); libEl("libKn").value = libScale; libScaler(); }
   else if (t.matches("[data-lib-move]")){
     if (t.value) lib.where[lib.sel] = t.value; else lib.where[lib.sel] = "";
