@@ -2028,7 +2028,9 @@ summary.as-sub::before{content:"\25B8";display:inline-block;width:1em;margin-lef
 /* ---------- library ---------- */
 .lib-wrap{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
 .lib-win{width:925px;max-width:100%;height:max(640px,calc(100vh - 100px));display:flex;flex-direction:column;padding:0;overflow:hidden;margin-bottom:0}
-.lib-bar{display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid var(--border-soft)}
+.lib-bar{display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid var(--border-soft);white-space:nowrap}
+.lib-bar > *{flex:none}
+.lib-bar > .spacer{flex:1 1 0}
 .lib-views{display:inline-flex;border:1px solid var(--border-soft);border-radius:4px;overflow:hidden}
 .lib-views button{background:var(--sunken);color:var(--text-dim);border:0;padding:3px 11px;font-size:12px;cursor:pointer}
 .lib-views button + button{border-left:1px solid var(--border-soft)}
@@ -2037,16 +2039,20 @@ summary.as-sub::before{content:"\25B8";display:inline-block;width:1em;margin-lef
 .lib-body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 320px}
 .lib-list{overflow:auto;min-height:0}
 .lib-detail{overflow:auto;min-height:0;border-left:1px solid var(--border-soft);padding:10px 12px;background:var(--sunken)}
-.lib-tbl{font-size:12px;table-layout:fixed}
+.lib-tbl{font-size:12px}
 .lib-tbl thead th{position:sticky;top:0;z-index:1;background:var(--raised);padding:6px 4px;text-align:center;
   border-bottom:1px solid var(--border-soft)}
-.lib-tbl thead th:first-child{text-align:left;padding-left:10px;width:auto}
-.lib-tbl :is(th,td):not(:first-child){width:68px;text-align:center}
-.lib-tbl.lib-res :is(th,td):not(:first-child){width:54px}
+/* the name column is as wide as the longest name, the figures sit right up
+   against it, and an empty last column takes whatever width is left over */
+.lib-tbl thead th:first-child{text-align:left;padding-left:10px;width:1%}
+.lib-tbl :is(th,td):not(:first-child){width:58px;min-width:58px;text-align:center}
+.lib-tbl.lib-res :is(th,td):not(:first-child){width:52px;min-width:52px}
+.lib-tbl :is(th,td).lib-fill,.lib-tbl.lib-res :is(th,td).lib-fill{width:100%;min-width:0;padding:0}
 .lib-tbl thead th .gear-img,.lib-tbl thead th .res-icon{display:block;margin:0 auto}
 .lib-tbl thead .gear-img{object-position:center}
 .lib-tbl td{padding:3px 4px;text-align:right;font-family:var(--mono);white-space:nowrap;border-bottom:1px solid rgba(var(--lo),.18)}
-.lib-tbl td.lib-n{text-align:left;font-family:var(--font);padding-left:10px;max-width:250px;overflow:hidden;text-overflow:ellipsis}
+.lib-tbl td.lib-n{text-align:left;font-family:var(--font);padding-left:10px;padding-right:14px;width:1%}
+.lib-tbl td.lib-n .lib-name{display:inline-block;max-width:118px;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
 .lib-tbl .z{color:var(--faint)}
 .lib-bits{color:var(--gold);font-family:var(--mono)}
 .lib-row{cursor:pointer}
@@ -2121,10 +2127,12 @@ summary.as-sub::before{content:"\25B8";display:inline-block;width:1em;margin-lef
 .lib-sc-head{display:flex;align-items:baseline;gap:10px;padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid var(--border-soft)}
 .lib-sc-head .lib-d-name{font-size:17px}
 .lib-sc-head .x{margin-left:auto;font:600 20px/1 var(--mono);color:var(--strong);white-space:nowrap}
-.lib-buds{display:flex;align-items:center;gap:10px;margin-left:6px}
+.lib-buds{display:flex;align-items:center;gap:8px;margin-left:4px}
 .lib-bud{display:flex;align-items:center;gap:3px;margin:0;color:var(--text)}
-.lib-bud input[type=number]{width:62px;flex:none;font:11px/1.2 var(--mono);padding:2px 4px}
+.lib-bud input[type=number]{width:58px;flex:none;font:11px/1.2 var(--mono);padding:2px 4px}
 .lib-bud input[type=number]::placeholder{font-size:10px}
+.lib-bud input[type=number]{-moz-appearance:textfield;appearance:textfield}
+.lib-bud input[type=number]::-webkit-inner-spin-button,.lib-bud input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .lib-bud input.over{color:var(--atk);border-color:var(--atk)}
 .lib-ela{display:inline-flex;align-items:center;gap:2px;margin:0;font-size:10px;color:var(--text-dim);cursor:pointer;white-space:nowrap}
 .lib-ela input{margin:0}
@@ -14015,11 +14023,11 @@ function libRender(){
   if (lib.sel && !armies[lib.sel]) lib.sel = "";
   document.querySelectorAll("[data-lib-view]").forEach(b => b.classList.toggle("on", b.dataset.libView === lib.view));
   const resView = lib.view === "res";
-  const ncol = (resView ? LIB_RES.length : LIB_TYPES.length) + 2;
+  const ncol = (resView ? LIB_RES.length : LIB_TYPES.length) + 3;
   const head = `<thead><tr><th>Name</th>${resView
       ? LIB_RES.map(k => `<th>${resIcon(k)}</th>`).join("")
       : LIB_TYPES.map(([t, g]) => `<th title="${t}"><img class="gear-img" src="${esc(gearImgSrc(g, true))}" alt="${t}"></th>`).join("")
-    }<th title="Bits, all in" class="lib-bits">${BIT}</th></tr></thead>`;
+    }<th title="Bits, all in" class="lib-bits">${BIT}</th><th class="lib-fill"></th></tr></thead>`;
 
   const row = n => {
     const shown = lib.view === "ratio" ? libRatio(armies[n]).units : libStacks(armies[n]);
@@ -14032,7 +14040,7 @@ function libRender(){
           ? "In stasis: out of every dropdown. Click to bring it back" : "Put in stasis: kept here, but out of every dropdown"}">${
           iconSvg(st ? "stasisOn" : "stasis")}</button></td>
       ${vals.map(v => `<td${v ? "" : ` class="z"`}>${v ? money(v) : "·"}</td>`).join("")}
-      <td class="lib-bits">${cost.bits ? shortBits(cost.bits) : "·"}</td></tr>`;
+      <td class="lib-bits">${cost.bits ? shortBits(cost.bits) : "·"}</td><td class="lib-fill"></td></tr>`;
   };
 
   const groups = libFolders().concat({id: "", name: "Unfiled"})
