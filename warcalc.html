@@ -2105,6 +2105,7 @@ summary.as-sub::before{content:"\25B8";display:inline-block;width:1em;margin-lef
 .lib-d-top .lib-d-name{flex:1;min-width:0}
 .lib-d-top .bp-btn{padding:3px}
 .lib-rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:3px 14px;font-size:12px}
+.lib-scale .lib-rgrid{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
 .lib-rc{display:flex;align-items:center;gap:6px;min-width:0;line-height:18px}
 .lib-rc .k{color:var(--text-dim);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lib-rc .mono{margin-left:auto;color:var(--strong);white-space:nowrap}
@@ -2120,11 +2121,12 @@ summary.as-sub::before{content:"\25B8";display:inline-block;width:1em;margin-lef
 .lib-sc-head{display:flex;align-items:baseline;gap:10px;padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid var(--border-soft)}
 .lib-sc-head .lib-d-name{font-size:17px}
 .lib-sc-head .x{margin-left:auto;font:600 20px/1 var(--mono);color:var(--strong);white-space:nowrap}
-.lib-bud-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 14px}
-.lib-bud{display:flex;align-items:center;gap:6px;margin:0;color:var(--text)}
-.lib-bud input[type=number]{width:96px;flex:none;font-family:var(--mono)}
+.lib-buds{display:flex;align-items:center;gap:10px;margin-left:6px}
+.lib-bud{display:flex;align-items:center;gap:3px;margin:0;color:var(--text)}
+.lib-bud input[type=number]{width:62px;flex:none;font:11px/1.2 var(--mono);padding:2px 4px}
+.lib-bud input[type=number]::placeholder{font-size:10px}
 .lib-bud input.over{color:var(--atk);border-color:var(--atk)}
-.lib-rig{display:inline-flex;align-items:center;gap:3px;margin:0;font-size:11px;color:var(--text-dim);cursor:pointer;white-space:nowrap}
+.lib-rig{display:inline-flex;align-items:center;gap:2px;margin:0;font-size:10px;color:var(--text-dim);cursor:pointer;white-space:nowrap}
 .lib-rig input{margin:0}
 .lib-slide{display:flex;align-items:center;gap:10px;margin:14px 0 8px}
 .lib-slide input[type=range]{flex:1;accent-color:var(--accent);padding:0}
@@ -2775,6 +2777,8 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
           <button type="button" data-lib-view="units" title="The troops the preset actually holds">Units</button>
           <button type="button" data-lib-view="res" title="What the preset's equipment costs in resources">Resources</button>
         </div>
+        <!-- what the scaler may spend on upkeep every 12 hours -->
+        <div class="lib-buds" id="libBuds" title="Upkeep budget / 12 h"></div>
         <span class="spacer"></span>
         <span class="small muted" id="libCount"></span>
         <button type="button" class="btn btn-xs" id="libNewFolder">New folder</button>
@@ -2788,8 +2792,6 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
     <!-- the selected preset, grown from its ratio -->
     <div class="panel lib-scale">
       <div class="lib-sc-head" id="libScHead"></div>
-      <div class="gs-h">Upkeep budget / 12 h</div>
-      <div class="lib-bud-grid" id="libBuds"></div>
       <div class="lib-slide">
         <input type="range" id="libK" min="1" max="50" step="1" value="1" aria-label="Multiple of the ratio">
         <span class="lib-k">&times;<input type="number" id="libKn" min="1" step="1" value="1" aria-label="Multiple of the ratio"></span>
