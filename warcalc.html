@@ -2100,7 +2100,10 @@ summary.as-sub::before{content:"\25B8";display:inline-block;width:1em;margin-lef
 .lib-stk{display:flex;align-items:center;gap:5px;font-size:12px;padding:2px 0;white-space:nowrap}
 .lib-stk .gear-img{flex:0 0 32px}
 .lib-stk .gear-img + .gear-img{margin-left:-4px}   /* 1px between the weapon and the armour */
-.lib-stk .n{font-family:var(--mono);color:var(--strong);min-width:42px;text-align:right}
+/* the counts column is as wide as the biggest count in the list, so the pictures
+   start right after it */
+.lib-stk .n{font-family:var(--mono);color:var(--strong);min-width:var(--nw,3ch);text-align:right;margin-right:3px}
+.lib-stk .g{margin-left:5px}
 .lib-stk .g{overflow:hidden;text-overflow:ellipsis}
 .lib-stk .t{margin-left:auto;font-size:10.5px;color:var(--text-dim);font-family:var(--mono)}
 .lib-stk .w{font:600 9px/1 var(--font);letter-spacing:.06em;color:var(--warn);border:1px solid rgba(var(--warn-rgb),.5);
@@ -13959,12 +13962,13 @@ const libCurrent = () => {
 
 /* "140 K9P + Trundle", with the pictures in front */
 const libGear = k => SCROUNGED[k] ? "Scrounged" : label(k);
-const libStackList = units => units.map(u => {
+const libStackList = units => units.length ? `<div class="lib-stks"
+    style="--nw:${Math.max(...units.map(u => money(u.size).length))}ch">${units.map(u => {
   const w = waitOf(u), bare = SCROUNGED[u.weapon] && SCROUNGED[u.armor];
   return `<div class="lib-stk"><span class="n">${money(u.size)}</span>${gearImg(u.weapon)}${gearImg(u.armor)}
     <span class="g" title="${esc(u.type)}">${bare ? esc(u.type) : `${esc(libGear(u.weapon))} + ${esc(libGear(u.armor))}`}</span>
     <span class="t">${w ? `<span class="w" title="Held back as a reinforcement">R${w}</span> ` : ""}T${u.training}</span></div>`;
-}).join("") || `<div class="small muted">No units.</div>`;
+}).join("")}</div>` : `<div class="small muted">No units.</div>`;
 
 const libKV = (k, v, cls = "v") => `<div class="lib-kv"><span>${k}</span><span class="${cls}">${v}</span></div>`;
 
