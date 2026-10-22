@@ -2044,6 +2044,10 @@ summary.as-sub::before{content:"\25B8";display:inline-block;width:1em;margin-lef
 .lib-row{cursor:pointer}
 .lib-row:hover td{background:rgba(var(--hi),.04)}
 .lib-row.sel td{background:rgba(var(--hi),.10)}
+.lib-row.tint td{background:color-mix(in srgb,var(--c) 14%,transparent)}
+.lib-row.tint:hover td{background:color-mix(in srgb,var(--c) 20%,transparent)}
+.lib-row.tint.sel td{background:color-mix(in srgb,var(--c) 28%,transparent)}
+.lib-row.tint td.lib-n{box-shadow:inset 3px 0 0 var(--c)}
 .lib-row.stasis td:not(.lib-n),.lib-row.stasis .lib-name{opacity:.4}
 .lib-row.stasis .lib-name{font-style:italic}
 .lib-row.dragging td{opacity:.35}
@@ -2965,12 +2969,12 @@ const RESOURCES = {
   copper:    {name:"Copper",          icon:null},
   tungsten:  {name:"Tungsten",        icon:null},
   plastics:  {name:"Plastics",        icon:null},
+  apples:    {name:"Apples",          icon:null},   // the four upkeep resources: apples, gems, coffee, gasoline
   gems:      {name:"Gems",            icon:null},
-  energy:    {name:"Energy",          icon:null},
-  oil:       {name:"Oil",             icon:null},
-  apples:    {name:"Apples",          icon:null},
   coffee:    {name:"Coffee",          icon:null},
   gasoline:  {name:"Gasoline",        icon:null},
+  energy:    {name:"Energy",          icon:null},
+  oil:       {name:"Oil",             icon:null},
   machinery: {name:"Machinery Parts", icon:null},
   vehicle:   {name:"Vehicle Parts",   icon:null},
   precision: {name:"Precision Parts", icon:null},
@@ -7771,7 +7775,7 @@ function refreshPresetSelects(){
   document.querySelectorAll("[data-ap-sel]").forEach(sel=>{
     const keep = sel.value;
     sel.innerHTML = `<option value="">preset…</option>` +
-      armies.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("");
+      armies.map(n=>`<option value="${esc(n)}"${lib.colour[n] ? ` style="color:${lib.colour[n]}"` : ""}>${esc(n)}</option>`).join("");
     if (armies.includes(keep)) sel.value = keep;
   });
   const battles = Object.keys(getBattles()).sort();
@@ -7809,6 +7813,7 @@ function renderMarks(){
 }
 
 function paintMarkButtons(marks){
+  document.querySelectorAll("[data-ap-sel]").forEach(sel=>{ sel.style.color = lib.colour[sel.value] || ""; });
   document.querySelectorAll("[data-ap-mark]").forEach(btn=>{
     const sel = document.querySelector(`[data-ap-sel="${btn.dataset.apMark}"]`);
     const on = !!(sel && sel.value && marks.includes(sel.value));
@@ -12552,14 +12557,14 @@ fillCounterTypes();
 
 const LS_GRAND = "warcalc.grand";
 const GS_TICKS = 6;                                   // turns produced per war tick
-const GS_STOCK = ["apples","coffee","gems","gasoline","copper","composites","machinery",
+const GS_STOCK = ["apples","gems","coffee","gasoline","copper","composites","machinery",
                   "vehicle","precision","plastics","tungsten","bits"];
 /* everything stockpiled is produced too, bar the parts only ever crafted by hand */
 const GS_MADE  = ["composites","precision"];
 const GS_PROD  = GS_STOCK.filter(k => !GS_MADE.includes(k));
-const GS_STRIP = ["apples","coffee","gems","gasoline"];
+const GS_STRIP = ["apples","gems","coffee","gasoline"];
 const GS_COST  = ["bits","copper","tungsten","plastics","machinery","vehicle","precision","composites"];
-const GS_UPKEEP = ["apples","coffee","gems","gasoline"];
+const GS_UPKEEP = ["apples","gems","coffee","gasoline"];
 const GS_GEAR  = UNIT_ORDER.flatMap(g => g.gear);
 
 /* adding a side's production up from its alliances is put away for now, waiting
@@ -13940,7 +13945,7 @@ const libResCell = (k, v, extra = "", over = false) => `<div class="lib-rc${over
 const libResGrid = cells => cells.length ? `<div class="lib-rgrid">${cells.join("")}</div>` : `<span class="res-none">none</span>`;
 
 function libCostHTML(c, budgets){
-  const up = libResGrid(LIB_BUDGET.concat(RES_ORDER.filter(k => !LIB_BUDGET.includes(k))).filter(k => c.upkeep[k]).map(k => {
+  const up = libResGrid(RES_ORDER.filter(k => c.upkeep[k]).map(k => {
     const b = budgets ? libBudget(k) : null;
     return libResCell(k, c.upkeep[k], b != null ? ` / ${money(b)}` : "", b != null && c.upkeep[k] > b + 1e-9);
   }));
@@ -13998,7 +14003,7 @@ function libRender(){
     const shown = lib.view === "ratio" ? libRatio(armies[n]).units : libStacks(armies[n]);
     const cost = libCost(shown), h = libHeads(shown), st = inStasis(n), c = lib.colour[n];
     const vals = resView ? LIB_RES.map(k => Math.round(cost.res[k] || 0)) : LIB_TYPES.map(([t]) => h[t] || 0);
-    return `<tr class="lib-row${n === lib.sel ? " sel" : ""}${st ? " stasis" : ""}" data-lib-name="${esc(n)}"
+    return `<tr class="lib-row${n === lib.sel ? " sel" : ""}${st ? " stasis" : ""}${c ? " tint" : ""}" data-lib-name="${esc(n)}"
         draggable="true"${c ? ` style="--c:${c}"` : ""}>
       <td class="lib-n" title="${esc(n)}"><span class="lib-dot"></span><span class="lib-name">${esc(n)}</span><button
         type="button" class="lib-ib lib-st" data-lib-stasis="${esc(n)}" title="${st
@@ -14185,7 +14190,7 @@ viewLib.addEventListener("click", e => {
   }
   else if (t.dataset.libColour !== undefined){
     if (t.dataset.libColour) lib.colour[lib.sel] = t.dataset.libColour; else delete lib.colour[lib.sel];
-    libSave(); libRender();
+    libSave(); refreshPresetSelects();
   }
   else if (t.dataset.libAct === "stasis") libStasis([lib.sel], !inStasis(lib.sel));
   else if (t.dataset.libAct === "rename") renameArmyNamed(lib.sel);
