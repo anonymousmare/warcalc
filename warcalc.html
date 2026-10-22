@@ -2160,26 +2160,32 @@ summary.as-sub::before{content:"\25B8";display:inline-block;width:1em;margin-lef
 .lib-tol{display:inline-flex;align-items:center;gap:8px;margin:0;font-size:12px;color:var(--text-dim)}
 .lib-tol input{width:160px;accent-color:var(--accent);padding:0}
 .lib-tol b{font:600 12px/1 var(--mono);color:var(--strong);min-width:3.5ch;text-align:right}
-.lib-dmg{font-size:12px;margin-bottom:12px}
-.lib-dmg th{font-weight:400;color:var(--text-dim);text-align:left;white-space:nowrap;padding:3px 10px 3px 0;width:1%}
-.lib-dmg thead th{text-align:center;padding-bottom:4px;border-bottom:1px solid var(--border-soft)}
+.lib-dmg{font-size:11px;margin-bottom:10px}
+.lib-dmg th{font-weight:400;color:var(--text-dim);text-align:left;white-space:nowrap;padding:1px 10px 1px 0;width:1%}
+.lib-dmg thead th{text-align:center;padding-bottom:3px;border-bottom:1px solid var(--border-soft)}
 .lib-dmg thead th:first-child{border-bottom:0}
 .lib-dmg thead .gear-img{display:block;margin:0 auto;object-position:center}
-.lib-dmg td{font-family:var(--mono);text-align:center;padding:3px 6px;white-space:nowrap}
-.lib-dmg td .d{display:block;font-size:10px;line-height:1.1;color:var(--text-dim);filter:none}
-.lib-dmg td .d.off{color:var(--atk)}
+.lib-dmg td{font-family:var(--mono);text-align:center;padding:1px 4px;white-space:nowrap}
+.lib-dmg td .to{font-family:var(--font);font-size:10px;color:var(--text-dim)}
+.lib-dmg td .off{color:var(--atk);font-weight:700}
 .lib-mw{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--border-soft);border-radius:4px;background:var(--sunken)}
-.lib-mw-col{padding:10px 12px;min-width:0}
-.lib-mw-col + .lib-mw-col{border-left:1px solid var(--border-soft)}
-.lib-mw-top{display:flex;align-items:baseline;gap:6px;margin-bottom:8px}
-.lib-mw-top .lib-h{margin:0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lib-mw-c{padding:0 12px 8px;min-width:0}
+.lib-mw-c:nth-child(-n+2){padding-top:10px}
+.lib-mw-c.r{border-left:1px solid var(--border-soft)}
+.lib-mw-c > .lib-h:first-child{margin-top:0}
 .lib-mw .lib-rgrid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
-.lib-tbar{display:flex;height:8px;border-radius:3px;overflow:hidden;margin:2px 0 4px;background:rgba(var(--hi),.06)}
-.lib-tbar span{display:block;opacity:.65}
-.lib-tleg{display:flex;flex-wrap:wrap;gap:2px 10px;font:11px/1.4 var(--mono);margin-bottom:6px}
-.lib-mull-foot{display:flex;align-items:center;gap:12px;margin-top:12px}
-.lib-mull-foot .btn{padding:6px 22px;font-size:14px}
-.lib-scale :is(button,input):disabled{opacity:.45;cursor:default;filter:none}
+.lib-tbar{display:flex;height:8px;border-radius:3px;overflow:hidden;background:rgba(var(--hi),.06)}
+.lib-tbar span{display:block}
+.lib-tleg{position:relative;font:11px/1 var(--mono);margin-bottom:6px;height:18px}
+.lib-tl{position:absolute;z-index:1;top:3px;white-space:nowrap;background:var(--sunken);padding:0 2px}
+.lib-tline{position:absolute;top:0;width:1px;opacity:.7}
+.lib-tline[hidden]{display:none}
+.lib-mull-foot{display:flex;align-items:center;gap:8px;margin-top:12px}
+.lib-mull-foot > .btn{flex:none}
+.lib-mull-foot #libMullBtn{padding:6px 22px;font-size:14px;margin-right:4px}
+.lib-mull-msg:empty{display:none}
+.lib-mull-msg{margin-top:6px}
+:is(.lib-scale,.lib-mull) :is(button,input):disabled{opacity:.45;cursor:default;filter:none}
 @media (max-width:760px){.lib-body{grid-template-columns:1fr}.lib-detail{border-left:0;border-top:1px solid var(--border-soft)}
   .lib-win{height:auto}.lib-list{max-height:420px}}
 </style>
@@ -2845,8 +2851,12 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
       <div class="lib-mw" id="libMw"></div>
       <div class="lib-mull-foot">
         <button type="button" class="btn btn-warning" id="libMullBtn">Mulligan</button>
-        <span class="small muted" id="libMullMsg"></span>
+        <input type="text" class="lib-code" id="libMullCode" readonly spellcheck="false" aria-label="Mulligan army code"
+          title="The mulligan's army code">
+        <button type="button" class="btn btn-xs btn-info txt-btn" id="libMullCopy">Copy mulligan code</button>
+        <button type="button" class="btn btn-xs btn-moss txt-btn" id="libMullSave">Save as preset</button>
       </div>
+      <div class="small muted lib-mull-msg" id="libMullMsg"></div>
     </div>
     </div>
 
@@ -14233,15 +14243,16 @@ function libSaveUnits(units, suggest, btn){
    tolerance is a linear program over the stack sizes: solved for a handful
    of random loadouts, then grown a loadout at a time until it fits. */
 const LIB_FOES = LIB_TYPES.map(t => t[0]);
-const LIB_FOE_COL = {Cavalry: "var(--t-cav)", Tanks: "var(--t-tank)", Pegasi: "var(--t-peg)", Unicorns: "var(--t-uni)",
-  Naval: "var(--t-nav)", Alicorns: "var(--gold)"};
+/* the colours the gear sprites are drawn in, so the bar matches the pictures */
+const LIB_FOE_COL = {Cavalry: "#ff0000", Tanks: "#0076ff", Pegasi: "#ff00dc", Unicorns: "#00ff21", Naval: "#00ffff",
+  Alicorns: "var(--gold)"};
 /* figures in a type's colour, eased toward the page's ink so the reds and blues still read */
 const LIB_FOE_INK = Object.fromEntries(Object.entries(LIB_FOE_COL).map(([t, c]) => [t, `color-mix(in srgb,${c} 68%,var(--text))`]));
 const LIB_LINES = [
   ["Dealt", "Damage dealt to as many troops of each type, unarmoured", true],
   ["Dealt · best armour", "The same, with them in their best armour against each of our stacks", true],
-  ["Taken", "Damage taken from as many troops of each type, carrying plain weapons", false],
-  ["Taken · best weapons", "The same, with them carrying their best weapon against each of our stacks", false]];
+  ["Absorbed", "Damage absorbed from as many troops of each type, carrying plain weapons", false],
+  ["Absorbed · best weapons", "The same, with them carrying their best weapon against each of our stacks", false]];
 const libFights = t => t === "Alicorns" ? "naval" : TYPES[FORCE_TYPES[t]];   // alicorns are hit as naval
 const libBestArm = (T, src) => T === "Alicorns" ? 0.1
   : Math.min(...LOADOUTS[T].armor.filter(a => ARMOR_IDS[a]).map(a => ARMOR_DEFS[a][src]));
@@ -14360,23 +14371,54 @@ let libMull = null;                                    // {from: the original's 
 let libMullBusy = false;
 const libTol = () => clampInt(lib.tol ?? 10, 1, 50) / 100;
 
+/* the type split as one bar, each stretch's count and share under its middle */
 function libTypeBar(units){
   const h = libHeads(units), n = troopTotal(units) || 1, on = LIB_FOES.filter(T => h[T]);
+  let at = 0;
   return `<div class="lib-tbar">${on.map(T => `<span style="flex:${h[T]};background:${LIB_FOE_COL[T]}"
       title="${T} ${money(h[T])}"></span>`).join("")}</div>
-    <div class="lib-tleg">${on.map(T => `<span style="color:${LIB_FOE_INK[T]}">${T} ${money(h[T])}
-      (${Math.round(h[T] / n * 100)}%)</span>`).join("")}</div>`;
+    <div class="lib-tleg">${on.map(T => {
+      const mid = (at + h[T] / 2) / n;
+      at += h[T];
+      return `<i class="lib-tline" style="left:${(mid * 100).toFixed(2)}%;background:${LIB_FOE_COL[T]}"></i><span class="lib-tl"
+        data-mid="${mid}" style="color:${LIB_FOE_INK[T]}" title="${T}">${money(h[T])} · ${Math.round(h[T] / n * 100)}%</span>`;
+    }).join("")}</div>`;
 }
 
-function libMwCol(title, units, tools){
+/* a label that would run into the one before it drops a row, hung from the
+   bar by a thin line in its type's colour */
+const LIB_TL_ROW = 15;
+function libLegendLay(root){
+  root.querySelectorAll(".lib-tleg").forEach(box => {
+    const W = box.clientWidth;
+    if (!W) return;
+    const ends = [];
+    box.querySelectorAll(".lib-tl").forEach(el => {
+      const mid = +el.dataset.mid * W, w = el.offsetWidth;
+      /* centred under its stretch, or once dropped, starting just off its line */
+      const at = row => row ? (mid + 4 + w <= W ? mid + 4 : mid - 4 - w) : Math.max(0, Math.min(W - w, mid - w / 2));
+      let row = 0;
+      while (ends[row] != null && at(row) < ends[row] + 8) row++;
+      const left = at(row);
+      ends[row] = left + w;
+      el.style.left = left + "px";
+      el.style.top = row * LIB_TL_ROW + 3 + "px";
+      const line = el.previousElementSibling;
+      line.style.height = row * LIB_TL_ROW + 10 + "px";
+      line.hidden = !row;
+    });
+    box.style.height = ends.length * LIB_TL_ROW + 4 + "px";
+  });
+}
+
+/* the two armies side by side, a row for each part so the parts line up across */
+function libMwRows(units){
   const c = libCost(units);
-  return `<div class="lib-mw-col"><div class="lib-mw-top"><div class="lib-h">${title}</div>${tools || ""}</div>
-    ${libTypeBar(units)}
-    ${libStackList(units)}
-    <div class="lib-h">Cost</div>
-    ${libKV("Troops", money(c.troops))}${libKV("Sat cost", money(c.sat))}${libKV("Total", money(c.bits), "v lib-bits")}
-    <div class="lib-h">Resources</div>${libResGrid(RES_ORDER.filter(k => c.res[k]).map(k => libResCell(k, c.res[k])))}
-    <div class="lib-h">Upkeep / 12 h</div>${libResGrid(RES_ORDER.filter(k => c.upkeep[k]).map(k => libResCell(k, c.upkeep[k])))}</div>`;
+  return [libTypeBar(units), libStackList(units),
+    `<div class="lib-h">Cost</div>${libKV("Troops", money(c.troops))}${libKV("Sat cost", money(c.sat))}${
+      libKV("Total", money(c.bits), "v lib-bits")}`,
+    `<div class="lib-h">Resources</div>${libResGrid(RES_ORDER.filter(k => c.res[k]).map(k => libResCell(k, c.res[k])))}`,
+    `<div class="lib-h">Upkeep / 12 h</div>${libResGrid(RES_ORDER.filter(k => c.upkeep[k]).map(k => libResCell(k, c.upkeep[k])))}`];
 }
 
 function libMullRender(){
@@ -14385,29 +14427,36 @@ function libMullRender(){
   libEl("libTolV").textContent = Math.round(tol * 100) + "%";
   libEl("libMullBtn").disabled = !units.length || libMullBusy;
   if (!units.length){
+    libMull = null;
     libEl("libMullFor").textContent = "";
     libEl("libDmg").innerHTML = `<div class="lib-empty">Pick a preset and the army in the scaler is dealt a new hand here.</div>`;
     libEl("libMw").innerHTML = "";
-    return;
+  } else {
+    const from = encodeArmy(units);
+    if (libMull && libMull.from !== from) libMull = null;   // the scaler moved on
+    libEl("libMullFor").textContent = `${lib.sel} ×${money(libScale)}`;
+    const T = libProfile(units), M = libMull ? libProfile(libMull.units) : null;
+    /* the original's figure, and with a mulligan dealt, "to" its figure;
+       how far that is sits in the tooltip */
+    libEl("libDmg").innerHTML = `<table class="lib-dmg"><thead><tr><th></th>${LIB_TYPES.map(([t, g]) =>
+        `<th title="${t}"><img class="gear-img" src="${esc(gearImgSrc(g, true))}" alt="${t}"></th>`).join("")}</tr></thead>
+      <tbody>${LIB_LINES.map(([name, what], r) => `<tr><th title="${esc(what)}">${name}</th>${LIB_FOES.map((F, i) => {
+        const j = r * LIB_FOES.length + i;
+        if (!M) return `<td style="color:${LIB_FOE_INK[F]}">${money(T[j])}</td>`;
+        const d = T[j] ? M[j] / T[j] - 1 : 0, off = Math.abs(d) > tol + 1e-9;
+        return `<td style="color:${LIB_FOE_INK[F]}" title="${d >= 0 ? "+" : "−"}${(Math.abs(d) * 100).toFixed(1)}%">${
+          money(T[j])} <span class="to">to</span> <span class="${off ? "off" : ""}">${money(M[j])}</span></td>`;
+      }).join("")}</tr>`).join("")}</tbody></table>`;
+    const a = libMwRows(units), b = libMull ? libMwRows(libMull.units) : null;
+    libEl("libMw").innerHTML = `<div class="lib-mw-c l"><div class="lib-h">Original · ${esc(lib.sel)}</div></div>
+      <div class="lib-mw-c r"><div class="lib-h">Mulligan</div>${b ? "" : `<div class="lib-empty">Press Mulligan for a
+        different army whose figures above all land within ${Math.round(tol * 100)}% of these.</div>`}</div>
+      ${a.map((x, i) => `<div class="lib-mw-c l">${x}</div><div class="lib-mw-c r">${b ? b[i] : ""}</div>`).join("")}`;
+    libLegendLay(libEl("libMw"));
   }
-  const from = encodeArmy(units);
-  if (libMull && libMull.from !== from) libMull = null;   // the scaler moved on
-  libEl("libMullFor").textContent = `${lib.sel} ×${money(libScale)}`;
-  const T = libProfile(units), M = libMull ? libProfile(libMull.units) : null;
-  libEl("libDmg").innerHTML = `<table class="lib-dmg"><thead><tr><th></th>${LIB_TYPES.map(([t, g]) =>
-      `<th title="${t}"><img class="gear-img" src="${esc(gearImgSrc(g, true))}" alt="${t}"></th>`).join("")}</tr></thead>
-    <tbody>${LIB_LINES.map(([name, what], r) => `<tr><th title="${esc(what)}">${name}</th>${LIB_FOES.map((F, i) => {
-      const j = r * LIB_FOES.length + i;
-      const d = M && T[j] ? M[j] / T[j] - 1 : null;
-      return `<td style="color:${LIB_FOE_INK[F]}">${money(T[j])}${d == null ? "" : `<span class="d${Math.abs(d) > tol + 1e-9
-        ? " off" : ""}" title="The mulligan: ${money(M[j])}">${d >= 0 ? "+" : "−"}${(Math.abs(d) * 100).toFixed(1)}%</span>`}</td>`;
-    }).join("")}</tr>`).join("")}</tbody></table>`;
-  const tools = libMull ? `<button type="button" class="bp-btn" data-lib-mull="copy" title="Copy the mulligan's army code">${iconSvg("copy")}</button
-      ><button type="button" class="bp-btn" data-lib-mull="save" title="Save the mulligan as a preset">${iconSvg("save")}</button>` : "";
-  libEl("libMw").innerHTML = libMwCol(`Original · ${esc(lib.sel)}`, units)
-    + (libMull ? libMwCol(`Mulligan · worst figure ${(libMull.miss * 100).toFixed(1)}% off`, libMull.units, tools)
-      : `<div class="lib-mw-col"><div class="lib-empty">Press Mulligan for a different army whose figures above all land
-          within ${Math.round(tol * 100)}% of these.</div></div>`);
+  const code = libMull ? encodeArmy(libMull.units) : "";
+  libEl("libMullCode").value = code;
+  ["libMullCopy", "libMullSave"].forEach(id => { libEl(id).disabled = !code; });
 }
 
 async function libMulligan(){
@@ -14436,7 +14485,7 @@ libEl("libBuds").innerHTML = LIB_BUDGET.map(r => `<div class="lib-bud">${resIcon
     data-lib-elastic="${r}"${lib.elastic[r] ? " checked" : ""}> Elastic</label></div>`).join("");
 
 const viewLib = libEl("viewLibrary");
-libEl("libCode").addEventListener("focus", e => e.target.select());
+["libCode", "libMullCode"].forEach(id => libEl(id).addEventListener("focus", e => e.target.select()));
 viewLib.addEventListener("input", e => {
   const t = e.target;
   if (t.dataset.libBudget){ lib.budget[t.dataset.libBudget] = t.value; libSave(); libScaler(); }
@@ -14472,8 +14521,8 @@ viewLib.addEventListener("click", e => {
   else if (t.id === "libCopy") libCopyCode(t);
   else if (t.id === "libSaveAs") libSaveAs(t);
   else if (t.id === "libMullBtn") libMulligan();
-  else if (t.dataset.libMull === "copy" && libMull) libCopyText(encodeArmy(libMull.units), t);
-  else if (t.dataset.libMull === "save" && libMull) libSaveUnits(libMull.units, `${lib.sel} mulligan`, t);
+  else if (t.id === "libMullCopy" && libMull) libCopyText(encodeArmy(libMull.units), t);
+  else if (t.id === "libMullSave" && libMull) libSaveUnits(libMull.units, `${lib.sel} mulligan`, t);
   else if (t.dataset.libStasis) libStasis([t.dataset.libStasis], !inStasis(t.dataset.libStasis));
   else if (t.dataset.libFstasis){
     const names = Object.keys(getArmies()).filter(n => libFolderOf(n) === folder);
