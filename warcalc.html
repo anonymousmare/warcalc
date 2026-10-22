@@ -2019,7 +2019,7 @@ summary.as-sub::before{content:"\25B8";display:inline-block;width:1em;margin-lef
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* ---------- library ---------- */
 .lib-wrap{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
-.lib-win{width:925px;max-width:100%;height:640px;display:flex;flex-direction:column;padding:0;overflow:hidden;margin-bottom:0}
+.lib-win{width:925px;max-width:100%;height:max(640px,calc(100vh - 100px));display:flex;flex-direction:column;padding:0;overflow:hidden;margin-bottom:0}
 .lib-bar{display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid var(--border-soft)}
 .lib-views{display:inline-flex;border:1px solid var(--border-soft);border-radius:4px;overflow:hidden}
 .lib-views button{background:var(--sunken);color:var(--text-dim);border:0;padding:3px 11px;font-size:12px;cursor:pointer}
@@ -2029,14 +2029,16 @@ summary.as-sub::before{content:"\25B8";display:inline-block;width:1em;margin-lef
 .lib-body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 320px}
 .lib-list{overflow:auto;min-height:0}
 .lib-detail{overflow:auto;min-height:0;border-left:1px solid var(--border-soft);padding:10px 12px;background:var(--sunken)}
-.lib-tbl{font-size:12px}
+.lib-tbl{font-size:12px;table-layout:fixed}
 .lib-tbl thead th{position:sticky;top:0;z-index:1;background:var(--raised);padding:6px 4px;text-align:center;
   border-bottom:1px solid var(--border-soft)}
-.lib-tbl thead th:first-child{text-align:left;padding-left:10px}
+.lib-tbl thead th:first-child{text-align:left;padding-left:10px;width:auto}
+.lib-tbl :is(th,td):not(:first-child){width:68px;text-align:center}
+.lib-tbl.lib-res :is(th,td):not(:first-child){width:54px}
+.lib-tbl thead th .gear-img,.lib-tbl thead th .res-icon{display:block;margin:0 auto}
 .lib-tbl thead .gear-img{object-position:center}
 .lib-tbl td{padding:3px 4px;text-align:right;font-family:var(--mono);white-space:nowrap;border-bottom:1px solid rgba(var(--lo),.18)}
 .lib-tbl td.lib-n{text-align:left;font-family:var(--font);padding-left:10px;max-width:250px;overflow:hidden;text-overflow:ellipsis}
-.lib-tbl td:last-child,.lib-tbl th:last-child{padding-right:10px}
 .lib-tbl .z{color:var(--faint)}
 .lib-bits{color:var(--gold);font-family:var(--mono)}
 .lib-row{cursor:pointer}
@@ -13918,7 +13920,7 @@ const libKV = (k, v, cls = "v") => `<div class="lib-kv"><span>${k}</span><span c
 
 /* the figures under both panes; the upkeep is held against the budgets */
 function libCostHTML(c, budgets){
-  const up = RES_ORDER.filter(k => c.upkeep[k]).map(k => {
+  const up = LIB_BUDGET.concat(RES_ORDER.filter(k => !LIB_BUDGET.includes(k))).filter(k => c.upkeep[k]).map(k => {
     const b = budgets ? libBudget(k) : null, over = b != null && c.upkeep[k] > b + 1e-9;
     return `<span class="res-chip${over ? " lib-over" : ""}">${resIcon(k)} <span class="mono">${money(c.upkeep[k])}${
       b != null ? ` / ${money(b)}` : ""}</span></span>`;
@@ -13936,7 +13938,7 @@ function libCostHTML(c, budgets){
 function libDetailHTML(armies){
   const n = lib.sel;
   if (!n) return `<div class="lib-empty">Pick a preset to see what is in it.</div>`;
-  const all = libStacks(armies[n]), r = libRatio(armies[n]);
+  const all = libStacks(armies[n]);
   const c = lib.colour[n], fixed = isBuiltin(n), here = libFolderOf(n), st = inStasis(n);
   const brk = getArmyBarracks()[n];
   return `<div class="lib-d-name"${c ? ` style="--c:${c}"` : ""}>${esc(n)}${fixed ? `<span class="lib-tag">built in</span>` : ""}</div>
@@ -13954,7 +13956,6 @@ function libDetailHTML(armies){
     <div class="lib-h">Stacks</div>
     ${libStackList(all)}
     <div class="lib-h">Cost</div>
-    ${libKV("Ratio", r.k > 1 ? `${money(r.k)}&times; its smallest` : "already its smallest", "v")}
     ${brk != null ? libKV("Barracks", money(brk)) : ""}
     ${libCostHTML(libCost(all))}`;
 }
@@ -14002,7 +14003,7 @@ function libRender(){
       ${open ? list.map(row).join("") : ""}</tbody>`;
   }).join("");
 
-  libEl("libList").innerHTML = `<table class="lib-tbl">${head}${body}</table>`;
+  libEl("libList").innerHTML = `<table class="lib-tbl${resView ? " lib-res" : ""}">${head}${body}</table>`;
   const nst = names.filter(inStasis).length;
   libEl("libCount").textContent = `${names.length} preset${names.length === 1 ? "" : "s"}${nst ? ` · ${nst} in stasis` : ""}`;
   libEl("libDetail").innerHTML = libDetailHTML(armies);
@@ -14021,7 +14022,7 @@ function libScaler(){
       smallest, in the same proportions. Slide to grow it.</div>`;
     return;
   }
-  const r = libRatio(units), step = r.units.reduce((t, u) => t + u.size, 0);
+  const r = libRatio(units);
   const max = Math.max(50, r.k * 3);
   libScale = Math.max(1, Math.floor(libScale) || 1);
   libEl("libK").max = max;
@@ -14039,8 +14040,7 @@ function libScaler(){
       there, and the troops they could not take went to the rest.</div>`);
   if (out.got < out.want) notes.push(`<div class="lib-note warn">Every stack is held by a budget: ${money(out.got)} of
       ${money(out.want)} troops.</div>`);
-  libEl("libScOut").innerHTML = `<div class="lib-note">${money(step)} troops a step · saved at &times;${money(r.k)}</div>
-    ${notes.join("")}
+  libEl("libScOut").innerHTML = `${notes.join("")}
     <div class="lib-h">Stacks</div>
     ${libStackList(out.units)}
     <div class="lib-h">Cost</div>
