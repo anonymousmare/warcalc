@@ -14522,7 +14522,7 @@ async function libMulligan(){
     libEl("libMullMsg").textContent = !out ? (LIB_FOES.every(T => libMullOff()[T])
         ? "Every unit type is left out. Click a type's icon above to let it back in."
         : "Nothing else fits this army. Try a wider tolerance, looser budgets, or let more unit types in.")
-      : out.miss > tol + 1e-9 ? `Closest found is ${(out.miss * 100).toFixed(1)}% off. Try again, widen the tolerance, or grow the army: whole troops come closer at a bigger size.`
+      : out.miss > tol + 1e-9 ? `Closest found is ${(out.miss * 100).toFixed(1)}% off. Increase tolerances!`
       : "";
   } finally {
     libMullBusy = false; btn.textContent = "Mulligan";
