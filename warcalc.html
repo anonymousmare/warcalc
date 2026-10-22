@@ -12993,16 +12993,17 @@ function gsBill(units, resvLeft){
     gearBits += c.bits * (need[k] - from);
     addRes(res, c.res, need[k] - from);
   });
-  const craftBits = gsCraft(res);
+  const craftBits = gsCraft(res, false);
   res.bits = hire + gearBits + craftBits;
   return {hire, gearBits, craftBits, troops, upkeep, res, used};
 }
 
-/* the parts the gear is built from cost bits to craft, as on the Battle tab;
-   with the stockpile accounted for, only the parts it cannot already cover */
-function gsCraft(res){
+/* the parts the gear is built from cost bits to craft, as on the Battle tab.
+   An army's own ticket always pays for every part; the Total, with the
+   stockpile accounted for, only for the parts it cannot already cover */
+function gsCraft(res, stocked){
   return Object.entries(CRAFT).reduce((t, [k, rec]) =>
-    t + rec.bits * Math.max(0, (res[k] || 0) - (gs.stockOn ? gsNum(gs.stock[k]) : 0)), 0);
+    t + rec.bits * Math.max(0, (res[k] || 0) - (stocked && gs.stockOn ? gsNum(gs.stock[k]) : 0)), 0);
 }
 
 function gsMerge(bills){
@@ -13012,7 +13013,7 @@ function gsMerge(bills){
     addRes(t.upkeep, b.upkeep); addRes(t.res, b.res); addRes(t.used, b.used);
   });
   /* the armies' parts together, against the one stockpile */
-  t.craftBits = gsCraft(t.res);
+  t.craftBits = gsCraft(t.res, true);
   t.res.bits = t.hire + t.gearBits + t.craftBits;
   return t;
 }
