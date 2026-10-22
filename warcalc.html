@@ -1889,6 +1889,9 @@ body.snaps-hidden .snap{display:none}
 .gs-man{display:inline-flex;align-items:center;gap:4px;margin-left:auto;text-transform:none;letter-spacing:0;
   font-weight:400;cursor:pointer}
 .gs-man input{width:auto;margin:0}
+/* with the alliances put away there is no box to tick, and Import takes its place on the right */
+.gs-prods.no-allies .gs-man{display:none}
+.gs-prods.no-allies .gs-pimp{margin-left:auto}
 /* typed in by hand, the alliances step aside; added up from them, there is nothing to import */
 .gs-prods > .manual .gs-allies,.gs-prods > :not(.manual) .gs-pimp{display:none}
 .gs-allies{margin-bottom:8px}
@@ -2565,7 +2568,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
       <div class="gs-inputs" id="gsStock"></div>
     </div>
     <!-- production in two: ours, and the other side's, whichever that is on a ticket -->
-    <div class="gs-prods">
+    <div class="gs-prods" id="gsProds">
       <div class="gs-prod-us" id="gsColUs">
         <div class="gs-h"><span class="who-tag us">Us</span> Production / turn
           <label class="gs-man" title="Type our production in by hand, or paste it in, instead of adding up the alliances ticked below">
@@ -12353,6 +12356,11 @@ const GS_COST  = ["bits","copper","tungsten","plastics","machinery","vehicle","p
 const GS_UPKEEP = ["apples","coffee","gems","gasoline"];
 const GS_GEAR  = UNIT_ORDER.flatMap(g => g.gear);
 
+/* adding a side's production up from its alliances is put away for now, waiting
+   on a change to the game's API: both sides are typed in by hand, and the
+   Manually define boxes are hidden. Set this to true to bring it back */
+const GS_ALLIES = false;
+
 const gs = (()=>{
   const s = store.get(LS_GRAND, null);
   const o = s && typeof s === "object" ? s : {};
@@ -12362,7 +12370,7 @@ const gs = (()=>{
           focus: o.focus === true, resvOn: o.resvOn !== false, stockOn: o.stockOn !== false, pcOn: o.pcOn === true, gearAll: o.gearAll === true, chartOff: Array.isArray(o.chartOff) ? o.chartOff : [],
           reader: Object.assign({res: true}, obj(o.reader)), folded: obj(o.folded),    // every visit opens on the x6 view
           /* each side's production is typed in by hand, or added up from the alliances ticked for it */
-          manual: Object.assign({us: false, them: false}, obj(o.manual)),
+          manual: GS_ALLIES ? Object.assign({us: true, them: true}, obj(o.manual)) : {us: true, them: true},
           ally: {us: Array.isArray(o.ally?.us) ? o.ally.us : [], them: Array.isArray(o.ally?.them) ? o.ally.them : []}};
 })();
 const gsSave = () => store.set(LS_GRAND, gs);
@@ -13070,6 +13078,7 @@ function renderGrand(){
 }
 
 /* ---- staging wiring ---- */
+gsEl("gsProds").classList.toggle("no-allies", !GS_ALLIES);
 gsInputs("gsStock", "stock", GS_STOCK);
 gsProdCol("prod");
 gsProdCol("prodThem");
