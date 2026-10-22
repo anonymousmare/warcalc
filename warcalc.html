@@ -1954,7 +1954,7 @@ body.snaps-hidden .snap{display:none}
 .mg-menu{position:absolute;right:0;top:calc(100% + 4px);width:400px;max-width:calc(100vw - 32px);padding:6px;
   background:var(--raised);border:1px solid var(--border-soft);border-radius:4px;box-shadow:0 8px 22px rgba(var(--lo),.45)}
 .mg-menu input{width:100%;box-sizing:border-box;margin-bottom:5px;font-size:12px}
-.mg-list{max-height:calc(7 * 29px);overflow-y:auto}
+.mg-list{max-height:calc(7.5 * 29px);overflow-y:auto}
 .mg-opt{display:flex;align-items:center;gap:7px;width:100%;height:29px;padding:0 8px;border:none;border-radius:3px;
   background:none;font:12px var(--font);text-align:left;cursor:pointer;color:var(--text)}
 .mg-opt:hover,.mg-opt.hot{background:rgba(var(--hi),.08)}
@@ -2027,7 +2027,14 @@ body.snaps-hidden .snap{display:none}
 .mg-deals td{padding:4px 10px;text-align:right;white-space:nowrap;border-bottom:1px solid rgba(var(--hi),.04)}
 .mg-deals td:first-child{text-align:left}
 .mg-deals .mg-amt{font-family:var(--mono);color:var(--strong)}
-.mg-deals .dn{display:inline-block;min-width:28px;margin-left:6px;font:600 11px var(--mono);color:var(--warn)}
+.mg-deals .dn{display:inline-block;min-width:28px;margin-left:6px;font:600 11px var(--mono)}
+.mg-deals .d1{color:#5fd068}.mg-deals .d2{color:#e8d23a}.mg-deals .d3{color:#ff9233}.mg-deals .d4{color:#ff5a55}
+:is([data-theme="white"],[data-theme="applejack"],[data-theme="rainbow"]) .mg-deals :is(.d1,.d2,.d3,.d4){filter:brightness(.7) saturate(1.4)}
+/* every other column a shade darker, so a figure can be followed down its column */
+.mg-deals :is(td,th):nth-child(odd):not(:first-child):not([colspan]){background:rgba(var(--lo),.14)}
+.mg-dlim{margin-left:10px;font:400 12px var(--font);color:var(--text-dim)}
+.mg-dlim b{font:600 12px var(--mono);color:var(--strong)}
+.mg-kv .bp-btn{padding:0 0 0 4px;vertical-align:-2px}
 .mg-deals .nil{color:var(--faint)}
 .mg-deals tr.army td:first-child{padding-left:26px;color:var(--text)}
 .mg-deals tr.nets td:first-child{padding-left:26px;color:var(--text-dim)}
@@ -2036,7 +2043,7 @@ body.snaps-hidden .snap{display:none}
 .mg-deals tr.ntot td:first-child{padding-left:26px;color:var(--gold)}
 .mg-deals tr.grand td{font-weight:700;padding-top:9px;border-top:2px solid var(--border-soft);border-bottom:none}
 .mg-deals td.dl{font:700 12px var(--mono);color:var(--strong)}
-.mg-deals td.dl b{color:var(--warn)}
+
 
 /* ---------- assessment ----------
    a battle ticket torn down the middle: the attackers' wine on the left,
@@ -15063,7 +15070,7 @@ function mgPlan(x, armies, ords){
    it uses its own supply, when what it makes pays toward its armies first */
 function mgCalc(p, armies, ords){
   const plans = p.plans.map(x => mgPlan(x, armies, ords));
-  const twN = p.tw || mg.tw;
+  const twN = mg.tw;
   const net = {}, eat = {}, need = {};
   MG_RES.forEach(k=>{
     net[k] = mgNet(p, k);
@@ -15083,6 +15090,9 @@ const mgChips = res => MG_RES.filter(k => res[k]).map(k =>
     res[k] < 0 ? mgSigned(res[k]) : money(res[k])}</span></span>`).join("") || `<span class="res-none">none</span>`;
 
 /* ---- what gets copied ---- */
+/* a raise cost as a bare number, no commas, ready to paste into a deal */
+const mgBitsCopy = n => `<button type="button" class="bp-btn u-copy" data-units-copy="${Math.round(n)}"
+  title="Copy ${Math.round(n)}">${iconSvg("copy")}</button>`;
 function mgPlanText(b, j, n){
   return [`> Army ${j + 1}/${n}`, "`" + b.code + "`", planRoster(b.units, b.extra), planBits(b.all, b.c),
     planFence("ansi", planHead(`Upkeep ${12 * b.tw}/h`) + "\n" + planResLines(b.up, planWidth(b.up)))].join("\n");
@@ -15162,7 +15172,7 @@ function mgBlock(p, i, t, names){
           value="${p.plans[j].tw || ""}" placeholder="${mg.tw}"></label>
       <span class="mg-ups"><span class="mg-kv"><i>${12 * b.tw}/h</i></span>${mgChips(b.up)}</span>
       <span class="mg-kv" title="Satisfaction a turn"><i>Sat</i>${satCost(b.troops) ? "−" + satCost(b.troops).toLocaleString("en-US") : 0}</span>
-      <span class="mg-kv" title="What raising the army costs"><i>${BIT}</i>${money(b.c.hire)}</span>
+      <span class="mg-kv" title="What raising the army costs"><i>${BIT}</i>${money(b.c.hire)}${mgBitsCopy(b.c.hire)}</span>
       <span class="mg-btns">
         <button type="button" class="bp-btn" data-mg-copy="${i}:${j}" title="Copy the pretty plan, headed Army ${j + 1}/${t.plans.length}">${iconSvg("copy")}</button>
         <button type="button" class="bp-btn txt-btn u-copy u-human" title="Copy the roster the way a person reads it"
@@ -15177,7 +15187,7 @@ function mgBlock(p, i, t, names){
       <span></span>
       <span class="mg-ups">${mgChips(t.need)}</span>
       <span class="mg-kv" title="Satisfaction a turn, every army together"><i>Sat</i>${satCost(t.troops) ? "−" + satCost(t.troops).toLocaleString("en-US") : 0}</span>
-      <span class="mg-kv" title="What raising every army costs"><i>${BIT}</i>${money(t.hire)}</span>
+      <span class="mg-kv" title="What raising every army costs"><i>${BIT}</i>${money(t.hire)}${mgBitsCopy(t.hire)}</span>
       <span class="mg-btns">
         <button type="button" class="bp-btn" data-mg-copy="${i}:t" title="Copy the total: sat, raise and upkeep, nets and all">${iconSvg("copy")}</button>
         ${t.plans.length ? `<button type="button" class="bp-btn txt-btn u-copy u-builder" data-mg-build="${i}"
@@ -15195,10 +15205,8 @@ function mgBlock(p, i, t, names){
     </div>
     <div class="mg-body">
       <div class="mg-row"><span class="mg-lab">Nets / tick</span>${nets}
-        <label class="mg-tw" title="War ticks of the nets to cover; empty takes the default">TW
-          <input type="text" inputmode="numeric" autocomplete="off" data-mg-f="tw:${i}" value="${p.tw || ""}" placeholder="${mg.tw}"></label>
-        <span class="mg-eat" title="${p.own ? "What the nets come to over those war ticks: short is sent, spare pays toward the armies"
-          : "What the nets run short of over those war ticks, six ticks to a war tick"}">${mgChips(t.eat)}</span>
+        <span class="mg-eat" title="${p.own ? "What the nets come to over the default war ticks: short is sent, spare pays toward the armies"
+          : "What the nets run short of over the default war ticks, six ticks to a war tick"}">${mgChips(t.eat)}</span>
       </div>
       <div class="mg-row mg-attach"><span class="mg-lab">Armies</span>
         <select data-mg-attach="${i}"><option value="">+ Attach preset…</option>${opts}</select></div>
@@ -15210,12 +15218,13 @@ function mgBlock(p, i, t, names){
 /* ---- the deals: a row an army, the nets, a nation's total, and everyone's ---- */
 function mgDealsHTML(calcs){
   const lim = mgLimit();
+  const tone = d => `d${Math.min(d, 4)}`;
   const cell = n => !n ? `<td class="nil">—</td>` : n < 0
     ? `<td><span class="mg-amt good">${mgSigned(n)}</span><span class="dn"></span></td>`
-    : `<td><span class="mg-amt">${money(n)}</span><span class="dn">×${mgDeals(n)}</span></td>`;
+    : `<td><span class="mg-amt">${money(n)}</span><span class="dn ${tone(mgDeals(n))}">×${mgDeals(n)}</span></td>`;
   const most = res => Math.max(0, ...MG_RES.map(k => mgDeals(res[k] || 0)));
   const row = (cls, lab, res, deals = most(res)) => `<tr class="${cls}"><td>${lab}</td>${MG_RES.map(k => cell(res[k] || 0)).join("")}
-    <td class="dl">${deals ? `<b>${deals}</b> deal${deals === 1 ? "" : "s"}` : `<span class="nil">—</span>`}</td></tr>`;
+    <td class="dl">${deals ? `<b class="${tone(deals)}">${deals}</b> deal${deals === 1 ? "" : "s"}` : `<span class="nil">—</span>`}</td></tr>`;
   const grand = {};
   const body = mg.players.map((p, i)=>{
     const t = calcs[i], nat = mgNation(p.id);
@@ -15225,9 +15234,7 @@ function mgDealsHTML(calcs){
       (MG_RES.some(k => t.eat[k]) ? row("nets", `Nets <span class="small muted">×${t.twN} TW${p.own ? " · own supply" : ""}</span>`, t.eat) : "") +
       row("ntot", "Total", t.need);
   }).join("");
-  return `<h3>Deals</h3>
-    <div class="small muted">A deal carries at most <b class="mono">${money(lim)}</b> of each resource (10,000, and 1 more for
-      every 100,000 bits), so ×n is how many deals that amount takes, and a row's deals are its biggest ×n.</div>
+  return `<h3>Deals<span class="mg-dlim" title="The most of each resource one deal can carry: 10,000, and 1 more for every 100,000 bits">Deal limit is <b>${money(lim)}</b></span></h3>
     ${mg.players.length ? `<div class="mg-deals-wrap"><table class="mg-deals">
       <thead><tr><th></th>${MG_RES.map(k => `<th>${resIcon(k)} ${esc(gsName(k))}</th>`).join("")}<th>Deals</th></tr></thead>
       <tbody>${body}${row("grand", "Everyone", grand)}</tbody></table></div>`
@@ -15298,8 +15305,7 @@ mgView.addEventListener("input", e=>{
   if (kind === "adj"){
     const v = gsSigned(e.target.value.replace(/[^\d.,-]/g, ""));
     if (v) p.adj[j] = v; else delete p.adj[j];
-  } else if (kind === "tw") p.tw = mgTwOf(e.target.value);
-  else if (kind === "ptw" && p.plans[+j]) p.plans[+j].tw = mgTwOf(e.target.value);
+  } else if (kind === "ptw" && p.plans[+j]) p.plans[+j].tw = mgTwOf(e.target.value);
   mgSave();
   mgRender();
 });
