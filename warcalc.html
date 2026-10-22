@@ -2078,6 +2078,17 @@ summary.as-sub::before{content:"\25B8";display:inline-block;width:1em;margin-lef
 .lib-fold .lib-facts{float:right;display:inline-flex;gap:4px;opacity:.55}
 .lib-fold:hover .lib-facts{opacity:1}
 .lib-fold.drop td{outline:2px dashed var(--accent);outline-offset:-3px}
+.lib-row.drop-before td{box-shadow:inset 0 2px 0 var(--accent)}
+.lib-row.drop-after td{box-shadow:inset 0 -2px 0 var(--accent)}
+/* the name header holds the search box; the figure headers sort */
+.lib-tbl thead th.lib-nh{white-space:nowrap}
+.lib-nh input{width:96px;margin-left:10px;padding:1px 6px;font:11px/1.4 var(--font);text-transform:none;letter-spacing:0;
+  background:var(--sunken);color:var(--text);border-color:var(--border-soft);vertical-align:1px}
+.lib-sh{position:relative;cursor:pointer;user-select:none}
+.lib-sh:hover{background:color-mix(in srgb,var(--raised) 92%,rgb(var(--hi)))}
+.lib-sh.on{box-shadow:inset 0 -2px 0 var(--accent)}
+.lib-arw{position:absolute;right:3px;top:3px;font:normal 8px/1 var(--font);color:var(--accent)}
+.lib-tbl td.lib-none{text-align:center;padding:24px;color:var(--text-dim);font-family:var(--font)}
 .lib-tag{font:600 9px/1 var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);
   border:1px solid var(--border-soft);border-radius:3px;padding:2px 4px;margin-left:6px;vertical-align:1px}
 .lib-ib{background:none;border:0;padding:1px 4px;font-size:11px;color:var(--text-dim);cursor:pointer;border-radius:3px}
@@ -7843,7 +7854,14 @@ const BUILTIN_ARMIES = {
   "Stalliongrad (W2)":         {folder: "historical", code: "xAb2Ri8cnUTE7vplaGbpvdtgMpFQSQep5j3Rf~20"},
   "Hoovesia (W2)":             {folder: "historical", code: "44otGjR6U9DkEZmuTBX9PI5BYhuSf~20"},
   "Hoofkryina (W2)":           {folder: "historical", code: "E2jp6iEpKQLfNwiMPdZRJOOXnpkKhXc6DXLmaBpFH~20"},
-  "Clopastan (W2)":            {folder: "historical", code: "l9635eWpBuRRPjGoffZjq4dHDhabqC68eKxNMCDSh~20"}
+  "Clopastan (W2)":            {folder: "historical", code: "l9635eWpBuRRPjGoffZjq4dHDhabqC68eKxNMCDSh~20"},
+  "New Canterlonia (W1)":      {folder: "historical", code: "XQ8BkStLKcpBAxevg5PwiWiUlaE2ykhqeNyg7M5XtujXlOLu1s3X~20"},
+  "Hoofy Nails for Oil (W1)":  {folder: "historical", code: "290ot7zXhwwMANo21N4RGQnuvng7jPzVe30Ee3r1kzmkrbC8NqF5V~20"},
+  "New Ponutania (W1)":        {folder: "historical", code: "gCLbHm1LBJNgOmLx1jWgGEnnC3KZv4l7lxs5t9fnPqWkENm18woRHszL~20"},
+  "Fetloco (W1)":              {folder: "historical", code: "eKQ0VHYsWkdrztos8Qy9WV45pSPylzZ217cKCYwHVD9EiiTTcjF~20"},
+  "Hoofkryina (W1)":           {folder: "historical", code: "26fQENtKwaiaqIWCGjDT7et1lj7T0SFSUVHhXzOsl0vNOGnCrDKlED2UBXDYHnJT~20"},
+  "Hoovesia (W1)":             {folder: "historical", code: "30tPsCkukn6G9CGFBiJHb3fkztvX6YyT3QEvmdajTryuRPlQV~20"},
+  "Stalliongrad (W1)":         {folder: "historical", code: "nMvWDMFcHJzWxPN4PkZuwVZFhZRa8aDuAQoYmANUmqed7F~20"}
 };
 const isBuiltin = name => Object.hasOwn(BUILTIN_ARMIES, name);
 let builtinJSON = "";
@@ -7884,6 +7902,7 @@ Object.entries(lib.colour).forEach(([n, c]) => {
 const libInk = name => LIB_COLOURS.includes(lib.colour[name]) ? `var(--pc-${lib.colour[name]})` : "";
 function libRename(name, next){
   ["where", "colour", "stasis"].forEach(k => { if (name in lib[k]) lib[k][next] = lib[k][name]; delete lib[k][name]; });
+  if (Array.isArray(lib.order)) lib.order = lib.order.filter(n => n !== next).map(n => n === name ? next : n);
   if (lib.sel === name) lib.sel = next;
   libSave();
 }
@@ -13981,6 +14000,7 @@ const LIB_RES = ["copper", "tungsten", "plastics", "machinery", "vehicle", "prec
 const LIB_BUDGET = ["apples", "gems", "coffee", "gasoline"];
 let libScale = 1;                                      // the scaler's multiple of the ratio
 let libPeek = "";                                      // the preset the pointer is over, shown in the pane
+let libSearch = "";                                    // what the search box above the names holds
 
 const libEl = id => document.getElementById(id);
 const gcd = (a, b) => { while (b) [a, b] = [b, a % b]; return a; };
@@ -14144,24 +14164,49 @@ function libDetailHTML(armies, n = lib.sel){
     ${libCostHTML(libCost(all))}`;
 }
 
+/* the presets in the order they were dragged into; any not placed yet
+   (new ones, or a browser that never dragged) follow, alphabetically */
+const libAlpha = (a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: "base"});
+function libOrder(names){
+  const have = new Set(names), seen = new Set();
+  const known = (Array.isArray(lib.order) ? lib.order : []).filter(n => have.has(n) && !seen.has(n) && seen.add(n));
+  lib.order = known.concat(names.filter(n => !seen.has(n)).sort(libAlpha));
+  return lib.order;
+}
+
 function libRender(){
   if (!libEl("libList")) return;
   const armies = getArmies();
-  const names = Object.keys(armies).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: "base"}));
+  const names = libOrder(Object.keys(armies));
   if (lib.sel && !armies[lib.sel]) lib.sel = "";
   document.querySelectorAll("[data-lib-view]").forEach(b => b.classList.toggle("on", b.dataset.libView === lib.view));
   const resView = lib.view === "res";
-  const ncol = (resView ? LIB_RES.length : LIB_TYPES.length) + 3;
-  const head = `<thead><tr><th>Name</th>${resView
-      ? LIB_RES.map(k => `<th>${resIcon(k)}</th>`).join("")
-      : LIB_TYPES.map(([t, g]) => `<th title="${t}"><img class="gear-img" src="${esc(gearImgSrc(g, true))}" alt="${t}"></th>`).join("")
-    }<th title="Bits, all in" class="lib-bits">${BIT}</th><th class="lib-fill"></th></tr></thead>`;
+  const cols = resView ? LIB_RES : LIB_TYPES.map(t => t[0]);
+  const ncol = cols.length + 3;
+  /* a column header sorts by it, biggest first, then smallest first, then back to the dragged order */
+  const sort = lib.sort && (lib.sort.key === "bits" || cols.includes(lib.sort.key)) ? lib.sort : null;
+  const sh = (key, inner, title) => `<th class="lib-sh${sort?.key === key ? " on" : ""}" data-lib-sort="${key}" title="${esc(title)}: click to sort">${
+    inner}${sort?.key === key ? `<i class="lib-arw">${sort.dir < 0 ? "▼" : "▲"}</i>` : ""}</th>`;
+  const head = `<thead><tr><th class="lib-nh"><span>Name</span><input type="search" id="libSearch" placeholder="search"
+      value="${esc(libSearch)}" spellcheck="false" aria-label="Search presets"></th>${resView
+      ? LIB_RES.map(k => sh(k, resIcon(k), RESOURCES[k].name)).join("")
+      : LIB_TYPES.map(([t, g]) => sh(t, `<img class="gear-img" src="${esc(gearImgSrc(g, true))}" alt="${t}">`, t)).join("")
+    }${sh("bits", `<span class="lib-bits">${BIT}</span>`, "Bits, all in")}<th class="lib-fill"></th></tr></thead>`;
 
-  const row = n => {
+  const data = new Map(names.map(n => {
     const shown = lib.view === "ratio" ? libRatio(armies[n]).units.map(u => Object.assign({}, u, {size: Math.round(u.size)}))
       .filter(u => u.size >= 1) : libStacks(armies[n]);
-    const cost = libCost(shown), h = libHeads(shown), st = inStasis(n), c = libInk(n);
+    const cost = libCost(shown), h = libHeads(shown);
     const vals = resView ? LIB_RES.map(k => Math.round(cost.res[k] || 0)) : LIB_TYPES.map(([t]) => h[t] || 0);
+    return [n, {vals, bits: cost.bits}];
+  }));
+  const valOf = n => sort.key === "bits" ? data.get(n).bits : data.get(n).vals[cols.indexOf(sort.key)];
+  const ordered = sort ? names.slice().sort((a, b) => (valOf(a) - valOf(b)) * sort.dir || names.indexOf(a) - names.indexOf(b)) : names;
+  const q = libSearch.trim().toLowerCase();
+  const shownNames = q ? ordered.filter(n => n.toLowerCase().includes(q)) : ordered;
+
+  const row = n => {
+    const {vals, bits} = data.get(n), st = inStasis(n), c = libInk(n);
     return `<tr class="lib-row${n === lib.sel ? " sel" : ""}${st ? " stasis" : ""}${c ? " tint" : ""}" data-lib-name="${esc(n)}"
         draggable="true"${c ? ` style="--c:${c}"` : ""}>
       <td class="lib-n" title="${esc(n)}"><span class="lib-dot"></span><span class="lib-name">${esc(n)}</span><button
@@ -14169,13 +14214,15 @@ function libRender(){
           ? "In stasis: out of every dropdown. Click to bring it back" : "Put in stasis: kept here, but out of every dropdown"}">${
           iconSvg(st ? "stasisOn" : "stasis")}</button></td>
       ${vals.map(v => `<td${v ? "" : ` class="z"`}>${v ? money(v) : "·"}</td>`).join("")}
-      <td class="lib-bits">${cost.bits ? shortBits(cost.bits) : "·"}</td><td class="lib-fill"></td></tr>`;
+      <td class="lib-bits">${bits ? shortBits(bits) : "·"}</td><td class="lib-fill"></td></tr>`;
   };
 
+  /* a search opens every folder with a match in it, and leaves out the rest */
   const groups = libFolders().concat({id: "", name: "Unfiled"})
-    .map(f => ({f, names: names.filter(n => libFolderOf(n) === f.id)}));
+    .map(f => ({f, names: shownNames.filter(n => libFolderOf(n) === f.id)}))
+    .filter(g => !q || g.names.length);
   const body = groups.map(({f, names: list}) => {
-    const open = !lib.shut[f.id || "_"], st = list.filter(inStasis).length;
+    const open = q || !lib.shut[f.id || "_"], st = list.filter(inStasis).length;
     const acts = (list.length ? `<button type="button" class="lib-ib" data-lib-fstasis="1"
           title="Put every preset in this folder in stasis">Stasis all</button><button type="button" class="lib-ib"
           data-lib-fstasis="0" title="Bring every preset in this folder back">Unstasis all</button>` : "")
@@ -14188,7 +14235,11 @@ function libRender(){
       ${open ? list.map(row).join("") : ""}</tbody>`;
   }).join("");
 
-  libEl("libList").innerHTML = `<table class="lib-tbl${resView ? " lib-res" : ""}">${head}${body}</table>`;
+  /* the search box is drawn afresh with the table; typing carries on where it was */
+  const typing = document.activeElement?.id === "libSearch" ? libEl("libSearch").selectionStart : null;
+  libEl("libList").innerHTML = `<table class="lib-tbl${resView ? " lib-res" : ""}">${head}${body ||
+    `<tr><td colspan="${ncol}" class="lib-none">No preset is called anything like that.</td></tr>`}</table>`;
+  if (typing != null){ const box = libEl("libSearch"); box.focus(); box.setSelectionRange(typing, typing); }
   const nst = names.filter(inStasis).length;
   /* the stasis count is on every folder, so the bar keeps to the total */
   libEl("libCount").textContent = `${names.length} preset${names.length === 1 ? "" : "s"}`;
@@ -14583,6 +14634,7 @@ const viewLib = libEl("viewLibrary");
 ["libCode", "libMullCode"].forEach(id => libEl(id).addEventListener("focus", e => e.target.select()));
 viewLib.addEventListener("input", e => {
   const t = e.target;
+  if (t.id === "libSearch"){ libSearch = t.value; libRender(); return; }
   if (t.dataset.libBudget){ lib.budget[t.dataset.libBudget] = t.value; libSave(); libScaler(); }
   else if (t.id === "libTol"){ lib.tol = clampInt(t.value, 1, 50); libSave(); libMullRender(); }
   else if (t.id === "libK" || t.id === "libKn"){
@@ -14602,10 +14654,15 @@ viewLib.addEventListener("change", e => {
 });
 
 viewLib.addEventListener("click", e => {
-  const t = e.target.closest("button, .lib-row, .lib-fold");
+  const t = e.target.closest("button, .lib-row, .lib-fold, [data-lib-sort]");
   if (!t || t.disabled) return;
   const folder = t.closest("[data-lib-folder]")?.dataset.libFolder;
   if (t.dataset.libView){ lib.view = t.dataset.libView; libSave(); libRender(); }
+  else if (t.dataset.libSort){
+    const k = t.dataset.libSort, now = lib.sort?.key === k ? lib.sort.dir : 0;
+    lib.sort = now === 0 ? {key: k, dir: -1} : now < 0 ? {key: k, dir: 1} : null;
+    libSave(); libRender();
+  }
   else if (t.id === "libNewFolder"){
     const name = (prompt("Name the new folder:", "") || "").trim();
     if (!name) return;
@@ -14684,7 +14741,8 @@ addEventListener("scroll", libMenuOff, true);
 
 /* drag a preset onto a folder (or any preset in it) to file it there */
 let libDrag = "";
-const libDropOff = () => viewLib.querySelectorAll(".lib-fold.drop").forEach(r => r.classList.remove("drop"));
+const libDropOff = () => viewLib.querySelectorAll(".drop, .drop-before, .drop-after")
+  .forEach(r => r.classList.remove("drop", "drop-before", "drop-after"));
 /* pointing at a preset shows it in the pane beside the list, as if picked;
    leaving the list puts the picked one back */
 libEl("libList").addEventListener("mouseover", e => {
@@ -14707,18 +14765,40 @@ viewLib.addEventListener("dragstart", e => {
   e.dataTransfer.setData("text/plain", libDrag);
   row.classList.add("dragging");
 });
-viewLib.addEventListener("dragover", e => {
+/* where a drop lands: above or below the preset under the pointer, or at
+   the end of the folder whose header it is over. A sorted list has no order
+   of its own to drop into, so there it only files into the folder */
+function libDropAt(e){
   const tb = libDrag && e.target.closest?.("[data-lib-folder]");
-  if (!tb) return;
+  if (!tb) return null;
+  const row = !lib.sort && e.target.closest(".lib-row");
+  if (row && row.dataset.libName !== libDrag){
+    const r = row.getBoundingClientRect();
+    return {tb, row, after: e.clientY > r.top + r.height / 2};
+  }
+  return {tb};
+}
+viewLib.addEventListener("dragover", e => {
+  const at = libDropAt(e);
+  if (!at) return;
   e.preventDefault();
   libDropOff();
-  tb.querySelector(".lib-fold").classList.add("drop");
+  if (at.row) at.row.classList.add(at.after ? "drop-after" : "drop-before");
+  else at.tb.querySelector(".lib-fold").classList.add("drop");
 });
 viewLib.addEventListener("drop", e => {
-  const tb = libDrag && e.target.closest?.("[data-lib-folder]");
-  if (!tb) return;
+  const at = libDropAt(e);
+  if (!at) return;
   e.preventDefault();
-  lib.where[libDrag] = tb.dataset.libFolder;
+  const n = libDrag;
+  lib.where[n] = at.tb.dataset.libFolder;
+  const order = libOrder(Object.keys(getArmies())).filter(x => x !== n);
+  if (at.row){
+    const i = order.indexOf(at.row.dataset.libName);
+    order.splice(at.after ? i + 1 : i, 0, n);
+  } else if (!lib.sort) order.push(n);
+  else order.splice(lib.order.indexOf(n), 0, n);      // sorted: its place in the dragged order stays
+  lib.order = order;
   libDrag = "";
   libSave(); libRender();
 });
