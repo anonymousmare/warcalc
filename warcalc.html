@@ -2281,19 +2281,33 @@ summary.as-sub::before{content:"\25B8";display:inline-block;width:1em;margin-lef
 .lib-mull{margin-bottom:0}
 .lib-mull-head{display:flex;align-items:baseline;gap:10px;margin-bottom:8px}
 .lib-mull-head h2{margin:0}
-/* gear the mulligan may not use: a row of each type's weapons, then its armour */
+/* gear the mulligan may not use and how much it leans on each type: a
+   block a type, its weight on top, its weapons and its armour side by side */
 .lib-ban{position:relative;align-self:center}
 .lib-ban #libBanBtn.on{color:var(--atk);border-color:var(--atk)}
-.lib-ban-menu{position:absolute;right:0;top:calc(100% + 4px);z-index:30;padding:6px 8px;width:max-content;max-width:calc(100vw - 32px);
+.lib-ban-menu{position:absolute;right:0;top:calc(100% + 4px);z-index:30;padding:4px 8px 6px;width:400px;max-width:calc(100vw - 32px);
+  max-height:min(76vh,760px);overflow-y:auto;
   background:var(--raised);border:1px solid var(--border-soft);border-radius:4px;box-shadow:0 8px 22px rgba(var(--lo),.45)}
-.lib-ban-row{display:flex;align-items:center;gap:2px;height:26px}
-.lib-ban-row > b{font-size:11px;font-weight:400;color:var(--text-dim);width:64px;flex:none}
-/* the weapons take room for cavalry's seven so every type's armour starts in one column */
-.lib-ban-row > span{display:flex;flex:none}
-.lib-ban-row > span:first-of-type{width:calc(7 * 40px);padding-right:6px;margin-right:6px;border-right:1px solid var(--border-soft)}
-.lib-ban .lib-foe{padding:2px 4px;margin:0}
-.lib-ban-foot{display:flex;align-items:center;gap:8px;margin-top:4px;padding-top:5px;border-top:1px solid var(--border-soft);font-size:11px}
-.lib-ban-foot .spacer{flex:1}
+.lib-ban-t{padding:4px 0 6px;border-bottom:1px solid var(--border-soft)}
+.lib-ban-t.nil .lib-ban-cols{opacity:.4}
+.lib-ban-th{display:flex;align-items:center;gap:8px;height:24px}
+.lib-ban-th > b{font-size:12px}
+.lib-ban-th .spacer{flex:1}
+.lib-wt{display:inline-flex;align-items:center;gap:6px;margin:0;font-size:11px;font-weight:400;color:var(--text-dim)}
+.lib-wt input{width:96px;accent-color:var(--accent);padding:0}
+.lib-wt b{font:600 11px/1 var(--mono);color:var(--strong);min-width:3.5ch;text-align:right}
+.lib-ban-cols{display:grid;grid-template-columns:1fr 1fr;gap:0 8px}
+.lib-ban-it{display:flex;align-items:center;gap:6px;width:100%;height:22px;padding:0 4px;border:0;border-radius:3px;background:none;
+  font:12px var(--font);color:var(--text);text-align:left;cursor:pointer}
+.lib-ban-it:hover{background:rgba(var(--hi),.08)}
+.lib-ban-it span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lib-ban-it .gear-img{transition:opacity .12s,filter .12s}
+.lib-ban-it.ban span{color:var(--text-dim);text-decoration:line-through}
+.lib-ban-it.ban .gear-img{filter:grayscale(1) brightness(1.6) var(--icon-edge,);opacity:.4}
+:is([data-theme="white"],[data-theme="applejack"],[data-theme="rainbow"]) .lib-ban-it.ban .gear-img{
+  filter:grayscale(1) brightness(.5) var(--icon-edge,);opacity:.6}
+.lib-ban-foot{display:flex;justify-content:flex-end;gap:8px;padding-top:6px}
+.lib-lay{display:inline-flex;align-items:center;gap:5px;margin:0;font-size:12px;color:var(--text-dim);font-weight:400}
 .lib-tol{display:inline-flex;align-items:center;gap:8px;margin:0;font-size:12px;color:var(--text-dim)}
 .lib-tol input{width:160px;accent-color:var(--accent);padding:0}
 .lib-tol b{font:600 12px/1 var(--mono);color:var(--strong);min-width:3.5ch;text-align:right}
@@ -2305,9 +2319,9 @@ summary.as-sub::before{content:"\25B8";display:inline-block;width:1em;margin-lef
 .lib-foe{display:block;margin:0 auto;background:none;border:0;padding:2px 6px;border-radius:3px;cursor:pointer}
 .lib-foe:hover{background:rgba(var(--hi),.08)}
 .lib-foe .gear-img{transition:opacity .12s,filter .12s}
-.lib-foe.out .gear-img,.lib-foe.ban .gear-img{filter:grayscale(1) brightness(1.6) var(--icon-edge,);opacity:.4}
+.lib-foe.out .gear-img{filter:grayscale(1) brightness(1.6) var(--icon-edge,);opacity:.4}
 /* on a pale page a greyed icon goes darker, not lighter, or it vanishes */
-:is([data-theme="white"],[data-theme="applejack"],[data-theme="rainbow"]) :is(.lib-foe.out,.lib-foe.ban) .gear-img{
+:is([data-theme="white"],[data-theme="applejack"],[data-theme="rainbow"]) .lib-foe.out .gear-img{
   filter:grayscale(1) brightness(.5) var(--icon-edge,);opacity:.6}
 .lib-dmg td{font-family:var(--mono);text-align:center;padding:1px 4px;white-space:nowrap}
 .lib-dmg td .to{font-family:var(--font);font-size:10px;color:var(--text-dim)}
@@ -3024,9 +3038,11 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
         <span class="spacer"></span>
         <div class="lib-ban" id="libBan">
           <button type="button" class="bp-btn txt-btn" id="libBanBtn" aria-expanded="false"
-            title="Weapons and armour the mulligan may not use">Ban gear</button>
+            title="Weapons and armour the mulligan may not use, and how much it leans on each type">Ban gear</button>
           <div class="lib-ban-menu" id="libBanMenu" hidden></div>
         </div>
+        <label class="lib-lay" title="Match how the army is layered too: what each type still deals as its stacks fall in the order they are hit"><input
+          type="checkbox" id="libLayers" checked> Layers</label>
         <label class="lib-tol" for="libTol" title="How far each figure below may drift from the original's">Tolerance
           <input type="range" id="libTol" min="1" max="50" step="1" value="10"><b id="libTolV">10%</b></label>
       </div>
@@ -14571,7 +14587,9 @@ function libSaveUnits(units, suggest, btn){
    even on both sides. Every figure is a sum over the stacks of size times a
    per-troop figure, so finding an army that lands all of them within the
    tolerance is a linear program over the stack sizes: solved for a handful
-   of random loadouts, then grown a loadout at a time until it fits. */
+   of random loadouts, then grown a loadout at a time until it fits, and
+   that fit spread over as many stacks as the original fields. Two more lines
+   take in layering, with the order stacks are hit in. */
 const LIB_FOES = LIB_TYPES.map(t => t[0]);
 /* the colours the gear sprites are drawn in, so the bar matches the pictures */
 const LIB_FOE_COL = {Cavalry: "#ff0000", Tanks: "#0076ff", Pegasi: "#ff00dc", Unicorns: "#00ff21", Naval: "#00ffff",
@@ -14583,6 +14601,15 @@ const LIB_LINES = [
   ["Dealt · best armour", "The same, with them in their best armour against each of our stacks", true],
   ["Absorbed", "Damage absorbed from as many troops of each type, carrying plain weapons", false],
   ["Absorbed · best weapons", "The same, with them carrying their best weapon against each of our stacks", false]];
+/* layering: what is still dealt once each of our types has lost a share of
+   its troops to that type, its stacks falling in the order they are hit */
+const LIB_LAYERS = [1 / 3, 2 / 3];
+const LIB_LAYER_LINES = [
+  ["Dealt · ⅓ lost", "Damage dealt, unarmoured, once each of our types has lost a third of its troops to them, its stacks falling in the order they are targeted: best armour against them first, then the biggest"],
+  ["Dealt · ⅔ lost", "The same, once two thirds are gone"]];
+const libLayersOn = () => lib.mullLayers !== false;
+const libLines = () => libLayersOn() ? LIB_LINES.concat(LIB_LAYER_LINES) : LIB_LINES;
+const LIB_NF = LIB_FOES.length, LIB_LIN = LIB_LINES.length * LIB_NF;
 const libFights = t => t === "Alicorns" ? "naval" : TYPES[FORCE_TYPES[t]];   // alicorns are hit as naval
 const libBestArm = (T, src) => T === "Alicorns" ? 0.1
   : Math.min(...LOADOUTS[T].armor.filter(a => ARMOR_IDS[a]).map(a => ARMOR_DEFS[a][src]));
@@ -14598,30 +14625,70 @@ function libPerTroop(u){
     LIB_FOES.map(T => dmg[libFights(T)] * libBestArm(T, me)),
     LIB_FOES.map(T => (T === "Alicorns" ? 10 : 1) * arm[libFights(T)]),
     LIB_FOES.map(T => libBestWpn(T, me) * arm[libFights(T)]));
+  /* and past the figures, how hard each foe hits it: the order they pick targets in */
+  v.arm = LIB_FOES.map(T => arm[libFights(T)]);
   LIB_PER.set(key, v);
   return v;
 }
-const libProfile = units => units.reduce((P, u) =>
-  (libPerTroop(u).forEach((v, j) => { P[j] += v * u.size; }), P), new Array(LIB_LINES.length * LIB_FOES.length).fill(0));
+
+/* the stacks a foe works down together, a list of indices for each of our pools */
+const libPools = kits => Object.values(kits.reduce((g, k, i) => ((g[libFights(k.type)] ??= []).push(i), g), {}));
+/* a pool in the order foe i hits it: best armour against it first, then the biggest stack */
+const libHitOrder = (pool, kits, x, i) => pool.slice().sort((a, b) =>
+  libPerTroop(kits[a]).arm[i] - libPerTroop(kits[b]).arm[i] || x[b] - x[a] || a - b);
+/* where a share f of a pool runs out: the stack the losses stop inside */
+function libEdge(ord, x, f){
+  const lose = f * ord.reduce((n, k) => n + x[k], 0);
+  let pre = 0;
+  for (let p = 0; p < ord.length; p++){ pre += x[ord[p]]; if (pre >= lose - 1e-9) return p; }
+  return ord.length - 1;
+}
+/* for that order and that edge the layered figure is linear in the sizes:
+   the stacks behind the edge in full, the edge stack with what is left of it */
+function libLayerCoef(ord, kits, p, f, i, coef){
+  const oe = libPerTroop(kits[ord[p]])[i];
+  ord.forEach((k, q) => { coef[k] += q <= p ? oe * (1 - f) : libPerTroop(kits[k])[i] - f * oe; });
+}
+
+function libProfile(units){
+  const P = new Array(LIB_LIN).fill(0);
+  units.forEach(u => libPerTroop(u).forEach((v, j) => { P[j] += v * u.size; }));
+  if (!libLayersOn()) return P;
+  const x = units.map(u => u.size), pools = libPools(units);
+  LIB_LAYERS.forEach(f => LIB_FOES.forEach((F, i) => {
+    const coef = new Array(units.length).fill(0);
+    pools.forEach(pool => { const ord = libHitOrder(pool, units, x, i); libLayerCoef(ord, units, libEdge(ord, x, f), f, i, coef); });
+    P.push(coef.reduce((s, c, k) => s + c * x[k], 0));
+  }));
+  return P;
+}
 /* the worst any figure strays from the target's, as a fraction of it */
 const libMiss = (P, T) => Math.max(0, ...P.map((p, j) => T[j] ? Math.abs(p / T[j] - 1) : 0));
 
 /* max c·y subject to A·y <= b, y >= 0, with b >= 0 so the origin is a
-   start; Bland's rule, since the rows held at 0 are degenerate */
+   start, entering on the first column that pays (Bland's). Every
+   column and then every row is scaled to a largest entry of 1 first: sizes
+   run to the thousands against figures a thousandth of that, and pivots that
+   small blew the answer up outside its own rows */
 function libSimplex(A, b, c){
   const m = A.length, n = c.length, w = n + m;
-  const T = A.map((row, i) => row.concat(Array.from({length: m}, (_, j) => i === j ? 1 : 0), b[i]));
+  const cs = Array.from({length: n}, (_, j) => Math.max(...A.map(r => Math.abs(r[j]))) || 1);
+  A = A.map(r => r.map((v, j) => v / cs[j]));
+  c = c.map((v, j) => v / cs[j]);
+  const rs = A.map(r => Math.max(...r.map(Math.abs)) || 1);
+  const T = A.map((row, i) => row.map(v => v / rs[i]).concat(Array.from({length: m}, (_, j) => i === j ? 1 : 0), b[i] / rs[i]));
   const z = c.map(v => -v).concat(new Array(m + 1).fill(0));
   const basis = Array.from({length: m}, (_, i) => n + i);
-  for (let it = 0; it < 1000; it++){
+  for (let it = 0; it < 5000; it++){
     let col = -1;
     for (let j = 0; j < w; j++) if (z[j] < -1e-12){ col = j; break; }
     if (col < 0) break;
+    /* of the rows that bind first, the one with the biggest pivot: the
+       smallest index among ties would pivot on slivers */
     let row = -1, best = Infinity;
-    for (let i = 0; i < m; i++) if (T[i][col] > 1e-12){
-      const q = T[i][w] / T[i][col];
-      if (q < best - 1e-12 || (Math.abs(q - best) <= 1e-12 && basis[i] < basis[row])){ best = q; row = i; }
-    }
+    for (let i = 0; i < m; i++) if (T[i][col] > 1e-9) best = Math.min(best, T[i][w] / T[i][col]);
+    for (let i = 0; i < m; i++) if (T[i][col] > 1e-9 && T[i][w] / T[i][col] <= best + 1e-9
+      && (row < 0 || T[i][col] > T[row][col])) row = i;
     if (row < 0) break;
     const p = T[row][col];
     for (let j = 0; j <= w; j++) T[row][j] /= p;
@@ -14634,25 +14701,80 @@ function libSimplex(A, b, c){
     basis[row] = col;
   }
   const y = new Array(n).fill(0);
-  basis.forEach((v, i) => { if (v < n) y[v] = T[i][w]; });
+  basis.forEach((v, i) => { if (v < n) y[v] = Math.max(0, T[i][w]) / cs[v]; });
   return y;
 }
 
-/* the sizes for these loadouts that keep the worst figure closest: with
-   s = 1 - that miss, maximise s while every figure stays within 1 ± (1 - s) */
+/* the rows over the sizes, each {a, s, b}: a·x + s·(the s column) <= b.
+   With s = 1 - the worst miss, every figure stays within 1 ± (1 - s). The
+   layered figures are linear only for one targeting order and one edge, so
+   they are taken from the sizes in `at`, and held there by rows of their own:
+   the tied stacks kept in their order of size, the edge kept where it is. */
 const libUpk = (u, r) => UNIT_COST[u.type].upkeep[r] || 0;
-function libFit(kits, T, caps = {}){
-  const V = kits.map(libPerTroop), A = [], b = [];
-  T.forEach((t, j) => {
-    if (!t) return;
-    A.push(V.map(v => v[j] / t).concat(1)); b.push(2);
-    A.push(V.map(v => -v[j] / t).concat(1)); b.push(0);
-  });
+function libRows(kits, T, caps, at){
+  const R = [], k = kits.length, V = kits.map(libPerTroop);
+  const fig = (a, t) => { R.push({a: a.map(c => c / t), s: 1, b: 2}, {a: a.map(c => -c / t), s: 1, b: 0}); };
+  for (let j = 0; j < LIB_LIN; j++) if (T[j]) fig(V.map(v => v[j]), T[j]);
   Object.entries(caps).forEach(([r, cap]) => {
-    if (kits.some(k => libUpk(k, r))){ A.push(kits.map(k => libUpk(k, r) / cap).concat(0)); b.push(1); }
+    if (kits.some(kk => libUpk(kk, r))) R.push({a: kits.map(kk => libUpk(kk, r) / cap), s: 0, b: 1});
   });
-  const x = libSimplex(A, b, new Array(kits.length).fill(0).concat(1)).slice(0, kits.length);
-  return {x, miss: libMiss(libProfile(kits.map((k, i) => Object.assign({}, k, {size: x[i]}))), T)};
+  if (!at || T.length <= LIB_LIN) return R;
+  const pools = libPools(kits).filter(p => p.length > 1), all = libPools(kits);
+  LIB_FOES.forEach((F, i) => pools.forEach(pool => {
+    const ord = libHitOrder(pool, kits, at, i);
+    for (let q = 1; q < ord.length; q++) if (V[ord[q]].arm[i] === V[ord[q - 1]].arm[i]){
+      const a = new Array(k).fill(0);
+      a[ord[q]] = 1; a[ord[q - 1]] = -1;
+      R.push({a, s: 0, b: 0});
+    }
+  }));
+  LIB_LAYERS.forEach((f, r) => LIB_FOES.forEach((F, i) => {
+    const t = T[LIB_LIN + r * LIB_NF + i];
+    if (!t) return;
+    const coef = new Array(k).fill(0);
+    all.forEach(pool => {
+      const ord = libHitOrder(pool, kits, at, i), p = libEdge(ord, at, f);
+      libLayerCoef(ord, kits, p, f, i, coef);
+      if (ord.length < 2) return;
+      const lo = new Array(k).fill(0), hi = new Array(k).fill(0);
+      ord.forEach((kk, q) => { lo[kk] = (q < p ? 1 : 0) - f; hi[kk] = f - (q <= p ? 1 : 0); });
+      R.push({a: lo, s: 0, b: 0}, {a: hi, s: 0, b: 0});
+    });
+    fig(coef, t);
+  }));
+  return R;
+}
+
+const libSized = (kits, x) => kits.map((k, i) => Object.assign({}, k, {size: x[i]}));
+const libLp = (R, k) => libSimplex(R.map(r => r.a.concat(r.s)), R.map(r => r.b), new Array(k).fill(0).concat(1)).slice(0, k);
+/* the sizes for these loadouts that keep the worst figure closest: the plain
+   figures first, then the layered ones taken from there a few times over */
+function libFit(kits, T, caps = {}){
+  let x = libLp(libRows(kits, T, caps, null), kits.length);
+  let best = {x, miss: libMiss(libProfile(libSized(kits, x)), T)};
+  for (let it = 0; it < 3 && T.length > LIB_LIN; it++){
+    x = libLp(libRows(kits, T, caps, best.x), kits.length);
+    const miss = libMiss(libProfile(libSized(kits, x)), T);
+    if (miss >= best.miss - 1e-9) break;
+    best = {x, miss};
+  }
+  return best;
+}
+
+/* a fit, spread over as many of its loadouts as will take it: the miss is
+   held at most `room`, and inside that each loadout is credited for reaching
+   a floor of `floor[i]` troops, so a few big stacks don't take everything */
+function libSpread(kits, T, caps, at, room, floor){
+  const k = kits.length, R = libRows(kits, T, caps, at), big = 50 * k;
+  const A = R.map(r => r.a.concat(r.s, new Array(k).fill(0))), b = R.map(r => r.b);
+  const row = (fill, rb) => { const a = new Array(2 * k + 1).fill(0); fill(a); A.push(a); b.push(rb); };
+  row(a => { a[k] = 1; }, 1 - room);
+  for (let i = 0; i < k; i++){
+    row(a => { a[k + 1 + i] = 1; }, 1);
+    row(a => { a[i] = -1 / floor[i]; a[k + 1 + i] = 1; }, 0);
+  }
+  const x = libSimplex(A, b, new Array(k).fill(0).concat(big, new Array(k).fill(1))).slice(0, k);
+  return {x, miss: libMiss(libProfile(libSized(kits, x)), T)};
 }
 
 const libKitKey = u => `${u.type}|${u.weapon}|${u.armor}`;
@@ -14661,17 +14783,29 @@ async function libMulliganSearch(orig, tol, ms){
   const tally = {};
   orig.forEach(u => { tally[u.training] = (tally[u.training] || 0) + u.size; });
   const train = +Object.keys(tally).sort((a, b) => tally[b] - tally[a])[0] || 0;
-  /* real gear only, from the unit types not left out, none of it banned */
+  /* real gear only, from the unit types not left out or weighed at nothing, none of it banned */
   const off = libMullOff(), ban = libMullBan(), caps = libCaps();
   /* a budget too small for a single troop rules its unit types out */
-  const pool = KITS.filter(([t, w, a]) => !off[t] && (t === "Alicorns" || WEAPON_IDS[w] && ARMOR_IDS[a] && !ban[w] && !ban[a]))
+  const pool = KITS.filter(([t, w, a]) => !off[t] && libWeight(t) > 0
+      && (t === "Alicorns" || WEAPON_IDS[w] && ARMOR_IDS[a] && !ban[w] && !ban[a]))
     .map(([type, weapon, armor]) => ({type, weapon, armor}))
     .filter(k => Object.entries(caps).every(([r, cap]) => libUpk(k, r) <= cap));
   if (!pool.length) return null;
   const own = new Set(orig.map(libKitKey));
-  const pick = () => pool[Math.floor(Math.random() * pool.length)];
+  /* a type is dealt as often as its weight says, whatever number of loadouts it has */
+  const byType = pool.reduce((g, k) => ((g[k.type] ??= []).push(k), g), {}), types = Object.keys(byType);
+  const W = types.reduce((s, t) => s + libWeight(t), 0);
+  const pick = () => {
+    let r = Math.random() * W, t = types[types.length - 1];
+    for (const u of types) if ((r -= libWeight(u)) < 0){ t = u; break; }
+    return byType[t][Math.floor(Math.random() * byType[t].length)];
+  };
+  /* as many stacks as the original fields, and a floor for each of half its
+     average stack, more for a heavier type */
+  const want = Math.min(16, pool.length, Math.max(3, orig.length));
+  const avg = troopTotal(orig) / Math.max(1, orig.length);
   const end = performance.now() + ms;
-  let best = null, slice = performance.now();
+  let best = null, fitAt = null, slice = performance.now();
   while (performance.now() < end){
     let kits = [];
     while (kits.length < Math.min(6, pool.length)){ const k = pick(); if (!kits.includes(k)) kits.push(k); }
@@ -14689,6 +14823,15 @@ async function libMulliganSearch(orig, tol, ms){
       if (!next || next.f.miss >= cur.miss - 1e-9) break;
       kits = next.nk; cur = next.f;
     }
+    /* a fit is dealt out over the original's number of stacks, if it still
+       fits so, with a few tries at the loadouts it is topped up with */
+    for (let tries = 0; tries < 3 && cur.miss <= tol && kits.filter((_, i) => cur.x[i] >= 1).length < want; tries++){
+      const sk = kits.filter((_, i) => cur.x[i] > 1e-6), sx = cur.x.filter(v => v > 1e-6);
+      for (let n = 0; sk.length < want && n < 50; n++){ const k = pick(); if (!sk.includes(k)){ sk.push(k); sx.push(0); } }
+      const s = libSpread(sk, T, caps, sx, Math.max(cur.miss, tol * 0.7),
+        sk.map(k => avg / 2 * libWeight(k.type) / (W / types.length)));
+      if (s.miss <= tol && s.x.filter(v => v >= 1).length > cur.x.filter(v => v >= 1).length){ kits = sk; cur = s; }
+    }
     /* whole troops, and the miss measured again on those; the original's own
        loadouts handed back is no mulligan */
     /* rounding down on a capped resource keeps its upkeep inside the budget */
@@ -14697,11 +14840,19 @@ async function libMulliganSearch(orig, tol, ms){
         training: train}))
       .filter(u => u.size >= 1)
       .sort((a, b) => LIB_FOES.indexOf(a.type) - LIB_FOES.indexOf(b.type) || b.size - a.size);
+    /* a fit beats a near miss, and among fits the one closest to the
+       original's number of stacks; once one fits, a second more to find more */
     if (units.length && units.some(u => !own.has(libKitKey(u)))){
-      const miss = libMiss(libProfile(units), T);
-      if (!best || miss < best.miss) best = {units, miss};
-      if (best.miss <= tol) return best;
+      const miss = libMiss(libProfile(units), T), n = Math.min(want, units.length);
+      const better = !best || (miss <= tol) !== (best.miss <= tol) ? !best || miss <= tol
+        : miss <= tol && n !== best.n ? n > best.n : miss < best.miss;
+      if (better) best = {units, miss, n};
+      if (best.miss <= tol){
+        if (best.n >= want) break;
+        fitAt ??= performance.now();
+      }
     }
+    if (fitAt != null && performance.now() > fitAt + 1000) break;
     if (performance.now() - slice > sliceMs()){ await breathe(); slice = performance.now(); }
   }
   return best;
@@ -14713,6 +14864,8 @@ let libMull = null;                                    // {from: the original's 
 const libMullOff = () => lib.mullOff && typeof lib.mullOff === "object" ? lib.mullOff : (lib.mullOff = {Alicorns: true});
 /* the weapons and armour a mulligan may not use, by gear key */
 const libMullBan = () => lib.mullBan && typeof lib.mullBan === "object" ? lib.mullBan : (lib.mullBan = {});
+/* how much the mulligan leans on each type: how often it is dealt, and the floor its stacks are spread to */
+const libWeight = t => { const w = lib.mullWeight?.[t]; return w == null || !isFinite(w) ? 1 : Math.max(0, Math.min(4, +w)); };
 let libMullBusy = false;
 const libTol = () => clampInt(lib.tol ?? 10, 1, 50) / 100;
 
@@ -14777,20 +14930,30 @@ function libSimRow(T, M){
     <b>${sim == null ? "—" : (sim * 100).toFixed(1) + "%"}</b></div></td></tr>`;
 }
 
-/* the ban list: a row a unit type, its real weapons then its real armour */
-function libBanRender(){
-  const ban = libMullBan(), n = Object.keys(ban).filter(k => ban[k]).length, btn = libEl("libBanBtn");
-  btn.textContent = n ? `${n} banned` : "Ban gear";
+/* the ban list: a block a unit type, its weight, then its real weapons beside its real armour */
+const LIB_BAN_TYPES = LIB_FOES.filter(T => T !== "Alicorns");
+const libWeighed = () => LIB_BAN_TYPES.some(T => libWeight(T) !== 1);
+/* the button says what is banned and whether the weights are off even */
+function libBanLabel(){
+  const n = Object.values(libMullBan()).filter(Boolean).length, btn = libEl("libBanBtn");
+  btn.textContent = [n ? `${n} banned` : "Ban gear"].concat(libWeighed() ? ["weighted"] : []).join(" · ");
   btn.classList.toggle("on", !!n);
+  return n;
+}
+function libBanRender(){
+  const ban = libMullBan(), n = libBanLabel();
   if (libEl("libBanMenu").hidden) return;
-  const cell = k => `<button type="button" class="lib-foe${ban[k] ? " ban" : ""}" data-lib-ban="${esc(k)}" title="${esc(label(k))}: ${
-    ban[k] ? "banned from mulligans. Click to allow" : "allowed in mulligans. Click to ban"}"><img class="gear-img"
-    src="${esc(gearImgSrc(k))}" alt="${esc(label(k))}"></button>`;
-  libEl("libBanMenu").innerHTML = LIB_FOES.filter(T => T !== "Alicorns").map(T => `<div class="lib-ban-row"><b>${T}</b><span>${
-      LOADOUTS[T].weapons.filter(w => WEAPON_IDS[w]).map(cell).join("")}</span><span>${
-      LOADOUTS[T].armor.filter(a => ARMOR_IDS[a]).map(cell).join("")}</span></div>`).join("")
-    + `<div class="lib-ban-foot"><span class="muted">A type with all its weapons or armour banned sits out.</span>
-      <span class="spacer"></span><button type="button" class="bp-btn txt-btn" id="libBanClear"${n ? "" : " disabled"}>Allow all</button></div>`;
+  const item = k => `<button type="button" class="lib-ban-it${ban[k] ? " ban" : ""}" data-lib-ban="${esc(k)}" title="${
+    ban[k] ? "Banned from mulligans. Click to allow" : "Allowed in mulligans. Click to ban"}"><img class="gear-img"
+    src="${esc(gearImgSrc(k))}" alt=""><span>${esc(label(k))}</span></button>`;
+  libEl("libBanMenu").innerHTML = LIB_BAN_TYPES.map(T => `<div class="lib-ban-t${libWeight(T) ? "" : " nil"}">
+      <div class="lib-ban-th"><b style="color:${LIB_FOE_INK[T]}">${T}</b><span class="spacer"></span>
+        <label class="lib-wt" title="How much the mulligan leans on ${T.toLowerCase()}: how often they are dealt in, and how big their stacks are kept. At 0 they sit out">Weight
+          <input type="range" min="0" max="4" step="0.5" value="${libWeight(T)}" data-lib-weight="${T}"><b>×${libWeight(T)}</b></label></div>
+      <div class="lib-ban-cols"><div>${LOADOUTS[T].weapons.filter(w => WEAPON_IDS[w]).map(item).join("")}</div>
+        <div>${LOADOUTS[T].armor.filter(a => ARMOR_IDS[a]).map(item).join("")}</div></div></div>`).join("")
+    + `<div class="lib-ban-foot"><button type="button" class="bp-btn txt-btn" id="libWtClear"${libWeighed() ? "" : " disabled"}>Even weights</button>
+      <button type="button" class="bp-btn txt-btn" id="libBanClear"${n ? "" : " disabled"}>Allow all</button></div>`;
 }
 function libBanMenu(open){
   libEl("libBanMenu").hidden = !open;
@@ -14800,6 +14963,7 @@ function libBanMenu(open){
 
 function libMullRender(){
   libBanRender();
+  libEl("libLayers").checked = libLayersOn();
   const units = libCurrent()?.units || [], tol = libTol();
   libEl("libTol").value = Math.round(tol * 100);
   libEl("libTolV").textContent = Math.round(tol * 100) + "%";
@@ -14820,7 +14984,7 @@ function libMullRender(){
         `<th><button type="button" class="lib-foe${libMullOff()[t] ? " out" : ""}" data-lib-foe="${t}" title="${t}: ${libMullOff()[t]
           ? "left out of mulligans. Click to let them in" : "used in mulligans. Click to leave them out"}"><img class="gear-img"
           src="${esc(gearImgSrc(g, true))}" alt="${t}"></button></th>`).join("")}</tr></thead>
-      <tbody>${LIB_LINES.map(([name, what], r) => `<tr><th title="${esc(what)}">${name}</th>${LIB_FOES.map((F, i) => {
+      <tbody>${libLines().map(([name, what], r) => `<tr><th title="${esc(what)}">${name}</th>${LIB_FOES.map((F, i) => {
         const j = r * LIB_FOES.length + i;
         if (!M) return `<td style="color:${LIB_FOE_INK[F]}">${money(T[j])}</td>`;
         const d = T[j] ? M[j] / T[j] - 1 : 0, off = Math.abs(d) > tol + 1e-9;
@@ -14880,6 +15044,15 @@ viewLib.addEventListener("input", e => {
   if (t.id === "libSearch"){ libSearch = t.value; libRender(); return; }
   if (t.dataset.libBudget){ lib.budget[t.dataset.libBudget] = t.value; libSave(); libScaler(); }
   else if (t.id === "libTol"){ lib.tol = clampInt(t.value, 1, 50); libSave(); libMullRender(); }
+  else if (t.dataset.libWeight){
+    /* set in place: drawing the menu again would drop the slider mid-drag */
+    (lib.mullWeight ??= {})[t.dataset.libWeight] = +t.value;
+    libSave();
+    t.nextElementSibling.textContent = "×" + libWeight(t.dataset.libWeight);
+    t.closest(".lib-ban-t").classList.toggle("nil", !libWeight(t.dataset.libWeight));
+    libBanLabel();
+    libEl("libWtClear").disabled = !libWeighed();
+  }
   else if (t.id === "libK" || t.id === "libKn"){
     if (t.id === "libKn" && t.value === "") return;
     libScale = clampInt(t.value, 1, 1e6);
@@ -14889,6 +15062,7 @@ viewLib.addEventListener("input", e => {
 viewLib.addEventListener("change", e => {
   const t = e.target;
   if (t.dataset.libElastic){ lib.elastic[t.dataset.libElastic] = t.checked; libSave(); libScaler(); }
+  else if (t.id === "libLayers"){ lib.mullLayers = t.checked; libSave(); libMullRender(); }
   else if (t.id === "libKn"){ libScale = clampInt(t.value, 1, 1e6); libEl("libKn").value = libScale; libScaler(); }
   else if (t.matches("[data-lib-move]")){
     if (t.value) lib.where[lib.sel] = t.value; else lib.where[lib.sel] = "";
@@ -14928,6 +15102,7 @@ viewLib.addEventListener("click", e => {
     libSave(); libBanRender();
   }
   else if (t.id === "libBanClear"){ lib.mullBan = {}; libSave(); libBanRender(); }
+  else if (t.id === "libWtClear"){ lib.mullWeight = {}; libSave(); libBanRender(); }
   else if (t.id === "libMullCopy" && libMull) libCopyText(encodeArmy(libMull.units), t);
   else if (t.id === "libMullSave" && libMull) libSaveUnits(libMull.units, `${lib.sel} mulligan`, t);
   else if (t.dataset.libStasis) libStasis([t.dataset.libStasis], !inStasis(t.dataset.libStasis));
