@@ -8324,12 +8324,15 @@ function importPresetData(data, note){
   if (!armies && !battles){ alert("No presets found in that file."); return; }
 
   let added = 0;
+  const same = [];
   if (armies){
-    const all = storedArmies();
+    const all = storedArmies(), built = builtinArmies();
     Object.entries(armies).forEach(([n,v])=>{
-      if (isBuiltin(n)) return;                    // the page's own copy stands
+      /* a built-in preset's own army coming back (an older export carried them)
+         is already here; anything else under a built-in name is saved beside it */
+      if (isBuiltin(n) && JSON.stringify(presetUnits(v)) === JSON.stringify(presetUnits(built[n]))){ same.push(n); return; }
       let name = n;
-      while (Object.hasOwn(all, name) && JSON.stringify(all[name]) !== JSON.stringify(v)) name += " (imported)";
+      while (isBuiltin(name) || Object.hasOwn(all, name) && JSON.stringify(all[name]) !== JSON.stringify(v)) name += " (imported)";
       all[name] = v; added++;
       const brk = data.armyBarracks && data.armyBarracks[n];
       if (brk != null) setArmyBarracks(name, brk);
@@ -8347,7 +8350,8 @@ function importPresetData(data, note){
     store.set(LS_BATL, all);
   }
   refreshPresetSelects();
-  alert(`Imported ${added} preset(s).` + (note || ""));
+  alert(`Imported ${added} preset(s).` + (same.length ? `\n\nAlready built in, so left as they are: ${same.join(", ")}.` : "")
+    + (note || ""));
 }
 
 /* the same units the presets themselves keep, field for field, so a string
