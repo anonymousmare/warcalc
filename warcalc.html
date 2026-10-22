@@ -13966,8 +13966,9 @@ const libResGrid = cells => cells.length ? `<div class="lib-rgrid">${cells.join(
 
 function libCostHTML(c, budgets){
   const up = libResGrid(RES_ORDER.filter(k => c.upkeep[k]).map(k => {
-    const b = budgets ? libBudget(k) : null;
-    return libResCell(k, c.upkeep[k], b != null ? ` / ${money(b)}` : "", b != null && c.upkeep[k] > b + 1e-9);
+    /* the budget is only shown beside a figure that has gone past it */
+    const b = budgets ? libBudget(k) : null, over = b != null && c.upkeep[k] > b + 1e-9;
+    return libResCell(k, c.upkeep[k], over ? ` / ${money(b)}` : "", over);
   }));
   const res = libResGrid(RES_ORDER.filter(k => c.res[k]).map(k => libResCell(k, c.res[k])));
   return libKV("Troops", money(c.troops))
