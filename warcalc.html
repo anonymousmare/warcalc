@@ -2036,6 +2036,7 @@ summary.as-sub::before{content:"\25B8";display:inline-block;width:1em;margin-lef
 .lib-views button + button{border-left:1px solid var(--border-soft)}
 .lib-views button:hover{color:var(--strong)}
 .lib-views button.on{background:var(--accent);color:var(--btn-ink)}
+[data-theme="optimal"] .lib-views button.on{color:#000}
 .lib-body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 320px}
 .lib-list{overflow:auto;min-height:0}
 .lib-detail{overflow:auto;min-height:0;border-left:1px solid var(--border-soft);padding:10px 12px;background:var(--sunken)}
@@ -2169,6 +2170,9 @@ summary.as-sub::before{content:"\25B8";display:inline-block;width:1em;margin-lef
 .lib-foe:hover{background:rgba(var(--hi),.08)}
 .lib-foe .gear-img{transition:opacity .12s,filter .12s}
 .lib-foe.out .gear-img{filter:grayscale(1) brightness(1.6) var(--icon-edge,);opacity:.4}
+/* on a pale page a greyed icon goes darker, not lighter, or it vanishes */
+:is([data-theme="white"],[data-theme="applejack"],[data-theme="rainbow"]) .lib-foe.out .gear-img{
+  filter:grayscale(1) brightness(.5) var(--icon-edge,);opacity:.6}
 .lib-dmg td{font-family:var(--mono);text-align:center;padding:1px 4px;white-space:nowrap}
 .lib-dmg td .to{font-family:var(--font);font-size:10px;color:var(--text-dim)}
 .lib-dmg td .off{color:var(--atk);font-weight:700}
