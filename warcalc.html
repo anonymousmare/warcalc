@@ -2281,6 +2281,19 @@ summary.as-sub::before{content:"\25B8";display:inline-block;width:1em;margin-lef
 .lib-mull{margin-bottom:0}
 .lib-mull-head{display:flex;align-items:baseline;gap:10px;margin-bottom:8px}
 .lib-mull-head h2{margin:0}
+/* gear the mulligan may not use: a row of each type's weapons, then its armour */
+.lib-ban{position:relative;align-self:center}
+.lib-ban #libBanBtn.on{color:var(--atk);border-color:var(--atk)}
+.lib-ban-menu{position:absolute;right:0;top:calc(100% + 4px);z-index:30;padding:6px 8px;width:max-content;max-width:calc(100vw - 32px);
+  background:var(--raised);border:1px solid var(--border-soft);border-radius:4px;box-shadow:0 8px 22px rgba(var(--lo),.45)}
+.lib-ban-row{display:flex;align-items:center;gap:2px;height:26px}
+.lib-ban-row > b{font-size:11px;font-weight:400;color:var(--text-dim);width:64px;flex:none}
+/* the weapons take room for cavalry's seven so every type's armour starts in one column */
+.lib-ban-row > span{display:flex;flex:none}
+.lib-ban-row > span:first-of-type{width:calc(7 * 40px);padding-right:6px;margin-right:6px;border-right:1px solid var(--border-soft)}
+.lib-ban .lib-foe{padding:2px 4px;margin:0}
+.lib-ban-foot{display:flex;align-items:center;gap:8px;margin-top:4px;padding-top:5px;border-top:1px solid var(--border-soft);font-size:11px}
+.lib-ban-foot .spacer{flex:1}
 .lib-tol{display:inline-flex;align-items:center;gap:8px;margin:0;font-size:12px;color:var(--text-dim)}
 .lib-tol input{width:160px;accent-color:var(--accent);padding:0}
 .lib-tol b{font:600 12px/1 var(--mono);color:var(--strong);min-width:3.5ch;text-align:right}
@@ -2292,9 +2305,9 @@ summary.as-sub::before{content:"\25B8";display:inline-block;width:1em;margin-lef
 .lib-foe{display:block;margin:0 auto;background:none;border:0;padding:2px 6px;border-radius:3px;cursor:pointer}
 .lib-foe:hover{background:rgba(var(--hi),.08)}
 .lib-foe .gear-img{transition:opacity .12s,filter .12s}
-.lib-foe.out .gear-img{filter:grayscale(1) brightness(1.6) var(--icon-edge,);opacity:.4}
+.lib-foe.out .gear-img,.lib-foe.ban .gear-img{filter:grayscale(1) brightness(1.6) var(--icon-edge,);opacity:.4}
 /* on a pale page a greyed icon goes darker, not lighter, or it vanishes */
-:is([data-theme="white"],[data-theme="applejack"],[data-theme="rainbow"]) .lib-foe.out .gear-img{
+:is([data-theme="white"],[data-theme="applejack"],[data-theme="rainbow"]) :is(.lib-foe.out,.lib-foe.ban) .gear-img{
   filter:grayscale(1) brightness(.5) var(--icon-edge,);opacity:.6}
 .lib-dmg td{font-family:var(--mono);text-align:center;padding:1px 4px;white-space:nowrap}
 .lib-dmg td .to{font-family:var(--font);font-size:10px;color:var(--text-dim)}
@@ -3009,6 +3022,11 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
       <div class="lib-mull-head">
         <h2>Mulligan</h2><span class="small muted" id="libMullFor"></span>
         <span class="spacer"></span>
+        <div class="lib-ban" id="libBan">
+          <button type="button" class="bp-btn txt-btn" id="libBanBtn" aria-expanded="false"
+            title="Weapons and armour the mulligan may not use">Ban gear</button>
+          <div class="lib-ban-menu" id="libBanMenu" hidden></div>
+        </div>
         <label class="lib-tol" for="libTol" title="How far each figure below may drift from the original's">Tolerance
           <input type="range" id="libTol" min="1" max="50" step="1" value="10"><b id="libTolV">10%</b></label>
       </div>
@@ -14643,10 +14661,10 @@ async function libMulliganSearch(orig, tol, ms){
   const tally = {};
   orig.forEach(u => { tally[u.training] = (tally[u.training] || 0) + u.size; });
   const train = +Object.keys(tally).sort((a, b) => tally[b] - tally[a])[0] || 0;
-  /* real gear only, from the unit types not left out */
-  const off = libMullOff(), caps = libCaps();
+  /* real gear only, from the unit types not left out, none of it banned */
+  const off = libMullOff(), ban = libMullBan(), caps = libCaps();
   /* a budget too small for a single troop rules its unit types out */
-  const pool = KITS.filter(([t, w, a]) => !off[t] && (t === "Alicorns" || WEAPON_IDS[w] && ARMOR_IDS[a]))
+  const pool = KITS.filter(([t, w, a]) => !off[t] && (t === "Alicorns" || WEAPON_IDS[w] && ARMOR_IDS[a] && !ban[w] && !ban[a]))
     .map(([type, weapon, armor]) => ({type, weapon, armor}))
     .filter(k => Object.entries(caps).every(([r, cap]) => libUpk(k, r) <= cap));
   if (!pool.length) return null;
@@ -14693,6 +14711,8 @@ let libMull = null;                                    // {from: the original's 
 /* the unit types a mulligan may not use; alicorns are such a special case
    that they stay out until someone lets them in */
 const libMullOff = () => lib.mullOff && typeof lib.mullOff === "object" ? lib.mullOff : (lib.mullOff = {Alicorns: true});
+/* the weapons and armour a mulligan may not use, by gear key */
+const libMullBan = () => lib.mullBan && typeof lib.mullBan === "object" ? lib.mullBan : (lib.mullBan = {});
 let libMullBusy = false;
 const libTol = () => clampInt(lib.tol ?? 10, 1, 50) / 100;
 
@@ -14757,7 +14777,29 @@ function libSimRow(T, M){
     <b>${sim == null ? "—" : (sim * 100).toFixed(1) + "%"}</b></div></td></tr>`;
 }
 
+/* the ban list: a row a unit type, its real weapons then its real armour */
+function libBanRender(){
+  const ban = libMullBan(), n = Object.keys(ban).filter(k => ban[k]).length, btn = libEl("libBanBtn");
+  btn.textContent = n ? `${n} banned` : "Ban gear";
+  btn.classList.toggle("on", !!n);
+  if (libEl("libBanMenu").hidden) return;
+  const cell = k => `<button type="button" class="lib-foe${ban[k] ? " ban" : ""}" data-lib-ban="${esc(k)}" title="${esc(label(k))}: ${
+    ban[k] ? "banned from mulligans. Click to allow" : "allowed in mulligans. Click to ban"}"><img class="gear-img"
+    src="${esc(gearImgSrc(k))}" alt="${esc(label(k))}"></button>`;
+  libEl("libBanMenu").innerHTML = LIB_FOES.filter(T => T !== "Alicorns").map(T => `<div class="lib-ban-row"><b>${T}</b><span>${
+      LOADOUTS[T].weapons.filter(w => WEAPON_IDS[w]).map(cell).join("")}</span><span>${
+      LOADOUTS[T].armor.filter(a => ARMOR_IDS[a]).map(cell).join("")}</span></div>`).join("")
+    + `<div class="lib-ban-foot"><span class="muted">A type with all its weapons or armour banned sits out.</span>
+      <span class="spacer"></span><button type="button" class="bp-btn txt-btn" id="libBanClear"${n ? "" : " disabled"}>Allow all</button></div>`;
+}
+function libBanMenu(open){
+  libEl("libBanMenu").hidden = !open;
+  libEl("libBanBtn").setAttribute("aria-expanded", open ? "true" : "false");
+  libBanRender();
+}
+
 function libMullRender(){
+  libBanRender();
   const units = libCurrent()?.units || [], tol = libTol();
   libEl("libTol").value = Math.round(tol * 100);
   libEl("libTolV").textContent = Math.round(tol * 100) + "%";
@@ -14808,7 +14850,7 @@ async function libMulligan(){
     if (out) libMull = {from: encodeArmy(units), units: out.units, miss: out.miss};
     libEl("libMullMsg").textContent = !out ? (LIB_FOES.every(T => libMullOff()[T])
         ? "Every unit type is left out. Click a type's icon above to let it back in."
-        : "Nothing else fits this army. Try a wider tolerance, looser budgets, or let more unit types in.")
+        : "Nothing else fits this army. Try a wider tolerance, looser budgets, or let more unit types or gear in.")
       : out.miss > tol + 1e-9 ? `Closest found is ${(out.miss * 100).toFixed(1)}% off. Increase tolerances!`
       : "";
   } finally {
@@ -14825,6 +14867,13 @@ libEl("libBuds").innerHTML = LIB_BUDGET.map(r => `<div class="lib-bud">${resIcon
     data-lib-elastic="${r}"${lib.elastic[r] ? " checked" : ""}> Elastic</label></div>`).join("");
 
 const viewLib = libEl("viewLibrary");
+document.addEventListener("click", e => {
+  /* the path, not the target: a toggle redraws the menu and leaves its target detached */
+  if (!libEl("libBanMenu").hidden && !e.composedPath().includes(libEl("libBan"))) libBanMenu(false);
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && !libEl("libBanMenu").hidden){ libBanMenu(false); libEl("libBanBtn").focus(); }
+});
 ["libCode", "libMullCode"].forEach(id => libEl(id).addEventListener("focus", e => e.target.select()));
 viewLib.addEventListener("input", e => {
   const t = e.target;
@@ -14872,6 +14921,13 @@ viewLib.addEventListener("click", e => {
     if (off[T]) off[T] = false; else off[T] = true;
     libSave(); libMullRender();
   }
+  else if (t.id === "libBanBtn") libBanMenu(libEl("libBanMenu").hidden);
+  else if (t.dataset.libBan){
+    const ban = libMullBan(), k = t.dataset.libBan;
+    if (ban[k]) delete ban[k]; else ban[k] = true;
+    libSave(); libBanRender();
+  }
+  else if (t.id === "libBanClear"){ lib.mullBan = {}; libSave(); libBanRender(); }
   else if (t.id === "libMullCopy" && libMull) libCopyText(encodeArmy(libMull.units), t);
   else if (t.id === "libMullSave" && libMull) libSaveUnits(libMull.units, `${lib.sel} mulligan`, t);
   else if (t.dataset.libStasis) libStasis([t.dataset.libStasis], !inStasis(t.dataset.libStasis));
