@@ -49,6 +49,14 @@
   --opt-blue:#6fa8dc; --opt-blue-hov:#94c2ec; --opt-blue-box:#3b78b5;
   --opt-purple:#a58bd8; --opt-purple-hov:#c0aaf0; --opt-purple-box:#7453b8;
   --t-cav:#FF0000; --t-tank:#0076FF; --t-peg:#FF6EC7; --t-uni:#00FF21; --t-nav:#00FFFF;
+  /* the Library's preset colours: muted, for a dark page */
+  --pc-wine:#a5535e; --pc-rust:#ad6a45; --pc-ochre:#a8914f; --pc-moss:#6e8f5c; --pc-teal:#4f8c84;
+  --pc-steel:#5a809e; --pc-slate:#6a70a3; --pc-plum:#866599; --pc-rose:#a3647f;
+}
+/* and deeper on a pale one, so a name in them still reads */
+:is([data-theme="white"],[data-theme="applejack"],[data-theme="rainbow"]){
+  --pc-wine:#8a2f3c; --pc-rust:#8f4519; --pc-ochre:#735b12; --pc-moss:#3d6229; --pc-teal:#1d625a;
+  --pc-steel:#245679; --pc-slate:#3a4589; --pc-plum:#5e3478; --pc-rose:#80305d;
 }
 
 /* ===================== themes =====================
@@ -2044,9 +2052,9 @@ summary.as-sub::before{content:"\25B8";display:inline-block;width:1em;margin-lef
 .lib-row{cursor:pointer}
 .lib-row:hover td{background:rgba(var(--hi),.04)}
 .lib-row.sel td{background:rgba(var(--hi),.10)}
-.lib-row.tint td{background:color-mix(in srgb,var(--c) 14%,transparent)}
-.lib-row.tint:hover td{background:color-mix(in srgb,var(--c) 20%,transparent)}
-.lib-row.tint.sel td{background:color-mix(in srgb,var(--c) 28%,transparent)}
+.lib-row.tint td{background:color-mix(in srgb,var(--c) 10%,transparent)}
+.lib-row.tint:hover td{background:color-mix(in srgb,var(--c) 15%,transparent)}
+.lib-row.tint.sel td{background:color-mix(in srgb,var(--c) 22%,transparent)}
 .lib-row.tint td.lib-n{box-shadow:inset 3px 0 0 var(--c)}
 .lib-row.stasis td:not(.lib-n),.lib-row.stasis .lib-name{opacity:.4}
 .lib-row.stasis .lib-name{font-style:italic}
@@ -7743,6 +7751,15 @@ const lib = (()=>{
 })();
 const libSave = () => store.set(LS_LIB, lib);
 const inStasis = name => !!lib.stasis[name];
+/* colours are kept by name and painted from the theme's own shade of each */
+const LIB_COLOURS = ["wine", "rust", "ochre", "moss", "teal", "steel", "slate", "plum", "rose"];
+/* the first palette was stored as bright hex; each maps to the name in its place */
+const LIB_OLD_HEX = ["#e5484d", "#f08a3c", "#e2c760", "#78cc78", "#3fc1b0", "#4ab9db", "#6f8cff", "#b366e0", "#ff6ec7"];
+Object.entries(lib.colour).forEach(([n, c]) => {
+  const i = LIB_OLD_HEX.indexOf(c);
+  if (i >= 0) lib.colour[n] = LIB_COLOURS[i]; else if (!LIB_COLOURS.includes(c)) delete lib.colour[n];
+});
+const libInk = name => LIB_COLOURS.includes(lib.colour[name]) ? `var(--pc-${lib.colour[name]})` : "";
 function libRename(name, next){
   ["where", "colour", "stasis"].forEach(k => { if (name in lib[k]) lib[k][next] = lib[k][name]; delete lib[k][name]; });
   if (lib.sel === name) lib.sel = next;
@@ -7775,7 +7792,7 @@ function refreshPresetSelects(){
   document.querySelectorAll("[data-ap-sel]").forEach(sel=>{
     const keep = sel.value;
     sel.innerHTML = `<option value="">preset…</option>` +
-      armies.map(n=>`<option value="${esc(n)}"${lib.colour[n] ? ` style="color:${lib.colour[n]}"` : ""}>${esc(n)}</option>`).join("");
+      armies.map(n=>`<option value="${esc(n)}"${libInk(n) ? ` style="color:${libInk(n)}"` : ""}>${esc(n)}</option>`).join("");
     if (armies.includes(keep)) sel.value = keep;
   });
   const battles = Object.keys(getBattles()).sort();
@@ -7813,7 +7830,7 @@ function renderMarks(){
 }
 
 function paintMarkButtons(marks){
-  document.querySelectorAll("[data-ap-sel]").forEach(sel=>{ sel.style.color = lib.colour[sel.value] || ""; });
+  document.querySelectorAll("[data-ap-sel]").forEach(sel=>{ sel.style.color = libInk(sel.value); });
   document.querySelectorAll("[data-ap-mark]").forEach(btn=>{
     const sel = document.querySelector(`[data-ap-sel="${btn.dataset.apMark}"]`);
     const on = !!(sel && sel.value && marks.includes(sel.value));
@@ -13840,7 +13857,6 @@ const LIB_TYPES = [["Cavalry", "Barding"], ["Tanks", "Ohno"], ["Pegasi", "Griffi
   ["Unicorns", "Librarian"], ["Naval", "Esohes"], ["Alicorns", "ScroungedWeapons"]];
 const LIB_RES = ["copper", "tungsten", "plastics", "machinery", "vehicle", "precision", "composites"];
 const LIB_BUDGET = ["apples", "gems", "coffee", "gasoline"];
-const LIB_COLOURS = ["#e5484d", "#f08a3c", "#e2c760", "#78cc78", "#3fc1b0", "#4ab9db", "#6f8cff", "#b366e0", "#ff6ec7"];
 let libScale = 1;                                      // the scaler's multiple of the ratio
 
 const libEl = id => document.getElementById(id);
@@ -13963,7 +13979,7 @@ function libDetailHTML(armies){
   const n = lib.sel;
   if (!n) return `<div class="lib-empty">Pick a preset to see what is in it.</div>`;
   const all = libStacks(armies[n]);
-  const c = lib.colour[n], fixed = isBuiltin(n), here = libFolderOf(n), st = inStasis(n);
+  const c = libInk(n), fixed = isBuiltin(n), here = libFolderOf(n), st = inStasis(n);
   const brk = getArmyBarracks()[n];
   return `<div class="lib-d-top"><div class="lib-d-name"${c ? ` style="--c:${c}"` : ""}>${esc(n)}${fixed
       ? `<span class="lib-tag">built in</span>` : ""}</div><button type="button" class="bp-btn" data-lib-act="copy"
@@ -13978,7 +13994,8 @@ function libDetailHTML(armies){
       `<option value="${esc(f.id)}"${f.id === here ? " selected" : ""}>${esc(f.name)}</option>`).join("")}</select></label>
     <div class="lib-d-row"><span>Colour</span><div class="lib-sw"><button type="button" class="none${c ? "" : " on"}"
       data-lib-colour="" title="No colour"></button>${LIB_COLOURS.map(x =>
-      `<button type="button" style="--c:${x}"${x === c ? ` class="on"` : ""} data-lib-colour="${x}"></button>`).join("")}</div></div>
+      `<button type="button" style="--c:var(--pc-${x})"${x === lib.colour[n] ? ` class="on"` : ""} data-lib-colour="${x}"
+        title="${x[0].toUpperCase() + x.slice(1)}"></button>`).join("")}</div></div>
     <div class="lib-h">Stacks</div>
     ${libStackList(all)}
     <div class="lib-h">Cost</div>
@@ -14001,7 +14018,7 @@ function libRender(){
 
   const row = n => {
     const shown = lib.view === "ratio" ? libRatio(armies[n]).units : libStacks(armies[n]);
-    const cost = libCost(shown), h = libHeads(shown), st = inStasis(n), c = lib.colour[n];
+    const cost = libCost(shown), h = libHeads(shown), st = inStasis(n), c = libInk(n);
     const vals = resView ? LIB_RES.map(k => Math.round(cost.res[k] || 0)) : LIB_TYPES.map(([t]) => h[t] || 0);
     return `<tr class="lib-row${n === lib.sel ? " sel" : ""}${st ? " stasis" : ""}${c ? " tint" : ""}" data-lib-name="${esc(n)}"
         draggable="true"${c ? ` style="--c:${c}"` : ""}>
@@ -14054,7 +14071,7 @@ function libScaler(){
   libEl("libK").max = max;
   libEl("libK").value = Math.min(libScale, max);
   if (document.activeElement !== libEl("libKn")) libEl("libKn").value = libScale;
-  const out = libScaled(r.units, libScale), cost = libCost(out.units), c = lib.colour[n];
+  const out = libScaled(r.units, libScale), cost = libCost(out.units), c = libInk(n);
   LIB_BUDGET.forEach(k => {
     const b = libBudget(k);
     if (b != null && (cost.upkeep[k] || 0) > b + 1e-9) document.querySelector(`[data-lib-budget="${k}"]`)?.classList.add("over");
