@@ -7830,38 +7830,38 @@ function ordNote(notes){
 }
 
 /* ---- army presets (shared pool, loadable into either side) ---- */
-/* presets baked into the page: always on the list, each filed in a folder
-   nobody can delete, in stasis until someone brings it out, and never saved
-   over, renamed or deleted */
+/* presets baked into the page, each named with an [S] in front: always on
+   the list, filed in a folder nobody can delete, in stasis until someone
+   brings it out, and never saved over, renamed or deleted */
 const BUILTIN_FOLDERS = [{id: "universal", name: "Universal"}, {id: "historical", name: "Historical invasions"}];
 const BUILTIN_ARMIES = {
-  "Universal":                 {folder: "universal",  code: "xAjIbD3c3x5zVlbfcv8nOVA4EufIS59nnq9wt"},
-  "Zaam":                      {folder: "historical", code: "e9MxMJPWMxEBnbo6yzHEwZ7dDrCTHUsUMXkZ27mVqTpZ5yp~20"},
-  "Everfree":                  {folder: "historical", code: "BCmYM3zA7VqApmaooI7JVmrHuB3CifAJrTzUQirUN~20"},
-  "Suenos":                    {folder: "historical", code: "1UXhJT0L0ydktKYnsPPmUzo5j4FhUi43kz~20"},
-  "Lanathesis":                {folder: "historical", code: "XLGsQFVG7D1Cf4T9VrB6nQn94htP8f0SzBZEbV3BbybJ21Hv~20"},
-  "Equiopia":                  {folder: "historical", code: "1nLAwqdSDCcICrpUWRbut6Ojft5pgCyw5P~20"},
-  "Allerimia":                 {folder: "historical", code: "1knnADhOuov3JDgLtmxOxdWceS6OBAEGx5gtBihEh86yV~20"},
-  "Starlight Reach":           {folder: "historical", code: "Nrbk1zGuBYk7adhKDBgO9lhL2F~20"},
-  "Camareoon":                 {folder: "historical", code: "3Cjj8nZyH42QFLs1xZFukyQtcwwEOBdH01HeJovljEwjWpvT~20"},
-  "New Ponutania (W2)":        {folder: "historical", code: "sx2NIxH3c8EbFqmTEebRGYzkMOqTWhDaJ~20"},
-  "Hoofy Nails for Oil (W2)":  {folder: "historical", code: "7actkTdoFfev6P0cGv3aAINtTeIvPY5~20"},
-  "YetAnotherZeb (W2)":        {folder: "historical", code: "1966EvJzI2ZDMzjaAuVOzJt4BTPOsTb7GYc5PB~20"},
-  "New Canterlonia (W2)":      {folder: "historical", code: "7QF1h5cloGj73E34HEf9BqwgeQJvfBUujwouY89uv~20"},
-  "Mephrida (W2)":             {folder: "historical", code: "ORiHeJxpzqRvYPd5HrtX99gtoHqagaEdvzUayL8kh~20"},
-  "Hoofa (W2)":                {folder: "historical", code: "1FVvEWYTuMw0UtZrgxggsfnINwD3UNwQLC1ZYBv0pgF~20"},
-  "Based Pelennor":            {folder: "historical", code: "2dQZrDTbCCBGpH6GRWf9ILGfGSBs7y8LFZ1iq31lLE7~20"},
-  "Stalliongrad (W2)":         {folder: "historical", code: "xAb2Ri8cnUTE7vplaGbpvdtgMpFQSQep5j3Rf~20"},
-  "Hoovesia (W2)":             {folder: "historical", code: "44otGjR6U9DkEZmuTBX9PI5BYhuSf~20"},
-  "Hoofkryina (W2)":           {folder: "historical", code: "E2jp6iEpKQLfNwiMPdZRJOOXnpkKhXc6DXLmaBpFH~20"},
-  "Clopastan (W2)":            {folder: "historical", code: "l9635eWpBuRRPjGoffZjq4dHDhabqC68eKxNMCDSh~20"},
-  "New Canterlonia (W1)":      {folder: "historical", code: "XQ8BkStLKcpBAxevg5PwiWiUlaE2ykhqeNyg7M5XtujXlOLu1s3X~20"},
-  "Hoofy Nails for Oil (W1)":  {folder: "historical", code: "290ot7zXhwwMANo21N4RGQnuvng7jPzVe30Ee3r1kzmkrbC8NqF5V~20"},
-  "New Ponutania (W1)":        {folder: "historical", code: "gCLbHm1LBJNgOmLx1jWgGEnnC3KZv4l7lxs5t9fnPqWkENm18woRHszL~20"},
-  "Fetloco (W1)":              {folder: "historical", code: "eKQ0VHYsWkdrztos8Qy9WV45pSPylzZ217cKCYwHVD9EiiTTcjF~20"},
-  "Hoofkryina (W1)":           {folder: "historical", code: "26fQENtKwaiaqIWCGjDT7et1lj7T0SFSUVHhXzOsl0vNOGnCrDKlED2UBXDYHnJT~20"},
-  "Hoovesia (W1)":             {folder: "historical", code: "30tPsCkukn6G9CGFBiJHb3fkztvX6YyT3QEvmdajTryuRPlQV~20"},
-  "Stalliongrad (W1)":         {folder: "historical", code: "nMvWDMFcHJzWxPN4PkZuwVZFhZRa8aDuAQoYmANUmqed7F~20"}
+  "[S] Universal":                  {folder: "universal",  code: "xAjIbD3c3x5zVlbfcv8nOVA4EufIS59nnq9wt"},
+  "[S] Zaam":                       {folder: "historical", code: "e9MxMJPWMxEBnbo6yzHEwZ7dDrCTHUsUMXkZ27mVqTpZ5yp~20"},
+  "[S] Everfree":                   {folder: "historical", code: "BCmYM3zA7VqApmaooI7JVmrHuB3CifAJrTzUQirUN~20"},
+  "[S] Suenos":                     {folder: "historical", code: "1UXhJT0L0ydktKYnsPPmUzo5j4FhUi43kz~20"},
+  "[S] Lanathesis":                 {folder: "historical", code: "XLGsQFVG7D1Cf4T9VrB6nQn94htP8f0SzBZEbV3BbybJ21Hv~20"},
+  "[S] Equiopia":                   {folder: "historical", code: "1nLAwqdSDCcICrpUWRbut6Ojft5pgCyw5P~20"},
+  "[S] Allerimia":                  {folder: "historical", code: "1knnADhOuov3JDgLtmxOxdWceS6OBAEGx5gtBihEh86yV~20"},
+  "[S] Starlight Reach":            {folder: "historical", code: "Nrbk1zGuBYk7adhKDBgO9lhL2F~20"},
+  "[S] Camareoon":                  {folder: "historical", code: "3Cjj8nZyH42QFLs1xZFukyQtcwwEOBdH01HeJovljEwjWpvT~20"},
+  "[S] New Ponutania (W2)":         {folder: "historical", code: "sx2NIxH3c8EbFqmTEebRGYzkMOqTWhDaJ~20"},
+  "[S] Hoofy Nails for Oil (W2)":   {folder: "historical", code: "7actkTdoFfev6P0cGv3aAINtTeIvPY5~20"},
+  "[S] YetAnotherZeb (W2)":         {folder: "historical", code: "1966EvJzI2ZDMzjaAuVOzJt4BTPOsTb7GYc5PB~20"},
+  "[S] New Canterlonia (W2)":       {folder: "historical", code: "7QF1h5cloGj73E34HEf9BqwgeQJvfBUujwouY89uv~20"},
+  "[S] Mephrida (W2)":              {folder: "historical", code: "ORiHeJxpzqRvYPd5HrtX99gtoHqagaEdvzUayL8kh~20"},
+  "[S] Hoofa (W2)":                 {folder: "historical", code: "1FVvEWYTuMw0UtZrgxggsfnINwD3UNwQLC1ZYBv0pgF~20"},
+  "[S] Based Pelennor":             {folder: "historical", code: "2dQZrDTbCCBGpH6GRWf9ILGfGSBs7y8LFZ1iq31lLE7~20"},
+  "[S] Stalliongrad (W2)":          {folder: "historical", code: "xAb2Ri8cnUTE7vplaGbpvdtgMpFQSQep5j3Rf~20"},
+  "[S] Hoovesia (W2)":              {folder: "historical", code: "44otGjR6U9DkEZmuTBX9PI5BYhuSf~20"},
+  "[S] Hoofkryina (W2)":            {folder: "historical", code: "E2jp6iEpKQLfNwiMPdZRJOOXnpkKhXc6DXLmaBpFH~20"},
+  "[S] Clopastan (W2)":             {folder: "historical", code: "l9635eWpBuRRPjGoffZjq4dHDhabqC68eKxNMCDSh~20"},
+  "[S] New Canterlonia (W1)":       {folder: "historical", code: "XQ8BkStLKcpBAxevg5PwiWiUlaE2ykhqeNyg7M5XtujXlOLu1s3X~20"},
+  "[S] Hoofy Nails for Oil (W1)":   {folder: "historical", code: "290ot7zXhwwMANo21N4RGQnuvng7jPzVe30Ee3r1kzmkrbC8NqF5V~20"},
+  "[S] New Ponutania (W1)":         {folder: "historical", code: "gCLbHm1LBJNgOmLx1jWgGEnnC3KZv4l7lxs5t9fnPqWkENm18woRHszL~20"},
+  "[S] Fetloco (W1)":               {folder: "historical", code: "eKQ0VHYsWkdrztos8Qy9WV45pSPylzZ217cKCYwHVD9EiiTTcjF~20"},
+  "[S] Hoofkryina (W1)":            {folder: "historical", code: "26fQENtKwaiaqIWCGjDT7et1lj7T0SFSUVHhXzOsl0vNOGnCrDKlED2UBXDYHnJT~20"},
+  "[S] Hoovesia (W1)":              {folder: "historical", code: "30tPsCkukn6G9CGFBiJHb3fkztvX6YyT3QEvmdajTryuRPlQV~20"},
+  "[S] Stalliongrad (W1)":          {folder: "historical", code: "nMvWDMFcHJzWxPN4PkZuwVZFhZRa8aDuAQoYmANUmqed7F~20"}
 };
 const isBuiltin = name => Object.hasOwn(BUILTIN_ARMIES, name);
 let builtinJSON = "";
@@ -7886,6 +7886,18 @@ const lib = (()=>{
   const s = store.get(LS_LIB, {});
   Object.assign(d, s && typeof s === "object" ? s : {});
   if (d.rigid){ d.elastic = Object.assign({}, d.rigid, d.elastic); delete d.rigid; }   // its first name
+  /* the built-in presets were first named without their [S]: what was kept
+     under the old names moves across, unless a preset of the same name was
+     made since */
+  const mine = storedArmies(), marks = store.get(LS_MARK, []);
+  Object.keys(BUILTIN_ARMIES).forEach(n => {
+    const old = n.replace(/^\[S\] /, "");
+    if (old === n || Object.hasOwn(mine, old)) return;
+    ["where", "colour", "stasis"].forEach(k => { if (d[k] && old in d[k]){ d[k][n] = d[k][old]; delete d[k][old]; } });
+    if (Array.isArray(d.order)) d.order = d.order.map(x => x === old ? n : x);
+    if (d.sel === old) d.sel = n;
+    if (Array.isArray(marks) && marks.includes(old)){ marks[marks.indexOf(old)] = n; store.set(LS_MARK, marks); }
+  });
   return d;
 })();
 const libSave = () => store.set(LS_LIB, lib);
