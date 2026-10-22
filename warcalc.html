@@ -2017,6 +2017,99 @@ summary.as-sub::before{content:"\25B8";display:inline-block;width:1em;margin-lef
 .as-slip[data-persp="defender"] [data-p="attacker"]{display:none}
 .as-bl{font-family:var(--font);font-weight:600;font-size:11px;min-width:0;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ---------- library ---------- */
+.lib-wrap{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.lib-win{width:925px;max-width:100%;height:640px;display:flex;flex-direction:column;padding:0;overflow:hidden;margin-bottom:0}
+.lib-bar{display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid var(--border-soft)}
+.lib-views{display:inline-flex;border:1px solid var(--border-soft);border-radius:4px;overflow:hidden}
+.lib-views button{background:var(--sunken);color:var(--text-dim);border:0;padding:3px 11px;font-size:12px;cursor:pointer}
+.lib-views button + button{border-left:1px solid var(--border-soft)}
+.lib-views button:hover{color:var(--strong)}
+.lib-views button.on{background:var(--accent);color:var(--btn-ink)}
+.lib-body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 320px}
+.lib-list{overflow:auto;min-height:0}
+.lib-detail{overflow:auto;min-height:0;border-left:1px solid var(--border-soft);padding:10px 12px;background:var(--sunken)}
+.lib-tbl{font-size:12px}
+.lib-tbl thead th{position:sticky;top:0;z-index:1;background:var(--raised);padding:6px 4px;text-align:center;
+  border-bottom:1px solid var(--border-soft)}
+.lib-tbl thead th:first-child{text-align:left;padding-left:10px}
+.lib-tbl thead .gear-img{object-position:center}
+.lib-tbl td{padding:3px 4px;text-align:right;font-family:var(--mono);white-space:nowrap;border-bottom:1px solid rgba(var(--lo),.18)}
+.lib-tbl td.lib-n{text-align:left;font-family:var(--font);padding-left:10px;max-width:250px;overflow:hidden;text-overflow:ellipsis}
+.lib-tbl td:last-child,.lib-tbl th:last-child{padding-right:10px}
+.lib-tbl .z{color:var(--faint)}
+.lib-bits{color:var(--gold);font-family:var(--mono)}
+.lib-row{cursor:pointer}
+.lib-row:hover td{background:rgba(var(--hi),.04)}
+.lib-row.sel td{background:rgba(var(--hi),.10)}
+.lib-row.stasis td:not(.lib-n),.lib-row.stasis .lib-name{opacity:.4}
+.lib-row.stasis .lib-name{font-style:italic}
+.lib-row.dragging td{opacity:.35}
+.lib-name{color:var(--c,var(--text))}
+.lib-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:0;
+  background:var(--c,transparent);border:1px solid var(--c,rgba(var(--hi),.28))}
+.lib-fold td{text-align:left;font-family:var(--font);padding:5px 8px 5px 10px;background:rgba(var(--lo),.22);
+  border-top:1px solid var(--border-soft);cursor:pointer;user-select:none}
+.lib-fold .lib-fname{font-weight:600;color:var(--strong)}
+.lib-fold .caret{display:inline-block;width:12px;color:var(--text-dim);transition:transform .12s}
+.lib-fold.open .caret{transform:rotate(90deg)}
+.lib-fold .lib-fcount{color:var(--text-dim);font-size:11px;margin-left:6px}
+.lib-fold .lib-facts{float:right;display:inline-flex;gap:4px;opacity:.55}
+.lib-fold:hover .lib-facts{opacity:1}
+.lib-fold.drop td{outline:2px dashed var(--accent);outline-offset:-3px}
+.lib-tag{font:600 9px/1 var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);
+  border:1px solid var(--border-soft);border-radius:3px;padding:2px 4px;margin-left:6px;vertical-align:1px}
+.lib-ib{background:none;border:0;padding:1px 4px;font-size:11px;color:var(--text-dim);cursor:pointer;border-radius:3px}
+.lib-ib:hover{color:var(--strong);background:rgba(var(--hi),.07)}
+.lib-ib .ic{display:inline-block;vertical-align:-3px}
+.lib-st{opacity:0;margin-left:4px}
+.lib-row:hover .lib-st,.lib-row.stasis .lib-st{opacity:1}
+.lib-row.stasis .lib-st{color:var(--accent)}
+.lib-empty{padding:30px 16px;text-align:center;color:var(--text-dim);font-size:13px}
+/* the details pane */
+.lib-d-name{font:600 15px/1.3 var(--head-font);color:var(--c,var(--strong));word-break:break-word}
+.lib-d-acts{display:flex;gap:4px;margin:6px 0 8px;flex-wrap:wrap}
+.lib-d-row{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px}
+.lib-d-row > span:first-child{color:var(--text-dim);min-width:46px}
+.lib-d-row select{width:auto;flex:1;font-size:12px;padding:2px 4px;background:var(--raised);color:var(--text)}
+.lib-sw{display:flex;gap:5px;flex-wrap:wrap}
+.lib-sw button{width:16px;height:16px;border-radius:50%;border:1px solid rgba(var(--hi),.25);background:var(--c);cursor:pointer;padding:0}
+.lib-sw button.none{background:repeating-linear-gradient(135deg,transparent 0 3px,rgba(var(--hi),.35) 3px 4px)}
+.lib-sw button.on{outline:2px solid var(--strong);outline-offset:1px}
+.lib-h{font:600 10px/1 var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin:12px 0 6px}
+.lib-stk{display:flex;align-items:center;gap:5px;font-size:12px;padding:2px 0;white-space:nowrap}
+.lib-stk .gear-img{flex:0 0 32px}
+.lib-stk .n{font-family:var(--mono);color:var(--strong);min-width:42px;text-align:right}
+.lib-stk .g{overflow:hidden;text-overflow:ellipsis}
+.lib-stk .t{margin-left:auto;font-size:10.5px;color:var(--text-dim);font-family:var(--mono)}
+.lib-stk .w{font:600 9px/1 var(--font);letter-spacing:.06em;color:var(--warn);border:1px solid rgba(var(--warn-rgb),.5);
+  border-radius:3px;padding:1px 3px}
+.lib-kv{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:12px;padding:2px 0}
+.lib-kv > span:first-child{color:var(--text-dim);white-space:nowrap}
+.lib-kv .v{font-family:var(--mono);color:var(--strong);text-align:right}
+.lib-kv .res-chip{margin:0 0 0 7px}
+/* the scaler */
+.lib-scale{flex:1 1 380px;min-width:340px;max-width:640px;margin-bottom:0}
+.lib-sc-head{display:flex;align-items:baseline;gap:10px;padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid var(--border-soft)}
+.lib-sc-head .lib-d-name{font-size:17px}
+.lib-sc-head .x{margin-left:auto;font:600 20px/1 var(--mono);color:var(--strong);white-space:nowrap}
+.lib-bud-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 14px}
+.lib-bud{display:flex;align-items:center;gap:6px;margin:0;color:var(--text)}
+.lib-bud input[type=number]{width:96px;flex:none;font-family:var(--mono)}
+.lib-bud input.over{color:var(--atk);border-color:var(--atk)}
+.lib-rig{display:inline-flex;align-items:center;gap:3px;margin:0;font-size:11px;color:var(--text-dim);cursor:pointer;white-space:nowrap}
+.lib-rig input{margin:0}
+.lib-slide{display:flex;align-items:center;gap:10px;margin:14px 0 8px}
+.lib-slide input[type=range]{flex:1;accent-color:var(--accent);padding:0}
+.lib-k{display:inline-flex;align-items:center;gap:2px;font-family:var(--mono);color:var(--text-dim)}
+.lib-k input{width:64px;font-family:var(--mono)}
+.lib-note{font-size:12px;color:var(--text-dim);margin:4px 0 8px}
+.lib-note.warn{color:var(--warn)}
+.lib-over,.lib-over .mono{color:var(--atk)!important}
+.lib-sc-foot{display:flex;gap:8px;justify-content:flex-end;margin-top:12px;padding-top:10px;border-top:1px solid var(--border-soft)}
+.lib-scale :is(button,input):disabled{opacity:.45;cursor:default;filter:none}
+@media (max-width:760px){.lib-body{grid-template-columns:1fr}.lib-detail{border-left:0;border-top:1px solid var(--border-soft)}
+  .lib-win{height:auto}.lib-list{max-height:420px}}
 </style>
 <script>
 /* the theme goes on before anything paints, so a reload never flashes Grey.
@@ -2053,6 +2146,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
   <button class="tab" data-tab="counter">Counters</button>
   <button class="tab" data-tab="grand">Staging</button>
   <button class="tab" data-tab="assess">Assessment</button>
+  <button class="tab" data-tab="library">Library</button>
   <span class="ref-btns">
     <!-- when the alliances' production was last fetched from 4clop.org; a click fetches it again -->
     <button class="sync-age" id="syncAge" type="button">Not synced</button>
@@ -2641,6 +2735,46 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
     <div id="asOut"></div>
   </div>
   <div class="gs-total" id="asTotal"></div>
+</div>
+
+<!-- ============ LIBRARY ============ -->
+<div id="viewLibrary" style="display:none">
+  <div class="lib-wrap">
+    <!-- every army preset: folders, colours, stasis, and a column per unit type -->
+    <div class="panel lib-win">
+      <div class="lib-bar">
+        <div class="lib-views" role="group" aria-label="What the columns show">
+          <button type="button" data-lib-view="ratio" title="The smallest army in the same proportions">Ratios</button>
+          <button type="button" data-lib-view="units" title="The troops the preset actually holds">Units</button>
+          <button type="button" data-lib-view="res" title="What the preset's equipment costs in resources">Resources</button>
+        </div>
+        <span class="spacer"></span>
+        <span class="small muted" id="libCount"></span>
+        <button type="button" class="btn btn-xs" id="libNewFolder">New folder</button>
+      </div>
+      <div class="lib-body">
+        <div class="lib-list" id="libList"></div>
+        <div class="lib-detail" id="libDetail"></div>
+      </div>
+    </div>
+
+    <!-- the selected preset, grown from its ratio -->
+    <div class="panel lib-scale">
+      <div class="lib-sc-head" id="libScHead"></div>
+      <div class="gs-h">Upkeep budget / 12 h</div>
+      <div class="lib-bud-grid" id="libBuds"></div>
+      <div class="lib-slide">
+        <input type="range" id="libK" min="1" max="50" step="1" value="1" aria-label="Multiple of the ratio">
+        <span class="lib-k">&times;<input type="number" id="libKn" min="1" step="1" value="1" aria-label="Multiple of the ratio"></span>
+        <button type="button" class="btn btn-xs" id="libKOrig" title="Back to the size the preset was saved at">As saved</button>
+      </div>
+      <div id="libScOut"></div>
+      <div class="lib-sc-foot">
+        <button type="button" class="btn btn-xs btn-info txt-btn" id="libCopy">Copy army code</button>
+        <button type="button" class="btn btn-xs btn-moss txt-btn" id="libSaveAs">Save as preset</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div id="tip"></div>
@@ -6588,6 +6722,10 @@ const ICONS = {
   export: '<path d="M8 9.5V2.8"/><path d="M5.5 5.3 8 2.8l2.5 2.5"/><path d="M3 10.5v3h10v-3"/>',
   del:    '<path d="M2.8 4.3h10.4"/><path d="M6.3 4.3V2.6h3.4v1.7"/><path d="M4.2 4.3l.6 9.1h6.4l.6-9.1"/>',
   ok:     '<path d="M3 8.4l3.2 3.2L13 4.8"/>',
+  stasis: '<path d="M4.5 2.5h7"/><path d="M4.5 13.5h7"/><path d="M5.5 2.5c0 3.2 5 3.3 5 5.5s-5 2.3-5 5.5"/>'
+        + '<path d="M10.5 2.5c0 3.2-5 3.3-5 5.5s5 2.3 5 5.5"/>',
+  stasisOn: '<path d="M4.5 2.5h7"/><path d="M4.5 13.5h7"/><path d="M5.5 2.5c0 3.2 5 3.3 5 5.5s-5 2.3-5 5.5"/>'
+        + '<path d="M10.5 2.5c0 3.2-5 3.3-5 5.5s5 2.3 5 5.5"/><path class="f" d="M5.9 13.1h4.2L8 10.4z"/><path class="f" d="M6.6 5.2h2.8L8 6.6z"/>',
   link:   '<path d="M6.8 9.2a2.7 2.7 0 0 0 3.8 0l2-2a2.7 2.7 0 0 0-3.8-3.8l-.9.9"/>'
         + '<path d="M9.2 6.8a2.7 2.7 0 0 0-3.8 0l-2 2a2.7 2.7 0 0 0 3.8 3.8l.9-.9"/>'
 };
@@ -7563,7 +7701,38 @@ function ordNote(notes){
 }
 
 /* ---- army presets (shared pool, loadable into either side) ---- */
-const getArmies  = () => store.get(LS_ARMY, {});
+/* presets baked into the page: always on the list, filed in the Universal
+   folder, and never saved over, renamed or deleted */
+const BUILTIN_ARMIES = {Universal: "xAjIbD3c3x5zVlbfcv8nOVA4EufIS59nnq9wt"};
+const isBuiltin = name => Object.hasOwn(BUILTIN_ARMIES, name);
+let builtinJSON = "";
+const builtinArmies = () => JSON.parse(builtinJSON ||= JSON.stringify(Object.fromEntries(
+  Object.entries(BUILTIN_ARMIES).map(([n, code]) => [n, decodeArmy(code)]))));
+/* what this browser saved, which is what every write goes back into */
+const storedArmies = () => { const m = store.get(LS_ARMY, {}); return m && typeof m === "object" ? m : {}; };
+const getArmies  = () => Object.assign(storedArmies(), builtinArmies());
+const builtinNote = name => alert(`"${name}" is built in and cannot be changed \u2014 save it under a name of its own.`);
+
+/* the Library's own bookkeeping: folders, which preset sits in which,
+   colours, and the presets in stasis (kept, but out of every dropdown) */
+const LS_LIB = "warcalc.library";
+const LIB_FIXED = "universal";                          // the folder nobody can delete
+const lib = (()=>{
+  const d = {folders: [], where: {}, colour: {}, stasis: {}, shut: {}, view: "ratio", sel: "", budget: {}, rigid: {}};
+  const s = store.get(LS_LIB, {});
+  return Object.assign(d, s && typeof s === "object" ? s : {});
+})();
+const libSave = () => store.set(LS_LIB, lib);
+const inStasis = name => !!lib.stasis[name];
+function libRename(name, next){
+  ["where", "colour", "stasis"].forEach(k => { if (name in lib[k]) lib[k][next] = lib[k][name]; delete lib[k][name]; });
+  if (lib.sel === name) lib.sel = next;
+  libSave();
+}
+function libForget(names){
+  names.forEach(n => ["where", "colour", "stasis"].forEach(k => delete lib[k][n]));
+  libSave();
+}
 /* each army preset's Barracks level, kept beside the presets so the presets
    themselves stay plain unit lists */
 const LS_ABRK = "warcalc.armyBarracks";
@@ -7583,7 +7752,7 @@ const getMarks   = () => { const m = store.get(LS_MARK, []); return Array.isArra
 const setMarks   = m => store.set(LS_MARK, m);
 
 function refreshPresetSelects(){
-  const armies = Object.keys(getArmies()).sort();
+  const armies = Object.keys(getArmies()).filter(n => !inStasis(n)).sort();
   document.querySelectorAll("[data-ap-sel]").forEach(sel=>{
     const keep = sel.value;
     sel.innerHTML = `<option value="">preset…</option>` +
@@ -7611,7 +7780,7 @@ function refreshPresetSelects(){
 /* ---- marked armies: the presets you swap between, one click away ---- */
 function renderMarks(){
   const armies = getArmies();
-  const marks = getMarks().filter(n => armies[n]);
+  const marks = getMarks().filter(n => armies[n] && !inStasis(n));
   document.querySelectorAll("[data-ap-marks]").forEach(box=>{
     const side = box.dataset.apMarks;
     const sel = document.querySelector(`[data-ap-sel="${side}"]`);
@@ -7655,7 +7824,8 @@ function saveArmyPreset(side){
   if (!units.length){ alert("Nothing to save — that side is empty."); return; }
   const name = (prompt("Name this army preset:", "") || "").trim();
   if (!name) return;
-  const all = getArmies();
+  if (isBuiltin(name)){ builtinNote(name); return; }
+  const all = storedArmies();
   if (all[name] && !confirm(`Overwrite "${name}"?`)) return;
   all[name] = units;
   if (!store.set(LS_ARMY, all)) alert("Could not save — this browser is blocking local storage.");
@@ -7682,7 +7852,8 @@ function updateArmyPreset(side, btn){
   const sel = document.querySelector(`[data-ap-sel="${side}"]`);
   const name = sel.value;
   if (!name){ alert("Pick a preset first."); return; }
-  const all = getArmies();
+  if (isBuiltin(name)){ builtinNote(name); return; }
+  const all = storedArmies();
   if (!all[name]) return;
   const units = packSide(side);
   if (!units.length){ alert("Nothing to save \u2014 that side is empty."); return; }
@@ -7700,12 +7871,17 @@ function deleteArmyPreset(side){
            || document.querySelector("[data-ap-sel]");
   const name = sel.value;
   if (!name){ alert("Pick a preset first."); return; }
+  deleteArmyNamed(name);
+}
+function deleteArmyNamed(name){
+  if (isBuiltin(name)){ alert(`"${name}" is built in and cannot be deleted \u2014 put it in stasis from the Library to hide it.`); return; }
   if (!confirm(`Delete army preset "${name}"?`)) return;
-  const all = getArmies();
+  const all = storedArmies();
   delete all[name];
   store.set(LS_ARMY, all);
   setArmyBarracks(name, null);
   setArmyOrders(name, "");
+  libForget([name]);
   setMarks(getMarks().filter(n => n !== name));
   refreshPresetSelects();
 }
@@ -7714,22 +7890,31 @@ function renameArmyPreset(side){
   const sel = document.querySelector(`[data-ap-sel="${side}"]`);
   const name = sel.value;
   if (!name){ alert("Pick a preset first."); return; }
-  const all = getArmies();
+  const next = renameArmyNamed(name);
+  if (!next) return;
+  document.querySelectorAll("[data-ap-sel]").forEach(o=>{ o.value = next; });
+  renderMarks();
+}
+/* the new name, or nothing when it was left as it was */
+function renameArmyNamed(name){
+  if (isBuiltin(name)){ builtinNote(name); return; }
+  const all = storedArmies();
   if (!all[name]) return;
   const next = (prompt(`Rename army preset "${name}" to:`, name) || "").trim();
   if (!next || next === name) return;
+  if (isBuiltin(next)){ builtinNote(next); return; }
   if (all[next] && !confirm(`Overwrite "${next}"?`)) return;
   all[next] = all[name];
   delete all[name];
   if (!store.set(LS_ARMY, all)){ alert("Could not save — this browser is blocking local storage."); return; }
   setArmyBarracks(name, null, next);
   setArmyOrders(name, null, next);
+  libRename(name, next);
   const marks = getMarks();
   const i = marks.indexOf(name);
   if (i >= 0){ marks[i] = next; setMarks(marks); }
   refreshPresetSelects();
-  document.querySelectorAll("[data-ap-sel]").forEach(o=>{ o.value = next; });
-  renderMarks();
+  return next;
 }
 
 /* ---- battle presets (both sides + bonus) ---- */
@@ -7928,10 +8113,11 @@ function exportBattle(){
 
 /* ---- bulk deletes ---- */
 function deleteAllArmyPresets(){
-  const n = Object.keys(getArmies()).length;
+  const mine = Object.keys(storedArmies()).filter(n => !isBuiltin(n)), n = mine.length;
   if (!n){ alert("There are no army presets to delete."); return; }
   if (!confirm(`Delete all ${n} army preset${n === 1 ? "" : "s"}? This cannot be undone.`)) return;
   store.set(LS_ARMY, {});
+  libForget(mine);
   store.set(LS_ABRK, {});
   store.set(LS_AORD, {});
   setMarks([]);
@@ -7961,8 +8147,9 @@ function importPresetData(data, note){
 
   let added = 0;
   if (armies){
-    const all = getArmies();
+    const all = storedArmies();
     Object.entries(armies).forEach(([n,v])=>{
+      if (isBuiltin(n)) return;                    // the page's own copy stands
       let name = n;
       while (Object.hasOwn(all, name) && JSON.stringify(all[name]) !== JSON.stringify(v)) name += " (imported)";
       all[name] = v; added++;
@@ -8237,6 +8424,7 @@ document.getElementById("delAllBattles").addEventListener("click", deleteAllBatt
 document.getElementById("wipeSaves").addEventListener("click", ()=>{
   if (!confirm("Delete the autosave and every saved preset in this browser? This cannot be undone.")) return;
   [LS_KEY, LS_ARMY, LS_BATL, LS_MARK, LS_ABRK].forEach(k=>store.del(k));
+  libForget(Object.keys(lib.where).concat(Object.keys(lib.colour), Object.keys(lib.stasis)).filter(n => !isBuiltin(n)));
   refreshPresetSelects();
   alert("Cleared.");
 });
@@ -11437,7 +11625,7 @@ syncSolveSide();
    9. TABS
    =================================================================== */
 
-const VIEWS = {battle:"viewBattle", counter:"viewCounter", grand:"viewGrand", assess:"viewAssess"};
+const VIEWS = {battle:"viewBattle", counter:"viewCounter", grand:"viewGrand", assess:"viewAssess", library:"viewLibrary"};
 
 function showTab(name){
   if (!VIEWS[name]) name = "battle";
@@ -11508,7 +11696,7 @@ function hkWhere(b){
    gone where there is no fourth section */
 function dockForTab(name){
   hkTab = name;
-  hkDock.classList.toggle("hk-none", name === "counter");
+  hkDock.classList.toggle("hk-none", name === "counter" || name === "library");
   const spec = HK_TABS[name];
   hkBtns.forEach(b=>{
     const k = b.dataset.key, own = spec && k !== "q" ? spec[k] : null;
@@ -11544,7 +11732,7 @@ function setChainJumpButtons(count){
 }
 
 function jumpTo(target, btn){
-  if (hkTab === "counter") return;
+  if (hkTab === "counter" || hkTab === "library") return;
   const el = btn ? hkWhere(btn) : hkTarget(target);
   if (!el){                                   // nothing to jump to — say so and stay put
     if (btn){ btn.classList.remove("hk-miss"); void btn.offsetWidth; btn.classList.add("hk-miss"); }
@@ -11770,7 +11958,7 @@ const typingIn = el => !!el && (el.isContentEditable ||
   /^(INPUT|TEXTAREA|SELECT|OPTION)$/.test(el.tagName));
 
 document.addEventListener("keydown", e=>{
-  if (!hotkeysOn() || hkTab === "counter" || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+  if (!hotkeysOn() || hkTab === "counter" || hkTab === "library" || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
   if (typingIn(e.target) || typingIn(document.activeElement)) return;
   const btn = hkBtns.find(b => b.dataset.key === String(e.key).toLowerCase());
   if (!btn || btn.hidden) return;
@@ -12567,8 +12755,8 @@ const gsShort = k => (!gs.wide && GS_SHORT[k]) || label(k);
 
 function gsComps(){
   const armies = getArmies();
-  const names = Object.keys(armies).sort();
   gs.comps = gs.comps.filter(n => armies[n]);
+  const names = Object.keys(armies).filter(n => !inStasis(n) || gs.comps.includes(n)).sort();
   gsEl("gsComps").innerHTML = names.map(n=>`<span class="mark-chip${gs.comps.includes(n) ? " on" : ""}"
       data-gs-comp="${esc(n)}"><span class="n">${esc(n)}</span></span>`).join("");
   /* slips come out in the order they were picked, and take reserves in that order.
@@ -13616,6 +13804,398 @@ document.addEventListener("click", e=>{
   slip.classList.toggle("folded", !!st.folded[key]);
   refreshJumpDock();
 });
+
+
+/* ===================================================================
+   10c. LIBRARY — every army preset in one place: folders to file them in,
+       a colour each, stasis to keep one out of the dropdowns, and a
+       scaler that grows a preset from its smallest ratio
+   =================================================================== */
+
+/* one column a unit type, each under a piece of its own gear */
+const LIB_TYPES = [["Cavalry", "Barding"], ["Tanks", "Ohno"], ["Pegasi", "Griffin"],
+  ["Unicorns", "Librarian"], ["Naval", "Esohes"], ["Alicorns", "ScroungedWeapons"]];
+const LIB_RES = ["copper", "tungsten", "plastics", "machinery", "vehicle", "precision", "composites"];
+const LIB_BUDGET = ["apples", "gems", "coffee", "gasoline"];
+const LIB_COLOURS = ["#e5484d", "#f08a3c", "#e2c760", "#78cc78", "#3fc1b0", "#4ab9db", "#6f8cff", "#b366e0", "#ff6ec7"];
+let libScale = 1;                                      // the scaler's multiple of the ratio
+
+const libEl = id => document.getElementById(id);
+const gcd = (a, b) => { while (b) [a, b] = [b, a % b]; return a; };
+
+/* a preset's stacks, tidied: whole troops, and nothing empty */
+const libStacks = units => (Array.isArray(units) ? units : [])
+  .filter(u => u && UNIT_COST[u.type] && Math.floor(+u.size) >= 1)
+  .map(u => Object.assign({}, u, {size: Math.floor(+u.size), weapon: u.weapon || "ScroungedWeapons",
+    armor: u.armor || "ScroungedArmor", training: clampInt(u.training, 0, TRAIN_UNCAPPED)}));
+
+/* the smallest army in the same proportions, and how many times over the
+   preset holds it */
+function libRatio(units){
+  const list = libStacks(units);
+  const k = list.reduce((g, u) => gcd(g, u.size), 0) || 1;
+  return {k, units: list.map(u => Object.assign({}, u, {size: u.size / k}))};
+}
+
+function libCost(units){
+  const c = costsOf(units), troops = troopTotal(units);
+  return {troops, sat: satCost(troops), hire: c.hire, gear: c.gearBits, craft: c.craftBits,
+          bits: c.hire + c.gearBits + c.craftBits, res: c.gearRes, upkeep: c.upkeep};
+}
+
+const libHeads = units => units.reduce((h, u) => (h[u.type] = (h[u.type] || 0) + u.size, h), {});
+
+const libFolders = () => [{id: LIB_FIXED, name: "Universal", fixed: true}]
+  .concat(Array.isArray(lib.folders) ? lib.folders : []);
+function libFolderOf(name){
+  const f = lib.where[name] ?? (isBuiltin(name) ? LIB_FIXED : "");
+  return f && libFolders().some(x => x.id === f) ? f : "";
+}
+
+/* a blank budget is no budget */
+function libBudget(r){
+  const v = String(lib.budget[r] ?? "").replace(/,/g, "").trim();
+  return v === "" || !isFinite(+v) ? null : Math.max(0, +v);
+}
+
+/* The ratio grown to k times over, k times its troops in all. A budget caps
+   the upkeep its resource may eat: the stacks on a resource that hits its cap
+   stop growing there, and the troops they could not take go to the stacks
+   still free to grow, the ratio kept among them. A Rigid budget caps nothing
+   and only shows where it is passed. */
+function libScaled(ratio, k){
+  const caps = {};
+  LIB_BUDGET.forEach(r => { const b = libBudget(r); if (b != null && !lib.rigid[r]) caps[r] = b; });
+  const resOf = u => Object.keys(UNIT_COST[u.type].upkeep)[0];
+  const perOf = u => UNIT_COST[u.type].upkeep[resOf(u)];
+  const want = k * ratio.reduce((t, u) => t + u.size, 0);
+  /* each pass freezes the resources the free stacks would carry past their
+     cap; freezing one only hands the others more, so it settles in a few */
+  const held = {};
+  let s = k;
+  for (;;){
+    const fixed = ratio.reduce((t, u) => t + (resOf(u) in held ? u.size * held[resOf(u)] : 0), 0);
+    const free = ratio.reduce((t, u) => t + (resOf(u) in held ? 0 : u.size), 0);
+    s = free ? Math.max(0, (want - fixed) / free) : 0;
+    let more = false;
+    Object.entries(caps).forEach(([r, cap]) => {
+      if (r in held) return;
+      const per = ratio.reduce((t, u) => t + (resOf(u) === r ? u.size * perOf(u) : 0), 0);
+      if (per && per * s > cap + 1e-9){ held[r] = cap / per; more = true; }
+    });
+    if (!more) break;
+  }
+  /* whole troops: round down, then hand back what rounding took, largest
+     remainder first, to free stacks whose budget has room */
+  const exact = ratio.map(u => u.size * (resOf(u) in held ? held[resOf(u)] : s));
+  const sizes = exact.map(x => Math.floor(x + 1e-9));
+  const spent = r => ratio.reduce((t, u, i) => t + (resOf(u) === r ? sizes[i] * perOf(u) : 0), 0);
+  let left = Math.round(want) - sizes.reduce((a, b) => a + b, 0);
+  exact.map((x, i) => [x - sizes[i], i]).sort((a, b) => b[0] - a[0]).forEach(([, i]) => {
+    const r = resOf(ratio[i]);
+    if (left <= 0 || r in held || (r in caps && spent(r) + perOf(ratio[i]) > caps[r])) return;
+    sizes[i]++; left--;
+  });
+  const units = ratio.map((u, i) => Object.assign({}, u, {size: sizes[i]})).filter(u => u.size > 0);
+  return {units, want: Math.round(want), got: sizes.reduce((a, b) => a + b, 0), held: Object.keys(held)};
+}
+
+const libCurrent = () => {
+  const units = getArmies()[lib.sel];
+  return units ? libScaled(libRatio(units).units, libScale) : null;
+};
+
+/* "140 K9P + Trundle", with the pictures in front */
+const libGear = k => SCROUNGED[k] ? "Scrounged" : label(k);
+const libStackList = units => units.map(u => {
+  const w = waitOf(u), bare = SCROUNGED[u.weapon] && SCROUNGED[u.armor];
+  return `<div class="lib-stk"><span class="n">${money(u.size)}</span>${gearImg(u.weapon)}${gearImg(u.armor)}
+    <span class="g" title="${esc(u.type)}">${bare ? esc(u.type) : `${esc(libGear(u.weapon))} + ${esc(libGear(u.armor))}`}</span>
+    <span class="t">${w ? `<span class="w" title="Held back as a reinforcement">R${w}</span> ` : ""}T${u.training}</span></div>`;
+}).join("") || `<div class="small muted">No units.</div>`;
+
+const libKV = (k, v, cls = "v") => `<div class="lib-kv"><span>${k}</span><span class="${cls}">${v}</span></div>`;
+
+/* the figures under both panes; the upkeep is held against the budgets */
+function libCostHTML(c, budgets){
+  const up = RES_ORDER.filter(k => c.upkeep[k]).map(k => {
+    const b = budgets ? libBudget(k) : null, over = b != null && c.upkeep[k] > b + 1e-9;
+    return `<span class="res-chip${over ? " lib-over" : ""}">${resIcon(k)} <span class="mono">${money(c.upkeep[k])}${
+      b != null ? ` / ${money(b)}` : ""}</span></span>`;
+  }).join("") || `<span class="res-none">none</span>`;
+  return libKV("Troops", money(c.troops))
+    + libKV("Sat cost", money(c.sat))
+    + libKV("Raise army", money(c.hire), "v lib-bits")
+    + libKV(`Equipment ${BIT}`, money(c.gear), "v lib-bits")
+    + libKV("Crafting fees", money(c.craft), "v lib-bits")
+    + libKV("Total", money(c.bits), "v lib-bits")
+    + libKV("Resources", resChips(c.res), "")
+    + libKV("Upkeep / 12 h", up, "");
+}
+
+function libDetailHTML(armies){
+  const n = lib.sel;
+  if (!n) return `<div class="lib-empty">Pick a preset to see what is in it.</div>`;
+  const all = libStacks(armies[n]), r = libRatio(armies[n]);
+  const c = lib.colour[n], fixed = isBuiltin(n), here = libFolderOf(n), st = inStasis(n);
+  const brk = getArmyBarracks()[n];
+  return `<div class="lib-d-name"${c ? ` style="--c:${c}"` : ""}>${esc(n)}${fixed ? `<span class="lib-tag">built in</span>` : ""}</div>
+    <div class="lib-d-acts">
+      <button type="button" class="lib-ib" data-lib-act="stasis" title="${st
+        ? "Bring it back into the dropdowns" : "Keep it here, but out of every dropdown"}">${iconSvg(st ? "stasisOn" : "stasis")} ${st ? "Unstasis" : "Stasis"}</button>
+      ${fixed ? "" : `<button type="button" class="lib-ib" data-lib-act="rename">${iconSvg("rename")} Rename</button>
+      <button type="button" class="lib-ib" data-lib-act="delete">${iconSvg("del")} Delete</button>`}
+    </div>
+    <label class="lib-d-row"><span>Folder</span><select data-lib-move>${[{id: "", name: "Unfiled"}].concat(libFolders()).map(f =>
+      `<option value="${esc(f.id)}"${f.id === here ? " selected" : ""}>${esc(f.name)}</option>`).join("")}</select></label>
+    <div class="lib-d-row"><span>Colour</span><div class="lib-sw"><button type="button" class="none${c ? "" : " on"}"
+      data-lib-colour="" title="No colour"></button>${LIB_COLOURS.map(x =>
+      `<button type="button" style="--c:${x}"${x === c ? ` class="on"` : ""} data-lib-colour="${x}"></button>`).join("")}</div></div>
+    <div class="lib-h">Stacks</div>
+    ${libStackList(all)}
+    <div class="lib-h">Cost</div>
+    ${libKV("Ratio", r.k > 1 ? `${money(r.k)}&times; its smallest` : "already its smallest", "v")}
+    ${brk != null ? libKV("Barracks", money(brk)) : ""}
+    ${libCostHTML(libCost(all))}`;
+}
+
+function libRender(){
+  if (!libEl("libList")) return;
+  const armies = getArmies();
+  const names = Object.keys(armies).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: "base"}));
+  if (lib.sel && !armies[lib.sel]) lib.sel = "";
+  document.querySelectorAll("[data-lib-view]").forEach(b => b.classList.toggle("on", b.dataset.libView === lib.view));
+  const resView = lib.view === "res";
+  const ncol = (resView ? LIB_RES.length : LIB_TYPES.length) + 2;
+  const head = `<thead><tr><th>Name</th>${resView
+      ? LIB_RES.map(k => `<th>${resIcon(k)}</th>`).join("")
+      : LIB_TYPES.map(([t, g]) => `<th title="${t}"><img class="gear-img" src="${esc(gearImgSrc(g, true))}" alt="${t}"></th>`).join("")
+    }<th title="Bits, all in" class="lib-bits">${BIT}</th></tr></thead>`;
+
+  const row = n => {
+    const shown = lib.view === "ratio" ? libRatio(armies[n]).units : libStacks(armies[n]);
+    const cost = libCost(shown), h = libHeads(shown), st = inStasis(n), c = lib.colour[n];
+    const vals = resView ? LIB_RES.map(k => Math.round(cost.res[k] || 0)) : LIB_TYPES.map(([t]) => h[t] || 0);
+    return `<tr class="lib-row${n === lib.sel ? " sel" : ""}${st ? " stasis" : ""}" data-lib-name="${esc(n)}"
+        draggable="true"${c ? ` style="--c:${c}"` : ""}>
+      <td class="lib-n" title="${esc(n)}"><span class="lib-dot"></span><span class="lib-name">${esc(n)}</span><button
+        type="button" class="lib-ib lib-st" data-lib-stasis="${esc(n)}" title="${st
+          ? "In stasis: out of every dropdown. Click to bring it back" : "Put in stasis: kept here, but out of every dropdown"}">${
+          iconSvg(st ? "stasisOn" : "stasis")}</button></td>
+      ${vals.map(v => `<td${v ? "" : ` class="z"`}>${v ? money(v) : "·"}</td>`).join("")}
+      <td class="lib-bits">${cost.bits ? shortBits(cost.bits) : "·"}</td></tr>`;
+  };
+
+  const groups = libFolders().concat({id: "", name: "Unfiled"})
+    .map(f => ({f, names: names.filter(n => libFolderOf(n) === f.id)}));
+  const body = groups.map(({f, names: list}) => {
+    const open = !lib.shut[f.id || "_"], st = list.filter(inStasis).length;
+    const acts = (list.length ? `<button type="button" class="lib-ib" data-lib-fstasis="1"
+          title="Put every preset in this folder in stasis">Stasis all</button><button type="button" class="lib-ib"
+          data-lib-fstasis="0" title="Bring every preset in this folder back">Unstasis all</button>` : "")
+      + (f.id && !f.fixed ? `<button type="button" class="lib-ib" data-lib-fren title="Rename this folder">${iconSvg("rename")}</button
+          ><button type="button" class="lib-ib" data-lib-fdel title="Delete this folder; its presets go to Unfiled">${iconSvg("del")}</button>` : "");
+    return `<tbody data-lib-folder="${esc(f.id)}"><tr class="lib-fold${open ? " open" : ""}"><td colspan="${ncol}">
+        <span class="caret">&#9656;</span><span class="lib-fname">${esc(f.name)}</span>${f.fixed ? `<span class="lib-tag">built in</span>` : ""}
+        <span class="lib-fcount">${list.length}${st ? ` · ${st} in stasis` : ""}</span>
+        <span class="lib-facts">${acts}</span></td></tr>
+      ${open ? list.map(row).join("") : ""}</tbody>`;
+  }).join("");
+
+  libEl("libList").innerHTML = `<table class="lib-tbl">${head}${body}</table>`;
+  const nst = names.filter(inStasis).length;
+  libEl("libCount").textContent = `${names.length} preset${names.length === 1 ? "" : "s"}${nst ? ` · ${nst} in stasis` : ""}`;
+  libEl("libDetail").innerHTML = libDetailHTML(armies);
+  libScaler();
+}
+
+/* the right-hand window: the selected preset at its multiple, and what that costs */
+function libScaler(){
+  const armies = getArmies(), n = lib.sel, units = armies[n];
+  const off = !units;
+  ["libK", "libKn", "libKOrig", "libCopy", "libSaveAs"].forEach(id => { libEl(id).disabled = off; });
+  document.querySelectorAll("[data-lib-budget]").forEach(i => i.classList.remove("over"));
+  if (off){
+    libEl("libScHead").innerHTML = `<span class="lib-d-name muted">No preset picked</span>`;
+    libEl("libScOut").innerHTML = `<div class="lib-empty">Pick a preset in the Library and it starts here at its
+      smallest, in the same proportions. Slide to grow it.</div>`;
+    return;
+  }
+  const r = libRatio(units), step = r.units.reduce((t, u) => t + u.size, 0);
+  const max = Math.max(50, r.k * 3);
+  libScale = Math.max(1, Math.floor(libScale) || 1);
+  libEl("libK").max = max;
+  libEl("libK").value = Math.min(libScale, max);
+  if (document.activeElement !== libEl("libKn")) libEl("libKn").value = libScale;
+  const out = libScaled(r.units, libScale), cost = libCost(out.units), c = lib.colour[n];
+  LIB_BUDGET.forEach(k => {
+    const b = libBudget(k);
+    if (b != null && (cost.upkeep[k] || 0) > b + 1e-9) document.querySelector(`[data-lib-budget="${k}"]`)?.classList.add("over");
+  });
+  libEl("libScHead").innerHTML = `<span${c ? ` style="--c:${c}"` : ""}><span class="lib-dot"></span><span
+      class="lib-d-name">${esc(n)}</span></span><span class="x">&times;${money(libScale)}</span>`;
+  const notes = [];
+  if (out.held.length) notes.push(`<div class="lib-note">${out.held.map(resIcon).join(" ")} at budget: those stacks stop
+      there, and the troops they could not take went to the rest.</div>`);
+  if (out.got < out.want) notes.push(`<div class="lib-note warn">Every stack is held by a budget: ${money(out.got)} of
+      ${money(out.want)} troops.</div>`);
+  libEl("libScOut").innerHTML = `<div class="lib-note">${money(step)} troops a step · saved at &times;${money(r.k)}</div>
+    ${notes.join("")}
+    <div class="lib-h">Stacks</div>
+    ${libStackList(out.units)}
+    <div class="lib-h">Cost</div>
+    ${libCostHTML(cost, true)}`;
+}
+
+/* ---- the preset's own buttons: named versions of the Battle tab's ---- */
+function libStasis(names, on){
+  names.forEach(n => { if (on) lib.stasis[n] = true; else delete lib.stasis[n]; });
+  libSave();
+  refreshPresetSelects();                              // the dropdowns, and this list, follow
+}
+
+async function libCopyCode(btn){
+  const cur = libCurrent();
+  if (!cur || !cur.units.length) return;
+  const code = encodeArmy(cur.units, getArmyBarracks()[lib.sel]);
+  if (await copyText(code)) flashOk(btn, "Copied");
+  else prompt("This browser would not let the page reach the clipboard — copy the code from here:", code);
+}
+
+function libSaveAs(btn){
+  const cur = libCurrent(), from = lib.sel;
+  if (!cur || !cur.units.length) return;
+  const name = (prompt("Name this army preset:", `${from} ×${libScale}`) || "").trim();
+  if (!name) return;
+  if (isBuiltin(name)){ builtinNote(name); return; }
+  const all = storedArmies();
+  if (all[name] && !confirm(`Overwrite "${name}"?`)) return;
+  all[name] = cur.units.map(u => Object.assign({type: u.type, weapon: u.weapon, armor: u.armor, size: u.size,
+    training: u.training}, u.name ? {name: u.name} : {}, packWait(u)));
+  if (!store.set(LS_ARMY, all)){ alert("Could not save — this browser is blocking local storage."); return; }
+  setArmyBarracks(name, getArmyBarracks()[from]);
+  setArmyOrders(name, "");
+  /* it lands beside the preset it was grown from, in the same colour */
+  const f = libFolderOf(from);
+  if (f) lib.where[name] = f; else delete lib.where[name];
+  if (lib.colour[from]) lib.colour[name] = lib.colour[from]; else delete lib.colour[name];
+  delete lib.stasis[name];
+  libSave();
+  refreshPresetSelects();
+  flashOk(btn, "Saved");
+}
+
+/* ---- wiring ---- */
+libEl("libBuds").innerHTML = LIB_BUDGET.map(r => `<div class="lib-bud">${resIcon(r)}<input type="number" min="0" step="1"
+    data-lib-budget="${r}" placeholder="no cap" value="${esc(lib.budget[r] ?? "")}"
+    title="${RESOURCES[r].name} the army may eat in upkeep every 12 hours"><label class="lib-rig"
+    title="Grow past this budget anyway, and show where it goes over in red"><input type="checkbox"
+    data-lib-rigid="${r}"${lib.rigid[r] ? " checked" : ""}> Rigid</label></div>`).join("");
+
+const viewLib = libEl("viewLibrary");
+viewLib.addEventListener("input", e => {
+  const t = e.target;
+  if (t.dataset.libBudget){ lib.budget[t.dataset.libBudget] = t.value; libSave(); libScaler(); }
+  else if (t.id === "libK" || t.id === "libKn"){
+    if (t.id === "libKn" && t.value === "") return;
+    libScale = clampInt(t.value, 1, 1e6);
+    libScaler();
+  }
+});
+viewLib.addEventListener("change", e => {
+  const t = e.target;
+  if (t.dataset.libRigid){ lib.rigid[t.dataset.libRigid] = t.checked; libSave(); libScaler(); }
+  else if (t.id === "libKn"){ libScale = clampInt(t.value, 1, 1e6); libEl("libKn").value = libScale; libScaler(); }
+  else if (t.matches("[data-lib-move]")){
+    if (t.value) lib.where[lib.sel] = t.value; else lib.where[lib.sel] = "";
+    libSave(); libRender();
+  }
+});
+
+viewLib.addEventListener("click", e => {
+  const t = e.target.closest("button, .lib-row, .lib-fold");
+  if (!t || t.disabled) return;
+  const folder = t.closest("[data-lib-folder]")?.dataset.libFolder;
+  if (t.dataset.libView){ lib.view = t.dataset.libView; libSave(); libRender(); }
+  else if (t.id === "libNewFolder"){
+    const name = (prompt("Name the new folder:", "") || "").trim();
+    if (!name) return;
+    lib.folders = (Array.isArray(lib.folders) ? lib.folders : []).concat({id: "f" + Date.now().toString(36), name});
+    libSave(); libRender();
+  }
+  else if (t.id === "libKOrig"){ const u = getArmies()[lib.sel]; if (u){ libScale = libRatio(u).k; libScaler(); } }
+  else if (t.id === "libCopy") libCopyCode(t);
+  else if (t.id === "libSaveAs") libSaveAs(t);
+  else if (t.dataset.libStasis) libStasis([t.dataset.libStasis], !inStasis(t.dataset.libStasis));
+  else if (t.dataset.libFstasis){
+    const names = Object.keys(getArmies()).filter(n => libFolderOf(n) === folder);
+    libStasis(names, t.dataset.libFstasis === "1");
+  }
+  else if (t.hasAttribute("data-lib-fren")){
+    const f = lib.folders.find(x => x.id === folder);
+    const name = f && (prompt(`Rename folder "${f.name}" to:`, f.name) || "").trim();
+    if (!name) return;
+    f.name = name; libSave(); libRender();
+  }
+  else if (t.hasAttribute("data-lib-fdel")){
+    const f = lib.folders.find(x => x.id === folder);
+    if (!f || !confirm(`Delete folder "${f.name}"? Its presets are kept, in Unfiled.`)) return;
+    lib.folders = lib.folders.filter(x => x !== f);
+    Object.keys(lib.where).forEach(n => { if (lib.where[n] === f.id) lib.where[n] = ""; });
+    delete lib.shut[f.id];
+    libSave(); libRender();
+  }
+  else if (t.dataset.libColour !== undefined){
+    if (t.dataset.libColour) lib.colour[lib.sel] = t.dataset.libColour; else delete lib.colour[lib.sel];
+    libSave(); libRender();
+  }
+  else if (t.dataset.libAct === "stasis") libStasis([lib.sel], !inStasis(lib.sel));
+  else if (t.dataset.libAct === "rename") renameArmyNamed(lib.sel);
+  else if (t.dataset.libAct === "delete") deleteArmyNamed(lib.sel);
+  else if (t.classList.contains("lib-fold")){
+    const k = folder || "_";
+    if (lib.shut[k]) delete lib.shut[k]; else lib.shut[k] = true;
+    libSave(); libRender();
+  }
+  else if (t.classList.contains("lib-row") && t.dataset.libName !== lib.sel){
+    lib.sel = t.dataset.libName; libScale = 1;
+    libSave(); libRender();
+  }
+});
+
+/* drag a preset onto a folder (or any preset in it) to file it there */
+let libDrag = "";
+const libDropOff = () => viewLib.querySelectorAll(".lib-fold.drop").forEach(r => r.classList.remove("drop"));
+viewLib.addEventListener("dragstart", e => {
+  const row = e.target.closest?.(".lib-row");
+  if (!row) return;
+  libDrag = row.dataset.libName;
+  e.dataTransfer.effectAllowed = "move";
+  e.dataTransfer.setData("text/plain", libDrag);
+  row.classList.add("dragging");
+});
+viewLib.addEventListener("dragover", e => {
+  const tb = libDrag && e.target.closest?.("[data-lib-folder]");
+  if (!tb) return;
+  e.preventDefault();
+  libDropOff();
+  tb.querySelector(".lib-fold").classList.add("drop");
+});
+viewLib.addEventListener("drop", e => {
+  const tb = libDrag && e.target.closest?.("[data-lib-folder]");
+  if (!tb) return;
+  e.preventDefault();
+  lib.where[libDrag] = tb.dataset.libFolder;
+  libDrag = "";
+  libSave(); libRender();
+});
+viewLib.addEventListener("dragend", () => {
+  libDrag = "";
+  libDropOff();
+  viewLib.querySelectorAll(".lib-row.dragging").forEach(r => r.classList.remove("dragging"));
+});
+
+document.addEventListener("warcalc:presets", libRender);
 
 
 /* ===================================================================
