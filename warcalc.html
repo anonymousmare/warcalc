@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CurioCalc 2.6 — CLOP</title>
+<title>CurioCalc 2.7 — CLOP</title>
 <style>
 :root{
   --bg:#272b30;
@@ -1933,6 +1933,118 @@ body.snaps-hidden .snap{display:none}
 .who-tag.them{background:#b8901c}
 .gs-stockp.off .gs-top{opacity:.45}
 
+/* ---------- management ----------
+   a block a nation: its nets a tick up top, the armies it fields as strips
+   under them, its total last; the deals it all comes to under the rule */
+.mg-top{display:flex;align-items:center;gap:10px 22px;flex-wrap:wrap;position:relative;z-index:20}
+.mg-field{display:inline-flex;align-items:center;gap:7px;margin:0;font-size:11px;color:var(--text-dim);
+  text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.mg-field input{width:140px;padding:2px 5px;font:12px var(--mono);text-align:right;text-transform:none}
+.mg-field #mgTw{width:58px}
+.mg-limit{font-size:12px;color:var(--text-dim)}
+.mg-limit b{font:600 12px var(--mono);color:var(--strong)}
+/* the resource a nation is known for: its icon leads, and its name wears the colour */
+/* by region: Zebrica copper orange, Burrozil apple green, Saddle Arabia oil red, Przewalskia vehicle-part blue */
+.mg-c-zebrica{color:#ff8a33}.mg-c-burrozil{color:#3fdc5a}.mg-c-saddle{color:#ff6b6b}.mg-c-przes{color:#46a6ff}
+.mg-c-none{color:var(--text)}
+:is([data-theme="white"],[data-theme="applejack"],[data-theme="rainbow"]) :is(.mg-c-zebrica,.mg-c-burrozil,.mg-c-saddle,.mg-c-przes){filter:brightness(.62) saturate(1.3)}
+.mg-noic{display:inline-block;width:16px;height:16px;flex:0 0 auto}
+/* the nation list: searched from the top, seven rows on show */
+.mg-add{position:relative}
+.mg-menu{position:absolute;right:0;top:calc(100% + 4px);width:400px;max-width:calc(100vw - 32px);padding:6px;
+  background:var(--raised);border:1px solid var(--border-soft);border-radius:4px;box-shadow:0 8px 22px rgba(var(--lo),.45)}
+.mg-menu input{width:100%;box-sizing:border-box;margin-bottom:5px;font-size:12px}
+.mg-list{max-height:calc(7.5 * 29px);overflow-y:auto}
+.mg-opt{display:flex;align-items:center;gap:7px;width:100%;height:29px;padding:0 8px;border:none;border-radius:3px;
+  background:none;font:12px var(--font);text-align:left;cursor:pointer;color:var(--text)}
+.mg-opt:hover,.mg-opt.hot{background:rgba(var(--hi),.08)}
+.mg-opt .nm{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mg-opt .sub{margin-left:auto;padding-left:8px;font-size:11px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55%}
+.mg-opt.on{opacity:.45;cursor:default}
+.mg-opt.on .sub::before{content:"added · "}
+/* an alliance's heading, held at the top while its nations scroll under it */
+.mg-grp{position:sticky;top:0;z-index:1;display:flex;align-items:center;gap:6px;padding:5px 8px 3px;background:var(--raised);
+  font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);border-bottom:1px solid var(--border-soft)}
+.mg-grp .n{margin-left:auto;font:600 10px var(--mono);opacity:.7}
+.mg-none{padding:8px;font-size:12px;color:var(--text-dim)}
+/* one nation */
+.mg-p{padding:0}
+.mg-ph{display:flex;align-items:center;gap:6px 12px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--border-soft)}
+.mg-nm{display:inline-flex;align-items:center;gap:7px;font-weight:700;font-size:15px}
+.mg-sub{font-size:12px;color:var(--text-dim)}
+.mg-stale{font-size:11px;color:var(--warn)}
+.mg-own{margin:0}
+.mg-body{padding:10px 14px 12px;display:flex;flex-direction:column;gap:8px}
+.mg-row{display:flex;align-items:center;gap:6px 8px;flex-wrap:wrap}
+.mg-lab{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);font-weight:600;min-width:84px}
+.mg-net{display:inline-flex;align-items:center;gap:5px;background:var(--sunken);border:1px solid var(--border-soft);
+  border-radius:4px;padding:3px 4px 3px 6px}
+.mg-net .v{font:12px var(--mono);min-width:54px;text-align:right;color:var(--strong)}
+.mg-net .v.bad,.mg-amt.bad{color:var(--atk)}
+.mg-net .v.good,.mg-amt.good{color:var(--good)}
+.mg-net .d{font:11px var(--mono);color:var(--warn)}
+.mg-net input{width:70px;padding:1px 4px;font:12px var(--mono);text-align:right}
+.mg-plus{width:18px;height:18px;padding:0;border-radius:3px;border:1px solid var(--border-soft);background:var(--raised);
+  color:var(--text-dim);cursor:pointer;font:700 12px/16px var(--mono)}
+.mg-plus:hover,.mg-plus.on{color:var(--strong);border-color:var(--text-dim)}
+.mg-tw{display:inline-flex;align-items:center;gap:4px;margin:0;font:600 11px var(--mono);color:var(--warn)}
+.mg-tw input{width:46px;padding:1px 4px;font:12px var(--mono);text-align:right}
+.mg-tw input::placeholder{color:var(--input-ink);opacity:1}
+.mg-eat{display:inline-flex;align-items:center;gap:2px;padding:3px 8px;background:rgba(var(--lo),.22);
+  border:1px solid var(--border-soft);border-radius:4px}
+.mg-eat .res-chip .mono.good{color:var(--good)}
+.mg-attach select{width:auto;max-width:260px;font-size:12px;padding:2px 4px;background:var(--sunken);color:var(--text);border-color:var(--border-soft)}
+/* an army, and the nation's total under them */
+.mg-plans{display:flex;flex-direction:column;gap:5px}
+.mg-strip{display:grid;grid-template-columns:76px minmax(150px,1.2fr) 74px minmax(230px,2fr) 82px 128px minmax(220px,auto);
+  align-items:center;gap:8px 12px;padding:6px 10px;font-size:12px;background:var(--sunken);
+  border:1px solid var(--border-soft);border-left:3px solid var(--accent);border-radius:4px}
+.mg-strip.tot{border-left-color:var(--gold);background:rgba(var(--gold-rgb),.07)}
+.mg-tag{font:700 10px/1 var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);white-space:nowrap}
+.mg-strip.tot .mg-tag{color:var(--gold)}
+.mg-pn{font-weight:600;color:var(--strong);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mg-pn .n{font:11px var(--mono);color:var(--text-dim);font-weight:400;margin-left:6px}
+.mg-ups .res-chip{margin-right:9px}
+.mg-kv{font:12px var(--mono);color:var(--strong);white-space:nowrap}
+.mg-kv i{font-style:normal;color:var(--text-dim);margin-right:4px}
+.mg-btns{display:flex;align-items:center;gap:4px;justify-content:flex-end;flex-wrap:wrap}
+.mg-btns .bp-btn{font-size:11px}
+.mg-btns .u-copy{display:inline-flex}
+.mg-empty{font-size:12px;color:var(--text-dim)}
+@media (max-width:1100px){
+  .mg-strip{grid-template-columns:76px 1fr 74px;}
+  .mg-strip > .mg-ups{grid-column:1 / -1}
+  .mg-strip > .mg-btns{grid-column:1 / -1;justify-content:flex-start}
+}
+.mg-hr{border:none;border-top:1px solid var(--border-soft);box-shadow:0 1px 0 rgba(var(--hi),.05);margin:22px 0}
+/* how many deals it all takes */
+.mg-deals-p h3{margin:0 0 4px}
+.mg-deals-wrap{overflow-x:auto}
+.mg-deals{border-collapse:collapse;width:100%;font-size:12px;margin-top:8px}
+.mg-deals th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);font-weight:600;
+  text-align:right;padding:4px 10px;border-bottom:1px solid var(--border-soft)}
+.mg-deals th:first-child{text-align:left}
+.mg-deals td{padding:4px 10px;text-align:right;white-space:nowrap;border-bottom:1px solid rgba(var(--hi),.04)}
+.mg-deals td:first-child{text-align:left}
+.mg-deals .mg-amt{font-family:var(--mono);color:var(--strong)}
+.mg-deals .dn{display:inline-block;min-width:28px;margin-left:6px;font:600 11px var(--mono)}
+.mg-deals .d1{color:#5fd068}.mg-deals .d2{color:#e8d23a}.mg-deals .d3{color:#ff9233}.mg-deals .d4{color:#ff5a55}
+:is([data-theme="white"],[data-theme="applejack"],[data-theme="rainbow"]) .mg-deals :is(.d1,.d2,.d3,.d4){filter:brightness(.7) saturate(1.4)}
+/* every other column a shade darker, so a figure can be followed down its column */
+.mg-deals :is(td,th):nth-child(odd):not(:first-child):not([colspan]){background:rgba(var(--lo),.14)}
+.mg-dlim{margin-left:10px;font:400 12px var(--font);color:var(--text-dim)}
+.mg-dlim b{font:600 12px var(--mono);color:var(--strong)}
+.mg-kv .bp-btn{padding:0 0 0 4px;vertical-align:-2px}
+.mg-deals .nil{color:var(--faint)}
+.mg-deals tr.army td:first-child{padding-left:26px;color:var(--text)}
+.mg-deals tr.nets td:first-child{padding-left:26px;color:var(--text-dim)}
+.mg-deals tr.nat td{padding-top:10px;border-bottom:none}
+.mg-deals tr.ntot td{font-weight:700;border-bottom:1px solid var(--border-soft)}
+.mg-deals tr.ntot td:first-child{padding-left:26px;color:var(--gold)}
+.mg-deals tr.grand td{font-weight:700;padding-top:9px;border-top:2px solid var(--border-soft);border-bottom:none}
+.mg-deals td.dl{font:700 12px var(--mono);color:var(--strong)}
+
+
 /* ---------- assessment ----------
    a battle ticket torn down the middle: the attackers' wine on the left,
    the defenders' navy on the right, and what it comes to under the seam */
@@ -2243,7 +2355,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
 <body>
 
 <div class="tabstrip">
-  <span class="tab-brand">CurioCalc 2.6<button class="gear-btn" id="btnTools"
+  <span class="tab-brand">CurioCalc 2.7<button class="gear-btn" id="btnTools"
     title="Settings, import / export presets" aria-expanded="false"><svg viewBox="0 0 24 24"
     aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path
     d="M10.3 2.5h3.4l.5 2.6a7.6 7.6 0 0 1 2 1.2l2.5-.9 1.7 2.9-2 1.8a7.7 7.7 0 0 1 0 2.3l2 1.8-1.7 2.9-2.5-.9a7.6 7.6 0 0 1-2 1.2l-.5 2.6h-3.4l-.5-2.6a7.6 7.6 0 0 1-2-1.2l-2.5.9-1.7-2.9 2-1.8a7.7 7.7 0 0 1 0-2.3l-2-1.8 1.7-2.9 2.5.9a7.6 7.6 0 0 1 2-1.2z"/><circle
@@ -2253,6 +2365,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
   <button class="tab" data-tab="grand">Staging</button>
   <button class="tab" data-tab="assess">Assessment</button>
   <button class="tab" data-tab="library">Library</button>
+  <button class="tab" data-tab="manage">Management</button>
   <span class="ref-btns">
     <!-- when the alliances' production was last fetched from 4clop.org; a click fetches it again -->
     <button class="sync-age" id="syncAge" type="button">Not synced</button>
@@ -2841,6 +2954,30 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
     <div id="asOut"></div>
   </div>
   <div class="gs-total" id="asTotal"></div>
+</div>
+
+<!-- ============ MANAGEMENT ============ -->
+<!-- the nations we keep supplied, the armies each fields, and what has to be shipped over -->
+<div id="viewManage" style="display:none">
+  <div class="panel mg-top">
+    <label class="mg-field" title="Our bits: a deal can carry 10,000 of a resource, and 1 more for every 100,000 bits">
+      <span class="gs-bit">&#3647;</span> Bits
+      <input type="text" id="mgBits" inputmode="numeric" autocomplete="off" placeholder="0"></label>
+    <label class="mg-field" title="War ticks of upkeep to send, for every army and every nation's nets that has no number of its own">
+      Default TW <input type="number" id="mgTw" min="1" max="999" step="1"></label>
+    <span class="mg-limit" id="mgLimit"></span>
+    <span class="spacer"></span>
+    <div class="mg-add" id="mgAdd">
+      <button type="button" class="btn btn-xs btn-success" id="mgAddBtn" aria-expanded="false">+ Add nation</button>
+      <div class="mg-menu" id="mgMenu" hidden>
+        <input type="search" id="mgFind" placeholder="Search nations, rulers, alliances…" autocomplete="off" spellcheck="false">
+        <div class="mg-list" id="mgList"></div>
+      </div>
+    </div>
+  </div>
+  <div id="mgPlayers"></div>
+  <hr class="mg-hr">
+  <div class="panel mg-deals-p" id="mgDeals"></div>
 </div>
 
 <!-- ============ LIBRARY ============ -->
@@ -3957,7 +4094,10 @@ const PLAN_RGB = {
 };
 const planHead = t =>
   `${ANSI}[2;4;2m${ANSI}[7;40m${t}${ANSI}[0m${ANSI}[2;2m${ANSI}[4;2m${ANSI}[0m${ANSI}[7;2m`;
-const planKeys = res => RES_ORDER.filter(k => Math.round(res[k] || 0) > 0);
+/* upkeep always reads apples, gems, coffee, gasoline, whatever else follows */
+const PLAN_FIRST = ["apples", "gems", "coffee", "gasoline"];
+const PLAN_ORDER = PLAN_FIRST.concat(RES_ORDER.filter(k => !PLAN_FIRST.includes(k)));
+const planKeys = res => PLAN_ORDER.filter(k => Math.round(res[k] || 0) > 0);
 /* names padded to the widest so every swatch and figure lines up */
 function planResLines(res, width){
   return planKeys(res).map(k=>{
@@ -4006,10 +4146,32 @@ function prettyPlan(side, noFight){
   /* what the advanced instructions raise and re-equip is billed with the rest */
   const extra = ordExtras()[side];
   const c = costsOf(rows.concat(extra));
-  const fence = (lang, body) => "```" + lang + "\n" + body + "\n```";
-  const out = ["`" + encodeArmy(liveSide(side), barracksOf(side)) + "`"];
+  const out = ["`" + encodeArmy(liveSide(side), barracksOf(side)) + "`", planRoster(rows, extra), planBits(rows.concat(extra), c)];
 
-  /* the roster, a type's stacks together */
+  out.push("`Nerd Stuff`");
+  const build = builderGearText(rows.concat(extra));
+  if (build) out.push(planFence("prolog", build));
+
+  const fight = noFight ? null : planFight(side);
+  const total = fight && fight.ticks > 1 ? fight.up : null;
+  if (planKeys(c.gearRes).length)
+    out.push(planFence("ansi", planResLines(c.gearRes, planWidth(c.gearRes))));
+  /* attackers with no one to fight: the upkeep over the set number of warticks */
+  const ticks = !noFight && side === "attacker" && !readSide("defender").some(u => u.size > 0)
+    ? Math.max(1, Math.floor(PREFS.planTicks) || 1) : 1;
+  const upkeep = ticks > 1 ? addRes({}, c.upkeep, ticks) : c.upkeep;
+  const w = planWidth(upkeep, total || {});          // both upkeep lists share one column
+  out.push(planFence("ansi", planHead(`Upkeep ${12 * ticks}/h`) + "\n" + planResLines(upkeep, w) +
+    (total ? "\n" + planHead("Upkeep Total") + "\n" + planResLines(total, w) : "")));
+  if (fight && fight.lost)
+    out.push(planFence("ansi", `${ANSI}[7;41m${ANSI}[48;2;255;0;0mBATTLE LOSS?${ANSI}[0m${ANSI}[7;41m${ANSI}[0m`));
+  return out.join("\n");
+}
+
+const planFence = (lang, body) => "```" + lang + "\n" + body + "\n```";
+
+/* the roster, a type's stacks together, and what the instructions raise and re-equip */
+function planRoster(rows, extra){
   const order = [], byType = new Map();
   rows.forEach(u=>{
     const n = Math.max(0, u.size);
@@ -4021,33 +4183,18 @@ function prettyPlan(side, noFight){
     ? `+${u.size.toLocaleString("en-US")} ${u.type} ${label(u.weapon)} + ${label(u.armor)} (raised, tick ${u.tick})`
     : `${u.size.toLocaleString("en-US")} ${u.type} -> ${u.noW ? "" : label(u.weapon)}${u.noW || u.noA ? "" : " + "}${
         u.noA ? "" : label(u.armor)} (swapped, tick ${u.tick})`);
-  out.push(fence("cs", order.map(t => byType.get(t).join("\n")).join("\n\n") +
-    (ins.length ? "\n\n# Instructions\n" + ins.join("\n") : "")));
+  return planFence("cs", order.map(t => byType.get(t).join("\n")).join("\n\n") +
+    (ins.length ? "\n\n# Instructions\n" + ins.join("\n") : ""));
+}
 
-  const sat = satCost(troopTotal(rows.concat(extra)));
-  out.push(fence("glsl", `☹ ${sat ? "-" + sat.toLocaleString("en-US") : 0} Sat\n\n` +
-    `₿ ${money(c.hire + c.gearBits + c.craftBits)}\n` +
-    ` ├── ${money(c.hire)} Raise\n` +
-    ` └── ${money(c.gearBits)} Equipment`));
-
-  out.push("`Nerd Stuff`");
-  const build = builderGearText(rows.concat(extra));
-  if (build) out.push(fence("prolog", build));
-
-  const fight = noFight ? null : planFight(side);
-  const total = fight && fight.ticks > 1 ? fight.up : null;
-  if (planKeys(c.gearRes).length)
-    out.push(fence("ansi", planResLines(c.gearRes, planWidth(c.gearRes))));
-  /* attackers with no one to fight: the upkeep over the set number of warticks */
-  const ticks = !noFight && side === "attacker" && !readSide("defender").some(u => u.size > 0)
-    ? Math.max(1, Math.floor(PREFS.planTicks) || 1) : 1;
-  const upkeep = ticks > 1 ? addRes({}, c.upkeep, ticks) : c.upkeep;
-  const w = planWidth(upkeep, total || {});          // both upkeep lists share one column
-  out.push(fence("ansi", planHead(`Upkeep ${12 * ticks}/h`) + "\n" + planResLines(upkeep, w) +
-    (total ? "\n" + planHead("Upkeep Total") + "\n" + planResLines(total, w) : "")));
-  if (fight && fight.lost)
-    out.push(fence("ansi", `${ANSI}[7;41m${ANSI}[48;2;255;0;0mBATTLE LOSS?${ANSI}[0m${ANSI}[7;41m${ANSI}[0m`));
-  return out.join("\n");
+/* sat, and the bits: what raising costs, and the equipment unless it is left off */
+function planBits(all, c, noGear){
+  const sat = satCost(troopTotal(all));
+  return planFence("glsl", `☹ ${sat ? "-" + sat.toLocaleString("en-US") : 0} Sat\n\n` + (noGear
+    ? `₿ ${money(c.hire)}\n └── ${money(c.hire)} Raise`
+    : `₿ ${money(c.hire + c.gearBits + c.craftBits)}\n` +
+      ` ├── ${money(c.hire)} Raise\n` +
+      ` └── ${money(c.gearBits)} Equipment`));
 }
 
 document.addEventListener("click", async e=>{
@@ -11822,7 +11969,7 @@ syncSolveSide();
    9. TABS
    =================================================================== */
 
-const VIEWS = {battle:"viewBattle", counter:"viewCounter", grand:"viewGrand", assess:"viewAssess", library:"viewLibrary"};
+const VIEWS = {battle:"viewBattle", counter:"viewCounter", grand:"viewGrand", assess:"viewAssess", library:"viewLibrary", manage:"viewManage"};
 
 function showTab(name){
   if (!VIEWS[name]) name = "battle";
@@ -11893,7 +12040,7 @@ function hkWhere(b){
    gone where there is no fourth section */
 function dockForTab(name){
   hkTab = name;
-  hkDock.classList.toggle("hk-none", name === "counter" || name === "library");
+  hkDock.classList.toggle("hk-none", name === "counter" || name === "library" || name === "manage");
   const spec = HK_TABS[name];
   hkBtns.forEach(b=>{
     const k = b.dataset.key, own = spec && k !== "q" ? spec[k] : null;
@@ -12771,22 +12918,29 @@ const gsProdFor = (b, k) => b === "prod" ? gsProdOf(k) : gsProdThemOf(k);
 
 /* ---- the alliances' production, synced from 4clop.org ----
    The public API lists every nation with its alliance, its GDP and each
-   resource's net per turn. Only each alliance's sums are kept, and a side
+   resource's net per turn. Each alliance's sums are kept, and a side
    not typed in by hand is the sum of the alliances ticked for it.
-   GDP is the bits, as it is on the game's Alliance Resources table */
+   GDP is the bits, as it is on the game's Alliance Resources table.
+   Each nation is kept as well, with its own nets, for Management */
 const LS_SYNC = "warcalc.sync";
 const SYNC_URL = "https://4clop.org/api/public/v1.1.php";
 const SYNC_STALE = 2 * 3600e3;                         // a sync older than this shows red
 let sync = (()=>{
   const s = store.get(LS_SYNC, null);
-  return s && typeof s === "object" && Array.isArray(s.alliances) && s.at > 0 ? s : null;
+  return s && typeof s === "object" && Array.isArray(s.alliances) && Array.isArray(s.nations) && s.at > 0 ? s : null;
 })();
 let syncBusy = false, syncErr = "";
 
-function syncSum(d){
+/* the API's resource names, to the keys kept here */
+const syncKeys = () => {
   const norm = x => String(x).toLowerCase().replace(/[^a-z0-9]/g, "");
   const keyOf = {};
   GS_PROD.forEach(k => { if (k !== "bits") keyOf[norm(gsName(k))] = k; });
+  return name => keyOf[norm(name)];
+};
+
+function syncSum(d){
+  const keyOf = syncKeys();
   const byId = new Map();
   (d.alliances || []).forEach(a => byId.set(a.alliance_id, {id: a.alliance_id, name: String(a.name), n: 0, net: {}}));
   (d.nations || []).forEach(nat=>{
@@ -12796,7 +12950,7 @@ function syncSum(d){
     a.n++;
     a.net.bits = (a.net.bits || 0) + (Number(nat.gdp_last_turn) || 0);
     (nat.resources || []).forEach(r=>{
-      const k = keyOf[norm(r.name)];
+      const k = keyOf(r.name);
       if (k) a.net[k] = (a.net[k] || 0) + (Number(r.net) || 0);
     });
   });
@@ -12804,6 +12958,21 @@ function syncSum(d){
   const nm = a => a.id ? a.name : "No alliance";
   return [...byId.values()].filter(a => a.n).map(a => Object.assign(a, {name: nm(a)}))
     .sort((a, b) => !a.id - !b.id || b.n - a.n || a.name.localeCompare(b.name));
+}
+
+/* every nation on its own: who runs it, its alliance, and its nets per turn */
+function syncNations(d){
+  const keyOf = syncKeys();
+  const ally = new Map((d.alliances || []).map(a => [a.alliance_id, String(a.name)]));
+  return (d.nations || []).filter(n => n && n.nation_id != null).map(n=>{
+    const net = {};
+    (n.resources || []).forEach(r=>{
+      const k = keyOf(r.name);
+      if (k) net[k] = (net[k] || 0) + (Number(r.net) || 0);
+    });
+    return {id: n.nation_id, name: String(n.name || `Nation ${n.nation_id}`), user: String(n.username || ""),
+            ally: n.alliance_id ? ally.get(n.alliance_id) || `Alliance ${n.alliance_id}` : "", region: String(n.region_name || ""), net};
+  });
 }
 
 const syncNet = (side, k) => !sync ? 0 : sync.alliances
@@ -12817,15 +12986,17 @@ async function syncNow(){
   try{
     const r = await fetch(SYNC_URL, {cache: "no-store"});
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const alliances = syncSum(await r.json());
+    const d = await r.json();
+    const alliances = syncSum(d);
     if (!alliances.length) throw new Error("no nations in the reply");
-    sync = {at: Date.now(), alliances};
+    sync = {at: Date.now(), alliances, nations: syncNations(d)};
     syncErr = "";
     store.set(LS_SYNC, sync);
   }catch(e){ syncErr = e.message || String(e); }
   syncBusy = false;
   syncPaint();
   gsRefill();
+  mgRender();
 }
 
 const syncAgo = ms=>{
@@ -12841,7 +13012,7 @@ function syncPaint(){
     : sync ? `Synced ${syncAgo(age)}` : "Not synced";
   el.classList.toggle("stale", age > SYNC_STALE);
   el.classList.toggle("busy", syncBusy);
-  el.title = [sync ? `Alliance production last synced from 4clop.org at ${new Date(sync.at).toLocaleString()}` : "",
+  el.title = [sync ? `Nations and alliances last synced from 4clop.org at ${new Date(sync.at).toLocaleString()}` : "",
     syncErr ? `The last try failed: ${syncErr}` : "", "Click to sync again"].filter(Boolean).join("\n");
 }
 /* what the reserves hold of a piece of gear, or nothing with them switched off */
@@ -13625,17 +13796,12 @@ const gsDdShut = () => document.querySelectorAll(".gs-dd[open]").forEach(d => { 
 document.addEventListener("click", e=>{ if (gsDdOpen && !e.target.closest?.(".gs-dd")) gsDdShut(); });
 document.addEventListener("keydown", e=>{ if (gsDdOpen && e.key === "Escape") gsDdShut(); });
 
-/* fetched fresh on every load, and again from a click on the time. With the
-   alliances put away nothing reads it, so it is neither fetched nor shown */
-if (GS_ALLIES){
-  gsEl("syncAge").addEventListener("click", syncNow);
-  setInterval(syncPaint, 30e3);
-  syncPaint();
-  syncNow();
-} else {
-  gsEl("syncAge").style.display = "none";
-  gsEl("syncDiv").style.display = "none";
-}
+/* fetched fresh on every load, and again from a click on the time.
+   Management reads the nations even with the alliances put away */
+gsEl("syncAge").addEventListener("click", syncNow);
+setInterval(syncPaint, 30e3);
+syncPaint();
+syncNow();
 gsEl("gsClear").addEventListener("click", gsClearAll);
 
 gsEl("gsWide").addEventListener("change", ()=>{
@@ -14837,6 +15003,371 @@ viewLib.addEventListener("dragend", () => {
 });
 
 document.addEventListener("warcalc:presets", libRender);
+
+
+/* ===================================================================
+   10d. MANAGEMENT — the nations we keep supplied: what each makes and eats
+        a tick, the armies it fields, and what has to be shipped over to
+        keep the lot fed, in as many deals as the limit takes
+   =================================================================== */
+
+const LS_MANAGE = "warcalc.manage";
+const MG_RES = GS_UPKEEP;                              // apples, gems, coffee, gasoline
+/* war ticks of upkeep: a whole number from 1, or none to take the default */
+const mgTwOf = v => { const n = Math.floor(Number(v)); return n >= 1 ? Math.min(n, 999) : null; };
+
+const mg = (()=>{
+  const s = store.get(LS_MANAGE, null);
+  const o = s && typeof s === "object" ? s : {};
+  const obj = v => v && typeof v === "object" && !Array.isArray(v) ? v : {};
+  const players = (Array.isArray(o.players) ? o.players : []).filter(p => p && typeof p === "object" && p.id != null)
+    .map(p => ({id: p.id, name: String(p.name || ""), adj: obj(p.adj), open: obj(p.open), own: p.own === true, tw: mgTwOf(p.tw),
+      plans: (Array.isArray(p.plans) ? p.plans : []).filter(x => x && typeof x.name === "string")
+        .map(x => ({name: x.name, tw: mgTwOf(x.tw)}))}));
+  return {bits: gsNum(o.bits), tw: mgTwOf(o.tw) || 1, players};
+})();
+const mgSave = () => store.set(LS_MANAGE, mg);
+const mgEl = id => document.getElementById(id);
+
+/* the most of any one resource a deal can carry, by our bits */
+const mgLimit = () => 10000 + Math.floor(mg.bits / 100000);
+const mgDeals = n => n > 0 ? Math.ceil(n / mgLimit()) : 0;
+
+const mgNation = id => sync?.nations.find(n => n.id === id) || null;
+/* each region's own resource, which leads a nation's name and colours it */
+const MG_REGIONS = [
+  {re: /zebrica/i,     cls: "zebrica",  res: "copper"},
+  {re: /burrozil/i,    cls: "burrozil", res: "apples"},
+  {re: /saddle/i,      cls: "saddle",   res: "oil"},
+  {re: /przewalsk/i,   cls: "przes",    res: "vehicle"}
+];
+const mgRegion = nat => MG_REGIONS.find(r => r.re.test(nat?.region || "")) || null;
+const mgFace = (nat, name) => {
+  const r = mgRegion(nat);
+  return `${r ? resIcon(r.res) : `<span class="mg-noic"></span>`}<span class="nm mg-c-${r ? r.cls : "none"}"${
+    nat?.region ? ` title="${esc(nat.region)}"` : ""}>${esc(name)}</span>`;
+};
+/* a net as the API has it, and whatever was added to it by hand */
+const mgNet = (p, k) => (mgNation(p.id)?.net[k] || 0) + (Number(p.adj[k]) || 0);
+const mgSigned = n => (n > 0 ? "+" : n < 0 ? "−" : "") + money(Math.abs(n));
+
+/* one attached preset: its troops (and what its instructions raise and
+   re-equip), what that costs, and its upkeep over its war ticks */
+function mgPlan(x, armies, ords){
+  const src = Array.isArray(armies[x.name]) ? armies[x.name] : [];
+  const units = src.filter(u => u && UNIT_COST[u.type] && gsNum(u.size) >= 1).map(u => ({
+    type: u.type, weapon: u.weapon || "ScroungedWeapons", armor: u.armor || "ScroungedArmor",
+    size: Math.floor(gsNum(u.size)), training: clampInt(u.training, 0, TRAIN_UNCAPPED), nick: u.name || "", reserve: waitOf(u)}));
+  const extra = ords[x.name] ? gsExtras(src, ords[x.name]) : [];
+  const all = units.concat(extra), c = costsOf(all), tw = x.tw || mg.tw;
+  const up = {};
+  MG_RES.forEach(k => { if (c.upkeep[k] > 0) up[k] = c.upkeep[k] * tw; });
+  return {name: x.name, units, extra, all, c, tw, up, troops: troopTotal(all), code: armyPresetCode(x.name, src)};
+}
+
+/* a nation's whole bill. Its nets are eaten every tick, six to a war tick,
+   over the nets' own war ticks; only what it runs short of is sent, unless
+   it uses its own supply, when what it makes pays toward its armies first */
+function mgCalc(p, armies, ords){
+  const plans = p.plans.map(x => mgPlan(x, armies, ords));
+  const twN = mg.tw;
+  const net = {}, eat = {}, need = {};
+  MG_RES.forEach(k=>{
+    net[k] = mgNet(p, k);
+    const mil = plans.reduce((t, b) => t + (b.up[k] || 0), 0);
+    const over = GS_TICKS * twN * net[k];
+    eat[k] = p.own ? -over : Math.max(0, -over);
+    const v = mil + eat[k];
+    if (v > 0) need[k] = v;
+  });
+  const all = plans.flatMap(b => b.all);
+  return {plans, twN, net, eat, need, all, troops: troopTotal(all), hire: plans.reduce((t, b) => t + b.c.hire, 0)};
+}
+
+/* what is spare, with the nation's own supply in use, reads green and takes off */
+const mgChips = res => MG_RES.filter(k => res[k]).map(k =>
+  `<span class="res-chip">${resIcon(k)} <span class="mono${res[k] < 0 ? " good" : ""}">${
+    res[k] < 0 ? mgSigned(res[k]) : money(res[k])}</span></span>`).join("") || `<span class="res-none">none</span>`;
+
+/* ---- what gets copied ---- */
+/* a raise cost as a bare number, no commas, ready to paste into a deal */
+const mgBitsCopy = n => `<button type="button" class="bp-btn u-copy" data-units-copy="${Math.round(n)}"
+  title="Copy ${Math.round(n)}">${iconSvg("copy")}</button>`;
+function mgPlanText(b, j, n){
+  return [`> Army ${j + 1}/${n}`, "`" + b.code + "`", planRoster(b.units, b.extra), planBits(b.all, b.c),
+    planFence("ansi", planHead(`Upkeep ${12 * b.tw}/h`) + "\n" + planResLines(b.up, planWidth(b.up)))].join("\n");
+}
+/* the armies together, nets and all: no army codes, no rosters, no equipment */
+function mgTotalText(t){
+  const tws = new Set(t.plans.map(b => b.tw).concat(MG_RES.some(k => t.eat[k]) ? [t.twN] : []));
+  const head = tws.size === 1 ? `Upkeep ${12 * [...tws][0]}/h` : "Upkeep Total";
+  return ["> Total", planBits(t.all, {hire: t.hire}, true),
+    planFence("ansi", planHead(head) + "\n" + planResLines(t.need, planWidth(t.need)))].join("\n");
+}
+
+/* ---- the nation list ---- */
+let mgHot = 0;
+function mgList(){
+  const box = mgEl("mgList");
+  if (!sync){
+    box.innerHTML = `<div class="mg-none">${syncBusy ? "Fetching the nations…" : syncErr
+      ? `Couldn't reach 4clop.org (${esc(syncErr)}) — click the sync time up top to try again.`
+      : "No nations yet — click the sync time up top to fetch them."}</div>`;
+    return [];
+  }
+  const q = mgEl("mgFind").value.trim().toLowerCase();
+  const added = new Set(mg.players.map(p => p.id));
+  /* grouped by alliance, the biggest first and nations in none last, each group by name */
+  const size = new Map();
+  sync.nations.forEach(n => size.set(n.ally, (size.get(n.ally) || 0) + 1));
+  const hits = sync.nations.filter(n => !q || [n.name, n.user, n.ally, n.region || ""].some(x => x.toLowerCase().includes(q)))
+    .sort((a, b) => !a.ally - !b.ally || size.get(b.ally) - size.get(a.ally) || a.ally.localeCompare(b.ally) || a.name.localeCompare(b.name));
+  mgHot = Math.max(0, Math.min(mgHot, hits.length - 1));
+  box.innerHTML = hits.length ? hits.map((n, i) => (i && hits[i - 1].ally === n.ally ? "" : `<div class="mg-grp">${
+      esc(n.ally || "No alliance")}<span class="n">${hits.filter(h => h.ally === n.ally).length}</span></div>`) +
+      `<button type="button" class="mg-opt${added.has(n.id) ? " on" : ""}${
+      i === mgHot ? " hot" : ""}" data-mg-add="${n.id}" title="${esc([n.name, n.user, n.ally, n.region].filter(Boolean).join(" · "))}">${
+      mgFace(n, n.name)}<span class="sub">${esc(n.user)}</span></button>`).join("")
+    : `<div class="mg-none">No nation matches that.</div>`;
+  return hits;
+}
+function mgMenu(open){
+  mgEl("mgMenu").hidden = !open;
+  mgEl("mgAddBtn").setAttribute("aria-expanded", open ? "true" : "false");
+  if (!open) return;
+  mgHot = 0;
+  mgList();
+  mgEl("mgFind").focus();
+  mgEl("mgFind").select();
+}
+function mgAdd(id){
+  const nat = mgNation(id);
+  if (!nat || mg.players.some(p => p.id === id)) return;
+  mg.players.push({id, name: nat.name, adj: {}, open: {}, own: false, tw: null, plans: []});
+  mgSave();
+  mgRender();
+  mgList();
+}
+
+/* ---- a nation's block ---- */
+function mgBlock(p, i, t, names){
+  const nat = mgNation(p.id);
+  if (nat) p.name = nat.name;
+  const nets = MG_RES.map(k=>{
+    const v = t.net[k], adj = Number(p.adj[k]) || 0, open = p.open[k] || adj;
+    return `<span class="mg-net" title="${esc(gsName(k))}: ${money(nat?.net[k] || 0)} a tick off the API${
+        adj ? `, ${mgSigned(adj)} by hand` : ""}">${resIcon(k)}
+      <span class="v${v < 0 ? " bad" : v > 0 ? " good" : ""}">${mgSigned(v)}</span>${open
+        ? `<input type="text" inputmode="numeric" autocomplete="off" placeholder="±0" data-mg-f="adj:${i}:${k}"
+            value="${adj ? gsFmt(adj) : ""}" title="Add to or take off the net, e.g. -50">` : ""}
+      <button type="button" class="mg-plus${open ? " on" : ""}" data-mg-plus="${i}:${k}"
+        title="Add to or take off this net by hand">${open ? "±" : "+"}</button></span>`;
+  }).join("");
+  const opts = names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+  const strip = (b, j) => `<div class="mg-strip">
+      <span class="mg-tag">Army ${j + 1}/${t.plans.length}</span>
+      <span class="mg-pn" title="${esc(b.name)}">${esc(b.name)}<span class="n">${b.troops.toLocaleString("en-US")}</span></span>
+      <label class="mg-tw" title="War ticks of upkeep to send for this army; empty takes the default">TW
+        <input type="text" inputmode="numeric" autocomplete="off" data-mg-f="ptw:${i}:${j}"
+          value="${p.plans[j].tw || ""}" placeholder="${mg.tw}"></label>
+      <span class="mg-ups"><span class="mg-kv"><i>${12 * b.tw}/h</i></span>${mgChips(b.up)}</span>
+      <span class="mg-kv" title="Satisfaction a turn"><i>Sat</i>${satCost(b.troops) ? "−" + satCost(b.troops).toLocaleString("en-US") : 0}</span>
+      <span class="mg-kv" title="What raising the army costs"><i>${BIT}</i>${money(b.c.hire)}${mgBitsCopy(b.c.hire)}</span>
+      <span class="mg-btns">
+        <button type="button" class="bp-btn" data-mg-copy="${i}:${j}" title="Copy the pretty plan, headed Army ${j + 1}/${t.plans.length}">${iconSvg("copy")}</button>
+        <button type="button" class="bp-btn txt-btn u-copy u-human" title="Copy the roster the way a person reads it"
+          data-units-copy="${esc(rosterText(b.units)).replace(/\n/g, "&#10;")}">Human Copy</button>
+        <button type="button" class="bp-btn txt-btn u-copy u-builder" title="Copy as army-builder commands (shift-click leaves out the grouping)"
+          data-units-copy="" data-builder="${keepBuilderRows(b.units)}">Builder Copy</button>
+        <button type="button" class="bp-btn" data-mg-unplan="${i}:${j}" title="Take this army off">${iconSvg("del")}</button>
+      </span></div>`;
+  const total = t.plans.length || MG_RES.some(k => t.need[k]) ? `<div class="mg-strip tot">
+      <span class="mg-tag">Total</span>
+      <span class="mg-pn">${t.plans.length} arm${t.plans.length === 1 ? "y" : "ies"}<span class="n">${t.troops.toLocaleString("en-US")}</span></span>
+      <span></span>
+      <span class="mg-ups">${mgChips(t.need)}</span>
+      <span class="mg-kv" title="Satisfaction a turn, every army together"><i>Sat</i>${satCost(t.troops) ? "−" + satCost(t.troops).toLocaleString("en-US") : 0}</span>
+      <span class="mg-kv" title="What raising every army costs"><i>${BIT}</i>${money(t.hire)}${mgBitsCopy(t.hire)}</span>
+      <span class="mg-btns">
+        <button type="button" class="bp-btn" data-mg-copy="${i}:t" title="Copy the total: sat, raise and upkeep, nets and all">${iconSvg("copy")}</button>
+        ${t.plans.length ? `<button type="button" class="bp-btn txt-btn u-copy u-builder" data-mg-build="${i}"
+          title="Copy every army as army-builder commands, each grouped on its own (shift-click leaves out the grouping)">Builder Copy</button>` : ""}
+      </span></div>` : "";
+  return `<div class="panel mg-p">
+    <div class="mg-ph">
+      <span class="mg-nm">${mgFace(nat, p.name || `Nation ${p.id}`)}</span>
+      <span class="mg-sub">${esc(nat ? [nat.user, nat.ally].filter(Boolean).join(" · ") : "")}</span>
+      ${nat || !sync ? "" : `<span class="mg-stale">not in the last sync — its nets read as nothing but what's added by hand</span>`}
+      <span class="spacer"></span>
+      <label class="hk-toggle mg-own" title="Let what this nation makes pay toward its armies' upkeep, rather than only counting what it runs short of">
+        <input type="checkbox" data-mg-own="${i}"${p.own ? " checked" : ""}> Use own supply?</label>
+      <button type="button" class="bp-btn" data-mg-del="${i}" title="Take this nation off">${iconSvg("del")}</button>
+    </div>
+    <div class="mg-body">
+      <div class="mg-row"><span class="mg-lab">Nets / tick</span>${nets}
+        <span class="mg-eat" title="${p.own ? "What the nets come to over the default war ticks: short is sent, spare pays toward the armies"
+          : "What the nets run short of over the default war ticks, six ticks to a war tick"}">${mgChips(t.eat)}</span>
+      </div>
+      <div class="mg-row mg-attach"><span class="mg-lab">Armies</span>
+        <select data-mg-attach="${i}"><option value="">+ Attach preset…</option>${opts}</select></div>
+      ${t.plans.length || total ? `<div class="mg-plans">${t.plans.map(strip).join("")}${total}</div>` : ""}
+    </div>
+  </div>`;
+}
+
+/* ---- the deals: a row an army, the nets, a nation's total, and everyone's ---- */
+function mgDealsHTML(calcs){
+  const lim = mgLimit();
+  const tone = d => `d${Math.min(d, 4)}`;
+  const cell = n => !n ? `<td class="nil">—</td>` : n < 0
+    ? `<td><span class="mg-amt good">${mgSigned(n)}</span><span class="dn"></span></td>`
+    : `<td><span class="mg-amt">${money(n)}</span><span class="dn ${tone(mgDeals(n))}">×${mgDeals(n)}</span></td>`;
+  const most = res => Math.max(0, ...MG_RES.map(k => mgDeals(res[k] || 0)));
+  const row = (cls, lab, res, deals = most(res)) => `<tr class="${cls}"><td>${lab}</td>${MG_RES.map(k => cell(res[k] || 0)).join("")}
+    <td class="dl">${deals ? `<b class="${tone(deals)}">${deals}</b> deal${deals === 1 ? "" : "s"}` : `<span class="nil">—</span>`}</td></tr>`;
+  const grand = {};
+  const body = mg.players.map((p, i)=>{
+    const t = calcs[i], nat = mgNation(p.id);
+    MG_RES.forEach(k => { grand[k] = (grand[k] || 0) + (t.need[k] || 0); });
+    return `<tr class="nat"><td colspan="${MG_RES.length + 2}"><span class="mg-nm">${mgFace(nat, p.name || `Nation ${p.id}`)}</span></td></tr>` +
+      t.plans.map((b, j) => row("army", `Army ${j + 1}/${t.plans.length} · ${esc(b.name)} <span class="small muted">×${b.tw} TW</span>`, b.up)).join("") +
+      (MG_RES.some(k => t.eat[k]) ? row("nets", `Nets <span class="small muted">×${t.twN} TW${p.own ? " · own supply" : ""}</span>`, t.eat) : "") +
+      row("ntot", "Total", t.need);
+  }).join("");
+  return `<h3>Deals<span class="mg-dlim" title="The most of each resource one deal can carry: 10,000, and 1 more for every 100,000 bits">Deal limit is <b>${money(lim)}</b></span></h3>
+    ${mg.players.length ? `<div class="mg-deals-wrap"><table class="mg-deals">
+      <thead><tr><th></th>${MG_RES.map(k => `<th>${resIcon(k)} ${esc(gsName(k))}</th>`).join("")}<th>Deals</th></tr></thead>
+      <tbody>${body}${row("grand", "Everyone", grand)}</tbody></table></div>`
+      : `<div class="mg-empty" style="margin-top:8px">Add a nation to see what it takes to supply.</div>`}`;
+}
+
+let mgLast = [];
+function mgRender(){
+  if (!mgEl("viewManage")) return;
+  const armies = getArmies(), ords = getArmyOrders();
+  mg.players.forEach(p => { p.plans = p.plans.filter(x => armies[x.name]); });
+  const names = Object.keys(armies).filter(n => !inStasis(n)).sort((a, b) => a.localeCompare(b));
+  const calcs = mgLast = mg.players.map(p => mgCalc(p, armies, ords));
+  /* the box being typed in keeps what is in it, half-typed "-" and all, and its caret through the redraw */
+  const a = document.activeElement, f = a?.dataset?.mgF, typed = f ? a.value : "", at = f ? [a.selectionStart, a.selectionEnd] : null;
+  clearTips("mg");
+  if (document.activeElement !== mgEl("mgBits")) mgEl("mgBits").value = mg.bits ? money(mg.bits) : "";
+  if (document.activeElement !== mgEl("mgTw")) mgEl("mgTw").value = mg.tw;
+  mgEl("mgLimit").innerHTML = `Deal limit <b>${money(mgLimit())}</b> a resource`;
+  mgEl("mgPlayers").innerHTML = mg.players.length ? mg.players.map((p, i) => mgBlock(p, i, calcs[i], names)).join("")
+    : `<div class="panel mg-empty">No nations yet — <b>+ Add nation</b> up top picks one off the API.</div>`;
+  mgEl("mgDeals").innerHTML = mgDealsHTML(calcs);
+  if (f){
+    const el = mgEl("mgPlayers").querySelector(`[data-mg-f="${f}"]`);
+    if (el){ el.value = typed; el.focus(); try{ el.setSelectionRange(...at); }catch(e){} }
+  }
+}
+
+/* ---- management wiring ---- */
+const mgView = mgEl("viewManage");
+mgEl("mgAddBtn").addEventListener("click", () => mgMenu(mgEl("mgMenu").hidden));
+mgEl("mgFind").addEventListener("input", () => { mgHot = 0; mgList(); });
+mgEl("mgFind").addEventListener("keydown", e=>{
+  if (e.key === "Escape"){ mgMenu(false); mgEl("mgAddBtn").focus(); return; }
+  if (!["ArrowDown", "ArrowUp", "Enter"].includes(e.key)) return;
+  e.preventDefault();
+  const opts = [...mgEl("mgList").querySelectorAll(".mg-opt")];
+  if (!opts.length) return;
+  if (e.key === "Enter") return mgAdd(Number(opts[mgHot].dataset.mgAdd));
+  mgHot = (mgHot + (e.key === "ArrowDown" ? 1 : -1) + opts.length) % opts.length;
+  opts.forEach((o, i) => o.classList.toggle("hot", i === mgHot));
+  opts[mgHot].scrollIntoView({block: "nearest"});
+});
+document.addEventListener("click", e=>{
+  if (!mgEl("mgMenu").hidden && !e.target.closest?.("#mgAdd")) mgMenu(false);
+});
+
+mgEl("mgBits").addEventListener("input", e=>{
+  gsCommas(e.target);
+  mg.bits = gsNum(e.target.value);
+  mgSave();
+  mgRender();
+});
+mgEl("mgTw").addEventListener("input", e=>{
+  const v = mgTwOf(e.target.value);
+  if (!v) return;
+  mg.tw = v;
+  mgSave();
+  mgRender();
+});
+mgEl("mgTw").addEventListener("change", e => { e.target.value = mg.tw; });
+
+mgView.addEventListener("input", e=>{
+  const f = e.target.dataset?.mgF;
+  if (!f) return;
+  const [kind, i, j] = f.split(":"), p = mg.players[+i];
+  if (!p) return;
+  if (kind === "adj"){
+    const v = gsSigned(e.target.value.replace(/[^\d.,-]/g, ""));
+    if (v) p.adj[j] = v; else delete p.adj[j];
+  } else if (kind === "ptw" && p.plans[+j]) p.plans[+j].tw = mgTwOf(e.target.value);
+  mgSave();
+  mgRender();
+});
+
+mgView.addEventListener("change", e=>{
+  const own = e.target.closest("[data-mg-own]"), att = e.target.closest("[data-mg-attach]");
+  if (own){
+    mg.players[+own.dataset.mgOwn].own = own.checked;
+  } else if (att && att.value){
+    mg.players[+att.dataset.mgAttach].plans.push({name: att.value, tw: null});
+  } else return;
+  mgSave();
+  mgRender();
+});
+
+mgView.addEventListener("click", async e=>{
+  const add = e.target.closest("[data-mg-add]");
+  if (add){ if (!add.classList.contains("on")) mgAdd(Number(add.dataset.mgAdd)); return; }
+  const plus = e.target.closest("[data-mg-plus]");
+  if (plus){
+    const [i, k] = plus.dataset.mgPlus.split(":"), p = mg.players[+i];
+    if (p.open[k] && !p.adj[k]) delete p.open[k];
+    else { p.open[k] = true; }
+    mgSave();
+    mgRender();
+    mgView.querySelector(`[data-mg-f="adj:${i}:${k}"]`)?.focus();
+    return;
+  }
+  const del = e.target.closest("[data-mg-del]");
+  if (del){
+    const p = mg.players[+del.dataset.mgDel];
+    if (p.plans.length && !confirm(`Take ${p.name || "this nation"} off, armies and all?`)) return;
+    mg.players.splice(+del.dataset.mgDel, 1);
+    mgSave();
+    mgRender();
+    return;
+  }
+  const un = e.target.closest("[data-mg-unplan]");
+  if (un){
+    const [i, j] = un.dataset.mgUnplan.split(":").map(Number);
+    mg.players[i].plans.splice(j, 1);
+    mgSave();
+    mgRender();
+    return;
+  }
+  const cp = e.target.closest("[data-mg-copy]"), bd = e.target.closest("[data-mg-build]");
+  if (!cp && !bd) return;
+  let text;
+  if (cp){
+    const [i, j] = cp.dataset.mgCopy.split(":"), t = mgLast[+i];
+    text = j === "t" ? mgTotalText(t) : mgPlanText(t.plans[+j], +j, t.plans.length);
+  } else {
+    /* each army grouped under its own first unit, not all of them under one */
+    text = mgLast[+bd.dataset.mgBuild].plans.map(b => builderText(b.units, e.shiftKey)).filter(Boolean).join("\n");
+  }
+  if (!await copyText(text)){ alert("This browser would not let the page reach the clipboard."); return; }
+  if (bd && text.length > BUILDER_MAX) flashOk(bd, "Output over 2k chars", "warn");
+  else flashOk(cp || bd, "Copied");
+});
+
+document.addEventListener("warcalc:presets", mgRender);
+mgRender();
 
 
 /* ===================================================================
