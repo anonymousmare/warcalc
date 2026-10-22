@@ -2172,7 +2172,9 @@ summary.as-sub::before{content:"\25B8";display:inline-block;width:1em;margin-lef
 .lib-dmg tr.lib-sim th{color:var(--strong)}
 .lib-simrow{display:flex;align-items:center;gap:10px}
 .lib-simbar{flex:1;height:8px;border-radius:3px;background:rgba(var(--hi),.08);overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.4)}
-.lib-simbar span{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--good))}
+/* one red-to-green sweep across the whole track; the fill shows as much of it as the rating reaches */
+.lib-simbar span{display:block;height:100%;background:linear-gradient(90deg,#c0392b,#3fae49) left/100% 100% no-repeat;
+  background-image:linear-gradient(90deg in oklch,#c0392b,#3fae49)}
 .lib-dmg tr.lib-sim b{font:700 12px/1 var(--mono);color:var(--strong);min-width:6ch;text-align:right}
 .lib-mw{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--border-soft);border-radius:4px;background:var(--sunken)}
 .lib-mw-c{padding:0 12px 8px;min-width:0}
@@ -14434,7 +14436,8 @@ function libSimRow(T, M){
   const sim = ds ? Math.max(0, 1 - ds.reduce((a, b) => a + b, 0) / ds.length) : null;
   return `<tr class="lib-sim"><th>Similarity rating</th><td colspan="${LIB_FOES.length}"${ds ? ` title="Figures ${(ds.reduce((a, b) =>
       a + b, 0) / ds.length * 100).toFixed(1)}% off on average, ${(Math.max(...ds) * 100).toFixed(1)}% at the most"` : ""}>
-    <div class="lib-simrow"><div class="lib-simbar"><span style="width:${sim == null ? 0 : (sim * 100).toFixed(1)}%"></span></div>
+    <div class="lib-simrow"><div class="lib-simbar"><span style="width:${sim == null ? 0 : (sim * 100).toFixed(1)}%;background-size:${
+      sim ? (100 / sim).toFixed(1) : 100}% 100%"></span></div>
     <b>${sim == null ? "—" : (sim * 100).toFixed(1) + "%"}</b></div></td></tr>`;
 }
 
