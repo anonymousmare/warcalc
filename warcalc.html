@@ -2296,23 +2296,23 @@ summary.as-sub::before{content:"\25B8";display:inline-block;width:1em;margin-lef
 .lib-mull{margin-bottom:0}
 .lib-mull-head{display:flex;align-items:baseline;gap:10px;margin-bottom:8px}
 .lib-mull-head h2{margin:0}
-/* gear the mulligan may not use and how much it leans on each type: a
-   block a type, its weight on top, its weapons and its armour side by side */
-.lib-ban{position:relative;align-self:center}
+/* gear the mulligan may not use and how much it leans on each piece: a
+   block a type, its weapons and its armour side by side, a weight beside each */
+.lib-ban{position:relative;top:-1px;align-self:center}
 .lib-ban #libBanBtn.on{color:var(--atk);border-color:var(--atk)}
-.lib-ban-menu{position:absolute;right:0;top:calc(100% + 4px);z-index:30;padding:4px 8px 6px;width:400px;max-width:calc(100vw - 32px);
+.lib-ban-menu{position:absolute;right:0;top:calc(100% + 4px);z-index:30;padding:4px 8px 6px;width:540px;max-width:calc(100vw - 32px);
   max-height:min(76vh,760px);overflow-y:auto;
   background:var(--raised);border:1px solid var(--border-soft);border-radius:4px;box-shadow:0 8px 22px rgba(var(--lo),.45)}
 .lib-ban-t{padding:4px 0 6px;border-bottom:1px solid var(--border-soft)}
-.lib-ban-t.nil .lib-ban-cols{opacity:.4}
-.lib-ban-th{display:flex;align-items:center;gap:8px;height:24px}
+.lib-ban-th{display:flex;align-items:center;height:22px}
 .lib-ban-th > b{font-size:12px}
-.lib-ban-th .spacer{flex:1}
-.lib-wt{display:inline-flex;align-items:center;gap:6px;margin:0;font-size:11px;font-weight:400;color:var(--text-dim)}
-.lib-wt input{width:96px;accent-color:var(--accent);padding:0}
+.lib-ban-g{display:flex;align-items:center;gap:6px}
+.lib-ban-g.nil .lib-ban-it{opacity:.4}
+.lib-wt{flex:none;display:inline-flex;align-items:center;gap:5px;margin:0}
+.lib-wt input{width:56px;accent-color:var(--accent);padding:0}
 .lib-wt b{font:600 11px/1 var(--mono);color:var(--strong);min-width:3.5ch;text-align:right}
 .lib-ban-cols{display:grid;grid-template-columns:1fr 1fr;gap:0 8px}
-.lib-ban-it{display:flex;align-items:center;gap:6px;width:100%;height:22px;padding:0 4px;border:0;border-radius:3px;background:none;
+.lib-ban-it{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:6px;height:22px;padding:0 4px;border:0;border-radius:3px;background:none;
   font:12px var(--font);color:var(--text);text-align:left;cursor:pointer}
 .lib-ban-it:hover{background:rgba(var(--hi),.08)}
 .lib-ban-it span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -3051,7 +3051,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
         <span class="spacer"></span>
         <div class="lib-ban" id="libBan">
           <button type="button" class="bp-btn txt-btn" id="libBanBtn" aria-expanded="false"
-            aria-label="Weapons and armour the mulligan may not use, and how much it leans on each type">Ban gear</button>
+            aria-label="Weapons and armour the mulligan may not use, and how much it leans on each piece">Ban gear</button>
           <div class="lib-ban-menu" id="libBanMenu" hidden></div>
         </div>
         <label class="lib-lay"><input
@@ -14792,25 +14792,27 @@ async function libMulliganSearch(orig, tol, ms){
   const tally = {};
   orig.forEach(u => { tally[u.training] = (tally[u.training] || 0) + u.size; });
   const train = +Object.keys(tally).sort((a, b) => tally[b] - tally[a])[0] || 0;
-  /* real gear only, from the unit types not left out or weighed at nothing, none of it banned */
+  /* real gear only, from the unit types not left out, none of it banned or weighed at nothing */
   const off = libMullOff(), ban = libMullBan(), caps = libCaps();
   /* a budget too small for a single troop rules its unit types out */
-  const pool = KITS.filter(([t, w, a]) => !off[t] && libWeight(t) > 0
+  const pool = KITS.filter(([t, w, a]) => !off[t]
       && (t === "Alicorns" || WEAPON_IDS[w] && ARMOR_IDS[a] && !ban[w] && !ban[a]))
     .map(([type, weapon, armor]) => ({type, weapon, armor}))
-    .filter(k => Object.entries(caps).every(([r, cap]) => libUpk(k, r) <= cap));
+    .filter(k => libKitWeight(k) > 0 && Object.entries(caps).every(([r, cap]) => libUpk(k, r) <= cap));
   if (!pool.length) return null;
   const own = new Set(orig.map(libKitKey));
-  /* a type is dealt as often as its weight says, whatever number of loadouts it has */
+  /* a loadout is dealt as often as its gear's weight says, and a type as a
+     whole as often as its loadouts weigh on average, whatever number it has */
   const byType = pool.reduce((g, k) => ((g[k.type] ??= []).push(k), g), {}), types = Object.keys(byType);
-  const W = types.reduce((s, t) => s + libWeight(t), 0);
+  const kw = new Map(pool.map(k => [k, libKitWeight(k) / byType[k.type].length]));
+  const W = pool.reduce((s, k) => s + kw.get(k), 0);
   const pick = () => {
-    let r = Math.random() * W, t = types[types.length - 1];
-    for (const u of types) if ((r -= libWeight(u)) < 0){ t = u; break; }
-    return byType[t][Math.floor(Math.random() * byType[t].length)];
+    let r = Math.random() * W;
+    for (const k of pool) if ((r -= kw.get(k)) < 0) return k;
+    return pool[pool.length - 1];
   };
   /* as many stacks as the original fields, and a floor for each of half its
-     average stack, more for a heavier type */
+     average stack, more for heavier gear */
   const want = Math.min(16, pool.length, Math.max(3, orig.length));
   const avg = troopTotal(orig) / Math.max(1, orig.length);
   const end = performance.now() + ms;
@@ -14838,7 +14840,7 @@ async function libMulliganSearch(orig, tol, ms){
       const sk = kits.filter((_, i) => cur.x[i] > 1e-6), sx = cur.x.filter(v => v > 1e-6);
       for (let n = 0; sk.length < want && n < 50; n++){ const k = pick(); if (!sk.includes(k)){ sk.push(k); sx.push(0); } }
       const s = libSpread(sk, T, caps, sx, Math.max(cur.miss, tol * 0.7),
-        sk.map(k => avg / 2 * libWeight(k.type) / (W / types.length)));
+        sk.map(k => avg / 2 * libKitWeight(k) / (W / types.length)));
       if (s.miss <= tol && s.x.filter(v => v >= 1).length > cur.x.filter(v => v >= 1).length){ kits = sk; cur = s; }
     }
     /* whole troops, and the miss measured again on those; the original's own
@@ -14873,8 +14875,11 @@ let libMull = null;                                    // {from: the original's 
 const libMullOff = () => lib.mullOff && typeof lib.mullOff === "object" ? lib.mullOff : (lib.mullOff = {Alicorns: true});
 /* the weapons and armour a mulligan may not use, by gear key */
 const libMullBan = () => lib.mullBan && typeof lib.mullBan === "object" ? lib.mullBan : (lib.mullBan = {});
-/* how much the mulligan leans on each type: how often it is dealt, and the floor its stacks are spread to */
-const libWeight = t => { const w = lib.mullWeight?.[t]; return w == null || !isFinite(w) ? 1 : Math.max(0, Math.min(4, +w)); };
+/* how much the mulligan leans on each piece of gear, by gear key: how often
+   it is dealt, and the floor its stacks are spread to */
+const libWeight = k => { const w = lib.mullWeight?.[k]; return w == null || !isFinite(w) ? 1 : Math.max(0, Math.min(4, +w)); };
+/* a loadout weighs what its weapon and its armour do between them; alicorns have no gear to weigh */
+const libKitWeight = k => k.type === "Alicorns" ? 1 : Math.sqrt(libWeight(k.weapon) * libWeight(k.armor));
 let libMullBusy = false;
 const libTol = () => clampInt(lib.tol ?? 10, 1, 50) / 100;
 
@@ -14939,9 +14944,11 @@ function libSimRow(T, M){
     <b>${sim == null ? "—" : (sim * 100).toFixed(1) + "%"}</b></div></td></tr>`;
 }
 
-/* the ban list: a block a unit type, its weight, then its real weapons beside its real armour */
+/* the ban list: a block a unit type, its real weapons beside its real armour, each with its weight */
 const LIB_BAN_TYPES = LIB_FOES.filter(T => T !== "Alicorns");
-const libWeighed = () => LIB_BAN_TYPES.some(T => libWeight(T) !== 1);
+const LIB_BAN_WPN = T => LOADOUTS[T].weapons.filter(w => WEAPON_IDS[w]);
+const LIB_BAN_ARM = T => LOADOUTS[T].armor.filter(a => ARMOR_IDS[a]);
+const libWeighed = () => LIB_BAN_TYPES.some(T => LIB_BAN_WPN(T).concat(LIB_BAN_ARM(T)).some(k => libWeight(k) !== 1));
 /* the button says what is banned and whether the weights are off even */
 function libBanLabel(){
   const n = Object.values(libMullBan()).filter(Boolean).length, btn = libEl("libBanBtn");
@@ -14952,15 +14959,16 @@ function libBanLabel(){
 function libBanRender(){
   const ban = libMullBan(), n = libBanLabel();
   if (libEl("libBanMenu").hidden) return;
-  const item = k => `<button type="button" class="lib-ban-it${ban[k] ? " ban" : ""}" data-lib-ban="${esc(k)}" aria-label="${
+  const item = k => `<div class="lib-ban-g${libWeight(k) ? "" : " nil"}"><button type="button" class="lib-ban-it${
+    ban[k] ? " ban" : ""}" data-lib-ban="${esc(k)}" aria-label="${
     ban[k] ? "Banned from mulligans. Click to allow" : "Allowed in mulligans. Click to ban"}"><img class="gear-img"
-    src="${esc(gearImgSrc(k))}" alt=""><span>${esc(label(k))}</span></button>`;
-  libEl("libBanMenu").innerHTML = LIB_BAN_TYPES.map(T => `<div class="lib-ban-t${libWeight(T) ? "" : " nil"}">
-      <div class="lib-ban-th"><b style="color:${LIB_FOE_INK[T]}">${T}</b><span class="spacer"></span>
-        <label class="lib-wt" title="How much the mulligan leans on ${T.toLowerCase()}: how often they are dealt in, and how big their stacks are kept. At 0 they sit out">Weight
-          <input type="range" min="0" max="4" step="0.5" value="${libWeight(T)}" data-lib-weight="${T}"><b>×${libWeight(T)}</b></label></div>
-      <div class="lib-ban-cols"><div>${LOADOUTS[T].weapons.filter(w => WEAPON_IDS[w]).map(item).join("")}</div>
-        <div>${LOADOUTS[T].armor.filter(a => ARMOR_IDS[a]).map(item).join("")}</div></div></div>`).join("")
+    src="${esc(gearImgSrc(k))}" alt=""><span>${esc(label(k))}</span></button><label class="lib-wt"><input type="range"
+    min="0" max="4" step="0.5" value="${libWeight(k)}" data-lib-weight="${esc(k)}" aria-label="${esc(label(k))} weight"><b>×${
+    libWeight(k)}</b></label></div>`;
+  libEl("libBanMenu").innerHTML = LIB_BAN_TYPES.map(T => `<div class="lib-ban-t">
+      <div class="lib-ban-th"><b style="color:${LIB_FOE_INK[T]}">${T}</b></div>
+      <div class="lib-ban-cols"><div>${LIB_BAN_WPN(T).map(item).join("")}</div>
+        <div>${LIB_BAN_ARM(T).map(item).join("")}</div></div></div>`).join("")
     + `<div class="lib-ban-foot"><button type="button" class="bp-btn txt-btn" id="libWtClear"${libWeighed() ? "" : " disabled"}>Even weights</button>
       <button type="button" class="bp-btn txt-btn" id="libBanClear"${n ? "" : " disabled"}>Allow all</button></div>`;
 }
@@ -15057,7 +15065,7 @@ viewLib.addEventListener("input", e => {
     (lib.mullWeight ??= {})[t.dataset.libWeight] = +t.value;
     libSave();
     t.nextElementSibling.textContent = "×" + libWeight(t.dataset.libWeight);
-    t.closest(".lib-ban-t").classList.toggle("nil", !libWeight(t.dataset.libWeight));
+    t.closest(".lib-ban-g").classList.toggle("nil", !libWeight(t.dataset.libWeight));
     libBanLabel();
     libEl("libWtClear").disabled = !libWeighed();
   }
