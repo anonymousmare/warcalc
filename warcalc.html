@@ -13980,6 +13980,7 @@ const LIB_TYPES = [["Cavalry", "Barding"], ["Tanks", "Ohno"], ["Pegasi", "Griffi
 const LIB_RES = ["copper", "tungsten", "plastics", "machinery", "vehicle", "precision", "composites"];
 const LIB_BUDGET = ["apples", "gems", "coffee", "gasoline"];
 let libScale = 1;                                      // the scaler's multiple of the ratio
+let libPeek = "";                                      // the preset the pointer is over, shown in the pane
 
 const libEl = id => document.getElementById(id);
 const gcd = (a, b) => { while (b) [a, b] = [b, a % b]; return a; };
@@ -14107,8 +14108,7 @@ function libCostHTML(c, budgets){
     + `<div class="lib-h">Resources</div>${res}<div class="lib-h">Upkeep / 12 h</div>${up}`;
 }
 
-function libDetailHTML(armies){
-  const n = lib.sel;
+function libDetailHTML(armies, n = lib.sel){
   if (!n) return `<div class="lib-empty">Pick a preset to see what is in it.</div>`;
   const all = libStacks(armies[n]);
   const c = libInk(n), fixed = isBuiltin(n), here = libFolderOf(n), st = inStasis(n);
@@ -14184,6 +14184,7 @@ function libRender(){
   libEl("libCount").textContent = `${names.length} preset${names.length === 1 ? "" : "s"}`;
   libEl("libCount").title = nst ? `${nst} in stasis` : "";
   libEl("libDetail").innerHTML = libDetailHTML(armies);
+  libPeek = "";
   libScaler();
 }
 
@@ -14674,6 +14675,20 @@ addEventListener("scroll", libMenuOff, true);
 /* drag a preset onto a folder (or any preset in it) to file it there */
 let libDrag = "";
 const libDropOff = () => viewLib.querySelectorAll(".lib-fold.drop").forEach(r => r.classList.remove("drop"));
+/* pointing at a preset shows it in the pane beside the list, as if picked;
+   leaving the list puts the picked one back */
+libEl("libList").addEventListener("mouseover", e => {
+  const n = e.target.closest?.(".lib-row")?.dataset.libName;
+  if (!n || n === libPeek || libDrag) return;
+  libPeek = n;
+  libEl("libDetail").innerHTML = libDetailHTML(getArmies(), n);
+});
+libEl("libList").addEventListener("mouseleave", () => {
+  if (!libPeek) return;
+  libPeek = "";
+  libEl("libDetail").innerHTML = libDetailHTML(getArmies());
+});
+
 viewLib.addEventListener("dragstart", e => {
   const row = e.target.closest?.(".lib-row");
   if (!row) return;
