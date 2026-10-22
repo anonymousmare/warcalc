@@ -7819,13 +7819,45 @@ function ordNote(notes){
 }
 
 /* ---- army presets (shared pool, loadable into either side) ---- */
-/* presets baked into the page: always on the list, filed in the Universal
-   folder, and never saved over, renamed or deleted */
-const BUILTIN_ARMIES = {Universal: "xAjIbD3c3x5zVlbfcv8nOVA4EufIS59nnq9wt"};
+/* presets baked into the page: always on the list, each filed in a folder
+   nobody can delete, in stasis until someone brings it out, and never saved
+   over, renamed or deleted */
+const BUILTIN_FOLDERS = [{id: "universal", name: "Universal"}, {id: "historical", name: "Historical invasions"}];
+const BUILTIN_ARMIES = {
+  "Universal":                 {folder: "universal",  code: "xAjIbD3c3x5zVlbfcv8nOVA4EufIS59nnq9wt"},
+  "Zaam":                      {folder: "historical", code: "e9MxMJPWMxEBnbo6yzHEwZ7dDrCTHUsUMXkZ27mVqTpZ5yp~20"},
+  "Everfree":                  {folder: "historical", code: "BCmYM3zA7VqApmaooI7JVmrHuB3CifAJrTzUQirUN~20"},
+  "Suenos":                    {folder: "historical", code: "1UXhJT0L0ydktKYnsPPmUzo5j4FhUi43kz~20"},
+  "Lanathesis":                {folder: "historical", code: "XLGsQFVG7D1Cf4T9VrB6nQn94htP8f0SzBZEbV3BbybJ21Hv~20"},
+  "Equiopia":                  {folder: "historical", code: "1nLAwqdSDCcICrpUWRbut6Ojft5pgCyw5P~20"},
+  "Endless Reverie":           {folder: "historical", code: "iGTeivC8i4zzTBd8uB3SwXiHz4JE38SoLbhqx~20"},
+  "Allerimia":                 {folder: "historical", code: "1knnADhOuov3JDgLtmxOxdWceS6OBAEGx5gtBihEh86yV~20"},
+  "LMMH":                      {folder: "historical", code: "iGTeivC8i4zzTBd8uB3SwXiHz4JE38SoLbhqx~20"},
+  "Starlight Reach":           {folder: "historical", code: "Nrbk1zGuBYk7adhKDBgO9lhL2F~20"},
+  "Camareoon":                 {folder: "historical", code: "3Cjj8nZyH42QFLs1xZFukyQtcwwEOBdH01HeJovljEwjWpvT~20"},
+  "New Ponutania (W2)":        {folder: "historical", code: "sx2NIxH3c8EbFqmTEebRGYzkMOqTWhDaJ~20"},
+  "Hoofy Nails for Oil (W2)":  {folder: "historical", code: "7actkTdoFfev6P0cGv3aAINtTeIvPY5~20"},
+  "YetAnotherZeb (W2)":        {folder: "historical", code: "1966EvJzI2ZDMzjaAuVOzJt4BTPOsTb7GYc5PB~20"},
+  "New Canterlonia (W2)":      {folder: "historical", code: "7QF1h5cloGj73E34HEf9BqwgeQJvfBUujwouY89uv~20"},
+  "Mephrida (W2)":             {folder: "historical", code: "ORiHeJxpzqRvYPd5HrtX99gtoHqagaEdvzUayL8kh~20"},
+  "Hoofa (W2)":                {folder: "historical", code: "1FVvEWYTuMw0UtZrgxggsfnINwD3UNwQLC1ZYBv0pgF~20"},
+  "Based Pelennor":            {folder: "historical", code: "2dQZrDTbCCBGpH6GRWf9ILGfGSBs7y8LFZ1iq31lLE7~20"},
+  "Stalliongrad (W2)":         {folder: "historical", code: "xAb2Ri8cnUTE7vplaGbpvdtgMpFQSQep5j3Rf~20"},
+  "Hoovesia (W2)":             {folder: "historical", code: "44otGjR6U9DkEZmuTBX9PI5BYhuSf~20"},
+  "Hoofkryina (W2)":           {folder: "historical", code: "E2jp6iEpKQLfNwiMPdZRJOOXnpkKhXc6DXLmaBpFH~20"},
+  "Clopastan (W2)":            {folder: "historical", code: "l9635eWpBuRRPjGoffZjq4dHDhabqC68eKxNMCDSh~20"},
+  "Baltimare (W2)":            {folder: "historical", code: "xAjIbD3c3x5zVlbfcv8nOVA4EufIS59nnq9wt~20"}
+};
 const isBuiltin = name => Object.hasOwn(BUILTIN_ARMIES, name);
 let builtinJSON = "";
-const builtinArmies = () => JSON.parse(builtinJSON ||= JSON.stringify(Object.fromEntries(
-  Object.entries(BUILTIN_ARMIES).map(([n, code]) => [n, decodeArmy(code)]))));
+const builtinDecoded = () => Object.fromEntries(Object.entries(BUILTIN_ARMIES).map(([n, b]) => [n, decodeArmy(b.code)]));
+const builtinArmies = () => JSON.parse(builtinJSON ||= JSON.stringify(builtinDecoded()));
+/* their Barracks levels, which ride in the codes but not in the unit lists */
+let builtinBrk = null;
+const builtinBarracks = () => builtinBrk ||= Object.fromEntries(Object.entries(builtinDecoded())
+  .filter(([, u]) => u.barracks != null).map(([n, u]) => [n, u.barracks]));
+/* the presets this browser made, for an export: the built-in ones come with every copy of the page */
+const ownArmies = () => Object.fromEntries(Object.entries(storedArmies()).filter(([n]) => !isBuiltin(n)));
 /* what this browser saved, which is what every write goes back into */
 const storedArmies = () => { const m = store.get(LS_ARMY, {}); return m && typeof m === "object" ? m : {}; };
 const getArmies  = () => Object.assign(storedArmies(), builtinArmies());
@@ -7834,7 +7866,6 @@ const builtinNote = name => alert(`"${name}" is built in and cannot be changed \
 /* the Library's own bookkeeping: folders, which preset sits in which,
    colours, and the presets in stasis (kept, but out of every dropdown) */
 const LS_LIB = "warcalc.library";
-const LIB_FIXED = "universal";                          // the folder nobody can delete
 const lib = (()=>{
   const d = {folders: [], where: {}, colour: {}, stasis: {}, shut: {}, view: "ratio", sel: "", budget: {}, elastic: {}};
   const s = store.get(LS_LIB, {});
@@ -7843,7 +7874,8 @@ const lib = (()=>{
   return d;
 })();
 const libSave = () => store.set(LS_LIB, lib);
-const inStasis = name => !!lib.stasis[name];
+/* a built-in preset is in stasis until it is brought out, and remembers being brought out */
+const inStasis = name => name in lib.stasis ? !!lib.stasis[name] : isBuiltin(name);
 /* colours are kept by name and painted from the theme's own shade of each */
 const LIB_COLOURS = ["wine", "rust", "ochre", "moss", "teal", "steel", "slate", "plum", "rose"];
 /* the first palette was stored as bright hex; each maps to the name in its place */
@@ -7865,7 +7897,7 @@ function libForget(names){
 /* each army preset's Barracks level, kept beside the presets so the presets
    themselves stay plain unit lists */
 const LS_ABRK = "warcalc.armyBarracks";
-const getArmyBarracks = () => { const m = store.get(LS_ABRK, {}); return m && typeof m === "object" ? m : {}; };
+const getArmyBarracks = () => { const m = store.get(LS_ABRK, {}); return Object.assign(m && typeof m === "object" ? m : {}, builtinBarracks()); };
 function setArmyBarracks(name, n, rename){
   const m = getArmyBarracks();
   if (rename !== undefined){ if (name in m) m[rename] = m[name]; delete m[name]; }
@@ -8316,7 +8348,7 @@ const armyPresetCode = (name, units, brk = getArmyBarracks(), ords = getArmyOrde
 async function exportPresetString(kind, btn){
   const brk = getArmyBarracks(), ords = getArmyOrders();
   const entries = kind === "army"
-    ? Object.entries(getArmies()).map(([n, units]) => [n, armyPresetCode(n, units, brk, ords)])
+    ? Object.entries(ownArmies()).map(([n, units]) => [n, armyPresetCode(n, units, brk, ords)])
     : Object.entries(getBattles()).map(([n, b]) => { const l = battleLists(b); return [n,
         encodeBattle(noNames(l.attacker), noNames(l.defender), b.bonus, b.barracks)]; });
   if (!entries.length){ alert(`There are no ${kind} presets to export.`); return; }
@@ -8522,15 +8554,15 @@ toolsBtn.addEventListener("click", ()=>{
 });
 
 document.getElementById("expArmies").addEventListener("click", ()=>
-  downloadJSON({kind:"armyPresets", armyPresets:noNamesEach(getArmies(), noNames),
-                armyBarracks:barracksFor(Object.keys(getArmies())),
-                armyOrders:ordersFor(Object.keys(getArmies()))}, `curiocalc-armies-${stamp()}.json`));
+  downloadJSON({kind:"armyPresets", armyPresets:noNamesEach(ownArmies(), noNames),
+                armyBarracks:barracksFor(Object.keys(ownArmies())),
+                armyOrders:ordersFor(Object.keys(ownArmies()))}, `curiocalc-armies-${stamp()}.json`));
 document.getElementById("expBattles").addEventListener("click", ()=>
   downloadJSON({kind:"battlePresets", battlePresets:noNamesEach(getBattles(), noNamesBattle)}, `curiocalc-battles-${stamp()}.json`));
 document.getElementById("expAll").addEventListener("click", ()=>
-  downloadJSON({kind:"warcalcPresets", armyPresets:noNamesEach(getArmies(), noNames),
-                armyBarracks:barracksFor(Object.keys(getArmies())),
-                armyOrders:ordersFor(Object.keys(getArmies())),
+  downloadJSON({kind:"warcalcPresets", armyPresets:noNamesEach(ownArmies(), noNames),
+                armyBarracks:barracksFor(Object.keys(ownArmies())),
+                armyOrders:ordersFor(Object.keys(ownArmies())),
                 battlePresets:noNamesEach(getBattles(), noNamesBattle)},
                `curiocalc-presets-${stamp()}.json`));
 
@@ -13977,10 +14009,10 @@ function libCost(units){
 
 const libHeads = units => units.reduce((h, u) => (h[u.type] = (h[u.type] || 0) + u.size, h), {});
 
-const libFolders = () => [{id: LIB_FIXED, name: "Universal", fixed: true}]
+const libFolders = () => BUILTIN_FOLDERS.map(f => Object.assign({fixed: true}, f))
   .concat(Array.isArray(lib.folders) ? lib.folders : []);
 function libFolderOf(name){
-  const f = lib.where[name] ?? (isBuiltin(name) ? LIB_FIXED : "");
+  const f = lib.where[name] ?? (isBuiltin(name) ? BUILTIN_ARMIES[name].folder : "");
   return f && libFolders().some(x => x.id === f) ? f : "";
 }
 
@@ -14151,7 +14183,9 @@ function libRender(){
 
   libEl("libList").innerHTML = `<table class="lib-tbl${resView ? " lib-res" : ""}">${head}${body}</table>`;
   const nst = names.filter(inStasis).length;
-  libEl("libCount").textContent = `${names.length} preset${names.length === 1 ? "" : "s"}${nst ? ` · ${nst} in stasis` : ""}`;
+  /* the stasis count is on every folder, so the bar keeps to the total */
+  libEl("libCount").textContent = `${names.length} preset${names.length === 1 ? "" : "s"}`;
+  libEl("libCount").title = nst ? `${nst} in stasis` : "";
   libEl("libDetail").innerHTML = libDetailHTML(armies);
   libScaler();
 }
@@ -14199,7 +14233,7 @@ function libScaler(){
 
 /* ---- the preset's own buttons: named versions of the Battle tab's ---- */
 function libStasis(names, on){
-  names.forEach(n => { if (on) lib.stasis[n] = true; else delete lib.stasis[n]; });
+  names.forEach(n => { if (on) lib.stasis[n] = true; else if (isBuiltin(n)) lib.stasis[n] = false; else delete lib.stasis[n]; });
   libSave();
   refreshPresetSelects();                              // the dropdowns, and this list, follow
 }
