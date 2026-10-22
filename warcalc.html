@@ -2089,7 +2089,20 @@ summary.as-sub::before{content:"\25B8";display:inline-block;width:1em;margin-lef
 .lib-kv{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:12px;padding:2px 0}
 .lib-kv > span:first-child{color:var(--text-dim);white-space:nowrap}
 .lib-kv .v{font-family:var(--mono);color:var(--strong);text-align:right}
-.lib-kv .res-chip{margin:0 0 0 7px}
+.lib-d-top{display:flex;align-items:flex-start;gap:6px}
+.lib-d-top .lib-d-name{flex:1;min-width:0}
+.lib-d-top .bp-btn{padding:3px}
+.lib-rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:3px 14px;font-size:12px}
+.lib-rc{display:flex;align-items:center;gap:6px;min-width:0;line-height:18px}
+.lib-rc .k{color:var(--text-dim);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lib-rc .mono{margin-left:auto;color:var(--strong);white-space:nowrap}
+.lib-rc.lib-over .k{color:var(--atk)}
+.lib-menu{position:fixed;z-index:90;background:var(--raised);border:1px solid var(--border-soft);border-radius:4px;
+  padding:3px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+.lib-menu button{display:flex;align-items:center;gap:6px;width:100%;background:none;border:0;color:var(--text);
+  font-size:12px;padding:5px 10px;border-radius:3px;cursor:pointer;white-space:nowrap}
+.lib-menu button:hover:not(:disabled){background:rgba(var(--hi),.08);color:var(--strong)}
+.lib-menu button:disabled{opacity:.45;cursor:default}
 /* the scaler */
 .lib-scale{flex:1 1 380px;min-width:340px;max-width:640px;margin-bottom:0}
 .lib-sc-head{display:flex;align-items:baseline;gap:10px;padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid var(--border-soft)}
@@ -8181,11 +8194,14 @@ const presetUnits = list => (list || []).map(u => Object.assign(
   u.name ? {name:u.name} : {}, packWait(u)));
 
 /* Export army / battle presets (STRING): every preset of the one kind, by name */
+/* an army preset's code, barracks and script and all */
+const armyPresetCode = (name, units, brk = getArmyBarracks(), ords = getArmyOrders()) =>
+  encodeArmy(Object.assign(noNames(units), {orders: ords[name] || ""}), brk[name]);
+
 async function exportPresetString(kind, btn){
-  const brk = getArmyBarracks();
+  const brk = getArmyBarracks(), ords = getArmyOrders();
   const entries = kind === "army"
-    ? Object.entries(getArmies()).map(([n, units]) => [n,
-        encodeArmy(Object.assign(noNames(units), {orders: getArmyOrders()[n] || ""}), brk[n])])
+    ? Object.entries(getArmies()).map(([n, units]) => [n, armyPresetCode(n, units, brk, ords)])
     : Object.entries(getBattles()).map(([n, b]) => { const l = battleLists(b); return [n,
         encodeBattle(noNames(l.attacker), noNames(l.defender), b.bonus, b.barracks)]; });
   if (!entries.length){ alert(`There are no ${kind} presets to export.`); return; }
@@ -13919,20 +13935,23 @@ const libStackList = units => units.map(u => {
 const libKV = (k, v, cls = "v") => `<div class="lib-kv"><span>${k}</span><span class="${cls}">${v}</span></div>`;
 
 /* the figures under both panes; the upkeep is held against the budgets */
+const libResCell = (k, v, extra = "", over = false) => `<div class="lib-rc${over ? " lib-over" : ""}">${resIcon(k)}<span
+    class="k">${esc(RESOURCES[k]?.name.replace(/ Parts$/, "") || k)}</span><span class="mono">${money(v)}${extra}</span></div>`;
+const libResGrid = cells => cells.length ? `<div class="lib-rgrid">${cells.join("")}</div>` : `<span class="res-none">none</span>`;
+
 function libCostHTML(c, budgets){
-  const up = LIB_BUDGET.concat(RES_ORDER.filter(k => !LIB_BUDGET.includes(k))).filter(k => c.upkeep[k]).map(k => {
-    const b = budgets ? libBudget(k) : null, over = b != null && c.upkeep[k] > b + 1e-9;
-    return `<span class="res-chip${over ? " lib-over" : ""}">${resIcon(k)} <span class="mono">${money(c.upkeep[k])}${
-      b != null ? ` / ${money(b)}` : ""}</span></span>`;
-  }).join("") || `<span class="res-none">none</span>`;
+  const up = libResGrid(LIB_BUDGET.concat(RES_ORDER.filter(k => !LIB_BUDGET.includes(k))).filter(k => c.upkeep[k]).map(k => {
+    const b = budgets ? libBudget(k) : null;
+    return libResCell(k, c.upkeep[k], b != null ? ` / ${money(b)}` : "", b != null && c.upkeep[k] > b + 1e-9);
+  }));
+  const res = libResGrid(RES_ORDER.filter(k => c.res[k]).map(k => libResCell(k, c.res[k])));
   return libKV("Troops", money(c.troops))
     + libKV("Sat cost", money(c.sat))
     + libKV("Raise army", money(c.hire), "v lib-bits")
     + libKV(`Equipment ${BIT}`, money(c.gear), "v lib-bits")
     + libKV("Crafting fees", money(c.craft), "v lib-bits")
     + libKV("Total", money(c.bits), "v lib-bits")
-    + libKV("Resources", resChips(c.res), "")
-    + libKV("Upkeep / 12 h", up, "");
+    + `<div class="lib-h">Resources</div>${res}<div class="lib-h">Upkeep / 12 h</div>${up}`;
 }
 
 function libDetailHTML(armies){
@@ -13941,7 +13960,9 @@ function libDetailHTML(armies){
   const all = libStacks(armies[n]);
   const c = lib.colour[n], fixed = isBuiltin(n), here = libFolderOf(n), st = inStasis(n);
   const brk = getArmyBarracks()[n];
-  return `<div class="lib-d-name"${c ? ` style="--c:${c}"` : ""}>${esc(n)}${fixed ? `<span class="lib-tag">built in</span>` : ""}</div>
+  return `<div class="lib-d-top"><div class="lib-d-name"${c ? ` style="--c:${c}"` : ""}>${esc(n)}${fixed
+      ? `<span class="lib-tag">built in</span>` : ""}</div><button type="button" class="bp-btn" data-lib-act="copy"
+      title="Copy this preset's army code">${iconSvg("copy")}</button></div>
     <div class="lib-d-acts">
       <button type="button" class="lib-ib" data-lib-act="stasis" title="${st
         ? "Bring it back into the dropdowns" : "Keep it here, but out of every dropdown"}">${iconSvg(st ? "stasisOn" : "stasis")} ${st ? "Unstasis" : "Stasis"}</button>
@@ -14036,8 +14057,8 @@ function libScaler(){
   libEl("libScHead").innerHTML = `<span${c ? ` style="--c:${c}"` : ""}><span class="lib-dot"></span><span
       class="lib-d-name">${esc(n)}</span></span><span class="x">&times;${money(libScale)}</span>`;
   const notes = [];
-  if (out.held.length) notes.push(`<div class="lib-note">${out.held.map(resIcon).join(" ")} at budget: those stacks stop
-      there, and the troops they could not take went to the rest.</div>`);
+  if (out.held.length) notes.push(`<div class="lib-note">${out.held.map(resIcon).join(" ")} limit met: redistributing to
+      other unit types...</div>`);
   if (out.got < out.want) notes.push(`<div class="lib-note warn">Every stack is held by a budget: ${money(out.got)} of
       ${money(out.want)} troops.</div>`);
   libEl("libScOut").innerHTML = `${notes.join("")}
@@ -14052,6 +14073,23 @@ function libStasis(names, on){
   names.forEach(n => { if (on) lib.stasis[n] = true; else delete lib.stasis[n]; });
   libSave();
   refreshPresetSelects();                              // the dropdowns, and this list, follow
+}
+
+async function libCopyText(text, btn){
+  if (await copyText(text)) flashOk(btn, "Copied");
+  else prompt("This browser would not let the page reach the clipboard \u2014 copy it from here:", text);
+}
+
+/* right-click a folder: its presets as one preset string, the way the
+   Settings export writes them, ready for Import string */
+const libMenu = Object.assign(document.createElement("div"), {className: "lib-menu"});
+libMenu.hidden = true;
+document.body.appendChild(libMenu);
+const libMenuOff = () => { libMenu.hidden = true; };
+function libFolderString(folder){
+  const armies = getArmies(), brk = getArmyBarracks(), ords = getArmyOrders();
+  return encodePresetString(Object.keys(armies).filter(n => libFolderOf(n) === folder).sort()
+    .map(n => [n, armyPresetCode(n, armies[n], brk, ords)]));
 }
 
 async function libCopyCode(btn){
@@ -14152,6 +14190,7 @@ viewLib.addEventListener("click", e => {
   else if (t.dataset.libAct === "stasis") libStasis([lib.sel], !inStasis(lib.sel));
   else if (t.dataset.libAct === "rename") renameArmyNamed(lib.sel);
   else if (t.dataset.libAct === "delete") deleteArmyNamed(lib.sel);
+  else if (t.dataset.libAct === "copy") libCopyText(armyPresetCode(lib.sel, getArmies()[lib.sel]), t);
   else if (t.classList.contains("lib-fold")){
     const k = folder || "_";
     if (lib.shut[k]) delete lib.shut[k]; else lib.shut[k] = true;
@@ -14162,6 +14201,27 @@ viewLib.addEventListener("click", e => {
     libSave(); libRender();
   }
 });
+
+viewLib.addEventListener("contextmenu", e => {
+  const tb = e.target.closest?.(".lib-fold") && e.target.closest("[data-lib-folder]");
+  if (!tb) return;
+  e.preventDefault();
+  const id = tb.dataset.libFolder, n = Object.keys(getArmies()).filter(x => libFolderOf(x) === id).length;
+  libMenu.innerHTML = `<button type="button" class="txt-btn" data-lib-fcopy="${esc(id)}"${n ? "" : " disabled"}>${iconSvg("copy")}
+    Copy folder as preset string <span class="muted">(${n})</span></button>`;
+  libMenu.hidden = false;
+  libMenu.style.left = Math.min(e.clientX, innerWidth - libMenu.offsetWidth - 8) + "px";
+  libMenu.style.top = Math.min(e.clientY, innerHeight - libMenu.offsetHeight - 8) + "px";
+});
+libMenu.addEventListener("click", async e => {
+  const b = e.target.closest("[data-lib-fcopy]");
+  if (!b || b.disabled) return;
+  await libCopyText(libFolderString(b.dataset.libFcopy), b);
+  setTimeout(libMenuOff, 700);
+});
+document.addEventListener("mousedown", e => { if (!libMenu.contains(e.target)) libMenuOff(); });
+addEventListener("keydown", e => { if (e.key === "Escape") libMenuOff(); });
+addEventListener("scroll", libMenuOff, true);
 
 /* drag a preset onto a folder (or any preset in it) to file it there */
 let libDrag = "";
