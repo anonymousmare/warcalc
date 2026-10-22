@@ -2310,7 +2310,7 @@ summary.as-sub::before{content:"\25B8";display:inline-block;width:1em;margin-lef
 .lib-ban-g.nil .lib-ban-it{opacity:.4}
 .lib-wt{flex:none;display:inline-flex;align-items:center;gap:5px;margin:0}
 .lib-wt input{width:56px;accent-color:var(--accent);padding:0}
-.lib-wt b{font:600 11px/1 var(--mono);color:var(--strong);min-width:3.5ch;text-align:right}
+.lib-wt b{font:600 11px/1 var(--mono);color:var(--strong);min-width:4ch;text-align:right}
 .lib-ban-cols{display:grid;grid-template-columns:1fr 1fr;gap:0 8px}
 .lib-ban-it{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:6px;height:22px;padding:0 4px;border:0;border-radius:3px;background:none;
   font:12px var(--font);color:var(--text);text-align:left;cursor:pointer}
@@ -14877,7 +14877,7 @@ const libMullOff = () => lib.mullOff && typeof lib.mullOff === "object" ? lib.mu
 const libMullBan = () => lib.mullBan && typeof lib.mullBan === "object" ? lib.mullBan : (lib.mullBan = {});
 /* how much the mulligan leans on each piece of gear, by gear key: how often
    it is dealt, and the floor its stacks are spread to */
-const libWeight = k => { const w = lib.mullWeight?.[k]; return w == null || !isFinite(w) ? 1 : Math.max(0, Math.min(4, +w)); };
+const libWeight = k => { const w = lib.mullWeight?.[k]; return w == null || !isFinite(w) ? 1 : Math.max(0, Math.min(1.5, +w)); };
 /* a loadout weighs what its weapon and its armour do between them; alicorns have no gear to weigh */
 const libKitWeight = k => k.type === "Alicorns" ? 1 : Math.sqrt(libWeight(k.weapon) * libWeight(k.armor));
 let libMullBusy = false;
@@ -14963,7 +14963,7 @@ function libBanRender(){
     ban[k] ? " ban" : ""}" data-lib-ban="${esc(k)}" aria-label="${
     ban[k] ? "Banned from mulligans. Click to allow" : "Allowed in mulligans. Click to ban"}"><img class="gear-img"
     src="${esc(gearImgSrc(k))}" alt=""><span>${esc(label(k))}</span></button><label class="lib-wt"><input type="range"
-    min="0" max="4" step="0.5" value="${libWeight(k)}" data-lib-weight="${esc(k)}" aria-label="${esc(label(k))} weight"><b>×${
+    min="0" max="1.5" step="0.1" value="${libWeight(k)}" data-lib-weight="${esc(k)}" aria-label="${esc(label(k))} weight"><b>×${
     libWeight(k)}</b></label></div>`;
   libEl("libBanMenu").innerHTML = LIB_BAN_TYPES.map(T => `<div class="lib-ban-t">
       <div class="lib-ban-th"><b style="color:${LIB_FOE_INK[T]}">${T}</b></div>
