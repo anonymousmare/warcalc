@@ -2056,7 +2056,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
   <span class="ref-btns">
     <!-- when the alliances' production was last fetched from 4clop.org; a click fetches it again -->
     <button class="sync-age" id="syncAge" type="button">Not synced</button>
-    <span class="strip-div" aria-hidden="true"></span>
+    <span class="strip-div" id="syncDiv" aria-hidden="true"></span>
     <button class="ref-btn" data-ref="stats" title="Weapon &amp; armor stat table  (F)">
       <span class="ref-lab">Stats</span><kbd>F</kbd></button>
     <button class="ref-btn" data-ref="wcost" title="Weapon build costs  (G)">
@@ -13228,11 +13228,17 @@ const gsDdShut = () => document.querySelectorAll(".gs-dd[open]").forEach(d => { 
 document.addEventListener("click", e=>{ if (gsDdOpen && !e.target.closest?.(".gs-dd")) gsDdShut(); });
 document.addEventListener("keydown", e=>{ if (gsDdOpen && e.key === "Escape") gsDdShut(); });
 
-/* fetched fresh on every load, and again from a click on the time */
-gsEl("syncAge").addEventListener("click", syncNow);
-setInterval(syncPaint, 30e3);
-syncPaint();
-syncNow();
+/* fetched fresh on every load, and again from a click on the time. With the
+   alliances put away nothing reads it, so it is neither fetched nor shown */
+if (GS_ALLIES){
+  gsEl("syncAge").addEventListener("click", syncNow);
+  setInterval(syncPaint, 30e3);
+  syncPaint();
+  syncNow();
+} else {
+  gsEl("syncAge").style.display = "none";
+  gsEl("syncDiv").style.display = "none";
+}
 gsEl("gsClear").addEventListener("click", gsClearAll);
 
 gsEl("gsWide").addEventListener("change", ()=>{
