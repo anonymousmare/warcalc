@@ -15317,8 +15317,7 @@ function mgPlan(x, armies, ords){
 
 /* a nation's whole bill. Its nets are eaten every tick, six to a war tick,
    over the nets' own war ticks; only what it runs short of is sent, unless
-   it uses its own nets to pay, when what it makes pays toward its armies
-   first, and whatever is left over after that is no part of the bill.
+   it uses its own nets to pay, when what it makes pays toward its armies first.
    A stockpile it declares pays next, but never below what the nation itself
    uses a tick; with no use off the API to go by, it stays whole */
 function mgCalc(p, armies, ords){
@@ -15329,7 +15328,7 @@ function mgCalc(p, armies, ords){
     net[k] = mgNet(p, k);
     const mil = plans.reduce((t, b) => t + (b.up[k] || 0), 0);
     const over = GS_TICKS * twN * net[k];
-    eat[k] = p.own ? -Math.min(over, mil) : Math.max(0, -over);
+    eat[k] = p.own ? -over : Math.max(0, -over);
     const v = mil + eat[k];
     if (v > 0) need[k] = v;
   });
@@ -15480,7 +15479,7 @@ function mgBlock(p, i, t, names){
     </div>
     <div class="mg-body">
       <div class="mg-row"><span class="mg-lab">Nets / tick</span>${nets}
-        <span class="mg-eat" title="${p.own ? "What the nets come to over the default war ticks: short is sent, spare pays toward the armies, as far as they need"
+        <span class="mg-eat" title="${p.own ? "What the nets come to over the default war ticks: short is sent, spare pays toward the armies"
           : "What the nets run short of over the default war ticks, six ticks to a war tick"}">${mgChips(t.eat)}<span
           class="mg-ticks">${GS_TICKS * t.twN} ticks</span></span>
       </div>
