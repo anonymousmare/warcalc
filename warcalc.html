@@ -2168,13 +2168,20 @@ summary.as-sub::before{content:"\25B8";display:inline-block;width:1em;margin-lef
 .lib-dmg td{font-family:var(--mono);text-align:center;padding:1px 4px;white-space:nowrap}
 .lib-dmg td .to{font-family:var(--font);font-size:10px;color:var(--text-dim)}
 .lib-dmg td .off{color:var(--atk);font-weight:700}
+.lib-dmg tr.lib-sim > *{padding-top:6px;border-top:1px solid var(--border-soft)}
+.lib-dmg tr.lib-sim th{color:var(--strong)}
+.lib-simrow{display:flex;align-items:center;gap:10px}
+.lib-simbar{flex:1;height:8px;border-radius:3px;background:rgba(var(--hi),.08);overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.4)}
+.lib-simbar span{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--good))}
+.lib-dmg tr.lib-sim b{font:700 12px/1 var(--mono);color:var(--strong);min-width:6ch;text-align:right}
 .lib-mw{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--border-soft);border-radius:4px;background:var(--sunken)}
 .lib-mw-c{padding:0 12px 8px;min-width:0}
 .lib-mw-c:nth-child(-n+2){padding-top:10px}
 .lib-mw-c.r{border-left:1px solid var(--border-soft)}
 .lib-mw-c > .lib-h:first-child{margin-top:0}
 .lib-mw .lib-rgrid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
-.lib-tbar{display:flex;height:8px;border-radius:3px;overflow:hidden;background:rgba(var(--hi),.06)}
+.lib-tbar{display:flex;height:8px;border-radius:3px;overflow:hidden;background:rgba(var(--hi),.06);
+  box-shadow:0 1px 3px rgba(0,0,0,.55),0 0 0 1px rgba(0,0,0,.25)}
 .lib-tbar span{display:block}
 .lib-tleg{position:relative;font:11px/1 var(--mono);margin-bottom:6px;height:18px}
 .lib-tl{position:absolute;z-index:1;top:3px;white-space:nowrap;background:var(--sunken);padding:0 2px}
@@ -14421,6 +14428,16 @@ function libMwRows(units){
     `<div class="lib-h">Upkeep / 12 h</div>${libResGrid(RES_ORDER.filter(k => c.upkeep[k]).map(k => libResCell(k, c.upkeep[k])))}`];
 }
 
+/* one rating for the whole table: 100% less the average figure's drift */
+function libSimRow(T, M){
+  const ds = M ? T.map((t, j) => t ? Math.abs(M[j] / t - 1) : 0) : null;
+  const sim = ds ? Math.max(0, 1 - ds.reduce((a, b) => a + b, 0) / ds.length) : null;
+  return `<tr class="lib-sim"><th>Similarity rating</th><td colspan="${LIB_FOES.length}"${ds ? ` title="Figures ${(ds.reduce((a, b) =>
+      a + b, 0) / ds.length * 100).toFixed(1)}% off on average, ${(Math.max(...ds) * 100).toFixed(1)}% at the most"` : ""}>
+    <div class="lib-simrow"><div class="lib-simbar"><span style="width:${sim == null ? 0 : (sim * 100).toFixed(1)}%"></span></div>
+    <b>${sim == null ? "—" : (sim * 100).toFixed(1) + "%"}</b></div></td></tr>`;
+}
+
 function libMullRender(){
   const units = libCurrent()?.units || [], tol = libTol();
   libEl("libTol").value = Math.round(tol * 100);
@@ -14446,7 +14463,7 @@ function libMullRender(){
         const d = T[j] ? M[j] / T[j] - 1 : 0, off = Math.abs(d) > tol + 1e-9;
         return `<td style="color:${LIB_FOE_INK[F]}" title="${d >= 0 ? "+" : "−"}${(Math.abs(d) * 100).toFixed(1)}%">${
           money(T[j])} <span class="to">to</span> <span class="${off ? "off" : ""}">${money(M[j])}</span></td>`;
-      }).join("")}</tr>`).join("")}</tbody></table>`;
+      }).join("")}</tr>`).join("")}${libSimRow(T, M)}</tbody></table>`;
     const a = libMwRows(units), b = libMull ? libMwRows(libMull.units) : null;
     libEl("libMw").innerHTML = `<div class="lib-mw-c l"><div class="lib-h">Original · ${esc(lib.sel)}</div></div>
       <div class="lib-mw-c r"><div class="lib-h">Mulligan</div>${b ? "" : `<div class="lib-empty">Press Mulligan for a
