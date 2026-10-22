@@ -15317,7 +15317,8 @@ function mgPlan(x, armies, ords){
 
 /* a nation's whole bill. Its nets are eaten every tick, six to a war tick,
    over the nets' own war ticks; only what it runs short of is sent, unless
-   it uses its own supply, when what it makes pays toward its armies first.
+   it uses its own nets to pay, when what it makes pays toward its armies
+   first, and whatever is left over after that is no part of the bill.
    A stockpile it declares pays next, but never below what the nation itself
    uses a tick; with no use off the API to go by, it stays whole */
 function mgCalc(p, armies, ords){
@@ -15328,7 +15329,7 @@ function mgCalc(p, armies, ords){
     net[k] = mgNet(p, k);
     const mil = plans.reduce((t, b) => t + (b.up[k] || 0), 0);
     const over = GS_TICKS * twN * net[k];
-    eat[k] = p.own ? -over : Math.max(0, -over);
+    eat[k] = p.own ? -Math.min(over, mil) : Math.max(0, -over);
     const v = mil + eat[k];
     if (v > 0) need[k] = v;
   });
@@ -15345,7 +15346,7 @@ function mgCalc(p, armies, ords){
   return {plans, twN, net, eat, stock, keep, spend, need, all, troops: troopTotal(all), hire: plans.reduce((t, b) => t + b.c.hire, 0)};
 }
 
-/* what is spare, with the nation's own supply in use, reads green and takes off */
+/* what is spare, with the nation's own nets paying, reads green and takes off */
 const mgChips = res => MG_RES.filter(k => res[k]).map(k =>
   `<span class="res-chip">${resIcon(k)} <span class="mono${res[k] < 0 ? " good" : ""}">${
     res[k] < 0 ? mgSigned(res[k]) : money(res[k])}</span></span>`).join("") || `<span class="res-none">none</span>`;
@@ -15411,7 +15412,7 @@ function mgAdd(id){
 }
 
 /* ---- a nation's block ---- */
-/* its stockpile, folded away until opened: what it holds, what it keeps for its own use, what can go to the armies */
+/* its stockpile, folded away until opened: what it holds, what it keeps back, what can go to the armies */
 function mgStockRow(p, i, t){
   const has = MG_RES.some(k => t.stock[k]), neg = o => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, -v]));
   const head = `<button type="button" class="mg-lab mg-fold${p.stockOpen ? " on" : ""}" data-mg-stock="${i}"
@@ -15421,8 +15422,7 @@ function mgStockRow(p, i, t){
       placeholder="0" data-mg-f="stk:${i}:${k}" value="${t.stock[k] ? money(t.stock[k]) : ""}"></span>`).join("");
   const kept = MG_RES.some(k => t.keep[k]), spent = MG_RES.some(k => t.spend[k]);
   return `<div class="mg-row">${head}${boxes}${has ? `<span class="mg-eat">${kept ? `<i class="mg-sk">keeps</i>${mgChips(t.keep)}` : ""}${
-      spent ? `<i class="mg-sk">covers</i>${mgChips(neg(t.spend))}` : ""}${!kept && !spent ? `<i class="mg-sk">nothing needed</i>` : ""}${
-      kept ? `<span class="mg-ticks">its own use a tick</span>` : ""}</span>` : ""}</div>`;
+      spent ? `<i class="mg-sk">covers</i>${mgChips(neg(t.spend))}` : ""}${!kept && !spent ? `<i class="mg-sk">nothing needed</i>` : ""}</span>` : ""}</div>`;
 }
 function mgBlock(p, i, t, names){
   const nat = mgNation(p.id);
@@ -15475,12 +15475,12 @@ function mgBlock(p, i, t, names){
       ${nat || !sync ? "" : `<span class="mg-stale">not in the last sync — its nets read as nothing but what's added by hand</span>`}
       <span class="spacer"></span>
       <label class="hk-toggle mg-own">
-        <input type="checkbox" data-mg-own="${i}"${p.own ? " checked" : ""}> Use own supply?</label>
+        <input type="checkbox" data-mg-own="${i}"${p.own ? " checked" : ""}> Use own nets to pay</label>
       <button type="button" class="bp-btn" data-mg-del="${i}" aria-label="Take this nation off">${iconSvg("del")}</button>
     </div>
     <div class="mg-body">
       <div class="mg-row"><span class="mg-lab">Nets / tick</span>${nets}
-        <span class="mg-eat" title="${p.own ? "What the nets come to over the default war ticks: short is sent, spare pays toward the armies"
+        <span class="mg-eat" title="${p.own ? "What the nets come to over the default war ticks: short is sent, spare pays toward the armies, as far as they need"
           : "What the nets run short of over the default war ticks, six ticks to a war tick"}">${mgChips(t.eat)}<span
           class="mg-ticks">${GS_TICKS * t.twN} ticks</span></span>
       </div>
@@ -15511,7 +15511,7 @@ function mgDealsHTML(calcs){
       /* with nets to send as well, the armies on their own before them */
       (t.plans.length && MG_RES.some(k => t.eat[k]) ? row("asub", "Armies", MG_RES.reduce((o, k) =>
         (o[k] = t.plans.reduce((n, b) => n + (b.up[k] || 0), 0), o), {})) : "") +
-      (MG_RES.some(k => t.eat[k]) ? row("nets", `Nets <span class="small muted">×${t.twN} TW${p.own ? " · own supply" : ""}</span>`, t.eat) : "") +
+      (MG_RES.some(k => t.eat[k]) ? row("nets", `Nets <span class="small muted">×${t.twN} TW${p.own ? " · own nets" : ""}</span>`, t.eat) : "") +
       (MG_RES.some(k => t.spend[k]) ? row("nets", "Stockpile", Object.fromEntries(MG_RES.map(k => [k, -(t.spend[k] || 0)]))) : "") +
       row("ntot", "Total", t.need);
   }).join("");
