@@ -49,6 +49,14 @@
   --opt-blue:#6fa8dc; --opt-blue-hov:#94c2ec; --opt-blue-box:#3b78b5;
   --opt-purple:#a58bd8; --opt-purple-hov:#c0aaf0; --opt-purple-box:#7453b8;
   --t-cav:#FF0000; --t-tank:#0076FF; --t-peg:#FF6EC7; --t-uni:#00FF21; --t-nav:#00FFFF;
+  /* the Library's preset colours: muted, for a dark page */
+  --pc-wine:#a5535e; --pc-rust:#ad6a45; --pc-ochre:#a8914f; --pc-moss:#6e8f5c; --pc-teal:#4f8c84;
+  --pc-steel:#5a809e; --pc-slate:#6a70a3; --pc-plum:#866599; --pc-rose:#a3647f;
+}
+/* and deeper on a pale one, so a name in them still reads */
+:is([data-theme="white"],[data-theme="applejack"],[data-theme="rainbow"]){
+  --pc-wine:#8a2f3c; --pc-rust:#8f4519; --pc-ochre:#735b12; --pc-moss:#3d6229; --pc-teal:#1d625a;
+  --pc-steel:#245679; --pc-slate:#3a4589; --pc-plum:#5e3478; --pc-rose:#80305d;
 }
 
 /* ===================== themes =====================
@@ -2017,6 +2025,197 @@ summary.as-sub::before{content:"\25B8";display:inline-block;width:1em;margin-lef
 .as-slip[data-persp="defender"] [data-p="attacker"]{display:none}
 .as-bl{font-family:var(--font);font-weight:600;font-size:11px;min-width:0;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ---------- library ---------- */
+.lib-wrap{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.lib-win{width:925px;max-width:100%;height:max(640px,calc(100vh - 100px));display:flex;flex-direction:column;padding:0;overflow:hidden;margin-bottom:0}
+.lib-bar{display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid var(--border-soft);white-space:nowrap}
+.lib-bar > *{flex:none}
+.lib-bar > .spacer{flex:1 1 0}
+.lib-views{display:inline-flex;border:1px solid var(--border-soft);border-radius:4px;overflow:hidden}
+.lib-views button{background:var(--sunken);color:var(--text-dim);border:0;padding:3px 11px;font-size:12px;cursor:pointer}
+.lib-views button + button{border-left:1px solid var(--border-soft)}
+.lib-views button:hover{color:var(--strong)}
+.lib-views button.on{background:var(--accent);color:var(--btn-ink)}
+[data-theme="optimal"] .lib-views button.on{color:#000}
+.lib-body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 320px}
+.lib-list{overflow:auto;min-height:0}
+.lib-detail{overflow:auto;min-height:0;border-left:1px solid var(--border-soft);padding:10px 12px;background:var(--sunken)}
+.lib-tbl{font-size:12px}
+.lib-tbl thead th{position:sticky;top:0;z-index:1;background:var(--raised);padding:6px 4px;text-align:center;
+  border-bottom:1px solid var(--border-soft)}
+/* the name column is as wide as the longest name, the figures sit right up
+   against it, and an empty last column takes whatever width is left over */
+.lib-tbl thead th:first-child{text-align:left;padding-left:10px;width:1%}
+.lib-tbl :is(th,td):not(:first-child){width:58px;min-width:58px;text-align:center}
+.lib-tbl.lib-res :is(th,td):not(:first-child){width:52px;min-width:52px}
+.lib-tbl :is(th,td).lib-fill,.lib-tbl.lib-res :is(th,td).lib-fill{width:100%;min-width:0;padding:0}
+.lib-tbl thead th .gear-img,.lib-tbl thead th .res-icon{display:block;margin:0 auto}
+.lib-tbl thead .gear-img{object-position:center}
+.lib-tbl td{padding:3px 4px;text-align:right;font-family:var(--mono);white-space:nowrap;border-bottom:1px solid rgba(var(--lo),.18)}
+.lib-tbl td.lib-n{text-align:left;font-family:var(--font);padding-left:10px;padding-right:14px;width:1%}
+.lib-tbl td.lib-n .lib-name{display:inline-block;max-width:118px;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
+.lib-tbl .z{color:var(--faint)}
+.lib-bits{color:var(--gold);font-family:var(--mono)}
+.lib-row{cursor:pointer}
+.lib-row:hover td{background:rgba(var(--hi),.04)}
+.lib-row.sel td{background:rgba(var(--hi),.10)}
+.lib-row.tint td{background:color-mix(in srgb,var(--c) 10%,transparent)}
+.lib-row.tint:hover td{background:color-mix(in srgb,var(--c) 15%,transparent)}
+.lib-row.tint.sel td{background:color-mix(in srgb,var(--c) 22%,transparent)}
+.lib-row.tint td.lib-n{box-shadow:inset 3px 0 0 var(--c)}
+.lib-row.stasis td:not(.lib-n),.lib-row.stasis .lib-name{opacity:.4}
+.lib-row.stasis .lib-name{font-style:italic}
+.lib-row.dragging td{opacity:.35}
+.lib-name{color:var(--c,var(--text))}
+.lib-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:0;
+  background:var(--c,transparent);border:1px solid var(--c,rgba(var(--hi),.28))}
+.lib-fold td{text-align:left;font-family:var(--font);padding:5px 8px 5px 10px;background:rgba(var(--lo),.22);
+  border-top:1px solid var(--border-soft);cursor:pointer;user-select:none}
+.lib-fold .lib-fname{font-weight:600;color:var(--strong)}
+.lib-fold .caret{display:inline-block;width:12px;color:var(--text-dim);transition:transform .12s}
+.lib-fold.open .caret{transform:rotate(90deg)}
+.lib-fold .lib-fcount{color:var(--text-dim);font-size:11px;margin-left:6px}
+.lib-fold .lib-facts{float:right;display:inline-flex;gap:4px;opacity:.55}
+.lib-fold:hover .lib-facts{opacity:1}
+.lib-fold.drop td{outline:2px dashed var(--accent);outline-offset:-3px}
+.lib-row.drop-before td{box-shadow:inset 0 2px 0 var(--accent)}
+.lib-row.drop-after td{box-shadow:inset 0 -2px 0 var(--accent)}
+/* the name header holds the search box; the figure headers sort */
+.lib-tbl thead th.lib-nh{white-space:nowrap}
+.lib-nh input{width:96px;margin-left:10px;padding:1px 6px;font:11px/1.4 var(--font);text-transform:none;letter-spacing:0;
+  background:var(--sunken);color:var(--text);border-color:var(--border-soft);vertical-align:1px}
+.lib-sh{position:relative;cursor:pointer;user-select:none}
+.lib-sh:hover{background:color-mix(in srgb,var(--raised) 92%,rgb(var(--hi)))}
+.lib-sh.on{box-shadow:inset 0 -2px 0 var(--accent)}
+.lib-arw{position:absolute;right:3px;top:3px;font:normal 8px/1 var(--font);color:var(--accent)}
+.lib-tbl td.lib-none{text-align:center;padding:24px;color:var(--text-dim);font-family:var(--font)}
+.lib-tag{font:600 9px/1 var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);
+  border:1px solid var(--border-soft);border-radius:3px;padding:2px 4px;margin-left:6px;vertical-align:1px}
+.lib-ib{background:none;border:0;padding:1px 4px;font-size:11px;color:var(--text-dim);cursor:pointer;border-radius:3px}
+.lib-ib:hover{color:var(--strong);background:rgba(var(--hi),.07)}
+.lib-ib .ic{display:inline-block;vertical-align:-3px}
+.lib-st{opacity:0;margin-left:4px}
+.lib-row:hover .lib-st,.lib-row.stasis .lib-st{opacity:1}
+.lib-row.stasis .lib-st{color:var(--accent)}
+.lib-empty{padding:30px 16px;text-align:center;color:var(--text-dim);font-size:13px}
+/* the details pane */
+.lib-d-name{font:600 15px/1.3 var(--head-font);color:var(--c,var(--strong));word-break:break-word}
+.lib-d-acts{display:flex;gap:4px;margin:6px 0 8px;flex-wrap:wrap}
+.lib-d-row{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px}
+.lib-d-row > span:first-child{color:var(--text-dim);min-width:46px}
+.lib-d-row select{width:auto;flex:1;font-size:12px;padding:2px 4px;background:var(--raised);color:var(--text)}
+.lib-sw{display:flex;gap:5px;flex-wrap:wrap}
+.lib-sw button{width:16px;height:16px;border-radius:50%;border:1px solid rgba(var(--hi),.25);background:var(--c);cursor:pointer;padding:0}
+.lib-sw button.none{background:repeating-linear-gradient(135deg,transparent 0 3px,rgba(var(--hi),.35) 3px 4px)}
+.lib-sw button.on{outline:2px solid var(--strong);outline-offset:1px}
+.lib-h{font:600 10px/1 var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin:12px 0 6px}
+.lib-stk{display:flex;align-items:center;gap:5px;font-size:12px;padding:2px 0;white-space:nowrap}
+.lib-stk .gear-img{flex:0 0 32px}
+.lib-stk .gear-img + .gear-img{margin-left:-4px}   /* 1px between the weapon and the armour */
+/* the counts column is as wide as the biggest count in the list, so the pictures
+   start right after it */
+.lib-stk .n{font-family:var(--mono);color:var(--strong);min-width:var(--nw,3ch);text-align:right;margin-right:3px}
+.lib-stk .g{margin-left:5px}
+.lib-stk .g{overflow:hidden;text-overflow:ellipsis}
+.lib-stk .t{margin-left:auto;font-size:10.5px;color:var(--text-dim);font-family:var(--mono)}
+.lib-stk .w{font:600 9px/1 var(--font);letter-spacing:.06em;color:var(--warn);border:1px solid rgba(var(--warn-rgb),.5);
+  border-radius:3px;padding:1px 3px}
+.lib-kv{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:12px;padding:2px 0}
+.lib-kv > span:first-child{color:var(--text-dim);white-space:nowrap}
+.lib-kv .v{font-family:var(--mono);color:var(--strong);text-align:right}
+.lib-d-top{display:flex;align-items:flex-start;gap:6px}
+.lib-d-top .lib-d-name{flex:1;min-width:0}
+.lib-d-top .bp-btn{padding:3px}
+.lib-rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:3px 14px;font-size:12px}
+.lib-scale .lib-rgrid{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+.lib-rc{display:flex;align-items:center;gap:6px;min-width:0;line-height:18px}
+.lib-rc .k{color:var(--text-dim);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lib-rc .mono{margin-left:auto;color:var(--strong);white-space:nowrap}
+.lib-rc.lib-over .k{color:var(--atk)}
+.lib-menu{position:fixed;z-index:90;background:var(--raised);border:1px solid var(--border-soft);border-radius:4px;
+  padding:3px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+.lib-menu button{display:flex;align-items:center;gap:6px;width:100%;background:none;border:0;color:var(--text);
+  font-size:12px;padding:5px 10px;border-radius:3px;cursor:pointer;white-space:nowrap}
+.lib-menu button:hover:not(:disabled){background:rgba(var(--hi),.08);color:var(--strong)}
+.lib-menu button:disabled{opacity:.45;cursor:default}
+/* the scaler */
+.lib-scale{flex:1 1 380px;min-width:340px;max-width:640px;margin-bottom:0}
+.lib-sc-head{display:flex;align-items:baseline;gap:10px;padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid var(--border-soft)}
+.lib-sc-head .lib-d-name{font-size:17px}
+.lib-sc-head .x{margin-left:auto;font:600 20px/1 var(--mono);color:var(--strong);white-space:nowrap}
+.lib-buds{display:flex;align-items:center;gap:8px;margin-left:4px}
+.lib-bud{display:flex;align-items:center;gap:3px;margin:0;color:var(--text)}
+.lib-bud input[type=number]{width:58px;flex:none;font:11px/1.2 var(--mono);padding:2px 4px}
+.lib-bud input[type=number]::placeholder{font-size:10px}
+.lib-bud input[type=number]{-moz-appearance:textfield;appearance:textfield}
+.lib-bud input[type=number]::-webkit-inner-spin-button,.lib-bud input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.lib-bud input.over{color:var(--atk);border-color:var(--atk)}
+.lib-ela{display:inline-flex;align-items:center;gap:2px;margin:0;font-size:10px;color:var(--text-dim);cursor:pointer;white-space:nowrap}
+.lib-ela input{margin:0}
+.lib-slide{display:flex;align-items:center;gap:10px;margin:14px 0 8px}
+.lib-slide input[type=range]{flex:1;accent-color:var(--accent);padding:0}
+.lib-k{display:inline-flex;align-items:center;gap:2px;font-family:var(--mono);color:var(--text-dim)}
+.lib-k input{width:64px;font-family:var(--mono)}
+.lib-note{font-size:12px;color:var(--text-dim);margin:4px 0 8px}
+.lib-note.warn{color:var(--warn)}
+.lib-over,.lib-over .mono{color:var(--atk)!important}
+.lib-sc-foot{display:flex;align-items:center;gap:8px;justify-content:flex-end;margin-top:12px;padding-top:10px;border-top:1px solid var(--border-soft)}
+.lib-sc-foot > .btn{flex:none}
+.lib-code{flex:1;min-width:0;font:11px/1.3 var(--mono);color:var(--text-dim);background:var(--sunken);border-color:var(--border-soft);
+  padding:4px 7px;text-overflow:ellipsis;cursor:text}
+.lib-code:focus{color:var(--strong)}
+/* the mulligan */
+.lib-left{display:flex;flex-direction:column;gap:16px;width:925px;max-width:100%}
+.lib-mull{margin-bottom:0}
+.lib-mull-head{display:flex;align-items:baseline;gap:10px;margin-bottom:8px}
+.lib-mull-head h2{margin:0}
+.lib-tol{display:inline-flex;align-items:center;gap:8px;margin:0;font-size:12px;color:var(--text-dim)}
+.lib-tol input{width:160px;accent-color:var(--accent);padding:0}
+.lib-tol b{font:600 12px/1 var(--mono);color:var(--strong);min-width:3.5ch;text-align:right}
+.lib-dmg{font-size:11px;margin-bottom:10px}
+.lib-dmg th{font-weight:400;color:var(--text-dim);text-align:left;white-space:nowrap;padding:1px 10px 1px 0;width:1%}
+.lib-dmg thead th{text-align:center;padding-bottom:3px;border-bottom:1px solid var(--border-soft)}
+.lib-dmg thead th:first-child{border-bottom:0}
+.lib-dmg thead .gear-img{display:block;margin:0 auto;object-position:center}
+.lib-foe{display:block;margin:0 auto;background:none;border:0;padding:2px 6px;border-radius:3px;cursor:pointer}
+.lib-foe:hover{background:rgba(var(--hi),.08)}
+.lib-foe .gear-img{transition:opacity .12s,filter .12s}
+.lib-foe.out .gear-img{filter:grayscale(1) brightness(1.6) var(--icon-edge,);opacity:.4}
+/* on a pale page a greyed icon goes darker, not lighter, or it vanishes */
+:is([data-theme="white"],[data-theme="applejack"],[data-theme="rainbow"]) .lib-foe.out .gear-img{
+  filter:grayscale(1) brightness(.5) var(--icon-edge,);opacity:.6}
+.lib-dmg td{font-family:var(--mono);text-align:center;padding:1px 4px;white-space:nowrap}
+.lib-dmg td .to{font-family:var(--font);font-size:10px;color:var(--text-dim)}
+.lib-dmg td .off{color:var(--atk);font-weight:700}
+.lib-dmg tr.lib-sim > *{padding-top:6px;border-top:1px solid var(--border-soft)}
+.lib-dmg tr.lib-sim th{color:var(--strong)}
+.lib-simrow{display:flex;align-items:center;gap:10px}
+.lib-simbar{flex:1;height:8px;border-radius:3px;background:rgba(var(--hi),.08);overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.4)}
+/* one red-to-green sweep across the whole track; the fill shows as much of it as the rating reaches */
+.lib-simbar span{display:block;height:100%;background:linear-gradient(90deg,#c0392b,#3fae49) left/100% 100% no-repeat;
+  background-image:linear-gradient(90deg in oklch,#c0392b,#3fae49)}
+.lib-dmg tr.lib-sim b{font:700 12px/1 var(--mono);color:var(--strong);min-width:6ch;text-align:right}
+.lib-mw{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--border-soft);border-radius:4px;background:var(--sunken)}
+.lib-mw-c{padding:0 12px 8px;min-width:0}
+.lib-mw-c:nth-child(-n+2){padding-top:10px}
+.lib-mw-c.r{border-left:1px solid var(--border-soft)}
+.lib-mw-c > .lib-h:first-child{margin-top:0}
+.lib-mw .lib-rgrid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
+.lib-tbar{display:flex;height:8px;border-radius:3px;overflow:hidden;background:rgba(var(--hi),.06);
+  box-shadow:0 1px 3px rgba(0,0,0,.55),0 0 0 1px rgba(0,0,0,.25)}
+.lib-tbar span{display:block}
+.lib-tleg{position:relative;font:11px/1 var(--mono);margin-bottom:6px;height:18px}
+.lib-tl{position:absolute;z-index:1;top:3px;white-space:nowrap;background:var(--sunken);padding:0 2px}
+.lib-tline{position:absolute;top:0;width:1px;opacity:.7}
+.lib-tline[hidden]{display:none}
+.lib-mull-foot{display:flex;align-items:center;gap:8px;margin-top:12px}
+.lib-mull-foot > .btn{flex:none}
+.lib-mull-foot #libMullBtn{padding:6px 22px;font-size:14px;margin-right:4px}
+.lib-mull-msg:empty{display:none}
+.lib-mull-msg{margin-top:6px}
+:is(.lib-scale,.lib-mull) :is(button,input):disabled{opacity:.45;cursor:default;filter:none}
+@media (max-width:760px){.lib-body{grid-template-columns:1fr}.lib-detail{border-left:0;border-top:1px solid var(--border-soft)}
+  .lib-win{height:auto}.lib-list{max-height:420px}}
 </style>
 <script>
 /* the theme goes on before anything paints, so a reload never flashes Grey.
@@ -2053,6 +2252,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
   <button class="tab" data-tab="counter">Counters</button>
   <button class="tab" data-tab="grand">Staging</button>
   <button class="tab" data-tab="assess">Assessment</button>
+  <button class="tab" data-tab="library">Library</button>
   <span class="ref-btns">
     <!-- when the alliances' production was last fetched from 4clop.org; a click fetches it again -->
     <button class="sync-age" id="syncAge" type="button">Not synced</button>
@@ -2643,6 +2843,69 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
   <div class="gs-total" id="asTotal"></div>
 </div>
 
+<!-- ============ LIBRARY ============ -->
+<div id="viewLibrary" style="display:none">
+  <div class="lib-wrap">
+    <div class="lib-left">
+    <!-- every army preset: folders, colours, stasis, and a column per unit type -->
+    <div class="panel lib-win">
+      <div class="lib-bar">
+        <div class="lib-views" role="group" aria-label="What the columns show">
+          <button type="button" data-lib-view="ratio" title="The smallest army in the same proportions">Ratios</button>
+          <button type="button" data-lib-view="units" title="The troops the preset actually holds">Units</button>
+          <button type="button" data-lib-view="res" title="What the preset's equipment costs in resources">Resources</button>
+        </div>
+        <!-- what the scaler may spend on upkeep every 12 hours -->
+        <div class="lib-buds" id="libBuds" title="Upkeep budget / 12 h"></div>
+        <span class="spacer"></span>
+        <span class="small muted" id="libCount"></span>
+        <button type="button" class="btn btn-xs" id="libNewFolder">New folder</button>
+      </div>
+      <div class="lib-body">
+        <div class="lib-list" id="libList"></div>
+        <div class="lib-detail" id="libDetail"></div>
+      </div>
+    </div>
+
+    <!-- a different army that fights like the one in the scaler -->
+    <div class="panel lib-mull">
+      <div class="lib-mull-head">
+        <h2>Mulligan</h2><span class="small muted" id="libMullFor"></span>
+        <span class="spacer"></span>
+        <label class="lib-tol" for="libTol" title="How far each figure below may drift from the original's">Tolerance
+          <input type="range" id="libTol" min="1" max="50" step="1" value="10"><b id="libTolV">10%</b></label>
+      </div>
+      <div id="libDmg"></div>
+      <div class="lib-mw" id="libMw"></div>
+      <div class="lib-mull-foot">
+        <button type="button" class="btn btn-warning" id="libMullBtn">Mulligan</button>
+        <input type="text" class="lib-code" id="libMullCode" readonly spellcheck="false" aria-label="Mulligan army code"
+          title="The mulligan's army code">
+        <button type="button" class="btn btn-xs btn-info txt-btn" id="libMullCopy">Copy mulligan code</button>
+        <button type="button" class="btn btn-xs btn-moss txt-btn" id="libMullSave">Save as preset</button>
+      </div>
+      <div class="small muted lib-mull-msg" id="libMullMsg"></div>
+    </div>
+    </div>
+
+    <!-- the selected preset, grown from its ratio -->
+    <div class="panel lib-scale">
+      <div class="lib-sc-head" id="libScHead"></div>
+      <div class="lib-slide">
+        <input type="range" id="libK" min="1" max="50" step="1" value="1" aria-label="Multiple of the ratio">
+        <span class="lib-k">&times;<input type="number" id="libKn" min="1" step="1" value="1" aria-label="Multiple of the ratio"></span>
+        <button type="button" class="btn btn-xs" id="libKOrig" title="Back to the size the preset was saved at">As saved</button>
+      </div>
+      <div id="libScOut"></div>
+      <div class="lib-sc-foot">
+        <input type="text" class="lib-code" id="libCode" readonly spellcheck="false" aria-label="Army code" title="The army code, as it stands">
+        <button type="button" class="btn btn-xs btn-info txt-btn" id="libCopy">Copy army code</button>
+        <button type="button" class="btn btn-xs btn-moss txt-btn" id="libSaveAs">Save as preset</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="tip"></div>
 <div id="dmgPin" class="pinbox"></div>
 
@@ -2816,12 +3079,12 @@ const RESOURCES = {
   copper:    {name:"Copper",          icon:null},
   tungsten:  {name:"Tungsten",        icon:null},
   plastics:  {name:"Plastics",        icon:null},
+  apples:    {name:"Apples",          icon:null},   // the four upkeep resources: apples, gems, coffee, gasoline
   gems:      {name:"Gems",            icon:null},
-  energy:    {name:"Energy",          icon:null},
-  oil:       {name:"Oil",             icon:null},
-  apples:    {name:"Apples",          icon:null},
   coffee:    {name:"Coffee",          icon:null},
   gasoline:  {name:"Gasoline",        icon:null},
+  energy:    {name:"Energy",          icon:null},
+  oil:       {name:"Oil",             icon:null},
   machinery: {name:"Machinery Parts", icon:null},
   vehicle:   {name:"Vehicle Parts",   icon:null},
   precision: {name:"Precision Parts", icon:null},
@@ -6588,6 +6851,10 @@ const ICONS = {
   export: '<path d="M8 9.5V2.8"/><path d="M5.5 5.3 8 2.8l2.5 2.5"/><path d="M3 10.5v3h10v-3"/>',
   del:    '<path d="M2.8 4.3h10.4"/><path d="M6.3 4.3V2.6h3.4v1.7"/><path d="M4.2 4.3l.6 9.1h6.4l.6-9.1"/>',
   ok:     '<path d="M3 8.4l3.2 3.2L13 4.8"/>',
+  stasis: '<path d="M4.5 2.5h7"/><path d="M4.5 13.5h7"/><path d="M5.5 2.5c0 3.2 5 3.3 5 5.5s-5 2.3-5 5.5"/>'
+        + '<path d="M10.5 2.5c0 3.2-5 3.3-5 5.5s5 2.3 5 5.5"/>',
+  stasisOn: '<path d="M4.5 2.5h7"/><path d="M4.5 13.5h7"/><path d="M5.5 2.5c0 3.2 5 3.3 5 5.5s-5 2.3-5 5.5"/>'
+        + '<path d="M10.5 2.5c0 3.2-5 3.3-5 5.5s5 2.3 5 5.5"/><path class="f" d="M5.9 13.1h4.2L8 10.4z"/><path class="f" d="M6.6 5.2h2.8L8 6.6z"/>',
   link:   '<path d="M6.8 9.2a2.7 2.7 0 0 0 3.8 0l2-2a2.7 2.7 0 0 0-3.8-3.8l-.9.9"/>'
         + '<path d="M9.2 6.8a2.7 2.7 0 0 0-3.8 0l-2 2a2.7 2.7 0 0 0 3.8 3.8l.9-.9"/>'
 };
@@ -7563,11 +7830,102 @@ function ordNote(notes){
 }
 
 /* ---- army presets (shared pool, loadable into either side) ---- */
-const getArmies  = () => store.get(LS_ARMY, {});
+/* presets baked into the page, each named with an [S] in front: always on
+   the list, filed in a folder nobody can delete, in stasis until someone
+   brings it out, and never saved over, renamed or deleted */
+const BUILTIN_FOLDERS = [{id: "universal", name: "Universal"}, {id: "historical", name: "Historical invasions"}];
+const BUILTIN_ARMIES = {
+  "[S] Universal":                  {folder: "universal",  code: "xAjIbD3c3x5zVlbfcv8nOVA4EufIS59nnq9wt"},
+  "[S] Zaam":                       {folder: "historical", code: "e9MxMJPWMxEBnbo6yzHEwZ7dDrCTHUsUMXkZ27mVqTpZ5yp~20"},
+  "[S] Everfree":                   {folder: "historical", code: "BCmYM3zA7VqApmaooI7JVmrHuB3CifAJrTzUQirUN~20"},
+  "[S] Suenos":                     {folder: "historical", code: "1UXhJT0L0ydktKYnsPPmUzo5j4FhUi43kz~20"},
+  "[S] Lanathesis":                 {folder: "historical", code: "XLGsQFVG7D1Cf4T9VrB6nQn94htP8f0SzBZEbV3BbybJ21Hv~20"},
+  "[S] Equiopia":                   {folder: "historical", code: "1nLAwqdSDCcICrpUWRbut6Ojft5pgCyw5P~20"},
+  "[S] Allerimia":                  {folder: "historical", code: "1knnADhOuov3JDgLtmxOxdWceS6OBAEGx5gtBihEh86yV~20"},
+  "[S] Starlight Reach":            {folder: "historical", code: "Nrbk1zGuBYk7adhKDBgO9lhL2F~20"},
+  "[S] Camareoon":                  {folder: "historical", code: "3Cjj8nZyH42QFLs1xZFukyQtcwwEOBdH01HeJovljEwjWpvT~20"},
+  "[S] New Ponutania (W2)":         {folder: "historical", code: "sx2NIxH3c8EbFqmTEebRGYzkMOqTWhDaJ~20"},
+  "[S] Hoofy Nails for Oil (W2)":   {folder: "historical", code: "7actkTdoFfev6P0cGv3aAINtTeIvPY5~20"},
+  "[S] YetAnotherZeb (W2)":         {folder: "historical", code: "1966EvJzI2ZDMzjaAuVOzJt4BTPOsTb7GYc5PB~20"},
+  "[S] New Canterlonia (W2)":       {folder: "historical", code: "7QF1h5cloGj73E34HEf9BqwgeQJvfBUujwouY89uv~20"},
+  "[S] Mephrida (W2)":              {folder: "historical", code: "ORiHeJxpzqRvYPd5HrtX99gtoHqagaEdvzUayL8kh~20"},
+  "[S] Hoofa (W2)":                 {folder: "historical", code: "1FVvEWYTuMw0UtZrgxggsfnINwD3UNwQLC1ZYBv0pgF~20"},
+  "[S] Based Pelennor":             {folder: "historical", code: "2dQZrDTbCCBGpH6GRWf9ILGfGSBs7y8LFZ1iq31lLE7~20"},
+  "[S] Stalliongrad (W2)":          {folder: "historical", code: "xAb2Ri8cnUTE7vplaGbpvdtgMpFQSQep5j3Rf~20"},
+  "[S] Hoovesia (W2)":              {folder: "historical", code: "44otGjR6U9DkEZmuTBX9PI5BYhuSf~20"},
+  "[S] Hoofkryina (W2)":            {folder: "historical", code: "E2jp6iEpKQLfNwiMPdZRJOOXnpkKhXc6DXLmaBpFH~20"},
+  "[S] Clopastan (W2)":             {folder: "historical", code: "l9635eWpBuRRPjGoffZjq4dHDhabqC68eKxNMCDSh~20"},
+  "[S] New Canterlonia (W1)":       {folder: "historical", code: "XQ8BkStLKcpBAxevg5PwiWiUlaE2ykhqeNyg7M5XtujXlOLu1s3X~20"},
+  "[S] Hoofy Nails for Oil (W1)":   {folder: "historical", code: "290ot7zXhwwMANo21N4RGQnuvng7jPzVe30Ee3r1kzmkrbC8NqF5V~20"},
+  "[S] New Ponutania (W1)":         {folder: "historical", code: "gCLbHm1LBJNgOmLx1jWgGEnnC3KZv4l7lxs5t9fnPqWkENm18woRHszL~20"},
+  "[S] Fetloco (W1)":               {folder: "historical", code: "eKQ0VHYsWkdrztos8Qy9WV45pSPylzZ217cKCYwHVD9EiiTTcjF~20"},
+  "[S] Hoofkryina (W1)":            {folder: "historical", code: "26fQENtKwaiaqIWCGjDT7et1lj7T0SFSUVHhXzOsl0vNOGnCrDKlED2UBXDYHnJT~20"},
+  "[S] Hoovesia (W1)":              {folder: "historical", code: "30tPsCkukn6G9CGFBiJHb3fkztvX6YyT3QEvmdajTryuRPlQV~20"},
+  "[S] Stalliongrad (W1)":          {folder: "historical", code: "nMvWDMFcHJzWxPN4PkZuwVZFhZRa8aDuAQoYmANUmqed7F~20"}
+};
+const isBuiltin = name => Object.hasOwn(BUILTIN_ARMIES, name);
+let builtinJSON = "";
+const builtinDecoded = () => Object.fromEntries(Object.entries(BUILTIN_ARMIES).map(([n, b]) => [n, decodeArmy(b.code)]));
+const builtinArmies = () => JSON.parse(builtinJSON ||= JSON.stringify(builtinDecoded()));
+/* their Barracks levels, which ride in the codes but not in the unit lists */
+let builtinBrk = null;
+const builtinBarracks = () => builtinBrk ||= Object.fromEntries(Object.entries(builtinDecoded())
+  .filter(([, u]) => u.barracks != null).map(([n, u]) => [n, u.barracks]));
+/* the presets this browser made, for an export: the built-in ones come with every copy of the page */
+const ownArmies = () => Object.fromEntries(Object.entries(storedArmies()).filter(([n]) => !isBuiltin(n)));
+/* what this browser saved, which is what every write goes back into */
+const storedArmies = () => { const m = store.get(LS_ARMY, {}); return m && typeof m === "object" ? m : {}; };
+const getArmies  = () => Object.assign(storedArmies(), builtinArmies());
+const builtinNote = name => alert(`"${name}" is built in and cannot be changed \u2014 save it under a name of its own.`);
+
+/* the Library's own bookkeeping: folders, which preset sits in which,
+   colours, and the presets in stasis (kept, but out of every dropdown) */
+const LS_LIB = "warcalc.library";
+const lib = (()=>{
+  const d = {folders: [], where: {}, colour: {}, stasis: {}, shut: {}, view: "ratio", sel: "", budget: {}, elastic: {}};
+  const s = store.get(LS_LIB, {});
+  Object.assign(d, s && typeof s === "object" ? s : {});
+  if (d.rigid){ d.elastic = Object.assign({}, d.rigid, d.elastic); delete d.rigid; }   // its first name
+  /* the built-in presets were first named without their [S]: what was kept
+     under the old names moves across, unless a preset of the same name was
+     made since */
+  const mine = storedArmies(), marks = store.get(LS_MARK, []);
+  Object.keys(BUILTIN_ARMIES).forEach(n => {
+    const old = n.replace(/^\[S\] /, "");
+    if (old === n || Object.hasOwn(mine, old)) return;
+    ["where", "colour", "stasis"].forEach(k => { if (d[k] && old in d[k]){ d[k][n] = d[k][old]; delete d[k][old]; } });
+    if (Array.isArray(d.order)) d.order = d.order.map(x => x === old ? n : x);
+    if (d.sel === old) d.sel = n;
+    if (Array.isArray(marks) && marks.includes(old)){ marks[marks.indexOf(old)] = n; store.set(LS_MARK, marks); }
+  });
+  return d;
+})();
+const libSave = () => store.set(LS_LIB, lib);
+/* a built-in preset is in stasis until it is brought out, and remembers being brought out */
+const inStasis = name => name in lib.stasis ? !!lib.stasis[name] : isBuiltin(name);
+/* colours are kept by name and painted from the theme's own shade of each */
+const LIB_COLOURS = ["wine", "rust", "ochre", "moss", "teal", "steel", "slate", "plum", "rose"];
+/* the first palette was stored as bright hex; each maps to the name in its place */
+const LIB_OLD_HEX = ["#e5484d", "#f08a3c", "#e2c760", "#78cc78", "#3fc1b0", "#4ab9db", "#6f8cff", "#b366e0", "#ff6ec7"];
+Object.entries(lib.colour).forEach(([n, c]) => {
+  const i = LIB_OLD_HEX.indexOf(c);
+  if (i >= 0) lib.colour[n] = LIB_COLOURS[i]; else if (!LIB_COLOURS.includes(c)) delete lib.colour[n];
+});
+const libInk = name => LIB_COLOURS.includes(lib.colour[name]) ? `var(--pc-${lib.colour[name]})` : "";
+function libRename(name, next){
+  ["where", "colour", "stasis"].forEach(k => { if (name in lib[k]) lib[k][next] = lib[k][name]; delete lib[k][name]; });
+  if (Array.isArray(lib.order)) lib.order = lib.order.filter(n => n !== next).map(n => n === name ? next : n);
+  if (lib.sel === name) lib.sel = next;
+  libSave();
+}
+function libForget(names){
+  names.forEach(n => ["where", "colour", "stasis"].forEach(k => delete lib[k][n]));
+  libSave();
+}
 /* each army preset's Barracks level, kept beside the presets so the presets
    themselves stay plain unit lists */
 const LS_ABRK = "warcalc.armyBarracks";
-const getArmyBarracks = () => { const m = store.get(LS_ABRK, {}); return m && typeof m === "object" ? m : {}; };
+const getArmyBarracks = () => { const m = store.get(LS_ABRK, {}); return Object.assign(m && typeof m === "object" ? m : {}, builtinBarracks()); };
 function setArmyBarracks(name, n, rename){
   const m = getArmyBarracks();
   if (rename !== undefined){ if (name in m) m[rename] = m[name]; delete m[name]; }
@@ -7583,11 +7941,11 @@ const getMarks   = () => { const m = store.get(LS_MARK, []); return Array.isArra
 const setMarks   = m => store.set(LS_MARK, m);
 
 function refreshPresetSelects(){
-  const armies = Object.keys(getArmies()).sort();
+  const armies = Object.keys(getArmies()).filter(n => !inStasis(n)).sort();
   document.querySelectorAll("[data-ap-sel]").forEach(sel=>{
     const keep = sel.value;
     sel.innerHTML = `<option value="">preset…</option>` +
-      armies.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("");
+      armies.map(n=>`<option value="${esc(n)}"${libInk(n) ? ` style="color:${libInk(n)}"` : ""}>${esc(n)}</option>`).join("");
     if (armies.includes(keep)) sel.value = keep;
   });
   const battles = Object.keys(getBattles()).sort();
@@ -7611,7 +7969,7 @@ function refreshPresetSelects(){
 /* ---- marked armies: the presets you swap between, one click away ---- */
 function renderMarks(){
   const armies = getArmies();
-  const marks = getMarks().filter(n => armies[n]);
+  const marks = getMarks().filter(n => armies[n] && !inStasis(n));
   document.querySelectorAll("[data-ap-marks]").forEach(box=>{
     const side = box.dataset.apMarks;
     const sel = document.querySelector(`[data-ap-sel="${side}"]`);
@@ -7625,6 +7983,7 @@ function renderMarks(){
 }
 
 function paintMarkButtons(marks){
+  document.querySelectorAll("[data-ap-sel]").forEach(sel=>{ sel.style.color = libInk(sel.value); });
   document.querySelectorAll("[data-ap-mark]").forEach(btn=>{
     const sel = document.querySelector(`[data-ap-sel="${btn.dataset.apMark}"]`);
     const on = !!(sel && sel.value && marks.includes(sel.value));
@@ -7655,7 +8014,8 @@ function saveArmyPreset(side){
   if (!units.length){ alert("Nothing to save — that side is empty."); return; }
   const name = (prompt("Name this army preset:", "") || "").trim();
   if (!name) return;
-  const all = getArmies();
+  if (isBuiltin(name)){ builtinNote(name); return; }
+  const all = storedArmies();
   if (all[name] && !confirm(`Overwrite "${name}"?`)) return;
   all[name] = units;
   if (!store.set(LS_ARMY, all)) alert("Could not save — this browser is blocking local storage.");
@@ -7682,7 +8042,8 @@ function updateArmyPreset(side, btn){
   const sel = document.querySelector(`[data-ap-sel="${side}"]`);
   const name = sel.value;
   if (!name){ alert("Pick a preset first."); return; }
-  const all = getArmies();
+  if (isBuiltin(name)){ builtinNote(name); return; }
+  const all = storedArmies();
   if (!all[name]) return;
   const units = packSide(side);
   if (!units.length){ alert("Nothing to save \u2014 that side is empty."); return; }
@@ -7700,12 +8061,17 @@ function deleteArmyPreset(side){
            || document.querySelector("[data-ap-sel]");
   const name = sel.value;
   if (!name){ alert("Pick a preset first."); return; }
+  deleteArmyNamed(name);
+}
+function deleteArmyNamed(name){
+  if (isBuiltin(name)){ alert(`"${name}" is built in and cannot be deleted \u2014 put it in stasis from the Library to hide it.`); return; }
   if (!confirm(`Delete army preset "${name}"?`)) return;
-  const all = getArmies();
+  const all = storedArmies();
   delete all[name];
   store.set(LS_ARMY, all);
   setArmyBarracks(name, null);
   setArmyOrders(name, "");
+  libForget([name]);
   setMarks(getMarks().filter(n => n !== name));
   refreshPresetSelects();
 }
@@ -7714,22 +8080,31 @@ function renameArmyPreset(side){
   const sel = document.querySelector(`[data-ap-sel="${side}"]`);
   const name = sel.value;
   if (!name){ alert("Pick a preset first."); return; }
-  const all = getArmies();
+  const next = renameArmyNamed(name);
+  if (!next) return;
+  document.querySelectorAll("[data-ap-sel]").forEach(o=>{ o.value = next; });
+  renderMarks();
+}
+/* the new name, or nothing when it was left as it was */
+function renameArmyNamed(name){
+  if (isBuiltin(name)){ builtinNote(name); return; }
+  const all = storedArmies();
   if (!all[name]) return;
   const next = (prompt(`Rename army preset "${name}" to:`, name) || "").trim();
   if (!next || next === name) return;
+  if (isBuiltin(next)){ builtinNote(next); return; }
   if (all[next] && !confirm(`Overwrite "${next}"?`)) return;
   all[next] = all[name];
   delete all[name];
   if (!store.set(LS_ARMY, all)){ alert("Could not save — this browser is blocking local storage."); return; }
   setArmyBarracks(name, null, next);
   setArmyOrders(name, null, next);
+  libRename(name, next);
   const marks = getMarks();
   const i = marks.indexOf(name);
   if (i >= 0){ marks[i] = next; setMarks(marks); }
   refreshPresetSelects();
-  document.querySelectorAll("[data-ap-sel]").forEach(o=>{ o.value = next; });
-  renderMarks();
+  return next;
 }
 
 /* ---- battle presets (both sides + bonus) ---- */
@@ -7928,10 +8303,11 @@ function exportBattle(){
 
 /* ---- bulk deletes ---- */
 function deleteAllArmyPresets(){
-  const n = Object.keys(getArmies()).length;
+  const mine = Object.keys(storedArmies()).filter(n => !isBuiltin(n)), n = mine.length;
   if (!n){ alert("There are no army presets to delete."); return; }
   if (!confirm(`Delete all ${n} army preset${n === 1 ? "" : "s"}? This cannot be undone.`)) return;
   store.set(LS_ARMY, {});
+  libForget(mine);
   store.set(LS_ABRK, {});
   store.set(LS_AORD, {});
   setMarks([]);
@@ -7960,11 +8336,15 @@ function importPresetData(data, note){
   if (!armies && !battles){ alert("No presets found in that file."); return; }
 
   let added = 0;
+  const same = [];
   if (armies){
-    const all = getArmies();
+    const all = storedArmies(), built = builtinArmies();
     Object.entries(armies).forEach(([n,v])=>{
+      /* a built-in preset's own army coming back (an older export carried them)
+         is already here; anything else under a built-in name is saved beside it */
+      if (isBuiltin(n) && JSON.stringify(presetUnits(v)) === JSON.stringify(presetUnits(built[n]))){ same.push(n); return; }
       let name = n;
-      while (Object.hasOwn(all, name) && JSON.stringify(all[name]) !== JSON.stringify(v)) name += " (imported)";
+      while (isBuiltin(name) || Object.hasOwn(all, name) && JSON.stringify(all[name]) !== JSON.stringify(v)) name += " (imported)";
       all[name] = v; added++;
       const brk = data.armyBarracks && data.armyBarracks[n];
       if (brk != null) setArmyBarracks(name, brk);
@@ -7982,7 +8362,8 @@ function importPresetData(data, note){
     store.set(LS_BATL, all);
   }
   refreshPresetSelects();
-  alert(`Imported ${added} preset(s).` + (note || ""));
+  alert(`Imported ${added} preset(s).` + (same.length ? `\n\nAlready built in, so left as they are: ${same.join(", ")}.` : "")
+    + (note || ""));
 }
 
 /* the same units the presets themselves keep, field for field, so a string
@@ -7992,11 +8373,14 @@ const presetUnits = list => (list || []).map(u => Object.assign(
   u.name ? {name:u.name} : {}, packWait(u)));
 
 /* Export army / battle presets (STRING): every preset of the one kind, by name */
+/* an army preset's code, barracks and script and all */
+const armyPresetCode = (name, units, brk = getArmyBarracks(), ords = getArmyOrders()) =>
+  encodeArmy(Object.assign(noNames(units), {orders: ords[name] || ""}), brk[name]);
+
 async function exportPresetString(kind, btn){
-  const brk = getArmyBarracks();
+  const brk = getArmyBarracks(), ords = getArmyOrders();
   const entries = kind === "army"
-    ? Object.entries(getArmies()).map(([n, units]) => [n,
-        encodeArmy(Object.assign(noNames(units), {orders: getArmyOrders()[n] || ""}), brk[n])])
+    ? Object.entries(ownArmies()).map(([n, units]) => [n, armyPresetCode(n, units, brk, ords)])
     : Object.entries(getBattles()).map(([n, b]) => { const l = battleLists(b); return [n,
         encodeBattle(noNames(l.attacker), noNames(l.defender), b.bonus, b.barracks)]; });
   if (!entries.length){ alert(`There are no ${kind} presets to export.`); return; }
@@ -8202,15 +8586,15 @@ toolsBtn.addEventListener("click", ()=>{
 });
 
 document.getElementById("expArmies").addEventListener("click", ()=>
-  downloadJSON({kind:"armyPresets", armyPresets:noNamesEach(getArmies(), noNames),
-                armyBarracks:barracksFor(Object.keys(getArmies())),
-                armyOrders:ordersFor(Object.keys(getArmies()))}, `curiocalc-armies-${stamp()}.json`));
+  downloadJSON({kind:"armyPresets", armyPresets:noNamesEach(ownArmies(), noNames),
+                armyBarracks:barracksFor(Object.keys(ownArmies())),
+                armyOrders:ordersFor(Object.keys(ownArmies()))}, `curiocalc-armies-${stamp()}.json`));
 document.getElementById("expBattles").addEventListener("click", ()=>
   downloadJSON({kind:"battlePresets", battlePresets:noNamesEach(getBattles(), noNamesBattle)}, `curiocalc-battles-${stamp()}.json`));
 document.getElementById("expAll").addEventListener("click", ()=>
-  downloadJSON({kind:"warcalcPresets", armyPresets:noNamesEach(getArmies(), noNames),
-                armyBarracks:barracksFor(Object.keys(getArmies())),
-                armyOrders:ordersFor(Object.keys(getArmies())),
+  downloadJSON({kind:"warcalcPresets", armyPresets:noNamesEach(ownArmies(), noNames),
+                armyBarracks:barracksFor(Object.keys(ownArmies())),
+                armyOrders:ordersFor(Object.keys(ownArmies())),
                 battlePresets:noNamesEach(getBattles(), noNamesBattle)},
                `curiocalc-presets-${stamp()}.json`));
 
@@ -8237,6 +8621,7 @@ document.getElementById("delAllBattles").addEventListener("click", deleteAllBatt
 document.getElementById("wipeSaves").addEventListener("click", ()=>{
   if (!confirm("Delete the autosave and every saved preset in this browser? This cannot be undone.")) return;
   [LS_KEY, LS_ARMY, LS_BATL, LS_MARK, LS_ABRK].forEach(k=>store.del(k));
+  libForget(Object.keys(lib.where).concat(Object.keys(lib.colour), Object.keys(lib.stasis)).filter(n => !isBuiltin(n)));
   refreshPresetSelects();
   alert("Cleared.");
 });
@@ -11437,7 +11822,7 @@ syncSolveSide();
    9. TABS
    =================================================================== */
 
-const VIEWS = {battle:"viewBattle", counter:"viewCounter", grand:"viewGrand", assess:"viewAssess"};
+const VIEWS = {battle:"viewBattle", counter:"viewCounter", grand:"viewGrand", assess:"viewAssess", library:"viewLibrary"};
 
 function showTab(name){
   if (!VIEWS[name]) name = "battle";
@@ -11508,7 +11893,7 @@ function hkWhere(b){
    gone where there is no fourth section */
 function dockForTab(name){
   hkTab = name;
-  hkDock.classList.toggle("hk-none", name === "counter");
+  hkDock.classList.toggle("hk-none", name === "counter" || name === "library");
   const spec = HK_TABS[name];
   hkBtns.forEach(b=>{
     const k = b.dataset.key, own = spec && k !== "q" ? spec[k] : null;
@@ -11544,7 +11929,7 @@ function setChainJumpButtons(count){
 }
 
 function jumpTo(target, btn){
-  if (hkTab === "counter") return;
+  if (hkTab === "counter" || hkTab === "library") return;
   const el = btn ? hkWhere(btn) : hkTarget(target);
   if (!el){                                   // nothing to jump to — say so and stay put
     if (btn){ btn.classList.remove("hk-miss"); void btn.offsetWidth; btn.classList.add("hk-miss"); }
@@ -11770,7 +12155,7 @@ const typingIn = el => !!el && (el.isContentEditable ||
   /^(INPUT|TEXTAREA|SELECT|OPTION)$/.test(el.tagName));
 
 document.addEventListener("keydown", e=>{
-  if (!hotkeysOn() || hkTab === "counter" || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+  if (!hotkeysOn() || hkTab === "counter" || hkTab === "library" || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
   if (typingIn(e.target) || typingIn(document.activeElement)) return;
   const btn = hkBtns.find(b => b.dataset.key === String(e.key).toLowerCase());
   if (!btn || btn.hidden) return;
@@ -12346,14 +12731,14 @@ fillCounterTypes();
 
 const LS_GRAND = "warcalc.grand";
 const GS_TICKS = 6;                                   // turns produced per war tick
-const GS_STOCK = ["apples","coffee","gems","gasoline","copper","composites","machinery",
+const GS_STOCK = ["apples","gems","coffee","gasoline","copper","composites","machinery",
                   "vehicle","precision","plastics","tungsten","bits"];
 /* everything stockpiled is produced too, bar the parts only ever crafted by hand */
 const GS_MADE  = ["composites","precision"];
 const GS_PROD  = GS_STOCK.filter(k => !GS_MADE.includes(k));
-const GS_STRIP = ["apples","coffee","gems","gasoline"];
+const GS_STRIP = ["apples","gems","coffee","gasoline"];
 const GS_COST  = ["bits","copper","tungsten","plastics","machinery","vehicle","precision","composites"];
-const GS_UPKEEP = ["apples","coffee","gems","gasoline"];
+const GS_UPKEEP = ["apples","gems","coffee","gasoline"];
 const GS_GEAR  = UNIT_ORDER.flatMap(g => g.gear);
 
 /* adding a side's production up from its alliances is put away for now, waiting
@@ -12567,8 +12952,8 @@ const gsShort = k => (!gs.wide && GS_SHORT[k]) || label(k);
 
 function gsComps(){
   const armies = getArmies();
-  const names = Object.keys(armies).sort();
   gs.comps = gs.comps.filter(n => armies[n]);
+  const names = Object.keys(armies).filter(n => !inStasis(n) || gs.comps.includes(n)).sort();
   gsEl("gsComps").innerHTML = names.map(n=>`<span class="mark-chip${gs.comps.includes(n) ? " on" : ""}"
       data-gs-comp="${esc(n)}"><span class="n">${esc(n)}</span></span>`).join("");
   /* slips come out in the order they were picked, and take reserves in that order.
@@ -12608,8 +12993,17 @@ function gsBill(units, resvLeft){
     gearBits += c.bits * (need[k] - from);
     addRes(res, c.res, need[k] - from);
   });
-  res.bits = hire + gearBits;
-  return {hire, gearBits, troops, upkeep, res, used};
+  const craftBits = gsCraft(res, false);
+  res.bits = hire + gearBits + craftBits;
+  return {hire, gearBits, craftBits, troops, upkeep, res, used};
+}
+
+/* the parts the gear is built from cost bits to craft, as on the Battle tab.
+   An army's own ticket always pays for every part; the Total, with the
+   stockpile accounted for, only for the parts it cannot already cover */
+function gsCraft(res, stocked){
+  return Object.entries(CRAFT).reduce((t, [k, rec]) =>
+    t + rec.bits * Math.max(0, (res[k] || 0) - (stocked && gs.stockOn ? gsNum(gs.stock[k]) : 0)), 0);
 }
 
 function gsMerge(bills){
@@ -12618,6 +13012,9 @@ function gsMerge(bills){
     t.hire += b.hire; t.gearBits += b.gearBits; t.troops += b.troops;
     addRes(t.upkeep, b.upkeep); addRes(t.res, b.res); addRes(t.used, b.used);
   });
+  /* the armies' parts together, against the one stockpile */
+  t.craftBits = gsCraft(t.res, true);
+  t.res.bits = t.hire + t.gearBits + t.craftBits;
   return t;
 }
 
@@ -12652,7 +13049,7 @@ function gsPaper(key){
 
 /* the pieces a slip is made of; the totals ticket lays the same ones out wide */
 function gsBillHTML(b){
-  return gsRow("Hire", money(b.hire)) + gsRow("Gear", money(b.gearBits)) +
+  return gsRow("Hire", money(b.hire)) + gsRow("Gear", money(b.gearBits)) + gsRow("Crafting", money(b.craftBits)) +
     gsRow(`${gsIcon("bits")} Total`, money(b.res.bits), "slip-tot") +
     GS_COST.filter(k => k !== "bits" && b.res[k] > 0)
       .map(k => gsRow(`${gsIcon(k)} ${esc(gsName(k))}`, money(b.res[k]))).join("");
@@ -13616,6 +14013,830 @@ document.addEventListener("click", e=>{
   slip.classList.toggle("folded", !!st.folded[key]);
   refreshJumpDock();
 });
+
+
+/* ===================================================================
+   10c. LIBRARY — every army preset in one place: folders to file them in,
+       a colour each, stasis to keep one out of the dropdowns, and a
+       scaler that grows a preset from its smallest ratio
+   =================================================================== */
+
+/* one column a unit type, each under a piece of its own gear */
+const LIB_TYPES = [["Cavalry", "Barding"], ["Tanks", "Ohno"], ["Pegasi", "Griffin"],
+  ["Unicorns", "Librarian"], ["Naval", "Esohes"], ["Alicorns", "ScroungedWeapons"]];
+const LIB_RES = ["copper", "tungsten", "plastics", "machinery", "vehicle", "precision", "composites"];
+const LIB_BUDGET = ["apples", "gems", "coffee", "gasoline"];
+let libScale = 1;                                      // the scaler's multiple of the ratio
+let libPeek = "";                                      // the preset the pointer is over, shown in the pane
+let libSearch = "";                                    // what the search box above the names holds
+
+const libEl = id => document.getElementById(id);
+const gcd = (a, b) => { while (b) [a, b] = [b, a % b]; return a; };
+
+/* a preset's stacks, tidied: whole troops, and nothing empty */
+const libStacks = units => (Array.isArray(units) ? units : [])
+  .filter(u => u && UNIT_COST[u.type] && Math.floor(+u.size) >= 1)
+  .map(u => Object.assign({}, u, {size: Math.floor(+u.size), weapon: u.weapon || "ScroungedWeapons",
+    armor: u.armor || "ScroungedArmor", training: clampInt(u.training, 0, TRAIN_UNCAPPED)}));
+
+/* the smallest army in the same proportions, and how many times over the
+   preset holds it. Sizes that share no factor (a stack of 86 beside one of
+   87) take the biggest round divisor that two thirds of the troops share,
+   with no stack under one, and carry the rest as decimals: scaling turns
+   them back into whole troops, and at the saved multiple each comes back exact */
+const LIB_ROUND = [100, 50, 25, 20, 10, 5, 4, 2];
+function libRatio(units){
+  const list = libStacks(units);
+  let k = list.reduce((g, u) => gcd(g, u.size), 0) || 1;
+  if (k === 1){
+    const all = list.reduce((t, u) => t + u.size, 0);
+    k = LIB_ROUND.find(d => list.every(u => u.size >= d)
+      && list.reduce((t, u) => t + (u.size % d ? 0 : u.size), 0) >= all * 2 / 3) || 1;
+  }
+  return {k, units: list.map(u => Object.assign({}, u, {size: u.size / k}))};
+}
+
+function libCost(units){
+  const c = costsOf(units), troops = troopTotal(units);
+  return {troops, sat: satCost(troops), hire: c.hire, gear: c.gearBits, craft: c.craftBits,
+          bits: c.hire + c.gearBits + c.craftBits, res: c.gearRes, upkeep: c.upkeep};
+}
+
+const libHeads = units => units.reduce((h, u) => (h[u.type] = (h[u.type] || 0) + u.size, h), {});
+
+const libFolders = () => BUILTIN_FOLDERS.map(f => Object.assign({fixed: true}, f))
+  .concat(Array.isArray(lib.folders) ? lib.folders : []);
+function libFolderOf(name){
+  const f = lib.where[name] ?? (isBuiltin(name) ? BUILTIN_ARMIES[name].folder : "");
+  return f && libFolders().some(x => x.id === f) ? f : "";
+}
+
+/* a blank budget is no budget */
+function libBudget(r){
+  const v = String(lib.budget[r] ?? "").replace(/,/g, "").trim();
+  return v === "" || !isFinite(+v) ? null : Math.max(0, +v);
+}
+
+/* The ratio grown to k times over, k times its troops in all. A budget caps
+   the upkeep its resource may eat: the stacks on a resource that hits its cap
+   stop growing there, and the troops they could not take go to the stacks
+   still free to grow, the ratio kept among them. An Elastic budget caps nothing
+   and only shows where it is passed. */
+/* the budgets that hold: set, and not Elastic */
+function libCaps(){
+  const caps = {};
+  LIB_BUDGET.forEach(r => { const b = libBudget(r); if (b != null && !lib.elastic[r]) caps[r] = b; });
+  return caps;
+}
+
+function libScaled(ratio, k){
+  const caps = libCaps();
+  const resOf = u => Object.keys(UNIT_COST[u.type].upkeep)[0];
+  const perOf = u => UNIT_COST[u.type].upkeep[resOf(u)];
+  const want = k * ratio.reduce((t, u) => t + u.size, 0);
+  /* each pass freezes the resources the free stacks would carry past their
+     cap; freezing one only hands the others more, so it settles in a few */
+  const held = {};
+  let s = k;
+  for (;;){
+    const fixed = ratio.reduce((t, u) => t + (resOf(u) in held ? u.size * held[resOf(u)] : 0), 0);
+    const free = ratio.reduce((t, u) => t + (resOf(u) in held ? 0 : u.size), 0);
+    s = free ? Math.max(0, (want - fixed) / free) : 0;
+    let more = false;
+    Object.entries(caps).forEach(([r, cap]) => {
+      if (r in held) return;
+      const per = ratio.reduce((t, u) => t + (resOf(u) === r ? u.size * perOf(u) : 0), 0);
+      if (per && per * s > cap + 1e-9){ held[r] = cap / per; more = true; }
+    });
+    if (!more) break;
+  }
+  /* whole troops: round down, then hand back what rounding took, largest
+     remainder first, to free stacks whose budget has room */
+  const exact = ratio.map(u => u.size * (resOf(u) in held ? held[resOf(u)] : s));
+  const sizes = exact.map(x => Math.floor(x + 1e-9));
+  const spent = r => ratio.reduce((t, u, i) => t + (resOf(u) === r ? sizes[i] * perOf(u) : 0), 0);
+  let left = Math.round(want) - sizes.reduce((a, b) => a + b, 0);
+  exact.map((x, i) => [x - sizes[i], i]).sort((a, b) => b[0] - a[0]).forEach(([, i]) => {
+    const r = resOf(ratio[i]);
+    if (left <= 0 || r in held || (r in caps && spent(r) + perOf(ratio[i]) > caps[r])) return;
+    sizes[i]++; left--;
+  });
+  const units = ratio.map((u, i) => Object.assign({}, u, {size: sizes[i]})).filter(u => u.size > 0);
+  return {units, want: Math.round(want), got: sizes.reduce((a, b) => a + b, 0), held: Object.keys(held)};
+}
+
+const libCurrent = () => {
+  const units = getArmies()[lib.sel];
+  return units ? libScaled(libRatio(units).units, libScale) : null;
+};
+
+/* "140 K9P + Trundle", with the pictures in front */
+const libGear = k => SCROUNGED[k] ? "Scrounged" : label(k);
+const libStackList = units => units.length ? `<div class="lib-stks"
+    style="--nw:${Math.max(...units.map(u => money(u.size).length))}ch">${units.map(u => {
+  const w = waitOf(u), bare = SCROUNGED[u.weapon] && SCROUNGED[u.armor];
+  return `<div class="lib-stk"><span class="n">${money(u.size)}</span>${gearImg(u.weapon)}${gearImg(u.armor)}
+    <span class="g" title="${esc(u.type)}">${bare ? esc(u.type) : `${esc(libGear(u.weapon))} + ${esc(libGear(u.armor))}`}</span>
+    <span class="t">${w ? `<span class="w" title="Held back as a reinforcement">R${w}</span> ` : ""}T${u.training}</span></div>`;
+}).join("")}</div>` : `<div class="small muted">No units.</div>`;
+
+const libKV = (k, v, cls = "v") => `<div class="lib-kv"><span>${k}</span><span class="${cls}">${v}</span></div>`;
+
+/* the figures under both panes; the upkeep is held against the budgets */
+const libResCell = (k, v, extra = "", over = false) => `<div class="lib-rc${over ? " lib-over" : ""}">${resIcon(k)}<span
+    class="k">${esc(RESOURCES[k]?.name.replace(/ Parts$/, "") || k)}</span><span class="mono">${money(v)}${extra}</span></div>`;
+const libResGrid = cells => cells.length ? `<div class="lib-rgrid">${cells.join("")}</div>` : `<span class="res-none">none</span>`;
+
+/* the budget is only shown beside a figure that has gone past it */
+const libUpGrid = (upkeep, budgets) => libResGrid(RES_ORDER.filter(k => upkeep[k]).map(k => {
+  const b = budgets ? libBudget(k) : null, over = b != null && upkeep[k] > b + 1e-9;
+  return libResCell(k, upkeep[k], over ? ` / ${money(b)}` : "", over);
+}));
+
+function libCostHTML(c, budgets){
+  const up = libUpGrid(c.upkeep, budgets);
+  const res = libResGrid(RES_ORDER.filter(k => c.res[k]).map(k => libResCell(k, c.res[k])));
+  return libKV("Troops", money(c.troops))
+    + libKV("Sat cost", money(c.sat))
+    + libKV("Raise army", money(c.hire), "v lib-bits")
+    + libKV(`Equipment ${BIT}`, money(c.gear), "v lib-bits")
+    + libKV("Crafting fees", money(c.craft), "v lib-bits")
+    + libKV("Total", money(c.bits), "v lib-bits")
+    + `<div class="lib-h">Resources</div>${res}<div class="lib-h">Upkeep / 12 h</div>${up}`;
+}
+
+function libDetailHTML(armies, n = lib.sel){
+  if (!n) return `<div class="lib-empty">Pick a preset to see what is in it.</div>`;
+  const all = libStacks(armies[n]);
+  const c = libInk(n), fixed = isBuiltin(n), here = libFolderOf(n), st = inStasis(n);
+  const brk = getArmyBarracks()[n];
+  return `<div class="lib-d-top"><div class="lib-d-name"${c ? ` style="--c:${c}"` : ""}>${esc(n)}${fixed
+      ? `<span class="lib-tag">built in</span>` : ""}</div><button type="button" class="bp-btn" data-lib-act="copy"
+      title="Copy this preset's army code">${iconSvg("copy")}</button></div>
+    <div class="lib-d-acts">
+      <button type="button" class="lib-ib" data-lib-act="stasis" title="${st
+        ? "Bring it back into the dropdowns" : "Keep it here, but out of every dropdown"}">${iconSvg(st ? "stasisOn" : "stasis")} ${st ? "Unstasis" : "Stasis"}</button>
+      ${fixed ? "" : `<button type="button" class="lib-ib" data-lib-act="rename">${iconSvg("rename")} Rename</button>
+      <button type="button" class="lib-ib" data-lib-act="delete">${iconSvg("del")} Delete</button>`}
+    </div>
+    <label class="lib-d-row"><span>Folder</span><select data-lib-move>${[{id: "", name: "Unfiled"}].concat(libFolders()).map(f =>
+      `<option value="${esc(f.id)}"${f.id === here ? " selected" : ""}>${esc(f.name)}</option>`).join("")}</select></label>
+    <div class="lib-d-row"><span>Colour</span><div class="lib-sw"><button type="button" class="none${c ? "" : " on"}"
+      data-lib-colour="" title="No colour"></button>${LIB_COLOURS.map(x =>
+      `<button type="button" style="--c:var(--pc-${x})"${x === lib.colour[n] ? ` class="on"` : ""} data-lib-colour="${x}"
+        title="${x[0].toUpperCase() + x.slice(1)}"></button>`).join("")}</div></div>
+    <div class="lib-h">Stacks</div>
+    ${libStackList(all)}
+    <div class="lib-h">Cost</div>
+    ${brk != null ? libKV("Barracks", money(brk)) : ""}
+    ${libCostHTML(libCost(all))}`;
+}
+
+/* the presets in the order they were dragged into; any not placed yet
+   (new ones, or a browser that never dragged) follow, alphabetically */
+const libAlpha = (a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: "base"});
+function libOrder(names){
+  const have = new Set(names), seen = new Set();
+  const known = (Array.isArray(lib.order) ? lib.order : []).filter(n => have.has(n) && !seen.has(n) && seen.add(n));
+  lib.order = known.concat(names.filter(n => !seen.has(n)).sort(libAlpha));
+  return lib.order;
+}
+
+function libRender(){
+  if (!libEl("libList")) return;
+  const armies = getArmies();
+  const names = libOrder(Object.keys(armies));
+  if (lib.sel && !armies[lib.sel]) lib.sel = "";
+  document.querySelectorAll("[data-lib-view]").forEach(b => b.classList.toggle("on", b.dataset.libView === lib.view));
+  const resView = lib.view === "res";
+  const cols = resView ? LIB_RES : LIB_TYPES.map(t => t[0]);
+  const ncol = cols.length + 3;
+  /* a column header sorts by it, biggest first, then smallest first, then back to the dragged order */
+  const sort = lib.sort && (lib.sort.key === "bits" || cols.includes(lib.sort.key)) ? lib.sort : null;
+  const sh = (key, inner, title) => `<th class="lib-sh${sort?.key === key ? " on" : ""}" data-lib-sort="${key}" title="${esc(title)}: click to sort">${
+    inner}${sort?.key === key ? `<i class="lib-arw">${sort.dir < 0 ? "▼" : "▲"}</i>` : ""}</th>`;
+  const head = `<thead><tr><th class="lib-nh"><span>Name</span><input type="search" id="libSearch" placeholder="search"
+      value="${esc(libSearch)}" spellcheck="false" aria-label="Search presets"></th>${resView
+      ? LIB_RES.map(k => sh(k, resIcon(k), RESOURCES[k].name)).join("")
+      : LIB_TYPES.map(([t, g]) => sh(t, `<img class="gear-img" src="${esc(gearImgSrc(g, true))}" alt="${t}">`, t)).join("")
+    }${sh("bits", `<span class="lib-bits">${BIT}</span>`, "Bits, all in")}<th class="lib-fill"></th></tr></thead>`;
+
+  const data = new Map(names.map(n => {
+    const shown = lib.view === "ratio" ? libRatio(armies[n]).units.map(u => Object.assign({}, u, {size: Math.round(u.size)}))
+      .filter(u => u.size >= 1) : libStacks(armies[n]);
+    const cost = libCost(shown), h = libHeads(shown);
+    const vals = resView ? LIB_RES.map(k => Math.round(cost.res[k] || 0)) : LIB_TYPES.map(([t]) => h[t] || 0);
+    return [n, {vals, bits: cost.bits}];
+  }));
+  const valOf = n => sort.key === "bits" ? data.get(n).bits : data.get(n).vals[cols.indexOf(sort.key)];
+  const ordered = sort ? names.slice().sort((a, b) => (valOf(a) - valOf(b)) * sort.dir || names.indexOf(a) - names.indexOf(b)) : names;
+  const q = libSearch.trim().toLowerCase();
+  const shownNames = q ? ordered.filter(n => n.toLowerCase().includes(q)) : ordered;
+
+  const row = n => {
+    const {vals, bits} = data.get(n), st = inStasis(n), c = libInk(n);
+    return `<tr class="lib-row${n === lib.sel ? " sel" : ""}${st ? " stasis" : ""}${c ? " tint" : ""}" data-lib-name="${esc(n)}"
+        draggable="true"${c ? ` style="--c:${c}"` : ""}>
+      <td class="lib-n" title="${esc(n)}"><span class="lib-dot"></span><span class="lib-name">${esc(n)}</span><button
+        type="button" class="lib-ib lib-st" data-lib-stasis="${esc(n)}" title="${st
+          ? "In stasis: out of every dropdown. Click to bring it back" : "Put in stasis: kept here, but out of every dropdown"}">${
+          iconSvg(st ? "stasisOn" : "stasis")}</button></td>
+      ${vals.map(v => `<td${v ? "" : ` class="z"`}>${v ? money(v) : "·"}</td>`).join("")}
+      <td class="lib-bits">${bits ? shortBits(bits) : "·"}</td><td class="lib-fill"></td></tr>`;
+  };
+
+  /* a search opens every folder with a match in it, and leaves out the rest */
+  const groups = libFolders().concat({id: "", name: "Unfiled"})
+    .map(f => ({f, names: shownNames.filter(n => libFolderOf(n) === f.id)}))
+    .filter(g => !q || g.names.length);
+  const body = groups.map(({f, names: list}) => {
+    const open = q || !lib.shut[f.id || "_"], st = list.filter(inStasis).length;
+    const acts = (list.length ? `<button type="button" class="lib-ib" data-lib-fstasis="1"
+          title="Put every preset in this folder in stasis">Stasis all</button><button type="button" class="lib-ib"
+          data-lib-fstasis="0" title="Bring every preset in this folder back">Unstasis all</button>` : "")
+      + (f.id && !f.fixed ? `<button type="button" class="lib-ib" data-lib-fren title="Rename this folder">${iconSvg("rename")}</button
+          ><button type="button" class="lib-ib" data-lib-fdel title="Delete this folder; its presets go to Unfiled">${iconSvg("del")}</button>` : "");
+    return `<tbody data-lib-folder="${esc(f.id)}"><tr class="lib-fold${open ? " open" : ""}"><td colspan="${ncol}">
+        <span class="caret">&#9656;</span><span class="lib-fname">${esc(f.name)}</span>${f.fixed ? `<span class="lib-tag">built in</span>` : ""}
+        <span class="lib-fcount">${list.length}${st ? ` · ${st} in stasis` : ""}</span>
+        <span class="lib-facts">${acts}</span></td></tr>
+      ${open ? list.map(row).join("") : ""}</tbody>`;
+  }).join("");
+
+  /* the search box is drawn afresh with the table; typing carries on where it was */
+  const typing = document.activeElement?.id === "libSearch" ? libEl("libSearch").selectionStart : null;
+  libEl("libList").innerHTML = `<table class="lib-tbl${resView ? " lib-res" : ""}">${head}${body ||
+    `<tr><td colspan="${ncol}" class="lib-none">No preset is called anything like that.</td></tr>`}</table>`;
+  if (typing != null){ const box = libEl("libSearch"); box.focus(); box.setSelectionRange(typing, typing); }
+  const nst = names.filter(inStasis).length;
+  /* the stasis count is on every folder, so the bar keeps to the total */
+  libEl("libCount").textContent = `${names.length} preset${names.length === 1 ? "" : "s"}`;
+  libEl("libCount").title = nst ? `${nst} in stasis` : "";
+  libEl("libDetail").innerHTML = libDetailHTML(armies);
+  libPeek = "";
+  libScaler();
+}
+
+/* the right-hand window: the selected preset at its multiple, and what that costs */
+function libScaler(){
+  const armies = getArmies(), n = lib.sel, units = armies[n];
+  const off = !units;
+  ["libK", "libKn", "libKOrig", "libCopy", "libSaveAs"].forEach(id => { libEl(id).disabled = off; });
+  document.querySelectorAll("[data-lib-budget]").forEach(i => i.classList.remove("over"));
+  if (off){
+    libEl("libCode").value = "";
+    libMullRender();
+    libEl("libScHead").innerHTML = `<span class="lib-d-name muted">No preset picked</span>`;
+    libEl("libScOut").innerHTML = `<div class="lib-empty">Pick a preset in the Library and it starts here at its
+      smallest, in the same proportions. Slide to grow it.</div>`;
+    return;
+  }
+  const r = libRatio(units);
+  const max = Math.max(50, r.k * 3);
+  libScale = Math.max(1, Math.floor(libScale) || 1);
+  libEl("libK").max = max;
+  libEl("libK").value = Math.min(libScale, max);
+  if (document.activeElement !== libEl("libKn")) libEl("libKn").value = libScale;
+  const out = libScaled(r.units, libScale), cost = libCost(out.units), c = libInk(n);
+  libEl("libCode").value = out.units.length ? encodeArmy(out.units, getArmyBarracks()[n]) : "";
+  LIB_BUDGET.forEach(k => {
+    const b = libBudget(k);
+    if (b != null && (cost.upkeep[k] || 0) > b + 1e-9) document.querySelector(`[data-lib-budget="${k}"]`)?.classList.add("over");
+  });
+  libEl("libScHead").innerHTML = `<span${c ? ` style="--c:${c}"` : ""}><span class="lib-dot"></span><span
+      class="lib-d-name">${esc(n)}</span></span><span class="x">&times;${money(libScale)}</span>`;
+  const notes = [];
+  if (out.held.length) notes.push(`<div class="lib-note">${out.held.map(resIcon).join(" ")} limit met: redistributing to
+      other unit types...</div>`);
+  if (out.got < out.want) notes.push(`<div class="lib-note warn">Every stack is held by a budget: ${money(out.got)} of
+      ${money(out.want)} troops.</div>`);
+  libEl("libScOut").innerHTML = `${notes.join("")}
+    <div class="lib-h">Stacks</div>
+    ${libStackList(out.units)}
+    <div class="lib-h">Cost</div>
+    ${libCostHTML(cost, true)}`;
+  libMullRender();
+}
+
+/* ---- the preset's own buttons: named versions of the Battle tab's ---- */
+function libStasis(names, on){
+  names.forEach(n => { if (on) lib.stasis[n] = true; else if (isBuiltin(n)) lib.stasis[n] = false; else delete lib.stasis[n]; });
+  libSave();
+  refreshPresetSelects();                              // the dropdowns, and this list, follow
+}
+
+async function libCopyText(text, btn){
+  if (await copyText(text)) flashOk(btn, "Copied");
+  else prompt("This browser would not let the page reach the clipboard \u2014 copy it from here:", text);
+}
+
+/* right-click a folder: its presets as one preset string, the way the
+   Settings export writes them, ready for Import string */
+const libMenu = Object.assign(document.createElement("div"), {className: "lib-menu"});
+libMenu.hidden = true;
+document.body.appendChild(libMenu);
+const libMenuOff = () => { libMenu.hidden = true; };
+function libFolderString(folder){
+  const armies = getArmies(), brk = getArmyBarracks(), ords = getArmyOrders();
+  return encodePresetString(Object.keys(armies).filter(n => libFolderOf(n) === folder).sort()
+    .map(n => [n, armyPresetCode(n, armies[n], brk, ords)]));
+}
+
+async function libCopyCode(btn){
+  const cur = libCurrent();
+  if (!cur || !cur.units.length) return;
+  const code = encodeArmy(cur.units, getArmyBarracks()[lib.sel]);
+  if (await copyText(code)) flashOk(btn, "Copied");
+  else prompt("This browser would not let the page reach the clipboard — copy the code from here:", code);
+}
+
+function libSaveAs(btn){
+  const cur = libCurrent();
+  if (cur?.units.length) libSaveUnits(cur.units, `${lib.sel} \u00d7${libScale}`, btn);
+}
+
+/* a new preset from the Library, beside the one it came from */
+function libSaveUnits(units, suggest, btn){
+  const from = lib.sel;
+  const name = (prompt("Name this army preset:", suggest) || "").trim();
+  if (!name) return;
+  if (isBuiltin(name)){ builtinNote(name); return; }
+  const all = storedArmies();
+  if (all[name] && !confirm(`Overwrite "${name}"?`)) return;
+  all[name] = units.map(u => Object.assign({type: u.type, weapon: u.weapon, armor: u.armor, size: u.size,
+    training: u.training}, u.name ? {name: u.name} : {}, packWait(u)));
+  if (!store.set(LS_ARMY, all)){ alert("Could not save — this browser is blocking local storage."); return; }
+  setArmyBarracks(name, getArmyBarracks()[from]);
+  setArmyOrders(name, "");
+  /* it lands beside the preset it was grown from, in the same colour */
+  const f = libFolderOf(from);
+  if (f) lib.where[name] = f; else delete lib.where[name];
+  if (lib.colour[from]) lib.colour[name] = lib.colour[from]; else delete lib.colour[name];
+  delete lib.stasis[name];
+  libSave();
+  refreshPresetSelects();
+  flashOk(btn, "Saved");
+}
+
+/* ---- mulligan: a different army that fights the same ----
+   Four lines say how an army fights, a figure for each enemy type on each:
+   what it deals to as many troops of that type unarmoured, what it deals
+   when they wear their best armour against each of its stacks, what it takes
+   from as many of them carrying plain weapons, and what it takes when they
+   carry their best weapon against each of its stacks. Training is taken as
+   even on both sides. Every figure is a sum over the stacks of size times a
+   per-troop figure, so finding an army that lands all of them within the
+   tolerance is a linear program over the stack sizes: solved for a handful
+   of random loadouts, then grown a loadout at a time until it fits. */
+const LIB_FOES = LIB_TYPES.map(t => t[0]);
+/* the colours the gear sprites are drawn in, so the bar matches the pictures */
+const LIB_FOE_COL = {Cavalry: "#ff0000", Tanks: "#0076ff", Pegasi: "#ff00dc", Unicorns: "#00ff21", Naval: "#00ffff",
+  Alicorns: "var(--gold)"};
+/* figures in a type's colour, eased toward the page's ink so the reds and blues still read */
+const LIB_FOE_INK = Object.fromEntries(Object.entries(LIB_FOE_COL).map(([t, c]) => [t, `color-mix(in srgb,${c} 68%,var(--text))`]));
+const LIB_LINES = [
+  ["Dealt", "Damage dealt to as many troops of each type, unarmoured", true],
+  ["Dealt · best armour", "The same, with them in their best armour against each of our stacks", true],
+  ["Absorbed", "Damage absorbed from as many troops of each type, carrying plain weapons", false],
+  ["Absorbed · best weapons", "The same, with them carrying their best weapon against each of our stacks", false]];
+const libFights = t => t === "Alicorns" ? "naval" : TYPES[FORCE_TYPES[t]];   // alicorns are hit as naval
+const libBestArm = (T, src) => T === "Alicorns" ? 0.1
+  : Math.min(...LOADOUTS[T].armor.filter(a => ARMOR_IDS[a]).map(a => ARMOR_DEFS[a][src]));
+const libBestWpn = (T, dst) => T === "Alicorns" ? 10
+  : Math.max(...LOADOUTS[T].weapons.filter(w => WEAPON_IDS[w]).map(w => WEAPON_DEFS[w][dst]));
+const LIB_PER = new Map();
+function libPerTroop(u){
+  const key = `${u.type}|${u.weapon}|${u.armor}`;
+  if (LIB_PER.has(key)) return LIB_PER.get(key);
+  const {dmg, arm} = effectiveStats(u.type, u.weapon, u.armor), me = libFights(u.type);
+  const v = [].concat(
+    LIB_FOES.map(T => dmg[libFights(T)] * (T === "Alicorns" ? 0.1 : 1)),
+    LIB_FOES.map(T => dmg[libFights(T)] * libBestArm(T, me)),
+    LIB_FOES.map(T => (T === "Alicorns" ? 10 : 1) * arm[libFights(T)]),
+    LIB_FOES.map(T => libBestWpn(T, me) * arm[libFights(T)]));
+  LIB_PER.set(key, v);
+  return v;
+}
+const libProfile = units => units.reduce((P, u) =>
+  (libPerTroop(u).forEach((v, j) => { P[j] += v * u.size; }), P), new Array(LIB_LINES.length * LIB_FOES.length).fill(0));
+/* the worst any figure strays from the target's, as a fraction of it */
+const libMiss = (P, T) => Math.max(0, ...P.map((p, j) => T[j] ? Math.abs(p / T[j] - 1) : 0));
+
+/* max c·y subject to A·y <= b, y >= 0, with b >= 0 so the origin is a
+   start; Bland's rule, since the rows held at 0 are degenerate */
+function libSimplex(A, b, c){
+  const m = A.length, n = c.length, w = n + m;
+  const T = A.map((row, i) => row.concat(Array.from({length: m}, (_, j) => i === j ? 1 : 0), b[i]));
+  const z = c.map(v => -v).concat(new Array(m + 1).fill(0));
+  const basis = Array.from({length: m}, (_, i) => n + i);
+  for (let it = 0; it < 1000; it++){
+    let col = -1;
+    for (let j = 0; j < w; j++) if (z[j] < -1e-12){ col = j; break; }
+    if (col < 0) break;
+    let row = -1, best = Infinity;
+    for (let i = 0; i < m; i++) if (T[i][col] > 1e-12){
+      const q = T[i][w] / T[i][col];
+      if (q < best - 1e-12 || (Math.abs(q - best) <= 1e-12 && basis[i] < basis[row])){ best = q; row = i; }
+    }
+    if (row < 0) break;
+    const p = T[row][col];
+    for (let j = 0; j <= w; j++) T[row][j] /= p;
+    for (let i = 0; i < m; i++) if (i !== row && T[i][col]){
+      const f = T[i][col];
+      for (let j = 0; j <= w; j++) T[i][j] -= f * T[row][j];
+    }
+    const f = z[col];
+    for (let j = 0; j <= w; j++) z[j] -= f * T[row][j];
+    basis[row] = col;
+  }
+  const y = new Array(n).fill(0);
+  basis.forEach((v, i) => { if (v < n) y[v] = T[i][w]; });
+  return y;
+}
+
+/* the sizes for these loadouts that keep the worst figure closest: with
+   s = 1 - that miss, maximise s while every figure stays within 1 ± (1 - s) */
+const libUpk = (u, r) => UNIT_COST[u.type].upkeep[r] || 0;
+function libFit(kits, T, caps = {}){
+  const V = kits.map(libPerTroop), A = [], b = [];
+  T.forEach((t, j) => {
+    if (!t) return;
+    A.push(V.map(v => v[j] / t).concat(1)); b.push(2);
+    A.push(V.map(v => -v[j] / t).concat(1)); b.push(0);
+  });
+  Object.entries(caps).forEach(([r, cap]) => {
+    if (kits.some(k => libUpk(k, r))){ A.push(kits.map(k => libUpk(k, r) / cap).concat(0)); b.push(1); }
+  });
+  const x = libSimplex(A, b, new Array(kits.length).fill(0).concat(1)).slice(0, kits.length);
+  return {x, miss: libMiss(libProfile(kits.map((k, i) => Object.assign({}, k, {size: x[i]}))), T)};
+}
+
+const libKitKey = u => `${u.type}|${u.weapon}|${u.armor}`;
+async function libMulliganSearch(orig, tol, ms){
+  const T = libProfile(orig);
+  const tally = {};
+  orig.forEach(u => { tally[u.training] = (tally[u.training] || 0) + u.size; });
+  const train = +Object.keys(tally).sort((a, b) => tally[b] - tally[a])[0] || 0;
+  /* real gear only, from the unit types not left out */
+  const off = libMullOff(), caps = libCaps();
+  /* a budget too small for a single troop rules its unit types out */
+  const pool = KITS.filter(([t, w, a]) => !off[t] && (t === "Alicorns" || WEAPON_IDS[w] && ARMOR_IDS[a]))
+    .map(([type, weapon, armor]) => ({type, weapon, armor}))
+    .filter(k => Object.entries(caps).every(([r, cap]) => libUpk(k, r) <= cap));
+  if (!pool.length) return null;
+  const own = new Set(orig.map(libKitKey));
+  const pick = () => pool[Math.floor(Math.random() * pool.length)];
+  const end = performance.now() + ms;
+  let best = null, slice = performance.now();
+  while (performance.now() < end){
+    let kits = [];
+    while (kits.length < Math.min(6, pool.length)){ const k = pick(); if (!kits.includes(k)) kits.push(k); }
+    let cur = libFit(kits, T, caps);
+    for (let step = 0; step < 30 && cur.miss > tol; step++){
+      let next = null;
+      for (let c = 0; c < 10; c++){
+        const k = pick();
+        if (kits.includes(k)) continue;
+        const nk = kits.filter((_, i) => cur.x[i] > 1e-6).concat(k);
+        if (nk.length > 16) continue;
+        const f = libFit(nk, T, caps);
+        if (!next || f.miss < next.f.miss) next = {nk, f};
+      }
+      if (!next || next.f.miss >= cur.miss - 1e-9) break;
+      kits = next.nk; cur = next.f;
+    }
+    /* whole troops, and the miss measured again on those; the original's own
+       loadouts handed back is no mulligan */
+    /* rounding down on a capped resource keeps its upkeep inside the budget */
+    const held = k => Object.keys(caps).some(r => libUpk(k, r));
+    const units = kits.map((k, i) => Object.assign({}, k, {size: (held(k) ? Math.floor : Math.round)(cur.x[i] + 1e-9),
+        training: train}))
+      .filter(u => u.size >= 1)
+      .sort((a, b) => LIB_FOES.indexOf(a.type) - LIB_FOES.indexOf(b.type) || b.size - a.size);
+    if (units.length && units.some(u => !own.has(libKitKey(u)))){
+      const miss = libMiss(libProfile(units), T);
+      if (!best || miss < best.miss) best = {units, miss};
+      if (best.miss <= tol) return best;
+    }
+    if (performance.now() - slice > sliceMs()){ await breathe(); slice = performance.now(); }
+  }
+  return best;
+}
+
+let libMull = null;                                    // {from: the original's code, units, miss}
+/* the unit types a mulligan may not use; alicorns are such a special case
+   that they stay out until someone lets them in */
+const libMullOff = () => lib.mullOff && typeof lib.mullOff === "object" ? lib.mullOff : (lib.mullOff = {Alicorns: true});
+let libMullBusy = false;
+const libTol = () => clampInt(lib.tol ?? 10, 1, 50) / 100;
+
+/* the type split as one bar, each stretch's count and share under its middle */
+function libTypeBar(units){
+  const h = libHeads(units), n = troopTotal(units) || 1, on = LIB_FOES.filter(T => h[T]);
+  let at = 0;
+  return `<div class="lib-tbar">${on.map(T => `<span style="flex:${h[T]};background:${LIB_FOE_COL[T]}"
+      title="${T} ${money(h[T])}"></span>`).join("")}</div>
+    <div class="lib-tleg">${on.map(T => {
+      const mid = (at + h[T] / 2) / n;
+      at += h[T];
+      return `<i class="lib-tline" style="left:${(mid * 100).toFixed(2)}%;background:${LIB_FOE_COL[T]}"></i><span class="lib-tl"
+        data-mid="${mid}" style="color:${LIB_FOE_INK[T]}" title="${T}">${money(h[T])} · ${Math.round(h[T] / n * 100)}%</span>`;
+    }).join("")}</div>`;
+}
+
+/* a label that would run into the one before it drops a row, hung from the
+   bar by a thin line in its type's colour */
+const LIB_TL_ROW = 15;
+function libLegendLay(root){
+  root.querySelectorAll(".lib-tleg").forEach(box => {
+    const W = box.clientWidth;
+    if (!W) return;
+    const ends = [];
+    box.querySelectorAll(".lib-tl").forEach(el => {
+      const mid = +el.dataset.mid * W, w = el.offsetWidth;
+      /* centred under its stretch, or once dropped, starting just off its line */
+      const at = row => row ? (mid + 4 + w <= W ? mid + 4 : mid - 4 - w) : Math.max(0, Math.min(W - w, mid - w / 2));
+      let row = 0;
+      while (ends[row] != null && at(row) < ends[row] + 8) row++;
+      const left = at(row);
+      ends[row] = left + w;
+      el.style.left = left + "px";
+      el.style.top = row * LIB_TL_ROW + 3 + "px";
+      const line = el.previousElementSibling;
+      line.style.height = row * LIB_TL_ROW + 10 + "px";
+      line.hidden = !row;
+    });
+    box.style.height = ends.length * LIB_TL_ROW + 4 + "px";
+  });
+}
+
+/* the two armies side by side, a row for each part so the parts line up across */
+function libMwRows(units){
+  const c = libCost(units);
+  return [libTypeBar(units), libStackList(units),
+    `<div class="lib-h">Cost</div>${libKV("Troops", money(c.troops))}${libKV("Sat cost", money(c.sat))}${
+      libKV("Total", money(c.bits), "v lib-bits")}`,
+    `<div class="lib-h">Resources</div>${libResGrid(RES_ORDER.filter(k => c.res[k]).map(k => libResCell(k, c.res[k])))}`,
+    `<div class="lib-h">Upkeep / 12 h</div>${libUpGrid(c.upkeep, true)}`];
+}
+
+/* one rating for the whole table: 100% less the average figure's drift */
+function libSimRow(T, M){
+  const ds = M ? T.map((t, j) => t ? Math.abs(M[j] / t - 1) : 0) : null;
+  const sim = ds ? Math.max(0, 1 - ds.reduce((a, b) => a + b, 0) / ds.length) : null;
+  return `<tr class="lib-sim"><th>Similarity rating</th><td colspan="${LIB_FOES.length}"${ds ? ` title="Figures ${(ds.reduce((a, b) =>
+      a + b, 0) / ds.length * 100).toFixed(1)}% off on average, ${(Math.max(...ds) * 100).toFixed(1)}% at the most"` : ""}>
+    <div class="lib-simrow"><div class="lib-simbar"><span style="width:${sim == null ? 0 : (sim * 100).toFixed(1)}%;background-size:${
+      sim ? (100 / sim).toFixed(1) : 100}% 100%"></span></div>
+    <b>${sim == null ? "—" : (sim * 100).toFixed(1) + "%"}</b></div></td></tr>`;
+}
+
+function libMullRender(){
+  const units = libCurrent()?.units || [], tol = libTol();
+  libEl("libTol").value = Math.round(tol * 100);
+  libEl("libTolV").textContent = Math.round(tol * 100) + "%";
+  libEl("libMullBtn").disabled = !units.length || libMullBusy;
+  if (!units.length){
+    libMull = null;
+    libEl("libMullFor").textContent = "";
+    libEl("libDmg").innerHTML = `<div class="lib-empty">Pick a preset and the army in the scaler is dealt a new hand here.</div>`;
+    libEl("libMw").innerHTML = "";
+  } else {
+    const from = encodeArmy(units);
+    if (libMull && libMull.from !== from) libMull = null;   // the scaler moved on
+    libEl("libMullFor").textContent = `${lib.sel} ×${money(libScale)}`;
+    const T = libProfile(units), M = libMull ? libProfile(libMull.units) : null;
+    /* the original's figure, and with a mulligan dealt, "to" its figure;
+       how far that is sits in the tooltip */
+    libEl("libDmg").innerHTML = `<table class="lib-dmg"><thead><tr><th></th>${LIB_TYPES.map(([t, g]) =>
+        `<th><button type="button" class="lib-foe${libMullOff()[t] ? " out" : ""}" data-lib-foe="${t}" title="${t}: ${libMullOff()[t]
+          ? "left out of mulligans. Click to let them in" : "used in mulligans. Click to leave them out"}"><img class="gear-img"
+          src="${esc(gearImgSrc(g, true))}" alt="${t}"></button></th>`).join("")}</tr></thead>
+      <tbody>${LIB_LINES.map(([name, what], r) => `<tr><th title="${esc(what)}">${name}</th>${LIB_FOES.map((F, i) => {
+        const j = r * LIB_FOES.length + i;
+        if (!M) return `<td style="color:${LIB_FOE_INK[F]}">${money(T[j])}</td>`;
+        const d = T[j] ? M[j] / T[j] - 1 : 0, off = Math.abs(d) > tol + 1e-9;
+        return `<td style="color:${LIB_FOE_INK[F]}" title="${d >= 0 ? "+" : "−"}${(Math.abs(d) * 100).toFixed(1)}%">${
+          money(T[j])} <span class="to">to</span> <span class="${off ? "off" : ""}">${money(M[j])}</span></td>`;
+      }).join("")}</tr>`).join("")}${libSimRow(T, M)}</tbody></table>`;
+    const a = libMwRows(units), b = libMull ? libMwRows(libMull.units) : null;
+    libEl("libMw").innerHTML = `<div class="lib-mw-c l"><div class="lib-h">Original · ${esc(lib.sel)}</div></div>
+      <div class="lib-mw-c r"><div class="lib-h">Mulligan</div>${b ? "" : `<div class="lib-empty">Press Mulligan for a
+        different army whose figures above all land within ${Math.round(tol * 100)}% of these.</div>`}</div>
+      ${a.map((x, i) => `<div class="lib-mw-c l">${x}</div><div class="lib-mw-c r">${b ? b[i] : ""}</div>`).join("")}`;
+    libLegendLay(libEl("libMw"));
+  }
+  const code = libMull ? encodeArmy(libMull.units) : "";
+  libEl("libMullCode").value = code;
+  ["libMullCopy", "libMullSave"].forEach(id => { libEl(id).disabled = !code; });
+}
+
+async function libMulligan(){
+  const units = libCurrent()?.units;
+  if (!units?.length || libMullBusy) return;
+  const tol = libTol(), btn = libEl("libMullBtn");
+  libMullBusy = true; btn.disabled = true; btn.textContent = "Shuffling…";
+  libEl("libMullMsg").textContent = "";
+  try{
+    const out = await libMulliganSearch(units, tol, 3000);
+    if (out) libMull = {from: encodeArmy(units), units: out.units, miss: out.miss};
+    libEl("libMullMsg").textContent = !out ? (LIB_FOES.every(T => libMullOff()[T])
+        ? "Every unit type is left out. Click a type's icon above to let it back in."
+        : "Nothing else fits this army. Try a wider tolerance, looser budgets, or let more unit types in.")
+      : out.miss > tol + 1e-9 ? `Closest found is ${(out.miss * 100).toFixed(1)}% off. Increase tolerances!`
+      : "";
+  } finally {
+    libMullBusy = false; btn.textContent = "Mulligan";
+    libMullRender();
+  }
+}
+
+/* ---- wiring ---- */
+libEl("libBuds").innerHTML = LIB_BUDGET.map(r => `<div class="lib-bud">${resIcon(r)}<input type="number" min="0" step="1"
+    data-lib-budget="${r}" placeholder="no cap" value="${esc(lib.budget[r] ?? "")}"
+    title="${RESOURCES[r].name} the army may eat in upkeep every 12 hours"><label class="lib-ela"
+    title="Grow past this budget anyway, and show where it goes over in red"><input type="checkbox"
+    data-lib-elastic="${r}"${lib.elastic[r] ? " checked" : ""}> Elastic</label></div>`).join("");
+
+const viewLib = libEl("viewLibrary");
+["libCode", "libMullCode"].forEach(id => libEl(id).addEventListener("focus", e => e.target.select()));
+viewLib.addEventListener("input", e => {
+  const t = e.target;
+  if (t.id === "libSearch"){ libSearch = t.value; libRender(); return; }
+  if (t.dataset.libBudget){ lib.budget[t.dataset.libBudget] = t.value; libSave(); libScaler(); }
+  else if (t.id === "libTol"){ lib.tol = clampInt(t.value, 1, 50); libSave(); libMullRender(); }
+  else if (t.id === "libK" || t.id === "libKn"){
+    if (t.id === "libKn" && t.value === "") return;
+    libScale = clampInt(t.value, 1, 1e6);
+    libScaler();
+  }
+});
+viewLib.addEventListener("change", e => {
+  const t = e.target;
+  if (t.dataset.libElastic){ lib.elastic[t.dataset.libElastic] = t.checked; libSave(); libScaler(); }
+  else if (t.id === "libKn"){ libScale = clampInt(t.value, 1, 1e6); libEl("libKn").value = libScale; libScaler(); }
+  else if (t.matches("[data-lib-move]")){
+    if (t.value) lib.where[lib.sel] = t.value; else lib.where[lib.sel] = "";
+    libSave(); libRender();
+  }
+});
+
+viewLib.addEventListener("click", e => {
+  const t = e.target.closest("button, .lib-row, .lib-fold, [data-lib-sort]");
+  if (!t || t.disabled) return;
+  const folder = t.closest("[data-lib-folder]")?.dataset.libFolder;
+  if (t.dataset.libView){ lib.view = t.dataset.libView; libSave(); libRender(); }
+  else if (t.dataset.libSort){
+    const k = t.dataset.libSort, now = lib.sort?.key === k ? lib.sort.dir : 0;
+    lib.sort = now === 0 ? {key: k, dir: -1} : now < 0 ? {key: k, dir: 1} : null;
+    libSave(); libRender();
+  }
+  else if (t.id === "libNewFolder"){
+    const name = (prompt("Name the new folder:", "") || "").trim();
+    if (!name) return;
+    lib.folders = (Array.isArray(lib.folders) ? lib.folders : []).concat({id: "f" + Date.now().toString(36), name});
+    libSave(); libRender();
+  }
+  else if (t.id === "libKOrig"){ const u = getArmies()[lib.sel]; if (u){ libScale = libRatio(u).k; libScaler(); } }
+  else if (t.id === "libCopy") libCopyCode(t);
+  else if (t.id === "libSaveAs") libSaveAs(t);
+  else if (t.id === "libMullBtn") libMulligan();
+  else if (t.dataset.libFoe){
+    const off = libMullOff(), T = t.dataset.libFoe;
+    if (off[T]) off[T] = false; else off[T] = true;
+    libSave(); libMullRender();
+  }
+  else if (t.id === "libMullCopy" && libMull) libCopyText(encodeArmy(libMull.units), t);
+  else if (t.id === "libMullSave" && libMull) libSaveUnits(libMull.units, `${lib.sel} mulligan`, t);
+  else if (t.dataset.libStasis) libStasis([t.dataset.libStasis], !inStasis(t.dataset.libStasis));
+  else if (t.dataset.libFstasis){
+    const names = Object.keys(getArmies()).filter(n => libFolderOf(n) === folder);
+    libStasis(names, t.dataset.libFstasis === "1");
+  }
+  else if (t.hasAttribute("data-lib-fren")){
+    const f = lib.folders.find(x => x.id === folder);
+    const name = f && (prompt(`Rename folder "${f.name}" to:`, f.name) || "").trim();
+    if (!name) return;
+    f.name = name; libSave(); libRender();
+  }
+  else if (t.hasAttribute("data-lib-fdel")){
+    const f = lib.folders.find(x => x.id === folder);
+    if (!f || !confirm(`Delete folder "${f.name}"? Its presets are kept, in Unfiled.`)) return;
+    lib.folders = lib.folders.filter(x => x !== f);
+    Object.keys(lib.where).forEach(n => { if (lib.where[n] === f.id) lib.where[n] = ""; });
+    delete lib.shut[f.id];
+    libSave(); libRender();
+  }
+  else if (t.dataset.libColour !== undefined){
+    if (t.dataset.libColour) lib.colour[lib.sel] = t.dataset.libColour; else delete lib.colour[lib.sel];
+    libSave(); refreshPresetSelects();
+  }
+  else if (t.dataset.libAct === "stasis") libStasis([lib.sel], !inStasis(lib.sel));
+  else if (t.dataset.libAct === "rename") renameArmyNamed(lib.sel);
+  else if (t.dataset.libAct === "delete") deleteArmyNamed(lib.sel);
+  else if (t.dataset.libAct === "copy") libCopyText(armyPresetCode(lib.sel, getArmies()[lib.sel]), t);
+  else if (t.classList.contains("lib-fold")){
+    const k = folder || "_";
+    if (lib.shut[k]) delete lib.shut[k]; else lib.shut[k] = true;
+    libSave(); libRender();
+  }
+  else if (t.classList.contains("lib-row") && t.dataset.libName !== lib.sel){
+    lib.sel = t.dataset.libName; libScale = 1;
+    libSave(); libRender();
+  }
+});
+
+viewLib.addEventListener("contextmenu", e => {
+  const tb = e.target.closest?.(".lib-fold") && e.target.closest("[data-lib-folder]");
+  if (!tb) return;
+  e.preventDefault();
+  const id = tb.dataset.libFolder, n = Object.keys(getArmies()).filter(x => libFolderOf(x) === id).length;
+  libMenu.innerHTML = `<button type="button" class="txt-btn" data-lib-fcopy="${esc(id)}"${n ? "" : " disabled"}>${iconSvg("copy")}
+    Copy folder as preset string <span class="muted">(${n})</span></button>`;
+  libMenu.hidden = false;
+  libMenu.style.left = Math.min(e.clientX, innerWidth - libMenu.offsetWidth - 8) + "px";
+  libMenu.style.top = Math.min(e.clientY, innerHeight - libMenu.offsetHeight - 8) + "px";
+});
+libMenu.addEventListener("click", async e => {
+  const b = e.target.closest("[data-lib-fcopy]");
+  if (!b || b.disabled) return;
+  await libCopyText(libFolderString(b.dataset.libFcopy), b);
+  setTimeout(libMenuOff, 700);
+});
+document.addEventListener("mousedown", e => { if (!libMenu.contains(e.target)) libMenuOff(); });
+addEventListener("keydown", e => { if (e.key === "Escape") libMenuOff(); });
+addEventListener("scroll", libMenuOff, true);
+
+/* drag a preset onto a folder (or any preset in it) to file it there */
+let libDrag = "";
+const libDropOff = () => viewLib.querySelectorAll(".drop, .drop-before, .drop-after")
+  .forEach(r => r.classList.remove("drop", "drop-before", "drop-after"));
+/* pointing at a preset shows it in the pane beside the list, as if picked;
+   leaving the list puts the picked one back */
+libEl("libList").addEventListener("mouseover", e => {
+  const n = e.target.closest?.(".lib-row")?.dataset.libName;
+  if (!n || n === libPeek || libDrag) return;
+  libPeek = n;
+  libEl("libDetail").innerHTML = libDetailHTML(getArmies(), n);
+});
+libEl("libList").addEventListener("mouseleave", () => {
+  if (!libPeek) return;
+  libPeek = "";
+  libEl("libDetail").innerHTML = libDetailHTML(getArmies());
+});
+
+viewLib.addEventListener("dragstart", e => {
+  const row = e.target.closest?.(".lib-row");
+  if (!row) return;
+  libDrag = row.dataset.libName;
+  e.dataTransfer.effectAllowed = "move";
+  e.dataTransfer.setData("text/plain", libDrag);
+  row.classList.add("dragging");
+});
+/* where a drop lands: above or below the preset under the pointer, or at
+   the end of the folder whose header it is over. A sorted list has no order
+   of its own to drop into, so there it only files into the folder */
+function libDropAt(e){
+  const tb = libDrag && e.target.closest?.("[data-lib-folder]");
+  if (!tb) return null;
+  const row = !lib.sort && e.target.closest(".lib-row");
+  if (row && row.dataset.libName !== libDrag){
+    const r = row.getBoundingClientRect();
+    return {tb, row, after: e.clientY > r.top + r.height / 2};
+  }
+  return {tb};
+}
+viewLib.addEventListener("dragover", e => {
+  const at = libDropAt(e);
+  if (!at) return;
+  e.preventDefault();
+  libDropOff();
+  if (at.row) at.row.classList.add(at.after ? "drop-after" : "drop-before");
+  else at.tb.querySelector(".lib-fold").classList.add("drop");
+});
+viewLib.addEventListener("drop", e => {
+  const at = libDropAt(e);
+  if (!at) return;
+  e.preventDefault();
+  const n = libDrag;
+  lib.where[n] = at.tb.dataset.libFolder;
+  const order = libOrder(Object.keys(getArmies())).filter(x => x !== n);
+  if (at.row){
+    const i = order.indexOf(at.row.dataset.libName);
+    order.splice(at.after ? i + 1 : i, 0, n);
+  } else if (!lib.sort) order.push(n);
+  else order.splice(lib.order.indexOf(n), 0, n);      // sorted: its place in the dragged order stays
+  lib.order = order;
+  libDrag = "";
+  libSave(); libRender();
+});
+viewLib.addEventListener("dragend", () => {
+  libDrag = "";
+  libDropOff();
+  viewLib.querySelectorAll(".lib-row.dragging").forEach(r => r.classList.remove("dragging"));
+});
+
+document.addEventListener("warcalc:presets", libRender);
 
 
 /* ===================================================================
