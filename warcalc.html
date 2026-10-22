@@ -1972,6 +1972,15 @@ body.snaps-hidden .snap{display:none}
 .mg-ph{display:flex;align-items:center;gap:6px 12px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--border-soft)}
 .mg-nm{display:inline-flex;align-items:center;gap:7px;font-weight:700;font-size:15px}
 .mg-sub{font-size:12px;color:var(--text-dim)}
+.mg-open{display:inline-flex;align-items:center;color:var(--text-dim)}
+.mg-fold{display:inline-flex;align-items:center;gap:5px;background:none;border:0;padding:0;cursor:pointer;text-align:left;
+  font-family:inherit;color:var(--text-dim)}
+.mg-fold:hover,.mg-fold.on{color:var(--strong)}
+.mg-fold .caret{display:inline-block;font-size:10px;transition:transform .12s}
+.mg-fold.on .caret{transform:rotate(90deg)}
+.mg-sk{font:11px var(--font);font-style:normal;color:var(--text-dim);margin:0 2px 0 6px}
+.mg-sk:first-child{margin-left:0}
+.mg-ticks{margin-left:6px;font:11px var(--mono);color:var(--text-dim);white-space:nowrap}
 .mg-stale{font-size:11px;color:var(--warn)}
 .mg-own{margin:0}
 .mg-body{padding:10px 14px 12px;display:flex;flex-direction:column;gap:8px}
@@ -2019,12 +2028,14 @@ body.snaps-hidden .snap{display:none}
 .mg-hr{border:none;border-top:1px solid var(--border-soft);box-shadow:0 1px 0 rgba(var(--hi),.05);margin:22px 0}
 /* how many deals it all takes */
 .mg-deals-p h3{margin:0 0 4px}
+/* only as wide as its figures */
+.mg-deals-p{width:fit-content;max-width:100%}
 .mg-deals-wrap{overflow-x:auto}
-.mg-deals{border-collapse:collapse;width:100%;font-size:12px;margin-top:8px}
+.mg-deals{border-collapse:collapse;font-size:12px;margin-top:8px}
 .mg-deals th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);font-weight:600;
-  text-align:right;padding:4px 10px;border-bottom:1px solid var(--border-soft)}
+  text-align:right;padding:4px 8px;border-bottom:1px solid var(--border-soft)}
 .mg-deals th:first-child{text-align:left}
-.mg-deals td{padding:4px 10px;text-align:right;white-space:nowrap;border-bottom:1px solid rgba(var(--hi),.04)}
+.mg-deals td{padding:3px 8px;text-align:right;white-space:nowrap;border-bottom:1px solid rgba(var(--hi),.04)}
 .mg-deals td:first-child{text-align:left}
 .mg-deals .mg-amt{font-family:var(--mono);color:var(--strong)}
 .mg-deals .dn{display:inline-block;min-width:28px;margin-left:6px;font:600 11px var(--mono)}
@@ -2038,6 +2049,8 @@ body.snaps-hidden .snap{display:none}
 .mg-deals .nil{color:var(--faint)}
 .mg-deals tr.army td:first-child{padding-left:26px;color:var(--text)}
 .mg-deals tr.nets td:first-child{padding-left:26px;color:var(--text-dim)}
+.mg-deals tr.asub td{border-top:1px dashed var(--border-soft)}
+.mg-deals tr.asub td:first-child{padding-left:26px;color:var(--text);font-weight:600}
 .mg-deals tr.nat td{padding-top:10px;border-bottom:none}
 .mg-deals tr.ntot td{font-weight:700;border-bottom:1px solid var(--border-soft)}
 .mg-deals tr.ntot td:first-child{padding-left:26px;color:var(--gold)}
@@ -2052,7 +2065,7 @@ body.snaps-hidden .snap{display:none}
   /* its own inks: the themes repaint --ink-atk / --ink-def for pale papers, and this one stays dark */
   --pa:#3b1d24;--pd:#1a2639;--ink:#e4dee2;--ia:#e3ccd4;--id:#cbd9e7;
   --up:#78cc78;--down:#f17a77;--note:#faa123;
-  width:372px;background:linear-gradient(90deg,var(--pa) 50%,var(--pd) 50%);
+  width:400px;background:linear-gradient(90deg,var(--pa) 50%,var(--pd) 50%);
   background-image:linear-gradient(rgba(255,255,255,.025),rgba(var(--lo),.06)),linear-gradient(90deg,var(--pa) 50%,var(--pd) 50%)}
 .slip.as-slip::after{background:linear-gradient(90deg,var(--pa) 50%,var(--pd) 50%);
   -webkit-mask:conic-gradient(from 135deg at 50% 0,#000 90deg,transparent 0) 0 0/12px 8px repeat-x;
@@ -2090,7 +2103,8 @@ body.snaps-hidden .snap{display:none}
 .as-sides .as-sn{min-width:0;line-height:15px}
 .as-sides > span:last-child .as-sn{text-align:right}
 .as-sides .as-sn > span{white-space:nowrap}
-.as-units{display:grid;grid-template-columns:1fr 1fr;margin-top:3px}
+/* halves that never outgrow the ticket: a long row gives up its type's name first */
+.as-units{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);margin-top:3px}
 .as-units > div:first-child{padding-right:10px;color:var(--ia)}
 .as-units > div:last-child{padding-left:10px;color:var(--id)}
 .as-u{display:flex;align-items:center;gap:4px;padding:2px 0;font-size:11px;min-width:0;cursor:help}
@@ -2100,7 +2114,8 @@ body.snaps-hidden .snap{display:none}
 .as-u .tr{opacity:.6}
 .as-u .lost{color:var(--down);font-weight:700}
 .as-u .g{margin-left:auto;display:inline-flex;gap:1px;flex:0 0 auto}
-.as-u .gear-img{max-width:20px;max-height:20px}
+/* every sprite at its own width, 16 to 32: a cap under that squashed the wide armour */
+.as-u .gear-img{width:auto;max-width:none;height:16px}
 .as-none{text-align:center;opacity:.45;font-size:11px;padding:2px 0}
 .as-err{color:var(--note);font-size:11px;text-align:center;margin-top:6px}
 /* a section's name on a little near-black purple tab, centred on the seam */
@@ -2281,6 +2296,33 @@ summary.as-sub::before{content:"\25B8";display:inline-block;width:1em;margin-lef
 .lib-mull{margin-bottom:0}
 .lib-mull-head{display:flex;align-items:baseline;gap:10px;margin-bottom:8px}
 .lib-mull-head h2{margin:0}
+/* gear the mulligan may not use and how much it leans on each type: a
+   block a type, its weight on top, its weapons and its armour side by side */
+.lib-ban{position:relative;align-self:center}
+.lib-ban #libBanBtn.on{color:var(--atk);border-color:var(--atk)}
+.lib-ban-menu{position:absolute;right:0;top:calc(100% + 4px);z-index:30;padding:4px 8px 6px;width:400px;max-width:calc(100vw - 32px);
+  max-height:min(76vh,760px);overflow-y:auto;
+  background:var(--raised);border:1px solid var(--border-soft);border-radius:4px;box-shadow:0 8px 22px rgba(var(--lo),.45)}
+.lib-ban-t{padding:4px 0 6px;border-bottom:1px solid var(--border-soft)}
+.lib-ban-t.nil .lib-ban-cols{opacity:.4}
+.lib-ban-th{display:flex;align-items:center;gap:8px;height:24px}
+.lib-ban-th > b{font-size:12px}
+.lib-ban-th .spacer{flex:1}
+.lib-wt{display:inline-flex;align-items:center;gap:6px;margin:0;font-size:11px;font-weight:400;color:var(--text-dim)}
+.lib-wt input{width:96px;accent-color:var(--accent);padding:0}
+.lib-wt b{font:600 11px/1 var(--mono);color:var(--strong);min-width:3.5ch;text-align:right}
+.lib-ban-cols{display:grid;grid-template-columns:1fr 1fr;gap:0 8px}
+.lib-ban-it{display:flex;align-items:center;gap:6px;width:100%;height:22px;padding:0 4px;border:0;border-radius:3px;background:none;
+  font:12px var(--font);color:var(--text);text-align:left;cursor:pointer}
+.lib-ban-it:hover{background:rgba(var(--hi),.08)}
+.lib-ban-it span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lib-ban-it .gear-img{transition:opacity .12s,filter .12s}
+.lib-ban-it.ban span{color:var(--text-dim);text-decoration:line-through}
+.lib-ban-it.ban .gear-img{filter:grayscale(1) brightness(1.6) var(--icon-edge,);opacity:.4}
+:is([data-theme="white"],[data-theme="applejack"],[data-theme="rainbow"]) .lib-ban-it.ban .gear-img{
+  filter:grayscale(1) brightness(.5) var(--icon-edge,);opacity:.6}
+.lib-ban-foot{display:flex;justify-content:flex-end;gap:8px;padding-top:6px}
+.lib-lay{display:inline-flex;align-items:center;gap:5px;margin:0;font-size:12px;color:var(--text-dim);font-weight:400}
 .lib-tol{display:inline-flex;align-items:center;gap:8px;margin:0;font-size:12px;color:var(--text-dim)}
 .lib-tol input{width:160px;accent-color:var(--accent);padding:0}
 .lib-tol b{font:600 12px/1 var(--mono);color:var(--strong);min-width:3.5ch;text-align:right}
@@ -2356,7 +2398,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
 
 <div class="tabstrip">
   <span class="tab-brand">CurioCalc 2.7<button class="gear-btn" id="btnTools"
-    title="Settings, import / export presets" aria-expanded="false"><svg viewBox="0 0 24 24"
+    aria-label="Settings, import / export presets" aria-expanded="false"><svg viewBox="0 0 24 24"
     aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path
     d="M10.3 2.5h3.4l.5 2.6a7.6 7.6 0 0 1 2 1.2l2.5-.9 1.7 2.9-2 1.8a7.7 7.7 0 0 1 0 2.3l2 1.8-1.7 2.9-2.5-.9a7.6 7.6 0 0 1-2 1.2l-.5 2.6h-3.4l-.5-2.6a7.6 7.6 0 0 1-2-1.2l-2.5.9-1.7-2.9 2-1.8a7.7 7.7 0 0 1 0-2.3l-2-1.8 1.7-2.9 2.5.9a7.6 7.6 0 0 1 2-1.2z"/><circle
     cx="12" cy="12" r="3"/></svg></button></span>
@@ -2370,13 +2412,13 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
     <!-- when the alliances' production was last fetched from 4clop.org; a click fetches it again -->
     <button class="sync-age" id="syncAge" type="button">Not synced</button>
     <span class="strip-div" id="syncDiv" aria-hidden="true"></span>
-    <button class="ref-btn" data-ref="stats" title="Weapon &amp; armor stat table  (F)">
+    <button class="ref-btn" data-ref="stats" aria-label="Weapon &amp; armor stat table  (F)">
       <span class="ref-lab">Stats</span><kbd>F</kbd></button>
-    <button class="ref-btn" data-ref="wcost" title="Weapon build costs  (G)">
+    <button class="ref-btn" data-ref="wcost" aria-label="Weapon build costs  (G)">
       <span class="ref-lab">Weapon cost</span><kbd>G</kbd></button>
-    <button class="ref-btn" data-ref="acost" title="Armor build costs  (H)">
+    <button class="ref-btn" data-ref="acost" aria-label="Armor build costs  (H)">
       <span class="ref-lab">Armor cost</span><kbd>H</kbd></button>
-    <button class="ref-btn" data-ref="help" title="Hotkeys  (?)">
+    <button class="ref-btn" data-ref="help" aria-label="Hotkeys  (?)">
       <span class="ref-lab">Help</span><kbd>?</kbd></button>
   </span>
 </div>
@@ -2386,22 +2428,22 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
 <div class="topbar">
   <div class="battle-presets">
     <button class="bp-btn" id="btlCopy" data-icon="copy"
-      title="Copy the whole battle as a code  (shift-click for the long form)"></button>
+      aria-label="Copy the whole battle as a code" title="Shift+Click: long form"></button>
     <button class="bp-btn" id="btlLink" data-icon="link"
-      title="Copy a link that loads this battle"></button>
+      aria-label="Copy a link that loads this battle"></button>
   </div>
   <button class="btn btn-xs clear-all" id="btnClearAll"
-    title="Clear the attackers and the defenders, and close the battle and solver logs">Clear all</button>
+    aria-label="Clear the attackers and the defenders, and close the battle and solver logs">Clear all</button>
   <span class="spacer"></span>
   <div class="battle-presets">
     <span class="bp-lab">battle</span>
     <select id="bpSel" class="bp-sel"><option value="">—</option></select>
-    <button class="bp-btn" id="bpLoad" data-icon="load" title="Load this battle"></button>
-    <button class="bp-btn" id="bpSave" data-icon="save" title="Save both sides as a battle"></button>
-    <button class="bp-btn" id="bpUpd" data-icon="update" title="Update this battle preset with what is on screen"></button>
-    <button class="bp-btn" id="bpRen" data-icon="rename" title="Rename this battle preset"></button>
-    <button class="bp-btn" id="bpExp" data-icon="export" title="Export the current battle as a JSON file"></button>
-    <button class="bp-btn" id="bpDel" data-icon="del" title="Delete this battle"></button>
+    <button class="bp-btn" id="bpLoad" data-icon="load" aria-label="Load this battle"></button>
+    <button class="bp-btn" id="bpSave" data-icon="save" aria-label="Save both sides as a battle"></button>
+    <button class="bp-btn" id="bpUpd" data-icon="update" aria-label="Update this battle preset with what is on screen"></button>
+    <button class="bp-btn" id="bpRen" data-icon="rename" aria-label="Rename this battle preset"></button>
+    <button class="bp-btn" id="bpExp" data-icon="export" aria-label="Export the current battle as a JSON file"></button>
+    <button class="bp-btn" id="bpDel" data-icon="del" aria-label="Delete this battle"></button>
   </div>
 </div>
 
@@ -2420,11 +2462,11 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
       <button class="btn btn-xs" id="expBattles">Export battle presets (JSON)</button>
       <button class="btn btn-xs btn-info" id="impBtn">Import JSON…</button>
       <button class="btn btn-xs btn-moss txt-btn" id="expArmiesStr"
-        title="Copy every army preset, names and all, as one line of text">Export army presets (STRING)</button>
+        aria-label="Copy every army preset, names and all, as one line of text">Export army presets (STRING)</button>
       <button class="btn btn-xs txt-btn" id="expBattlesStr"
-        title="Copy every battle preset, names and all, as one line of text">Export battle presets (STRING)</button>
+        aria-label="Copy every battle preset, names and all, as one line of text">Export battle presets (STRING)</button>
       <button class="btn btn-xs btn-info" id="impStrBtn"
-        title="Save every preset in a preset string — the one in the import box, or paste it in">Import string…</button>
+        aria-label="Save every preset in a preset string — the one in the import box, or paste it in">Import string…</button>
     </span>
     <button class="btn btn-xs" id="expAll">Export everything</button>
     <input type="file" id="impFile" accept="application/json,.json" style="display:none">
@@ -2432,7 +2474,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
       <input type="checkbox" id="hkEnable" checked> Jump hotkeys (Q W E R)</label>
     <label class="hk-toggle" for="bcNoGroup">
       <input type="checkbox" id="bcNoGroup"> Don't group Builder Copy</label>
-    <label class="hk-toggle" title="Builder Copy names an unnamed unit after two random pony words and two digits; tick for three random letters and a digit instead, like qzv4">
+    <label class="hk-toggle">
       <input type="checkbox" data-pref="noAutoName"> Disable awesome auto-naming</label>
     <label class="hk-toggle"><input type="checkbox" data-pref="stripNames"> Strip names from export/import</label>
   </div>
@@ -2447,10 +2489,9 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
     <label class="hk-toggle"><input type="checkbox" data-pref="noUnspent"> Hide unspent hits</label>
     <label class="hk-toggle"><input type="checkbox" data-pref="noPinArt"> Hide pictures in the damage compare</label>
     <label class="hk-toggle"><input type="checkbox" data-pref="minDmg"> Minimal damage breakdown view</label>
-    <label class="hk-toggle" title="Start the two sides' costs (and the instructions under them) level, however much longer one list is than the other">
+    <label class="hk-toggle">
       <input type="checkbox" data-pref="alignCosts"> Horizontally align costs</label>
-    <label class="hk-toggle" for="planTicks"
-      title="With no defenders to fight, a plain click on the attackers' pretty plan bills the upkeep for this many warticks (12/h each); shift-click keeps it to one">
+    <label class="hk-toggle" for="planTicks">
       <input type="number" id="planTicks" min="1" max="99" value="1" style="width:52px;padding:1px 4px;font-size:12px">
       Pretty plan attack how many ticks?</label>
   </div>
@@ -2477,15 +2518,15 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
       <div class="army-presets">
         <span class="mark-chips" data-ap-marks="attacker"></span>
         <select class="ap-sel" data-ap-sel="attacker"><option value="">preset…</option></select>
-        <button class="bp-btn" data-ap-load="attacker" data-icon="load" title="Load this preset into the attackers"></button>
-        <button class="bp-btn" data-ap-save="attacker" data-icon="save" title="Save the attackers as an army preset"></button>
-        <button class="bp-btn" data-ap-upd="attacker" data-icon="update" title="Update this preset with the attackers on screen"></button>
-        <button class="bp-btn" data-ap-mark="attacker" data-icon="mark" title="Pin this preset as a quick-swap button"></button>
-        <button class="bp-btn" data-ap-ren="attacker" data-icon="rename" title="Rename this army preset"></button>
+        <button class="bp-btn" data-ap-load="attacker" data-icon="load" aria-label="Load this preset into the attackers"></button>
+        <button class="bp-btn" data-ap-save="attacker" data-icon="save" aria-label="Save the attackers as an army preset"></button>
+        <button class="bp-btn" data-ap-upd="attacker" data-icon="update" aria-label="Update this preset with the attackers on screen"></button>
+        <button class="bp-btn" data-ap-mark="attacker" data-icon="mark" aria-label="Pin this preset as a quick-swap button"></button>
+        <button class="bp-btn" data-ap-ren="attacker" data-icon="rename" aria-label="Rename this army preset"></button>
         <button class="bp-btn" data-ap-copy="attacker" data-icon="copy"
-                title="Copy the attackers as a code  (shift-click for the long form)"></button>
-        <button class="bp-btn" data-ap-exp="attacker" data-icon="export" title="Export the attackers as a JSON file"></button>
-        <button class="bp-btn" data-ap-del="attacker" data-icon="del" title="Delete this army preset"></button>
+                aria-label="Copy the attackers as a code" title="Shift+Click: long form"></button>
+        <button class="bp-btn" data-ap-exp="attacker" data-icon="export" aria-label="Export the attackers as a JSON file"></button>
+        <button class="bp-btn" data-ap-del="attacker" data-icon="del" aria-label="Delete this army preset"></button>
       </div>
       <span class="v-div">|</span>
       <button class="btn btn-xs" data-add="attacker">Add unit</button>
@@ -2494,7 +2535,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
     <table class="force-table">
       <thead><tr>
         <th class="col-sprite">Unit</th><th class="col-name">Name</th><th class="col-type">Type</th><th class="col-weapon">Weapon</th>
-        <th class="col-armor">Armor</th><th class="col-size">Size</th><th class="col-train" title="Training">Tr<span class="tr-sw"><button type="button" data-tr-step="attacker" data-step="-1" title="Whole army −1 training">−</button><button type="button" data-tr-step="attacker" data-step="1" title="Whole army +1 training">+</button></span></th><th class="col-del"></th>
+        <th class="col-armor">Armor</th><th class="col-size">Size</th><th class="col-train" title="Training">Tr<span class="tr-sw"><button type="button" data-tr-step="attacker" data-step="-1" aria-label="Whole army −1 training">−</button><button type="button" data-tr-step="attacker" data-step="1" aria-label="Whole army +1 training">+</button></span></th><th class="col-del"></th>
       </tr></thead>
       <tbody id="tbodyAttacker"></tbody>
     </table>
@@ -2514,15 +2555,15 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
       <div class="army-presets">
         <span class="mark-chips" data-ap-marks="defender"></span>
         <select class="ap-sel" data-ap-sel="defender"><option value="">preset…</option></select>
-        <button class="bp-btn" data-ap-load="defender" data-icon="load" title="Load this preset into the defenders"></button>
-        <button class="bp-btn" data-ap-save="defender" data-icon="save" title="Save the defenders as an army preset"></button>
-        <button class="bp-btn" data-ap-upd="defender" data-icon="update" title="Update this preset with the defenders on screen"></button>
-        <button class="bp-btn" data-ap-mark="defender" data-icon="mark" title="Pin this preset as a quick-swap button"></button>
-        <button class="bp-btn" data-ap-ren="defender" data-icon="rename" title="Rename this army preset"></button>
+        <button class="bp-btn" data-ap-load="defender" data-icon="load" aria-label="Load this preset into the defenders"></button>
+        <button class="bp-btn" data-ap-save="defender" data-icon="save" aria-label="Save the defenders as an army preset"></button>
+        <button class="bp-btn" data-ap-upd="defender" data-icon="update" aria-label="Update this preset with the defenders on screen"></button>
+        <button class="bp-btn" data-ap-mark="defender" data-icon="mark" aria-label="Pin this preset as a quick-swap button"></button>
+        <button class="bp-btn" data-ap-ren="defender" data-icon="rename" aria-label="Rename this army preset"></button>
         <button class="bp-btn" data-ap-copy="defender" data-icon="copy"
-                title="Copy the defenders as a code  (shift-click for the long form)"></button>
-        <button class="bp-btn" data-ap-exp="defender" data-icon="export" title="Export the defenders as a JSON file"></button>
-        <button class="bp-btn" data-ap-del="defender" data-icon="del" title="Delete this army preset"></button>
+                aria-label="Copy the defenders as a code" title="Shift+Click: long form"></button>
+        <button class="bp-btn" data-ap-exp="defender" data-icon="export" aria-label="Export the defenders as a JSON file"></button>
+        <button class="bp-btn" data-ap-del="defender" data-icon="del" aria-label="Delete this army preset"></button>
       </div>
       <span class="v-div">|</span>
       <button class="btn btn-xs" data-add="defender">Add unit</button>
@@ -2531,7 +2572,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
     <table class="force-table">
       <thead><tr>
         <th class="col-sprite">Unit</th><th class="col-name">Name</th><th class="col-type">Type</th><th class="col-weapon">Weapon</th>
-        <th class="col-armor">Armor</th><th class="col-size">Size</th><th class="col-train" title="Training">Tr<span class="tr-sw"><button type="button" data-tr-step="defender" data-step="-1" title="Whole army −1 training">−</button><button type="button" data-tr-step="defender" data-step="1" title="Whole army +1 training">+</button></span></th><th class="col-del"></th>
+        <th class="col-armor">Armor</th><th class="col-size">Size</th><th class="col-train" title="Training">Tr<span class="tr-sw"><button type="button" data-tr-step="defender" data-step="-1" aria-label="Whole army −1 training">−</button><button type="button" data-tr-step="defender" data-step="1" aria-label="Whole army +1 training">+</button></span></th><th class="col-del"></th>
       </tr></thead>
       <tbody id="tbodyDefender"></tbody>
     </table>
@@ -2551,13 +2592,13 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
     <button class="btn btn-success" id="btnRun" style="padding:7px 22px;font-size:14px">Resolve battle</button>
     <button class="btn" id="btnClearResults" style="padding:7px 16px;font-size:14px">Clear</button>
     <span class="run-opts" id="runOpts">
-    <button class="gear-btn run-gear" id="btnRunOpts" title="Exchange log options" aria-expanded="false"
+    <button class="gear-btn run-gear" id="btnRunOpts" aria-label="Exchange log options" aria-expanded="false"
       aria-controls="runPop"><svg viewBox="0 0 24 24"
     aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path
     d="M10.3 2.5h3.4l.5 2.6a7.6 7.6 0 0 1 2 1.2l2.5-.9 1.7 2.9-2 1.8a7.7 7.7 0 0 1 0 2.3l2 1.8-1.7 2.9-2.5-.9a7.6 7.6 0 0 1-2 1.2l-.5 2.6h-3.4l-.5-2.6a7.6 7.6 0 0 1-2-1.2l-2.5.9-1.7-2.9 2-1.8a7.7 7.7 0 0 1 0-2.3l-2-1.8 1.7-2.9 2.5.9a7.6 7.6 0 0 1 2-1.2z"/><circle
     cx="12" cy="12" r="3"/></svg></button>
     <div class="run-pop" id="runPop" role="group" aria-label="Exchange log options">
-      <label class="hk-toggle log-opt" for="autoChain" title="Every battle resolved goes straight on to its successive battles">
+      <label class="hk-toggle log-opt" for="autoChain">
         <input type="checkbox" id="autoChain"> Auto-successive</label>
       <hr class="run-sep">
       <label class="hk-toggle log-opt" for="logIcons">
@@ -2588,7 +2629,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
     </div>
     </span>
     <span class="run-opts" id="drillOpts">
-    <button class="gear-btn run-gear drill-btn" id="btnDrill" title="Training drift over the successive ticks"
+    <button class="gear-btn run-gear drill-btn" id="btnDrill" aria-label="Training drift over the successive ticks"
       aria-expanded="false" aria-controls="drillPop"><svg viewBox="0 0 24 24"
     aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"
     stroke-linecap="round"><path d="M4 5.5l8 5 8-5"/><path d="M4 11l8 5 8-5"/><path d="M4 16.5l8 5 8-5"/></svg></button>
@@ -2609,8 +2650,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
         <option value="1">1</option><option value="2">2</option></select>
       ticks
       </div>
-      <label class="hk-toggle log-opt" for="drillSkip"
-        title="Tick 2 is fought untouched; the shifting starts counting from tick 3">
+      <label class="hk-toggle log-opt" for="drillSkip">
         <input type="checkbox" id="drillSkip"> Ignore next tick</label>
     </div>
     </span>
@@ -2632,13 +2672,13 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
     <span class="v-div">|</span>
     <button class="btn btn-xs btn-info" id="btnImportBattle">Import battle</button>
     <button class="btn btn-xs" id="btnReinfChk" aria-expanded="false"
-      title="Fight a battle code's first tick and hold its defenders up against the army as it stands now">Reinforcement checker</button>
+      aria-label="Fight a battle code's first tick and hold its defenders up against the army as it stands now">Reinforcement checker</button>
   </div>
   <div id="reinfChk" style="display:none">
     <div class="reinf-io">
       <div><div class="reinf-lab"><label for="reinfBattle">Battle code</label>
         <span class="muted">—</span> <select id="reinfBpSel" aria-label="Battle preset"></select>
-        <button type="button" class="btn btn-xs txt-btn" id="btnReinfBpLoad" title="Put this battle preset's code in the box">Load</button></div>
+        <button type="button" class="btn btn-xs txt-btn" id="btnReinfBpLoad" aria-label="Put this battle preset's code in the box">Load</button></div>
         <textarea id="reinfBattle" spellcheck="false" placeholder="Get a battle code of the battle prior to clashing. Then to the right, CTRL+V the current defending army at the present. Then it'll tell you the difference, if any!"></textarea></div>
       <div><div class="reinf-lab"><label for="reinfArmy">Defending army now</label>
         <span class="muted">— prior war ticks:</span> <input type="number" id="reinfTicks" min="1" max="4" value="1"
@@ -2651,10 +2691,10 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
     </div>
     <div id="reinfThinkBar" style="margin-top:8px;display:none;gap:8px;flex-wrap:wrap">
       <button class="btn btn-xs btn-think" id="btnReinfThink"
-        title="Work out which differences are one stack re-geared — a missing stack and a new or bigger one of the same type, at the same troop count">Think</button>
-      <button class="btn btn-xs" id="btnReinfRevert" style="display:none" title="Back to the plain comparison">Revert</button>
+        aria-label="Work out which differences are one stack re-geared — a missing stack and a new or bigger one of the same type, at the same troop count">Think</button>
+      <button class="btn btn-xs" id="btnReinfRevert" style="display:none" aria-label="Back to the plain comparison">Revert</button>
       <button class="btn btn-xs btn-warning" id="btnReinfApply"
-        title="Write the defenders an on-tick instruction block that turns them into the pasted army at the start of the next tick, and check that it does">Add changes to defence</button>
+        aria-label="Write the defenders an on-tick instruction block that turns them into the pasted army at the start of the next tick, and check that it does">Add changes to defence</button>
     </div>
     <div id="reinfApplyOut"></div>
     <div id="reinfOut"></div>
@@ -2853,7 +2893,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
         <input type="number" id="ctrMyTrain" min="0" max="9999" value="20">
       </div>
       <div>
-        <button class="btn btn-warning" id="btnCounter" style="padding:7px 18px;font-size:14px">Find both answers</button>
+        <button class="btn btn-warning" id="btnCounter" style="padding:7px 18px;font-size:14px">Crunch</button>
         <button class="btn btn-danger btn-xs" id="btnCounterStop" style="display:none">Stop</button>
       </div>
     </div>
@@ -2887,7 +2927,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
           <label class="gs-man" title="Type our production in by hand, or paste it in, instead of adding up the alliances ticked below">
             <input type="checkbox" data-gs-man="us"> Manually define</label>
           <button type="button" class="btn btn-xs gs-pimp" data-gs-pimp="prod"
-            title="Paste our Alliance Resources table, copied off the game page">Import</button></div>
+            aria-label="Paste our Alliance Resources table, copied off the game page">Import</button></div>
         <div class="gs-allies" id="gsAllyUs"></div>
         <div class="gs-inputs" id="gsProd"></div>
         <div class="gs-strip-row"><div class="gs-strip" id="gsStrip"></div></div>
@@ -2897,7 +2937,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
           <label class="gs-man" title="Type the other side's production in by hand, or paste it in, instead of adding up the alliances ticked below">
             <input type="checkbox" data-gs-man="them"> Manually define</label>
           <button type="button" class="btn btn-xs gs-pimp" data-gs-pimp="prodThem"
-            title="Paste the other side's Alliance Resources table, copied off the game page">Import</button></div>
+            aria-label="Paste the other side's Alliance Resources table, copied off the game page">Import</button></div>
         <div class="gs-allies" id="gsAllyThem"></div>
         <div class="gs-inputs" id="gsProdThem"></div>
         <div class="gs-strip-row"><div class="gs-strip" id="gsStripThem"></div></div>
@@ -2907,7 +2947,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
       <button type="button" class="btn btn-xs" id="gsExport">Export</button>
       <button type="button" class="btn btn-xs" id="gsImport">Import</button>
       <button type="button" class="btn btn-xs btn-danger" id="gsClear"
-        title="Empty the stockpile, the reserves and any production typed in by hand; a side added up from its alliances is left as it is">Clear all</button>
+        aria-label="Empty the stockpile, the reserves and any production typed in by hand; a side added up from its alliances is left as it is">Clear all</button>
     </div>
   </div>
   </details></div>
@@ -2924,7 +2964,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
   <div class="panel">
     <div class="gs-bar">
       <div class="gs-comps" id="gsComps"></div>
-      <button type="button" class="gs-colours" id="gsColours" title="Give every ticket on show its own colour, in turn">colours</button>
+      <button type="button" class="gs-colours" id="gsColours" aria-label="Give every ticket on show its own colour, in turn">colours</button>
       <span class="spacer"></span>
       <label class="hk-toggle" for="gsWide"><input type="checkbox" id="gsWide"> Full width</label>
       <label class="hk-toggle" for="gsFocus"><input type="checkbox" id="gsFocus"> Hover to focus</label>
@@ -2946,9 +2986,9 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
     <div class="gs-bar">
       <div class="gs-comps" id="asBattles"></div>
       <span class="spacer"></span>
-      <label class="hk-toggle" for="asChain" title="Fight each battle on, tick after tick, until a side is wiped out or nothing more dies (up to 11 ticks, as the Battle tab replays them)">
+      <label class="hk-toggle" for="asChain">
         <input type="checkbox" id="asChain"> Account for successive battles</label>
-      <label class="hk-toggle" for="asTravel" title="The attackers eat one war tick of full upkeep on the road before the battle starts">
+      <label class="hk-toggle" for="asTravel">
         <input type="checkbox" id="asTravel"> Account for travel time upkeep cost</label>
     </div>
     <div id="asOut"></div>
@@ -2988,9 +3028,9 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
     <div class="panel lib-win">
       <div class="lib-bar">
         <div class="lib-views" role="group" aria-label="What the columns show">
-          <button type="button" data-lib-view="ratio" title="The smallest army in the same proportions">Ratios</button>
-          <button type="button" data-lib-view="units" title="The troops the preset actually holds">Units</button>
-          <button type="button" data-lib-view="res" title="What the preset's equipment costs in resources">Resources</button>
+          <button type="button" data-lib-view="ratio" aria-label="The smallest army in the same proportions">Ratios</button>
+          <button type="button" data-lib-view="units" aria-label="The troops the preset actually holds">Units</button>
+          <button type="button" data-lib-view="res" aria-label="What the preset's equipment costs in resources">Resources</button>
         </div>
         <!-- what the scaler may spend on upkeep every 12 hours -->
         <div class="lib-buds" id="libBuds" title="Upkeep budget / 12 h"></div>
@@ -3009,6 +3049,13 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
       <div class="lib-mull-head">
         <h2>Mulligan</h2><span class="small muted" id="libMullFor"></span>
         <span class="spacer"></span>
+        <div class="lib-ban" id="libBan">
+          <button type="button" class="bp-btn txt-btn" id="libBanBtn" aria-expanded="false"
+            aria-label="Weapons and armour the mulligan may not use, and how much it leans on each type">Ban gear</button>
+          <div class="lib-ban-menu" id="libBanMenu" hidden></div>
+        </div>
+        <label class="lib-lay"><input
+          type="checkbox" id="libLayers" checked> Layers</label>
         <label class="lib-tol" for="libTol" title="How far each figure below may drift from the original's">Tolerance
           <input type="range" id="libTol" min="1" max="50" step="1" value="10"><b id="libTolV">10%</b></label>
       </div>
@@ -3031,7 +3078,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
       <div class="lib-slide">
         <input type="range" id="libK" min="1" max="50" step="1" value="1" aria-label="Multiple of the ratio">
         <span class="lib-k">&times;<input type="number" id="libKn" min="1" step="1" value="1" aria-label="Multiple of the ratio"></span>
-        <button type="button" class="btn btn-xs" id="libKOrig" title="Back to the size the preset was saved at">As saved</button>
+        <button type="button" class="btn btn-xs" id="libKOrig" aria-label="Back to the size the preset was saved at">As saved</button>
       </div>
       <div id="libScOut"></div>
       <div class="lib-sc-foot">
@@ -3050,21 +3097,21 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
 <div class="hk-dock" id="hkDock" role="group" aria-label="Jump to a section of the page">
   <!-- one button per tick, filled in when a successive-battle replay is on screen -->
   <div class="hk-ticks" id="hkTicks"></div>
-  <button class="hk-btn" data-jump="top" data-key="q" title="Top of the page  (Q)">
+  <button class="hk-btn" data-jump="top" data-key="q" aria-label="Top of the page  (Q)">
     <svg class="hk-ic" viewBox="0 0 24 24" aria-hidden="true">
       <path d="M12 20V6"/><path d="M6 12l6-6 6 6"/><path d="M5 3.5h14"/></svg>
     <span class="hk-key">Q</span></button>
-  <button class="hk-btn" data-jump="panelResult" data-key="w" title="Battle result  (W)">
+  <button class="hk-btn" data-jump="panelResult" data-key="w" aria-label="Battle result  (W)">
     <svg class="hk-ic" viewBox="0 0 24 24" aria-hidden="true">
       <path d="M4 4 16.5 16.5"/><path d="M14.8 18.2 18.2 14.8"/><path d="M17 17 20 20"/>
       <path d="M20 4 7.5 16.5"/><path d="M9.2 18.2 5.8 14.8"/><path d="M7 17 4 20"/></svg>
     <span class="hk-key">W</span></button>
-  <button class="hk-btn" data-jump="panelSurvivors" data-key="e" title="Survivors  (E)">
+  <button class="hk-btn" data-jump="panelSurvivors" data-key="e" aria-label="Survivors  (E)">
     <svg class="hk-ic" viewBox="0 0 24 24" aria-hidden="true">
       <circle cx="12" cy="6.5" r="3"/><path d="M5 20.5v-2a7 7 0 0 1 14 0v2"/>
       <path d="M8.5 20.5h7"/></svg>
     <span class="hk-key">E</span></button>
-  <button class="hk-btn" data-jump="panelImport" data-key="r" title="Import units  (R)">
+  <button class="hk-btn" data-jump="panelImport" data-key="r" aria-label="Import units  (R)">
     <svg class="hk-ic" viewBox="0 0 24 24" aria-hidden="true">
       <path d="M12 3.5v10"/><path d="M8 9.5l4 4 4-4"/><path d="M4 16v4.5h16V16"/></svg>
     <span class="hk-key">R</span></button>
@@ -3472,8 +3519,8 @@ function makeRow(side, data){
     <td class="col-name"><input type="text" class="uname" maxlength="50" spellcheck="false"
       placeholder="—" value="${esc(data?.name ?? "")}"><span class="fid-tag">${fidPre(side)}${tr.dataset.fid}</span></td>
     <td class="col-type"><span class="reinf-sw">
-      <button type="button" data-reinf="0" title="A tick sooner (front line)">−</button>
-      <button type="button" data-reinf="1" title="Reinforcement — press again to hold it back another tick">+</button>
+      <button type="button" data-reinf="0" aria-label="A tick sooner (front line)">−</button>
+      <button type="button" data-reinf="1" aria-label="Reinforcement — press again to hold it back another tick">+</button>
     </span><select class="type">
       ${typeOpts.map(t=>`<option value="${t}">${t}</option>`).join("")}
     </select></td>
@@ -3482,7 +3529,7 @@ function makeRow(side, data){
     <td class="col-size"><input type="number" class="size" min="1" value="${data?.size ?? 1}"></td>
     <td class="col-train"><input type="number" class="training" min="0" max="${trainCap(side)}"
       value="${clampInt(data?.training ?? barracksOf(side), 0, trainCap(side))}"></td>
-    <td class="col-del"><button class="btn btn-danger btn-xs del" title="Remove unit">×</button></td>`;
+    <td class="col-del"><button class="btn btn-danger btn-xs del" aria-label="Remove unit">×</button></td>`;
 
   const typeSel = tr.querySelector(".type");
   const wSel = tr.querySelector(".weapon");
@@ -3532,8 +3579,8 @@ function setReserve(tr, wait){
   tr.classList.toggle("reserve", on);
   const plus = tr.querySelector('[data-reinf="1"]');
   plus.classList.toggle("on", on);
-  plus.title = on ? `Joins on tick ${w + 1}` + (w < REINF_MAX ? " — press again to hold it back another tick" : "")
-                  : "Reinforcement — press again to hold it back another tick";
+  plus.setAttribute("aria-label", on ? `Joins on tick ${w + 1}` + (w < REINF_MAX ? " — press again to hold it back another tick" : "")
+                  : "Reinforcement — press again to hold it back another tick");
   tr.querySelector('[data-reinf="0"]').classList.toggle("on", !on);
 }
 
@@ -3713,7 +3760,7 @@ function renderCosts(side){
   el.innerHTML = `
     <details class="cost-drop"${openMain ? " open" : ""}>
       <summary>Costs<button type="button" class="bp-btn plan-copy" data-plan-copy="${side}"
-        title="Copy the pretty plan (shift-click leaves out the upkeep over the whole fight, and keeps an unopposed attack to 12/h)">${iconSvg("copy")}</button></summary>
+        aria-label="Copy the pretty plan" title="Shift+Click: no fight upkeep, 12/h">${iconSvg("copy")}</button></summary>
       <div class="cost-body">
         ${tabBar}
         <div${tip(hireTipKey)}>
@@ -4006,7 +4053,7 @@ function unitsBlock(rows, open, byTick){
     const kept = g.gear.filter(k => (gear[k] || 0) > 0);
     if (!n && !kept.length) return;                  // a type nobody fielded
     const tc = lines.length ? "" : `<button class="bp-btn u-copy u-types" data-units-copy="${typeCounts}"
-      title="Copy every unit type's total, one a line (Cavalry to Alicorns, zeros included)">${iconSvg("copy")}</button>`;
+      aria-label="Copy every unit type's total, one a line (Cavalry to Alicorns, zeros included)">${iconSvg("copy")}</button>`;
     lines.push(`<div class="gear-line gear-head"><span class="n mono">${count(n)}</span>` +
       `<span class="g-name">${esc(g.type)}${tc}</span><span class="gear-img gear-img-none"></span></div>`);
     kept.forEach(k=> lines.push(
@@ -4032,13 +4079,13 @@ function unitsBlock(rows, open, byTick){
   const builderRows = (byTick ? byTick.front : rows).filter(u => !u.noHire);
   const gearText = builderGearText(byTick ? byTick.front : rows);
   const copy = roster
-    ? `<button class="bp-btn txt-btn u-copy u-human" title="Copy the roster the way a person reads it"
+    ? `<button class="bp-btn txt-btn u-copy u-human" aria-label="Copy the roster the way a person reads it"
          data-units-copy="${esc(roster).replace(/\n/g, "&#10;")}">Human Copy</button>` +
-      `<button class="bp-btn txt-btn u-copy u-sheet" title="Copy one count a line, ready for a spreadsheet column"
+      `<button class="bp-btn txt-btn u-copy u-sheet" aria-label="Copy one count a line, ready for a spreadsheet column"
          data-units-copy="${sheetText(rows).replace(/\n/g, "&#10;")}">Spreadsheet Copy</button>` +
-      `<button class="bp-btn txt-btn u-copy u-builder" title="Copy as army-builder commands (shift-click leaves out the grouping)"
+      `<button class="bp-btn txt-btn u-copy u-builder" aria-label="Copy as army-builder commands" title="Shift+Click: no grouping"
          data-units-copy="" data-builder="${keepBuilderRows(builderRows)}">Builder Copy</button>` +
-      (gearText ? `<button class="bp-btn txt-btn u-copy u-builder" title="Copy the army-builder commands that build the gear"
+      (gearText ? `<button class="bp-btn txt-btn u-copy u-builder" aria-label="Copy the army-builder commands that build the gear"
          data-units-copy="${esc(gearText).replace(/\n/g, "&#10;")}">Builder Gear Copy</button>` : "")
     : "";
   return `<details class="units-drop"${open ? " open" : ""}>
@@ -5032,8 +5079,8 @@ function gearCompare(kind, A, D, l, bonusApplied){
       : `Armour Compare<label class="tt-aside" title="Count the weapon each suit is worn with"><input type="checkbox"
           class="pin-wpn"${PIN_WITH_WPN ? " checked" : ""}> (+ attached weapon)</label>`}</span></div>
     <div class="cmp-tag">Equipped</div>
-    ${isW ? `<button class="hold-tab" title="${PIN_WHOLD ? "Hide" : "Show"} parity / skim">${PIN_WHOLD ? "›" : "‹"}</button>`
-          : `<button class="hold-tab" title="${PIN_HOLD ? "Hide" : "Show"} raise / skim">${PIN_HOLD ? "‹" : "›"}</button>`}
+    ${isW ? `<button class="hold-tab" aria-label="${PIN_WHOLD ? "Hide" : "Show"} parity / skim">${PIN_WHOLD ? "›" : "‹"}</button>`
+          : `<button class="hold-tab" aria-label="${PIN_HOLD ? "Hide" : "Show"} raise / skim">${PIN_HOLD ? "‹" : "›"}</button>`}
     ${row(now, true)}
     ${others.length ? others.map(r => row(r, false)).join("")
       : `<div class="small muted">Nothing else this unit can ${isW ? "carry" : "wear"}.</div>`}
@@ -5066,14 +5113,14 @@ function pinUnit(U, swings, now){
 
 function dmgPinHTML(A, D, l, bonusApplied){
   clearTips(PIN_NS);
-  return `<button class="pin-close" title="Close (Esc)">×</button>
+  return `<button class="pin-close" aria-label="Close (Esc)">×</button>
     <div class="pin-cols">
       <div class="pin-col cmp-weapon ${A.attack_mission ? "bg-inv" : "bg-def"}${PIN_WHOLD ? " hold-open" : ""}">${gearCompare("weapon", A, D, l, bonusApplied)}</div>
       <div class="pin-col pin-mid">${dmgMathTip(A, D, l, bonusApplied)}
         <div class="pin-vs">${pinUnit(A, true, l.potHits || l.hits)}<span class="pin-vs-word">vs</span>${
           pinUnit(D, false, Math.max(0, D.size - Math.floor(round6(l.prevTaken || 0))))}</div>
         <div class="m1-more" title="Show what each swap costs or saves">${M1_ICON}<span class="m1-txt">m1 for compare</span></div>
-        <button class="pin-close pin-close2" title="Close (Esc)">×</button>
+        <button class="pin-close pin-close2" aria-label="Close (Esc)">×</button>
         <div class="pin-opts">
           <label><input type="checkbox" data-pref="hide1x"${PREFS.hide1x ? " checked" : ""}> Hide 1x figures</label>
           <label><input type="checkbox" data-pref="hideAct"${PREFS.hideAct ? " checked" : ""}> Hide actual numbers</label>
@@ -5174,7 +5221,7 @@ function applySurvivors(){
     survSnapshot = null;
     btn.textContent = "Use survivors";
     btn.className = "btn btn-xs btn-warning";
-    btn.title = "Replace both force lists";
+    btn.setAttribute("aria-label", "Replace both force lists");
     return;
   }
   if (!lastResult) return;
@@ -5189,7 +5236,7 @@ function applySurvivors(){
   scheduleSave();
   btn.textContent = "Undo";
   btn.className = "btn btn-xs";
-  btn.title = "Put the old ones back";
+  btn.setAttribute("aria-label", "Put the old ones back");
 }
 
 /* ---- keep fighting: the survivors of one tick are the forces of the next ----
@@ -5485,7 +5532,7 @@ function renderChain(){
   return `<div class="log-head" style="margin-top:16px">
       <h3>Successive ticks</h3>
       <span class="spacer"></span>
-      <button class="btn btn-xs" data-chain-fold="1" title="Fold every tick away">Collapse all</button>
+      <button class="btn btn-xs" data-chain-fold="1" aria-label="Fold every tick away">Collapse all</button>
     </div>
     ${blocks}
     <div class="tick-divider tick-end">End battle</div>
@@ -5529,7 +5576,7 @@ document.addEventListener("click", e=>{
   ticks.forEach(d => { d.open = !open; });
   btn.dataset.chainFold = open ? "0" : "1";
   btn.textContent = open ? "Expand all" : "Collapse all";
-  btn.title = open ? "Open every tick again" : "Fold every tick away";
+  btn.setAttribute("aria-label", open ? "Open every tick again" : "Fold every tick away");
 });
 
 /* ---- expand a scrolling log to its full height ---- */
@@ -5549,7 +5596,7 @@ const logIsFull = id => LOG_FULL.has(id) ? LOG_FULL.get(id)
 function logToggle(id){
   const open = logIsFull(id);
   return `<button class="btn btn-xs" data-log-toggle="${id}"
-    title="${open ? "Scroll box" : "Show all"}"
+    aria-label="${open ? "Scroll box" : "Show all"}"
     >${open ? "Collapse" : "Expand"}</button>`;
 }
 
@@ -5563,7 +5610,7 @@ document.addEventListener("click", e=>{
   const open = box.classList.toggle("log-full");
   LOG_FULL.set(id, open);
   btn.textContent = open ? "Collapse" : "Expand";
-  btn.title = open ? "Scroll box" : "Show all";
+  btn.setAttribute("aria-label", open ? "Scroll box" : "Show all");
 });
 
 /* ---- the pieces a battle result is built from -----------------------
@@ -5766,7 +5813,7 @@ function render(result, atkRaw, defRaw, bonus, notes){
       <div class="panel-head"><h2>Survivors</h2>
         <span class="spacer"></span>
         <button class="btn btn-xs btn-warning" id="btnApplySurv"
-          title="Replace both force lists">Use survivors</button>
+          aria-label="Replace both force lists">Use survivors</button>
       </div>
       ${survivorsGrid(all)}
 
@@ -5778,7 +5825,7 @@ function render(result, atkRaw, defRaw, bonus, notes){
 
       <div class="chain-foot">
         <button class="btn btn-xs btn-info" id="btnChain"
-          title="Fight the survivors again"
+          aria-label="Fight the survivors again"
           >Check successive battles</button>
       </div>
       <div id="chainOut"></div>
@@ -6802,7 +6849,7 @@ function reinfAdds(r, i, ticks){
   const u = reinfAddUnit(r);
   const what = `${u.size.toLocaleString("en-US")} ${u.type}`;
   const btn = (wait, txt, tip) =>
-    `<button type="button" class="btn btn-xs" data-reinf-add="${i}" data-wait="${wait}" title="${esc(tip)}">${txt}</button>`;
+    `<button type="button" class="btn btn-xs" data-reinf-add="${i}" data-wait="${wait}" aria-label="${esc(tip)}">${txt}</button>`;
   return btn(0, "Add", `Add ${what} to the defenders, on the front line`)
        + btn(1, "Add as reinforcement", `Add ${what} to the defenders, joining on tick 2`)
        + (ticks > 1 ? btn(ticks, `Add as +${ticks} reinforcement`, `Add ${what} to the defenders, joining on tick ${ticks + 1}`) : "");
@@ -7003,7 +7050,8 @@ const ICONS = {
   stasisOn: '<path d="M4.5 2.5h7"/><path d="M4.5 13.5h7"/><path d="M5.5 2.5c0 3.2 5 3.3 5 5.5s-5 2.3-5 5.5"/>'
         + '<path d="M10.5 2.5c0 3.2-5 3.3-5 5.5s5 2.3 5 5.5"/><path class="f" d="M5.9 13.1h4.2L8 10.4z"/><path class="f" d="M6.6 5.2h2.8L8 6.6z"/>',
   link:   '<path d="M6.8 9.2a2.7 2.7 0 0 0 3.8 0l2-2a2.7 2.7 0 0 0-3.8-3.8l-.9.9"/>'
-        + '<path d="M9.2 6.8a2.7 2.7 0 0 0-3.8 0l-2 2a2.7 2.7 0 0 0 3.8 3.8l.9-.9"/>'
+        + '<path d="M9.2 6.8a2.7 2.7 0 0 0-3.8 0l-2 2a2.7 2.7 0 0 0 3.8 3.8l.9-.9"/>',
+  open:   '<path d="M9.5 2.5h4v4"/><path d="M13.5 2.5 7.5 8.5"/><path d="M11.5 9.5v4h-9v-9h4"/>'
 };
 
 const iconSvg = name => `<svg class="ic" viewBox="0 0 16 16" aria-hidden="true">${ICONS[name] || ""}</svg>`;
@@ -7011,7 +7059,7 @@ const iconSvg = name => `<svg class="ic" viewBox="0 0 16 16" aria-hidden="true">
 function paintIcons(root){
   (root || document).querySelectorAll("[data-icon]").forEach(b=>{
     b.innerHTML = iconSvg(b.dataset.icon);
-    if (b.title) b.setAttribute("aria-label", b.title);
+    if (b.title && !b.hasAttribute("aria-label")) b.setAttribute("aria-label", b.title);
   });
 }
 paintIcons();
@@ -7019,12 +7067,11 @@ paintIcons();
 /* a button that says it worked, then goes back to being a button */
 function flashOk(btn, word, cls = "ok"){
   if (!btn) return;
-  const html = btn.innerHTML, title = btn.title;
+  const html = btn.innerHTML;
   btn.innerHTML = btn.classList.contains("txt-btn")
     ? esc(word || "Done") : iconSvg("ok");
   btn.classList.add(cls);
-  btn.title = word || "Done";
-  setTimeout(()=>{ btn.innerHTML = html; btn.classList.remove(cls); btn.title = title; }, cls === "ok" ? 1200 : 2600);
+  setTimeout(()=>{ btn.innerHTML = html; btn.classList.remove(cls); }, cls === "ok" ? 1200 : 2600);
 }
 
 /* ===================================================================
@@ -7524,7 +7571,7 @@ function ordBlockHTML(b, side, F){
   const inner = slots.map((s, i) => (i ? `<div class="blk-mid">else</div>` : "") +
     ordSlotHTML(b[s], `${b.id}.${s}`, side, F, "")).join("");
   return `<div class="blk bt-${ORD_KINDS[b.k].tone}${bad ? " blk-bad" : ""}" data-bid="${b.id}">
-    <div class="blk-head">${head}</div><button type="button" class="blk-x" title="Bin this block">×</button>${
+    <div class="blk-head">${head}</div><button type="button" class="blk-x" aria-label="Bin this block">×</button>${
     slots.length ? inner + `<div class="blk-foot"></div>` : ""}</div>`;
 }
 function ordSlotHTML(list, path, side, F, hint){
@@ -7542,7 +7589,7 @@ function ordFrame(side, el){
       <div class="ord-script"></div>
       <div class="ord-bar">
         <span class="spacer"></span>
-        <button type="button" class="btn btn-xs btn-danger ord-clear" title="Bin every block in this script">Clear</button>
+        <button type="button" class="btn btn-xs btn-danger ord-clear" aria-label="Bin every block in this script">Clear</button>
       </div>
     </div>
   </details>`;
@@ -8124,7 +8171,7 @@ function renderMarks(){
     box.innerHTML = marks.map(n=>`<span class="mark-chip${sel && sel.value === n ? " on" : ""}"
         data-mark-load="${esc(n)}" data-mark-side="${esc(side)}"
         title="Load ${esc(n)} into the ${sideWord}"><span class="n">${esc(n)}</span
-        ><button class="x" data-mark-off="${esc(n)}" title="Unpin ${esc(n)}">×</button></span>`).join("");
+        ><button class="x" data-mark-off="${esc(n)}" aria-label="Unpin ${esc(n)}">×</button></span>`).join("");
   });
   paintMarkButtons(marks);
 }
@@ -8135,8 +8182,7 @@ function paintMarkButtons(marks){
     const sel = document.querySelector(`[data-ap-sel="${btn.dataset.apMark}"]`);
     const on = !!(sel && sel.value && marks.includes(sel.value));
     btn.innerHTML = iconSvg(on ? "markOn" : "mark");
-    btn.title = on ? "Unpin this preset" : "Pin this preset as a quick-swap button";
-    btn.setAttribute("aria-label", btn.title);
+    btn.setAttribute("aria-label", on ? "Unpin this preset" : "Pin this preset as a quick-swap button");
   });
 }
 
@@ -8952,7 +8998,7 @@ document.addEventListener("click", e=>{
     if (isW) PIN_WHOLD = open; else PIN_HOLD = open;
     /* each arrow points the way its column will move */
     tab.textContent = isW ? (open ? "›" : "‹") : (open ? "‹" : "›");
-    tab.title = `${open ? "Hide" : "Show"} ${isW ? "parity" : "raise"} / skim`;
+    tab.setAttribute("aria-label", `${open ? "Hide" : "Show"} ${isW ? "parity" : "raise"} / skim`);
     placePin(was);
     return;
   }
@@ -12025,7 +12071,7 @@ const HK_TABS = {
           e:["Total", "total", ()=>hkShown("asTotal")]}
 };
 /* the battle tab's own titles and icons, put back on the way home */
-hkBtns.forEach(b=>{ b.dataset.title = b.title; b.dataset.ic = b.querySelector(".hk-ic").innerHTML; });
+hkBtns.forEach(b=>{ b.dataset.title = b.getAttribute("aria-label"); b.dataset.ic = b.querySelector(".hk-ic").innerHTML; });
 let hkTab = "battle";
 
 /* where a button goes on the tab on show, or null with nothing there */
@@ -12045,7 +12091,7 @@ function dockForTab(name){
   hkBtns.forEach(b=>{
     const k = b.dataset.key, own = spec && k !== "q" ? spec[k] : null;
     b.hidden = !!spec && k !== "q" && !own;
-    b.title = own ? `${own[0]}  (${k.toUpperCase()})` : b.dataset.title;
+    b.setAttribute("aria-label", own ? `${own[0]}  (${k.toUpperCase()})` : b.dataset.title);
     b.querySelector(".hk-ic").innerHTML = own ? HK_IC[own[1]] : b.dataset.ic;
   });
   hkTicks.hidden = name !== "battle";
@@ -12067,7 +12113,7 @@ function setChainJumpButtons(count){
     const b = document.createElement("button");
     b.className = "hk-btn";
     b.dataset.jump = i === 1 ? "panelResult" : "chainTick" + i;
-    b.title = i === 1 ? "Tick 1 — the battle above" : "Tick " + i;
+    b.setAttribute("aria-label", i === 1 ? "Tick 1 — the battle above" : "Tick " + i);
     b.innerHTML = `<span class="hk-num-lab">${i}</span>`;
     b.addEventListener("click", ()=>jumpTo(b.dataset.jump, b));
     hkTicks.appendChild(b);
@@ -12462,7 +12508,7 @@ function makeRef(id){
   el.style.width = spec.width + "px";
   el.innerHTML = `<div class="ovl-head">
       <h3>${esc(spec.title)}</h3><span class="spacer"></span>
-      <button class="ovl-x" title="Close  (Esc)">×</button>
+      <button class="ovl-x" aria-label="Close  (Esc)">×</button>
     </div>
     <div class="ovl-body">${spec.build()}</div>`;
   document.body.appendChild(el);
@@ -12965,13 +13011,13 @@ function syncNations(d){
   const keyOf = syncKeys();
   const ally = new Map((d.alliances || []).map(a => [a.alliance_id, String(a.name)]));
   return (d.nations || []).filter(n => n && n.nation_id != null).map(n=>{
-    const net = {};
+    const net = {}, used = {};
     (n.resources || []).forEach(r=>{
       const k = keyOf(r.name);
-      if (k) net[k] = (net[k] || 0) + (Number(r.net) || 0);
+      if (k){ net[k] = (net[k] || 0) + (Number(r.net) || 0); used[k] = (used[k] || 0) + (Number(r.used) || 0); }
     });
     return {id: n.nation_id, name: String(n.name || `Nation ${n.nation_id}`), user: String(n.username || ""),
-            ally: n.alliance_id ? ally.get(n.alliance_id) || `Alliance ${n.alliance_id}` : "", region: String(n.region_name || ""), net};
+            ally: n.alliance_id ? ally.get(n.alliance_id) || `Alliance ${n.alliance_id}` : "", region: String(n.region_name || ""), net, used};
   });
 }
 
@@ -13012,8 +13058,8 @@ function syncPaint(){
     : sync ? `Synced ${syncAgo(age)}` : "Not synced";
   el.classList.toggle("stale", age > SYNC_STALE);
   el.classList.toggle("busy", syncBusy);
-  el.title = [sync ? `Nations and alliances last synced from 4clop.org at ${new Date(sync.at).toLocaleString()}` : "",
-    syncErr ? `The last try failed: ${syncErr}` : "", "Click to sync again"].filter(Boolean).join("\n");
+  el.setAttribute("aria-label", [sync ? `Nations and alliances last synced from 4clop.org at ${new Date(sync.at).toLocaleString()}` : "",
+    syncErr ? `The last try failed: ${syncErr}` : "", "Click to sync again"].filter(Boolean).join(". "));
 }
 /* what the reserves hold of a piece of gear, or nothing with them switched off */
 const gsResvOf = k => gs.resvOn ? Math.floor(gsNum(gs.resv[k])) : 0;
@@ -13205,9 +13251,9 @@ let gsPicker = null;                                   // which ticket has its c
 function gsDots(key){
   const cur = GS_PAPER[gs.colors[key]] ? gs.colors[key] : GS_PAPER_DEFAULT;
   const pop = gsPicker === key ? `<div class="slip-pop">${Object.entries(GS_PAPER).map(([id, c])=>
-    `<button type="button" class="slip-dot${cur === id ? " on" : ""}" title="${id}"
+    `<button type="button" class="slip-dot${cur === id ? " on" : ""}" aria-label="${id}"
        style="background:${c.paper}" data-gs-color="${id}" data-gs-slip="${esc(key)}"></button>`).join("")}</div>` : "";
-  return `<button type="button" class="slip-color${pop ? " open" : ""}" title="Colour"
+  return `<button type="button" class="slip-color${pop ? " open" : ""}" aria-label="Colour"
       data-gs-pick="${esc(key)}" style="background:${GS_PAPER[cur].paper}"></button>${pop}`;
 }
 
@@ -13358,12 +13404,12 @@ function gsGearTotalsHTML(comps){
   const line = items.length ? `build ${items.join(" ")}` : "";
   return `<div class="slip-cut"></div>
       <div class="slip-gear-head"><div class="slip-sub">Equipment</div>
-        ${line ? `<button class="bp-btn txt-btn u-builder" title="Copy the army-builder line that builds this gear"
+        ${line ? `<button class="bp-btn txt-btn u-builder" aria-label="Copy the army-builder line that builds this gear"
           data-units-copy="${esc(line)}">Builder Gear Copy</button>`
           : `<span class="small" style="opacity:.6">all covered by the stockpile</span>`}
         <label class="slip-chk"><input type="checkbox" data-gs-gearall${gs.gearAll ? " checked" : ""}>
           Don't account for stockpiled equipment</label>
-        <button class="bp-btn u-copy" title="Copy the equipment as a list"
+        <button class="bp-btn u-copy" aria-label="Copy the equipment as a list"
           data-units-copy="${esc(list).replace(/\n/g, "&#10;")}">${iconSvg("copy")}</button></div>
       <div class="slip-gear">${rows.join("")}</div>`;
 }
@@ -13415,7 +13461,7 @@ function gsChart(comps, bills){
   });
   const overall = series.map((_, j) => shares.length ? shares.reduce((a, row) => a + row[j], 0) / shares.length : 0);
   const toggles = live.map(r=>`<button type="button" class="gs-rtog${gs.chartOff.includes(r.id) ? " off" : ""}"
-      data-gs-chart="${r.id}" title="${esc(gsName(r.k))}${r.up ? " upkeep" : ""}">${gsIcon(r.k)}${r.up ? `<span class="up">up</span>` : ""}</button>`).join("");
+      data-gs-chart="${r.id}" aria-label="${esc(gsName(r.k))}${r.up ? " upkeep" : ""}">${gsIcon(r.k)}${r.up ? `<span class="up">up</span>` : ""}</button>`).join("");
   const resHTML = live.length ? `<div class="gs-chart-bar">${toggles}</div>
     ${on.length ? `<div class="gs-crow all"><div class="gs-clab"><b>Overall</b><span class="v">avg of ${on.length}</span></div>
       ${bar(overall, (s, j, pc) => `<b>${esc(s.name)}</b><br>${pct(pc)} average share over the
@@ -14021,7 +14067,7 @@ function asFlip(key){
   const atk = asPersp(key) === "attacker";
   return `<div class="as-persp"><span class="as-plab">Perspective</span>
       <button type="button" class="flip-tog as-flip" data-as-flip="${esc(key)}" value="${atk ? "Yes" : "No"}" aria-pressed="${atk}"
-        title="Which side the differences are reckoned for"><span class="flip-card" aria-hidden="true"><span
+        aria-label="Which side the differences are reckoned for"><span class="flip-card" aria-hidden="true"><span
         class="flip-face flip-on">Attacker</span><span class="flip-face flip-off">Defender</span></span></button></div>`;
 }
 
@@ -14338,9 +14384,9 @@ function libDetailHTML(armies, n = lib.sel){
   const brk = getArmyBarracks()[n];
   return `<div class="lib-d-top"><div class="lib-d-name"${c ? ` style="--c:${c}"` : ""}>${esc(n)}${fixed
       ? `<span class="lib-tag">built in</span>` : ""}</div><button type="button" class="bp-btn" data-lib-act="copy"
-      title="Copy this preset's army code">${iconSvg("copy")}</button></div>
+      aria-label="Copy this preset's army code">${iconSvg("copy")}</button></div>
     <div class="lib-d-acts">
-      <button type="button" class="lib-ib" data-lib-act="stasis" title="${st
+      <button type="button" class="lib-ib" data-lib-act="stasis" aria-label="${st
         ? "Bring it back into the dropdowns" : "Keep it here, but out of every dropdown"}">${iconSvg(st ? "stasisOn" : "stasis")} ${st ? "Unstasis" : "Stasis"}</button>
       ${fixed ? "" : `<button type="button" class="lib-ib" data-lib-act="rename">${iconSvg("rename")} Rename</button>
       <button type="button" class="lib-ib" data-lib-act="delete">${iconSvg("del")} Delete</button>`}
@@ -14348,9 +14394,9 @@ function libDetailHTML(armies, n = lib.sel){
     <label class="lib-d-row"><span>Folder</span><select data-lib-move>${[{id: "", name: "Unfiled"}].concat(libFolders()).map(f =>
       `<option value="${esc(f.id)}"${f.id === here ? " selected" : ""}>${esc(f.name)}</option>`).join("")}</select></label>
     <div class="lib-d-row"><span>Colour</span><div class="lib-sw"><button type="button" class="none${c ? "" : " on"}"
-      data-lib-colour="" title="No colour"></button>${LIB_COLOURS.map(x =>
+      data-lib-colour="" aria-label="No colour"></button>${LIB_COLOURS.map(x =>
       `<button type="button" style="--c:var(--pc-${x})"${x === lib.colour[n] ? ` class="on"` : ""} data-lib-colour="${x}"
-        title="${x[0].toUpperCase() + x.slice(1)}"></button>`).join("")}</div></div>
+        aria-label="${x[0].toUpperCase() + x.slice(1)}"></button>`).join("")}</div></div>
     <div class="lib-h">Stacks</div>
     ${libStackList(all)}
     <div class="lib-h">Cost</div>
@@ -14404,7 +14450,7 @@ function libRender(){
     return `<tr class="lib-row${n === lib.sel ? " sel" : ""}${st ? " stasis" : ""}${c ? " tint" : ""}" data-lib-name="${esc(n)}"
         draggable="true"${c ? ` style="--c:${c}"` : ""}>
       <td class="lib-n" title="${esc(n)}"><span class="lib-dot"></span><span class="lib-name">${esc(n)}</span><button
-        type="button" class="lib-ib lib-st" data-lib-stasis="${esc(n)}" title="${st
+        type="button" class="lib-ib lib-st" data-lib-stasis="${esc(n)}" aria-label="${st
           ? "In stasis: out of every dropdown. Click to bring it back" : "Put in stasis: kept here, but out of every dropdown"}">${
           iconSvg(st ? "stasisOn" : "stasis")}</button></td>
       ${vals.map(v => `<td${v ? "" : ` class="z"`}>${v ? money(v) : "·"}</td>`).join("")}
@@ -14418,10 +14464,10 @@ function libRender(){
   const body = groups.map(({f, names: list}) => {
     const open = q || !lib.shut[f.id || "_"], st = list.filter(inStasis).length;
     const acts = (list.length ? `<button type="button" class="lib-ib" data-lib-fstasis="1"
-          title="Put every preset in this folder in stasis">Stasis all</button><button type="button" class="lib-ib"
-          data-lib-fstasis="0" title="Bring every preset in this folder back">Unstasis all</button>` : "")
-      + (f.id && !f.fixed ? `<button type="button" class="lib-ib" data-lib-fren title="Rename this folder">${iconSvg("rename")}</button
-          ><button type="button" class="lib-ib" data-lib-fdel title="Delete this folder; its presets go to Unfiled">${iconSvg("del")}</button>` : "");
+          aria-label="Put every preset in this folder in stasis">Stasis all</button><button type="button" class="lib-ib"
+          data-lib-fstasis="0" aria-label="Bring every preset in this folder back">Unstasis all</button>` : "")
+      + (f.id && !f.fixed ? `<button type="button" class="lib-ib" data-lib-fren aria-label="Rename this folder">${iconSvg("rename")}</button
+          ><button type="button" class="lib-ib" data-lib-fdel aria-label="Delete this folder; its presets go to Unfiled">${iconSvg("del")}</button>` : "");
     return `<tbody data-lib-folder="${esc(f.id)}"><tr class="lib-fold${open ? " open" : ""}"><td colspan="${ncol}">
         <span class="caret">&#9656;</span><span class="lib-fname">${esc(f.name)}</span>${f.fixed ? `<span class="lib-tag">built in</span>` : ""}
         <span class="lib-fcount">${list.length}${st ? ` · ${st} in stasis` : ""}</span>
@@ -14553,7 +14599,9 @@ function libSaveUnits(units, suggest, btn){
    even on both sides. Every figure is a sum over the stacks of size times a
    per-troop figure, so finding an army that lands all of them within the
    tolerance is a linear program over the stack sizes: solved for a handful
-   of random loadouts, then grown a loadout at a time until it fits. */
+   of random loadouts, then grown a loadout at a time until it fits, and
+   that fit spread over as many stacks as the original fields. Two more lines
+   take in layering, with the order stacks are hit in. */
 const LIB_FOES = LIB_TYPES.map(t => t[0]);
 /* the colours the gear sprites are drawn in, so the bar matches the pictures */
 const LIB_FOE_COL = {Cavalry: "#ff0000", Tanks: "#0076ff", Pegasi: "#ff00dc", Unicorns: "#00ff21", Naval: "#00ffff",
@@ -14565,6 +14613,12 @@ const LIB_LINES = [
   ["Dealt · best armour", "The same, with them in their best armour against each of our stacks", true],
   ["Absorbed", "Damage absorbed from as many troops of each type, carrying plain weapons", false],
   ["Absorbed · best weapons", "The same, with them carrying their best weapon against each of our stacks", false]];
+/* layering, matched but not shown: what is still dealt, unarmoured, once
+   each of our types has lost a third and two thirds of its troops to that
+   type, its stacks falling in the order they are hit */
+const LIB_LAYERS = [1 / 3, 2 / 3];
+const libLayersOn = () => lib.mullLayers !== false;
+const LIB_NF = LIB_FOES.length, LIB_LIN = LIB_LINES.length * LIB_NF;
 const libFights = t => t === "Alicorns" ? "naval" : TYPES[FORCE_TYPES[t]];   // alicorns are hit as naval
 const libBestArm = (T, src) => T === "Alicorns" ? 0.1
   : Math.min(...LOADOUTS[T].armor.filter(a => ARMOR_IDS[a]).map(a => ARMOR_DEFS[a][src]));
@@ -14580,30 +14634,70 @@ function libPerTroop(u){
     LIB_FOES.map(T => dmg[libFights(T)] * libBestArm(T, me)),
     LIB_FOES.map(T => (T === "Alicorns" ? 10 : 1) * arm[libFights(T)]),
     LIB_FOES.map(T => libBestWpn(T, me) * arm[libFights(T)]));
+  /* and past the figures, how hard each foe hits it: the order they pick targets in */
+  v.arm = LIB_FOES.map(T => arm[libFights(T)]);
   LIB_PER.set(key, v);
   return v;
 }
-const libProfile = units => units.reduce((P, u) =>
-  (libPerTroop(u).forEach((v, j) => { P[j] += v * u.size; }), P), new Array(LIB_LINES.length * LIB_FOES.length).fill(0));
+
+/* the stacks a foe works down together, a list of indices for each of our pools */
+const libPools = kits => Object.values(kits.reduce((g, k, i) => ((g[libFights(k.type)] ??= []).push(i), g), {}));
+/* a pool in the order foe i hits it: best armour against it first, then the biggest stack */
+const libHitOrder = (pool, kits, x, i) => pool.slice().sort((a, b) =>
+  libPerTroop(kits[a]).arm[i] - libPerTroop(kits[b]).arm[i] || x[b] - x[a] || a - b);
+/* where a share f of a pool runs out: the stack the losses stop inside */
+function libEdge(ord, x, f){
+  const lose = f * ord.reduce((n, k) => n + x[k], 0);
+  let pre = 0;
+  for (let p = 0; p < ord.length; p++){ pre += x[ord[p]]; if (pre >= lose - 1e-9) return p; }
+  return ord.length - 1;
+}
+/* for that order and that edge the layered figure is linear in the sizes:
+   the stacks behind the edge in full, the edge stack with what is left of it */
+function libLayerCoef(ord, kits, p, f, i, coef){
+  const oe = libPerTroop(kits[ord[p]])[i];
+  ord.forEach((k, q) => { coef[k] += q <= p ? oe * (1 - f) : libPerTroop(kits[k])[i] - f * oe; });
+}
+
+function libProfile(units){
+  const P = new Array(LIB_LIN).fill(0);
+  units.forEach(u => libPerTroop(u).forEach((v, j) => { P[j] += v * u.size; }));
+  if (!libLayersOn()) return P;
+  const x = units.map(u => u.size), pools = libPools(units);
+  LIB_LAYERS.forEach(f => LIB_FOES.forEach((F, i) => {
+    const coef = new Array(units.length).fill(0);
+    pools.forEach(pool => { const ord = libHitOrder(pool, units, x, i); libLayerCoef(ord, units, libEdge(ord, x, f), f, i, coef); });
+    P.push(coef.reduce((s, c, k) => s + c * x[k], 0));
+  }));
+  return P;
+}
 /* the worst any figure strays from the target's, as a fraction of it */
 const libMiss = (P, T) => Math.max(0, ...P.map((p, j) => T[j] ? Math.abs(p / T[j] - 1) : 0));
 
 /* max c·y subject to A·y <= b, y >= 0, with b >= 0 so the origin is a
-   start; Bland's rule, since the rows held at 0 are degenerate */
+   start, entering on the first column that pays (Bland's). Every
+   column and then every row is scaled to a largest entry of 1 first: sizes
+   run to the thousands against figures a thousandth of that, and pivots that
+   small blew the answer up outside its own rows */
 function libSimplex(A, b, c){
   const m = A.length, n = c.length, w = n + m;
-  const T = A.map((row, i) => row.concat(Array.from({length: m}, (_, j) => i === j ? 1 : 0), b[i]));
+  const cs = Array.from({length: n}, (_, j) => Math.max(...A.map(r => Math.abs(r[j]))) || 1);
+  A = A.map(r => r.map((v, j) => v / cs[j]));
+  c = c.map((v, j) => v / cs[j]);
+  const rs = A.map(r => Math.max(...r.map(Math.abs)) || 1);
+  const T = A.map((row, i) => row.map(v => v / rs[i]).concat(Array.from({length: m}, (_, j) => i === j ? 1 : 0), b[i] / rs[i]));
   const z = c.map(v => -v).concat(new Array(m + 1).fill(0));
   const basis = Array.from({length: m}, (_, i) => n + i);
-  for (let it = 0; it < 1000; it++){
+  for (let it = 0; it < 5000; it++){
     let col = -1;
     for (let j = 0; j < w; j++) if (z[j] < -1e-12){ col = j; break; }
     if (col < 0) break;
+    /* of the rows that bind first, the one with the biggest pivot: the
+       smallest index among ties would pivot on slivers */
     let row = -1, best = Infinity;
-    for (let i = 0; i < m; i++) if (T[i][col] > 1e-12){
-      const q = T[i][w] / T[i][col];
-      if (q < best - 1e-12 || (Math.abs(q - best) <= 1e-12 && basis[i] < basis[row])){ best = q; row = i; }
-    }
+    for (let i = 0; i < m; i++) if (T[i][col] > 1e-9) best = Math.min(best, T[i][w] / T[i][col]);
+    for (let i = 0; i < m; i++) if (T[i][col] > 1e-9 && T[i][w] / T[i][col] <= best + 1e-9
+      && (row < 0 || T[i][col] > T[row][col])) row = i;
     if (row < 0) break;
     const p = T[row][col];
     for (let j = 0; j <= w; j++) T[row][j] /= p;
@@ -14616,25 +14710,80 @@ function libSimplex(A, b, c){
     basis[row] = col;
   }
   const y = new Array(n).fill(0);
-  basis.forEach((v, i) => { if (v < n) y[v] = T[i][w]; });
+  basis.forEach((v, i) => { if (v < n) y[v] = Math.max(0, T[i][w]) / cs[v]; });
   return y;
 }
 
-/* the sizes for these loadouts that keep the worst figure closest: with
-   s = 1 - that miss, maximise s while every figure stays within 1 ± (1 - s) */
+/* the rows over the sizes, each {a, s, b}: a·x + s·(the s column) <= b.
+   With s = 1 - the worst miss, every figure stays within 1 ± (1 - s). The
+   layered figures are linear only for one targeting order and one edge, so
+   they are taken from the sizes in `at`, and held there by rows of their own:
+   the tied stacks kept in their order of size, the edge kept where it is. */
 const libUpk = (u, r) => UNIT_COST[u.type].upkeep[r] || 0;
-function libFit(kits, T, caps = {}){
-  const V = kits.map(libPerTroop), A = [], b = [];
-  T.forEach((t, j) => {
-    if (!t) return;
-    A.push(V.map(v => v[j] / t).concat(1)); b.push(2);
-    A.push(V.map(v => -v[j] / t).concat(1)); b.push(0);
-  });
+function libRows(kits, T, caps, at){
+  const R = [], k = kits.length, V = kits.map(libPerTroop);
+  const fig = (a, t) => { R.push({a: a.map(c => c / t), s: 1, b: 2}, {a: a.map(c => -c / t), s: 1, b: 0}); };
+  for (let j = 0; j < LIB_LIN; j++) if (T[j]) fig(V.map(v => v[j]), T[j]);
   Object.entries(caps).forEach(([r, cap]) => {
-    if (kits.some(k => libUpk(k, r))){ A.push(kits.map(k => libUpk(k, r) / cap).concat(0)); b.push(1); }
+    if (kits.some(kk => libUpk(kk, r))) R.push({a: kits.map(kk => libUpk(kk, r) / cap), s: 0, b: 1});
   });
-  const x = libSimplex(A, b, new Array(kits.length).fill(0).concat(1)).slice(0, kits.length);
-  return {x, miss: libMiss(libProfile(kits.map((k, i) => Object.assign({}, k, {size: x[i]}))), T)};
+  if (!at || T.length <= LIB_LIN) return R;
+  const pools = libPools(kits).filter(p => p.length > 1), all = libPools(kits);
+  LIB_FOES.forEach((F, i) => pools.forEach(pool => {
+    const ord = libHitOrder(pool, kits, at, i);
+    for (let q = 1; q < ord.length; q++) if (V[ord[q]].arm[i] === V[ord[q - 1]].arm[i]){
+      const a = new Array(k).fill(0);
+      a[ord[q]] = 1; a[ord[q - 1]] = -1;
+      R.push({a, s: 0, b: 0});
+    }
+  }));
+  LIB_LAYERS.forEach((f, r) => LIB_FOES.forEach((F, i) => {
+    const t = T[LIB_LIN + r * LIB_NF + i];
+    if (!t) return;
+    const coef = new Array(k).fill(0);
+    all.forEach(pool => {
+      const ord = libHitOrder(pool, kits, at, i), p = libEdge(ord, at, f);
+      libLayerCoef(ord, kits, p, f, i, coef);
+      if (ord.length < 2) return;
+      const lo = new Array(k).fill(0), hi = new Array(k).fill(0);
+      ord.forEach((kk, q) => { lo[kk] = (q < p ? 1 : 0) - f; hi[kk] = f - (q <= p ? 1 : 0); });
+      R.push({a: lo, s: 0, b: 0}, {a: hi, s: 0, b: 0});
+    });
+    fig(coef, t);
+  }));
+  return R;
+}
+
+const libSized = (kits, x) => kits.map((k, i) => Object.assign({}, k, {size: x[i]}));
+const libLp = (R, k) => libSimplex(R.map(r => r.a.concat(r.s)), R.map(r => r.b), new Array(k).fill(0).concat(1)).slice(0, k);
+/* the sizes for these loadouts that keep the worst figure closest: the plain
+   figures first, then the layered ones taken from there a few times over */
+function libFit(kits, T, caps = {}){
+  let x = libLp(libRows(kits, T, caps, null), kits.length);
+  let best = {x, miss: libMiss(libProfile(libSized(kits, x)), T)};
+  for (let it = 0; it < 3 && T.length > LIB_LIN; it++){
+    x = libLp(libRows(kits, T, caps, best.x), kits.length);
+    const miss = libMiss(libProfile(libSized(kits, x)), T);
+    if (miss >= best.miss - 1e-9) break;
+    best = {x, miss};
+  }
+  return best;
+}
+
+/* a fit, spread over as many of its loadouts as will take it: the miss is
+   held at most `room`, and inside that each loadout is credited for reaching
+   a floor of `floor[i]` troops, so a few big stacks don't take everything */
+function libSpread(kits, T, caps, at, room, floor){
+  const k = kits.length, R = libRows(kits, T, caps, at), big = 50 * k;
+  const A = R.map(r => r.a.concat(r.s, new Array(k).fill(0))), b = R.map(r => r.b);
+  const row = (fill, rb) => { const a = new Array(2 * k + 1).fill(0); fill(a); A.push(a); b.push(rb); };
+  row(a => { a[k] = 1; }, 1 - room);
+  for (let i = 0; i < k; i++){
+    row(a => { a[k + 1 + i] = 1; }, 1);
+    row(a => { a[i] = -1 / floor[i]; a[k + 1 + i] = 1; }, 0);
+  }
+  const x = libSimplex(A, b, new Array(k).fill(0).concat(big, new Array(k).fill(1))).slice(0, k);
+  return {x, miss: libMiss(libProfile(libSized(kits, x)), T)};
 }
 
 const libKitKey = u => `${u.type}|${u.weapon}|${u.armor}`;
@@ -14643,17 +14792,29 @@ async function libMulliganSearch(orig, tol, ms){
   const tally = {};
   orig.forEach(u => { tally[u.training] = (tally[u.training] || 0) + u.size; });
   const train = +Object.keys(tally).sort((a, b) => tally[b] - tally[a])[0] || 0;
-  /* real gear only, from the unit types not left out */
-  const off = libMullOff(), caps = libCaps();
+  /* real gear only, from the unit types not left out or weighed at nothing, none of it banned */
+  const off = libMullOff(), ban = libMullBan(), caps = libCaps();
   /* a budget too small for a single troop rules its unit types out */
-  const pool = KITS.filter(([t, w, a]) => !off[t] && (t === "Alicorns" || WEAPON_IDS[w] && ARMOR_IDS[a]))
+  const pool = KITS.filter(([t, w, a]) => !off[t] && libWeight(t) > 0
+      && (t === "Alicorns" || WEAPON_IDS[w] && ARMOR_IDS[a] && !ban[w] && !ban[a]))
     .map(([type, weapon, armor]) => ({type, weapon, armor}))
     .filter(k => Object.entries(caps).every(([r, cap]) => libUpk(k, r) <= cap));
   if (!pool.length) return null;
   const own = new Set(orig.map(libKitKey));
-  const pick = () => pool[Math.floor(Math.random() * pool.length)];
+  /* a type is dealt as often as its weight says, whatever number of loadouts it has */
+  const byType = pool.reduce((g, k) => ((g[k.type] ??= []).push(k), g), {}), types = Object.keys(byType);
+  const W = types.reduce((s, t) => s + libWeight(t), 0);
+  const pick = () => {
+    let r = Math.random() * W, t = types[types.length - 1];
+    for (const u of types) if ((r -= libWeight(u)) < 0){ t = u; break; }
+    return byType[t][Math.floor(Math.random() * byType[t].length)];
+  };
+  /* as many stacks as the original fields, and a floor for each of half its
+     average stack, more for a heavier type */
+  const want = Math.min(16, pool.length, Math.max(3, orig.length));
+  const avg = troopTotal(orig) / Math.max(1, orig.length);
   const end = performance.now() + ms;
-  let best = null, slice = performance.now();
+  let best = null, fitAt = null, slice = performance.now();
   while (performance.now() < end){
     let kits = [];
     while (kits.length < Math.min(6, pool.length)){ const k = pick(); if (!kits.includes(k)) kits.push(k); }
@@ -14671,6 +14832,15 @@ async function libMulliganSearch(orig, tol, ms){
       if (!next || next.f.miss >= cur.miss - 1e-9) break;
       kits = next.nk; cur = next.f;
     }
+    /* a fit is dealt out over the original's number of stacks, if it still
+       fits so, with a few tries at the loadouts it is topped up with */
+    for (let tries = 0; tries < 3 && cur.miss <= tol && kits.filter((_, i) => cur.x[i] >= 1).length < want; tries++){
+      const sk = kits.filter((_, i) => cur.x[i] > 1e-6), sx = cur.x.filter(v => v > 1e-6);
+      for (let n = 0; sk.length < want && n < 50; n++){ const k = pick(); if (!sk.includes(k)){ sk.push(k); sx.push(0); } }
+      const s = libSpread(sk, T, caps, sx, Math.max(cur.miss, tol * 0.7),
+        sk.map(k => avg / 2 * libWeight(k.type) / (W / types.length)));
+      if (s.miss <= tol && s.x.filter(v => v >= 1).length > cur.x.filter(v => v >= 1).length){ kits = sk; cur = s; }
+    }
     /* whole troops, and the miss measured again on those; the original's own
        loadouts handed back is no mulligan */
     /* rounding down on a capped resource keeps its upkeep inside the budget */
@@ -14679,11 +14849,19 @@ async function libMulliganSearch(orig, tol, ms){
         training: train}))
       .filter(u => u.size >= 1)
       .sort((a, b) => LIB_FOES.indexOf(a.type) - LIB_FOES.indexOf(b.type) || b.size - a.size);
+    /* a fit beats a near miss, and among fits the one closest to the
+       original's number of stacks; once one fits, a second more to find more */
     if (units.length && units.some(u => !own.has(libKitKey(u)))){
-      const miss = libMiss(libProfile(units), T);
-      if (!best || miss < best.miss) best = {units, miss};
-      if (best.miss <= tol) return best;
+      const miss = libMiss(libProfile(units), T), n = Math.min(want, units.length);
+      const better = !best || (miss <= tol) !== (best.miss <= tol) ? !best || miss <= tol
+        : miss <= tol && n !== best.n ? n > best.n : miss < best.miss;
+      if (better) best = {units, miss, n};
+      if (best.miss <= tol){
+        if (best.n >= want) break;
+        fitAt ??= performance.now();
+      }
     }
+    if (fitAt != null && performance.now() > fitAt + 1000) break;
     if (performance.now() - slice > sliceMs()){ await breathe(); slice = performance.now(); }
   }
   return best;
@@ -14693,6 +14871,10 @@ let libMull = null;                                    // {from: the original's 
 /* the unit types a mulligan may not use; alicorns are such a special case
    that they stay out until someone lets them in */
 const libMullOff = () => lib.mullOff && typeof lib.mullOff === "object" ? lib.mullOff : (lib.mullOff = {Alicorns: true});
+/* the weapons and armour a mulligan may not use, by gear key */
+const libMullBan = () => lib.mullBan && typeof lib.mullBan === "object" ? lib.mullBan : (lib.mullBan = {});
+/* how much the mulligan leans on each type: how often it is dealt, and the floor its stacks are spread to */
+const libWeight = t => { const w = lib.mullWeight?.[t]; return w == null || !isFinite(w) ? 1 : Math.max(0, Math.min(4, +w)); };
 let libMullBusy = false;
 const libTol = () => clampInt(lib.tol ?? 10, 1, 50) / 100;
 
@@ -14757,7 +14939,40 @@ function libSimRow(T, M){
     <b>${sim == null ? "—" : (sim * 100).toFixed(1) + "%"}</b></div></td></tr>`;
 }
 
+/* the ban list: a block a unit type, its weight, then its real weapons beside its real armour */
+const LIB_BAN_TYPES = LIB_FOES.filter(T => T !== "Alicorns");
+const libWeighed = () => LIB_BAN_TYPES.some(T => libWeight(T) !== 1);
+/* the button says what is banned and whether the weights are off even */
+function libBanLabel(){
+  const n = Object.values(libMullBan()).filter(Boolean).length, btn = libEl("libBanBtn");
+  btn.textContent = [n ? `${n} banned` : "Ban gear"].concat(libWeighed() ? ["weighted"] : []).join(" · ");
+  btn.classList.toggle("on", !!n);
+  return n;
+}
+function libBanRender(){
+  const ban = libMullBan(), n = libBanLabel();
+  if (libEl("libBanMenu").hidden) return;
+  const item = k => `<button type="button" class="lib-ban-it${ban[k] ? " ban" : ""}" data-lib-ban="${esc(k)}" aria-label="${
+    ban[k] ? "Banned from mulligans. Click to allow" : "Allowed in mulligans. Click to ban"}"><img class="gear-img"
+    src="${esc(gearImgSrc(k))}" alt=""><span>${esc(label(k))}</span></button>`;
+  libEl("libBanMenu").innerHTML = LIB_BAN_TYPES.map(T => `<div class="lib-ban-t${libWeight(T) ? "" : " nil"}">
+      <div class="lib-ban-th"><b style="color:${LIB_FOE_INK[T]}">${T}</b><span class="spacer"></span>
+        <label class="lib-wt" title="How much the mulligan leans on ${T.toLowerCase()}: how often they are dealt in, and how big their stacks are kept. At 0 they sit out">Weight
+          <input type="range" min="0" max="4" step="0.5" value="${libWeight(T)}" data-lib-weight="${T}"><b>×${libWeight(T)}</b></label></div>
+      <div class="lib-ban-cols"><div>${LOADOUTS[T].weapons.filter(w => WEAPON_IDS[w]).map(item).join("")}</div>
+        <div>${LOADOUTS[T].armor.filter(a => ARMOR_IDS[a]).map(item).join("")}</div></div></div>`).join("")
+    + `<div class="lib-ban-foot"><button type="button" class="bp-btn txt-btn" id="libWtClear"${libWeighed() ? "" : " disabled"}>Even weights</button>
+      <button type="button" class="bp-btn txt-btn" id="libBanClear"${n ? "" : " disabled"}>Allow all</button></div>`;
+}
+function libBanMenu(open){
+  libEl("libBanMenu").hidden = !open;
+  libEl("libBanBtn").setAttribute("aria-expanded", open ? "true" : "false");
+  libBanRender();
+}
+
 function libMullRender(){
+  libBanRender();
+  libEl("libLayers").checked = libLayersOn();
   const units = libCurrent()?.units || [], tol = libTol();
   libEl("libTol").value = Math.round(tol * 100);
   libEl("libTolV").textContent = Math.round(tol * 100) + "%";
@@ -14775,7 +14990,7 @@ function libMullRender(){
     /* the original's figure, and with a mulligan dealt, "to" its figure;
        how far that is sits in the tooltip */
     libEl("libDmg").innerHTML = `<table class="lib-dmg"><thead><tr><th></th>${LIB_TYPES.map(([t, g]) =>
-        `<th><button type="button" class="lib-foe${libMullOff()[t] ? " out" : ""}" data-lib-foe="${t}" title="${t}: ${libMullOff()[t]
+        `<th><button type="button" class="lib-foe${libMullOff()[t] ? " out" : ""}" data-lib-foe="${t}" aria-label="${t}: ${libMullOff()[t]
           ? "left out of mulligans. Click to let them in" : "used in mulligans. Click to leave them out"}"><img class="gear-img"
           src="${esc(gearImgSrc(g, true))}" alt="${t}"></button></th>`).join("")}</tr></thead>
       <tbody>${LIB_LINES.map(([name, what], r) => `<tr><th title="${esc(what)}">${name}</th>${LIB_FOES.map((F, i) => {
@@ -14808,7 +15023,7 @@ async function libMulligan(){
     if (out) libMull = {from: encodeArmy(units), units: out.units, miss: out.miss};
     libEl("libMullMsg").textContent = !out ? (LIB_FOES.every(T => libMullOff()[T])
         ? "Every unit type is left out. Click a type's icon above to let it back in."
-        : "Nothing else fits this army. Try a wider tolerance, looser budgets, or let more unit types in.")
+        : "Nothing else fits this army. Try a wider tolerance, looser budgets, or let more unit types or gear in.")
       : out.miss > tol + 1e-9 ? `Closest found is ${(out.miss * 100).toFixed(1)}% off. Increase tolerances!`
       : "";
   } finally {
@@ -14820,17 +15035,32 @@ async function libMulligan(){
 /* ---- wiring ---- */
 libEl("libBuds").innerHTML = LIB_BUDGET.map(r => `<div class="lib-bud">${resIcon(r)}<input type="number" min="0" step="1"
     data-lib-budget="${r}" placeholder="no cap" value="${esc(lib.budget[r] ?? "")}"
-    title="${RESOURCES[r].name} the army may eat in upkeep every 12 hours"><label class="lib-ela"
-    title="Grow past this budget anyway, and show where it goes over in red"><input type="checkbox"
+    title="${RESOURCES[r].name} the army may eat in upkeep every 12 hours"><label class="lib-ela"><input type="checkbox"
     data-lib-elastic="${r}"${lib.elastic[r] ? " checked" : ""}> Elastic</label></div>`).join("");
 
 const viewLib = libEl("viewLibrary");
+document.addEventListener("click", e => {
+  /* the path, not the target: a toggle redraws the menu and leaves its target detached */
+  if (!libEl("libBanMenu").hidden && !e.composedPath().includes(libEl("libBan"))) libBanMenu(false);
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && !libEl("libBanMenu").hidden){ libBanMenu(false); libEl("libBanBtn").focus(); }
+});
 ["libCode", "libMullCode"].forEach(id => libEl(id).addEventListener("focus", e => e.target.select()));
 viewLib.addEventListener("input", e => {
   const t = e.target;
   if (t.id === "libSearch"){ libSearch = t.value; libRender(); return; }
   if (t.dataset.libBudget){ lib.budget[t.dataset.libBudget] = t.value; libSave(); libScaler(); }
   else if (t.id === "libTol"){ lib.tol = clampInt(t.value, 1, 50); libSave(); libMullRender(); }
+  else if (t.dataset.libWeight){
+    /* set in place: drawing the menu again would drop the slider mid-drag */
+    (lib.mullWeight ??= {})[t.dataset.libWeight] = +t.value;
+    libSave();
+    t.nextElementSibling.textContent = "×" + libWeight(t.dataset.libWeight);
+    t.closest(".lib-ban-t").classList.toggle("nil", !libWeight(t.dataset.libWeight));
+    libBanLabel();
+    libEl("libWtClear").disabled = !libWeighed();
+  }
   else if (t.id === "libK" || t.id === "libKn"){
     if (t.id === "libKn" && t.value === "") return;
     libScale = clampInt(t.value, 1, 1e6);
@@ -14840,6 +15070,7 @@ viewLib.addEventListener("input", e => {
 viewLib.addEventListener("change", e => {
   const t = e.target;
   if (t.dataset.libElastic){ lib.elastic[t.dataset.libElastic] = t.checked; libSave(); libScaler(); }
+  else if (t.id === "libLayers"){ lib.mullLayers = t.checked; libSave(); libMullRender(); }
   else if (t.id === "libKn"){ libScale = clampInt(t.value, 1, 1e6); libEl("libKn").value = libScale; libScaler(); }
   else if (t.matches("[data-lib-move]")){
     if (t.value) lib.where[lib.sel] = t.value; else lib.where[lib.sel] = "";
@@ -14872,6 +15103,14 @@ viewLib.addEventListener("click", e => {
     if (off[T]) off[T] = false; else off[T] = true;
     libSave(); libMullRender();
   }
+  else if (t.id === "libBanBtn") libBanMenu(libEl("libBanMenu").hidden);
+  else if (t.dataset.libBan){
+    const ban = libMullBan(), k = t.dataset.libBan;
+    if (ban[k]) delete ban[k]; else ban[k] = true;
+    libSave(); libBanRender();
+  }
+  else if (t.id === "libBanClear"){ lib.mullBan = {}; libSave(); libBanRender(); }
+  else if (t.id === "libWtClear"){ lib.mullWeight = {}; libSave(); libBanRender(); }
   else if (t.id === "libMullCopy" && libMull) libCopyText(encodeArmy(libMull.units), t);
   else if (t.id === "libMullSave" && libMull) libSaveUnits(libMull.units, `${lib.sel} mulligan`, t);
   else if (t.dataset.libStasis) libStasis([t.dataset.libStasis], !inStasis(t.dataset.libStasis));
@@ -15022,9 +15261,12 @@ const mg = (()=>{
   const obj = v => v && typeof v === "object" && !Array.isArray(v) ? v : {};
   const players = (Array.isArray(o.players) ? o.players : []).filter(p => p && typeof p === "object" && p.id != null)
     .map(p => ({id: p.id, name: String(p.name || ""), adj: obj(p.adj), open: obj(p.open), own: p.own === true, tw: mgTwOf(p.tw),
+      stock: obj(p.stock), stockOpen: p.stockOpen === true,
       plans: (Array.isArray(p.plans) ? p.plans : []).filter(x => x && typeof x.name === "string")
         .map(x => ({name: x.name, tw: mgTwOf(x.tw)}))}));
-  return {bits: gsNum(o.bits), tw: mgTwOf(o.tw) || 1, players};
+  /* the default TW went from 1 to 3; a 1 kept from before then was only ever the old default */
+  const tw = mgTwOf(o.tw), v = 2;
+  return {v, bits: gsNum(o.bits), tw: o.v >= v ? tw || 3 : tw > 1 ? tw : 3, players};
 })();
 const mgSave = () => store.set(LS_MANAGE, mg);
 const mgEl = id => document.getElementById(id);
@@ -15067,7 +15309,9 @@ function mgPlan(x, armies, ords){
 
 /* a nation's whole bill. Its nets are eaten every tick, six to a war tick,
    over the nets' own war ticks; only what it runs short of is sent, unless
-   it uses its own supply, when what it makes pays toward its armies first */
+   it uses its own supply, when what it makes pays toward its armies first.
+   A stockpile it declares pays next, but never below what the nation itself
+   uses a tick; with no use off the API to go by, it stays whole */
 function mgCalc(p, armies, ords){
   const plans = p.plans.map(x => mgPlan(x, armies, ords));
   const twN = mg.tw;
@@ -15080,8 +15324,17 @@ function mgCalc(p, armies, ords){
     const v = mil + eat[k];
     if (v > 0) need[k] = v;
   });
+  const nat = mgNation(p.id), stock = {}, keep = {}, spend = {};
+  MG_RES.forEach(k=>{
+    stock[k] = gsNum(p.stock[k]);
+    keep[k] = nat?.used ? Math.min(stock[k], nat.used[k] || 0) : stock[k];
+    const take = Math.min(stock[k] - keep[k], need[k] || 0);
+    if (take <= 0) return;
+    spend[k] = take;
+    if (!(need[k] -= take)) delete need[k];
+  });
   const all = plans.flatMap(b => b.all);
-  return {plans, twN, net, eat, need, all, troops: troopTotal(all), hire: plans.reduce((t, b) => t + b.c.hire, 0)};
+  return {plans, twN, net, eat, stock, keep, spend, need, all, troops: troopTotal(all), hire: plans.reduce((t, b) => t + b.c.hire, 0)};
 }
 
 /* what is spare, with the nation's own supply in use, reads green and takes off */
@@ -15092,7 +15345,7 @@ const mgChips = res => MG_RES.filter(k => res[k]).map(k =>
 /* ---- what gets copied ---- */
 /* a raise cost as a bare number, no commas, ready to paste into a deal */
 const mgBitsCopy = n => `<button type="button" class="bp-btn u-copy" data-units-copy="${Math.round(n)}"
-  title="Copy ${Math.round(n)}">${iconSvg("copy")}</button>`;
+  aria-label="Copy ${Math.round(n)}">${iconSvg("copy")}</button>`;
 function mgPlanText(b, j, n){
   return [`> Army ${j + 1}/${n}`, "`" + b.code + "`", planRoster(b.units, b.extra), planBits(b.all, b.c),
     planFence("ansi", planHead(`Upkeep ${12 * b.tw}/h`) + "\n" + planResLines(b.up, planWidth(b.up)))].join("\n");
@@ -15126,7 +15379,7 @@ function mgList(){
   box.innerHTML = hits.length ? hits.map((n, i) => (i && hits[i - 1].ally === n.ally ? "" : `<div class="mg-grp">${
       esc(n.ally || "No alliance")}<span class="n">${hits.filter(h => h.ally === n.ally).length}</span></div>`) +
       `<button type="button" class="mg-opt${added.has(n.id) ? " on" : ""}${
-      i === mgHot ? " hot" : ""}" data-mg-add="${n.id}" title="${esc([n.name, n.user, n.ally, n.region].filter(Boolean).join(" · "))}">${
+      i === mgHot ? " hot" : ""}" data-mg-add="${n.id}" aria-label="${esc([n.name, n.user, n.ally, n.region].filter(Boolean).join(" · "))}">${
       mgFace(n, n.name)}<span class="sub">${esc(n.user)}</span></button>`).join("")
     : `<div class="mg-none">No nation matches that.</div>`;
   return hits;
@@ -15143,13 +15396,26 @@ function mgMenu(open){
 function mgAdd(id){
   const nat = mgNation(id);
   if (!nat || mg.players.some(p => p.id === id)) return;
-  mg.players.push({id, name: nat.name, adj: {}, open: {}, own: false, tw: null, plans: []});
+  mg.players.push({id, name: nat.name, adj: {}, open: {}, own: false, tw: null, stock: {}, stockOpen: false, plans: []});
   mgSave();
   mgRender();
   mgList();
 }
 
 /* ---- a nation's block ---- */
+/* its stockpile, folded away until opened: what it holds, what it keeps for its own use, what can go to the armies */
+function mgStockRow(p, i, t){
+  const has = MG_RES.some(k => t.stock[k]), neg = o => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, -v]));
+  const head = `<button type="button" class="mg-lab mg-fold${p.stockOpen ? " on" : ""}" data-mg-stock="${i}"
+    aria-expanded="${p.stockOpen}"><span class="caret">▸</span>Stockpile</button>`;
+  if (!p.stockOpen) return `<div class="mg-row">${head}${has ? `<span class="mg-eat">${mgChips(t.stock)}</span>` : ""}</div>`;
+  const boxes = MG_RES.map(k => `<span class="mg-net">${resIcon(k)}<input type="text" inputmode="numeric" autocomplete="off"
+      placeholder="0" data-mg-f="stk:${i}:${k}" value="${t.stock[k] ? money(t.stock[k]) : ""}"></span>`).join("");
+  const kept = MG_RES.some(k => t.keep[k]), spent = MG_RES.some(k => t.spend[k]);
+  return `<div class="mg-row">${head}${boxes}${has ? `<span class="mg-eat">${kept ? `<i class="mg-sk">keeps</i>${mgChips(t.keep)}` : ""}${
+      spent ? `<i class="mg-sk">covers</i>${mgChips(neg(t.spend))}` : ""}${!kept && !spent ? `<i class="mg-sk">nothing needed</i>` : ""}${
+      kept ? `<span class="mg-ticks">its own use a tick</span>` : ""}</span>` : ""}</div>`;
+}
 function mgBlock(p, i, t, names){
   const nat = mgNation(p.id);
   if (nat) p.name = nat.name;
@@ -15161,7 +15427,7 @@ function mgBlock(p, i, t, names){
         ? `<input type="text" inputmode="numeric" autocomplete="off" placeholder="±0" data-mg-f="adj:${i}:${k}"
             value="${adj ? gsFmt(adj) : ""}" title="Add to or take off the net, e.g. -50">` : ""}
       <button type="button" class="mg-plus${open ? " on" : ""}" data-mg-plus="${i}:${k}"
-        title="Add to or take off this net by hand">${open ? "±" : "+"}</button></span>`;
+        aria-label="Add to or take off this net by hand">${open ? "±" : "+"}</button></span>`;
   }).join("");
   const opts = names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
   const strip = (b, j) => `<div class="mg-strip">
@@ -15174,12 +15440,12 @@ function mgBlock(p, i, t, names){
       <span class="mg-kv" title="Satisfaction a turn"><i>Sat</i>${satCost(b.troops) ? "−" + satCost(b.troops).toLocaleString("en-US") : 0}</span>
       <span class="mg-kv" title="What raising the army costs"><i>${BIT}</i>${money(b.c.hire)}${mgBitsCopy(b.c.hire)}</span>
       <span class="mg-btns">
-        <button type="button" class="bp-btn" data-mg-copy="${i}:${j}" title="Copy the pretty plan, headed Army ${j + 1}/${t.plans.length}">${iconSvg("copy")}</button>
-        <button type="button" class="bp-btn txt-btn u-copy u-human" title="Copy the roster the way a person reads it"
+        <button type="button" class="bp-btn" data-mg-copy="${i}:${j}" aria-label="Copy the pretty plan, headed Army ${j + 1}/${t.plans.length}">${iconSvg("copy")}</button>
+        <button type="button" class="bp-btn txt-btn u-copy u-human" aria-label="Copy the roster the way a person reads it"
           data-units-copy="${esc(rosterText(b.units)).replace(/\n/g, "&#10;")}">Human Copy</button>
-        <button type="button" class="bp-btn txt-btn u-copy u-builder" title="Copy as army-builder commands (shift-click leaves out the grouping)"
+        <button type="button" class="bp-btn txt-btn u-copy u-builder" aria-label="Copy as army-builder commands" title="Shift+Click: no grouping"
           data-units-copy="" data-builder="${keepBuilderRows(b.units)}">Builder Copy</button>
-        <button type="button" class="bp-btn" data-mg-unplan="${i}:${j}" title="Take this army off">${iconSvg("del")}</button>
+        <button type="button" class="bp-btn" data-mg-unplan="${i}:${j}" aria-label="Take this army off">${iconSvg("del")}</button>
       </span></div>`;
   const total = t.plans.length || MG_RES.some(k => t.need[k]) ? `<div class="mg-strip tot">
       <span class="mg-tag">Total</span>
@@ -15189,25 +15455,28 @@ function mgBlock(p, i, t, names){
       <span class="mg-kv" title="Satisfaction a turn, every army together"><i>Sat</i>${satCost(t.troops) ? "−" + satCost(t.troops).toLocaleString("en-US") : 0}</span>
       <span class="mg-kv" title="What raising every army costs"><i>${BIT}</i>${money(t.hire)}${mgBitsCopy(t.hire)}</span>
       <span class="mg-btns">
-        <button type="button" class="bp-btn" data-mg-copy="${i}:t" title="Copy the total: sat, raise and upkeep, nets and all">${iconSvg("copy")}</button>
+        <button type="button" class="bp-btn" data-mg-copy="${i}:t" aria-label="Copy the total: sat, raise and upkeep, nets and all">${iconSvg("copy")}</button>
         ${t.plans.length ? `<button type="button" class="bp-btn txt-btn u-copy u-builder" data-mg-build="${i}"
-          title="Copy every army as army-builder commands, each grouped on its own (shift-click leaves out the grouping)">Builder Copy</button>` : ""}
+          aria-label="Copy every army as army-builder commands, each grouped on its own" title="Shift+Click: no grouping">Builder Copy</button>` : ""}
       </span></div>` : "";
   return `<div class="panel mg-p">
     <div class="mg-ph">
-      <span class="mg-nm">${mgFace(nat, p.name || `Nation ${p.id}`)}</span>
+      <span class="mg-nm">${mgFace(nat, p.name || `Nation ${p.id}`)}<a class="bp-btn mg-open" target="_blank" rel="noopener"
+        href="https://4clop.org/viewnation.php?nation_id=${encodeURIComponent(p.id)}" aria-label="Open on 4clop">${iconSvg("open")}</a></span>
       <span class="mg-sub">${esc(nat ? [nat.user, nat.ally].filter(Boolean).join(" · ") : "")}</span>
       ${nat || !sync ? "" : `<span class="mg-stale">not in the last sync — its nets read as nothing but what's added by hand</span>`}
       <span class="spacer"></span>
-      <label class="hk-toggle mg-own" title="Let what this nation makes pay toward its armies' upkeep, rather than only counting what it runs short of">
+      <label class="hk-toggle mg-own">
         <input type="checkbox" data-mg-own="${i}"${p.own ? " checked" : ""}> Use own supply?</label>
-      <button type="button" class="bp-btn" data-mg-del="${i}" title="Take this nation off">${iconSvg("del")}</button>
+      <button type="button" class="bp-btn" data-mg-del="${i}" aria-label="Take this nation off">${iconSvg("del")}</button>
     </div>
     <div class="mg-body">
       <div class="mg-row"><span class="mg-lab">Nets / tick</span>${nets}
         <span class="mg-eat" title="${p.own ? "What the nets come to over the default war ticks: short is sent, spare pays toward the armies"
-          : "What the nets run short of over the default war ticks, six ticks to a war tick"}">${mgChips(t.eat)}</span>
+          : "What the nets run short of over the default war ticks, six ticks to a war tick"}">${mgChips(t.eat)}<span
+          class="mg-ticks">${GS_TICKS * t.twN} ticks</span></span>
       </div>
+      ${mgStockRow(p, i, t)}
       <div class="mg-row mg-attach"><span class="mg-lab">Armies</span>
         <select data-mg-attach="${i}"><option value="">+ Attach preset…</option>${opts}</select></div>
       ${t.plans.length || total ? `<div class="mg-plans">${t.plans.map(strip).join("")}${total}</div>` : ""}
@@ -15231,14 +15500,18 @@ function mgDealsHTML(calcs){
     MG_RES.forEach(k => { grand[k] = (grand[k] || 0) + (t.need[k] || 0); });
     return `<tr class="nat"><td colspan="${MG_RES.length + 2}"><span class="mg-nm">${mgFace(nat, p.name || `Nation ${p.id}`)}</span></td></tr>` +
       t.plans.map((b, j) => row("army", `Army ${j + 1}/${t.plans.length} · ${esc(b.name)} <span class="small muted">×${b.tw} TW</span>`, b.up)).join("") +
+      /* with nets to send as well, the armies on their own before them */
+      (t.plans.length && MG_RES.some(k => t.eat[k]) ? row("asub", "Armies", MG_RES.reduce((o, k) =>
+        (o[k] = t.plans.reduce((n, b) => n + (b.up[k] || 0), 0), o), {})) : "") +
       (MG_RES.some(k => t.eat[k]) ? row("nets", `Nets <span class="small muted">×${t.twN} TW${p.own ? " · own supply" : ""}</span>`, t.eat) : "") +
+      (MG_RES.some(k => t.spend[k]) ? row("nets", "Stockpile", Object.fromEntries(MG_RES.map(k => [k, -(t.spend[k] || 0)]))) : "") +
       row("ntot", "Total", t.need);
   }).join("");
   return `<h3>Deals<span class="mg-dlim" title="The most of each resource one deal can carry: 10,000, and 1 more for every 100,000 bits">Deal limit is <b>${money(lim)}</b></span></h3>
     ${mg.players.length ? `<div class="mg-deals-wrap"><table class="mg-deals">
       <thead><tr><th></th>${MG_RES.map(k => `<th>${resIcon(k)} ${esc(gsName(k))}</th>`).join("")}<th>Deals</th></tr></thead>
       <tbody>${body}${row("grand", "Everyone", grand)}</tbody></table></div>`
-      : `<div class="mg-empty" style="margin-top:8px">Add a nation to see what it takes to supply.</div>`}`;
+      : ""}`;
 }
 
 let mgLast = [];
@@ -15255,7 +15528,7 @@ function mgRender(){
   if (document.activeElement !== mgEl("mgTw")) mgEl("mgTw").value = mg.tw;
   mgEl("mgLimit").innerHTML = `Deal limit <b>${money(mgLimit())}</b> a resource`;
   mgEl("mgPlayers").innerHTML = mg.players.length ? mg.players.map((p, i) => mgBlock(p, i, calcs[i], names)).join("")
-    : `<div class="panel mg-empty">No nations yet — <b>+ Add nation</b> up top picks one off the API.</div>`;
+    : `<div class="panel mg-empty">Look top right</div>`;
   mgEl("mgDeals").innerHTML = mgDealsHTML(calcs);
   if (f){
     const el = mgEl("mgPlayers").querySelector(`[data-mg-f="${f}"]`);
@@ -15306,6 +15579,11 @@ mgView.addEventListener("input", e=>{
     const v = gsSigned(e.target.value.replace(/[^\d.,-]/g, ""));
     if (v) p.adj[j] = v; else delete p.adj[j];
   } else if (kind === "ptw" && p.plans[+j]) p.plans[+j].tw = mgTwOf(e.target.value);
+  else if (kind === "stk"){
+    gsCommas(e.target);
+    const v = gsNum(e.target.value);
+    if (v) p.stock[j] = v; else delete p.stock[j];
+  }
   mgSave();
   mgRender();
 });
@@ -15332,6 +15610,14 @@ mgView.addEventListener("click", async e=>{
     mgSave();
     mgRender();
     mgView.querySelector(`[data-mg-f="adj:${i}:${k}"]`)?.focus();
+    return;
+  }
+  const fold = e.target.closest("[data-mg-stock]");
+  if (fold){
+    const p = mg.players[+fold.dataset.mgStock];
+    p.stockOpen = !p.stockOpen;
+    mgSave();
+    mgRender();
     return;
   }
   const del = e.target.closest("[data-mg-del]");
