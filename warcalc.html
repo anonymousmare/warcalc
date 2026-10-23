@@ -12977,6 +12977,20 @@ let sync = (()=>{
 })();
 let syncBusy = false, syncErr = "";
 
+/* a host that serves this page under a Content-Security-Policy without
+   4clop.org in its connect-src blocks the fetch before it leaves; the
+   browser only says "NetworkError", so the policy's own report names it */
+const SYNC_CSP = "blocked by the Content-Security-Policy of the site showing this page; open warcalc.html from a file or a plain web host";
+let syncBlocked = false;
+addEventListener("securitypolicyviolation", e=>{
+  if (!String(e.blockedURI).startsWith(new URL(SYNC_URL).origin)) return;
+  syncBlocked = true;
+  if (syncBusy || !syncErr) return;                    // syncNow picks it up when its fetch fails
+  syncErr = SYNC_CSP;
+  syncPaint();
+  mgRender();
+});
+
 /* the API's resource names, to the keys kept here */
 const syncKeys = () => {
   const norm = x => String(x).toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -13027,6 +13041,7 @@ const syncNet = (side, k) => !sync ? 0 : sync.alliances
 async function syncNow(){
   if (syncBusy) return;
   syncBusy = true;
+  syncBlocked = false;
   syncPaint();
   if (!sync){ gsProdCol("prod"); gsProdCol("prodThem"); }
   try{
@@ -13038,7 +13053,7 @@ async function syncNow(){
     sync = {at: Date.now(), alliances, nations: syncNations(d)};
     syncErr = "";
     store.set(LS_SYNC, sync);
-  }catch(e){ syncErr = e.message || String(e); }
+  }catch(e){ syncErr = syncBlocked ? SYNC_CSP : e.message || String(e); }
   syncBusy = false;
   syncPaint();
   gsRefill();
