@@ -808,6 +808,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
       <div class="gov-bar">
         <label>Government <select id="nGov"></select></label>
         <label>Economy <select id="nEcon"></select></label>
+        <label title="What its land gives: copper, gems and tungsten in Zebrica, apples, coffee and drugs in Burrozil, oil in Saddle Arabia">Region <select id="nRegion"></select></label>
         <label title="How many nations are in your empire: every one past the first costs sat">Nations
           <input id="nEmpire" type="number" min="1" step="1"></label>
         <label title="Units in your army: every unit past 20 costs half a sat">Army
@@ -1326,6 +1327,18 @@ const ECONOMIES = {
 };
 const DEFAULT_GOV = "Loose Despotism", DEFAULT_ECON = "Poorly Defined";
 
+// a nation can only mine, farm or drill what its region's land holds; the Przewalskian
+// Plastics Factory is Przewalskia's instead. One whose region isn't set may build anything
+const REGIONS = ["Zebrica", "Burrozil", "Saddle Arabia", "Przewalskia"];
+const REGION_ONLY = {
+  "Basic Copper Mine": "Zebrica", "Mechanized Copper Mine": "Zebrica", "Gem Mine": "Zebrica", "Tungsten Mine": "Zebrica",
+  "Basic Apple Orchard": "Burrozil", "Mechanized Apple Farm": "Burrozil", "Coffee Farm": "Burrozil", "Drug Farm": "Burrozil",
+  "Basic Oil Well": "Saddle Arabia", "Mechanized Oil Well": "Saddle Arabia", "Oil Fracker": "Saddle Arabia",
+  "Przewalskian Plastics Factory": "Przewalskia"
+};
+const regionOf = n => n.region || (n.prze ? "Przewalskia" : "");
+const canBuild = (n, b) => !REGION_ONLY[b] || (regionOf(n) ? REGION_ONLY[b] === regionOf(n) : b !== "Przewalskian Plastics Factory" || !!n.prze);
+
 const ENV_COLOURS = ["#d6b47a", "#b98a5b", "#c4574c", "#d98a3d", "#e0c44c", "#7fa65a",
                      "#4f9c97", "#5b86c4", "#8a6bbf", "#d27fb0", "#8d9096", "#3c3f45"];
 const MANILA = ENV_COLOURS[0];
@@ -1702,7 +1715,7 @@ document.addEventListener("click", ev => {
 addEventListener("scroll", hideTip, { passive: true });
 
 /* ---- government ---- */
-const nGov = $("nGov"), nEcon = $("nEcon"), nEmpire = $("nEmpire"), nArmy = $("nArmy"), nMaxSat = $("nMaxSat");
+const nGov = $("nGov"), nEcon = $("nEcon"), nEmpire = $("nEmpire"), nArmy = $("nArmy"), nMaxSat = $("nMaxSat"), nRegion = $("nRegion");
 nGov.innerHTML = Object.keys(GOVS).map(g => `<option>${g}</option>`).join("");
 nEcon.innerHTML = Object.keys(ECONOMIES).map(g => `<option>${g}</option>`).join("");
 function fillGov() {
@@ -1711,15 +1724,24 @@ function fillGov() {
   nEmpire.value = current.empire || 1;
   nArmy.value = current.army || 0;
   nMaxSat.checked = !!current.maxSat;
+  // a region the list doesn't know (the API has a few) still shows as itself
+  const r = regionOf(current);
+  nRegion.innerHTML = ["", ...REGIONS, ...(r && !REGIONS.includes(r) ? [r] : [])]
+    .map(x => `<option value="${esc(x)}">${x ? esc(x) : "Not set"}</option>`).join("");
+  nRegion.value = r;
 }
 const govInput = () => {
   current.gov = nGov.value; current.econ = nEcon.value;
   current.empire = Math.max(1, Math.floor(+nEmpire.value || 1));
   current.army = Math.max(0, Math.floor(+nArmy.value || 0));
   current.maxSat = nMaxSat.checked;
+  if (nRegion.value !== regionOf(current)) {
+    current.region = nRegion.value;
+    if (current.region) current.prze = current.region === "Przewalskia";
+  }
   saveNations(); renderNation();
 };
-for (const el of [nGov, nEcon, nEmpire, nArmy, nMaxSat]) el.addEventListener(el.type === "number" ? "input" : "change", govInput);
+for (const el of [nGov, nEcon, nEmpire, nArmy, nMaxSat, nRegion]) el.addEventListener(el.type === "number" ? "input" : "change", govInput);
 
 nName.addEventListener("input", () => { current.name = nName.value; saveNations(); document.title = nationName(current) + " · CLOP Build Planner"; });
 nHas.addEventListener("input", () => { current.has = nHas.value; saveNations(); renderNation(); });
@@ -2194,7 +2216,7 @@ function writeNation(w, n) {
   w.str(nationName(n));
   w.bytes.push(...[1, 3, 5].map(i => parseInt(col.slice(i, i + 2), 16)));
   w.u(Math.max(0, CODE_GOVS.indexOf(n.gov))).u(Math.max(0, CODE_ECONS.indexOf(n.econ)))
-   .u(n.empire || 1).u(n.army || 0).u((n.maxSat ? 1 : 0) | (n.prze ? 2 : 0))
+   .u(n.empire || 1).u(n.army || 0).u((n.maxSat ? 1 : 0) | (n.prze ? 2 : 0) | (REGIONS.indexOf(n.region) + 1) << 2)
    .counts(has.counts).counts(has.off);
   const plans = n.plans || [];
   w.u(plans.length); plans.forEach(pl => writePlan(w, pl, has));
@@ -2209,7 +2231,7 @@ function readNation(r) {
   const counts = r.counts(), off = r.counts();
   const plans = []; for (let k = r.u(); k > 0; k--) plans.push(readPlan(r));
   const used = r.u();
-  const n = { id: newId(), name, color, gov, econ, empire, army, maxSat: !!(flags & 1), prze: !!(flags & 2),
+  const n = { id: newId(), name, color, gov, econ, empire, army, maxSat: !!(flags & 1), prze: !!(flags & 2), region: REGIONS[(flags >> 2) - 1] || "",
               has: columnOf(counts, off), plans };
   if (used === 1) n.usePlan = ""; else if (used >= 2 && plans[used - 2]) n.usePlan = plans[used - 2].id;
   return n;
@@ -2319,8 +2341,9 @@ function blocPrep(n, opt) {
   const gov = GOVS[n.gov] || GOVS[DEFAULT_GOV];
   const mult = gov.gdp[n.maxSat ? 1 : 0];
   const envCut = 0.9 ** (H("Lunar Environmental Facility") + H("Solar Environmental Facility"));
-  // a building it may change: allowed, and the Przewalskian factory only in Przewalskia
-  const free = b => opt.allowed.has(b) && (b !== "Przewalskian Plastics Factory" || n.prze);
+  // a building it may change: allowed, and one its region's land can make. Any it has that
+  // its region can't make stay as they are
+  const free = b => opt.allowed.has(b) && canBuild(n, b);
   const opts = BLOC_BUILDINGS.filter(free);
   // the ones it can't change run as they are now
   const fixedCounts = new Map(), fixedOff = new Map();
@@ -2885,7 +2908,7 @@ function apiUpsert(list) {
     const old = n ? parseHas(n.has || "").off : new Map();
     const off = new Map([...old].filter(([b]) => counts.get(b)).map(([b, o]) => [b, Math.min(o, counts.get(b))]));
     const fields = { name: String(nat.name || `Nation ${nat.nation_id}`), has: columnOf(counts, off),
-                     gov: nat.government, econ: nat.economy, prze: nat.region_name === "Przewalskia",
+                     gov: nat.government, econ: nat.economy, region: String(nat.region_name || ""), prze: nat.region_name === "Przewalskia",
                      empire: owned.get(nat.user_id) || 1, apiId: nat.nation_id, player: String(nat.username || "") };
     if (n) { Object.assign(n, fields); updated.push(n); continue; }
     const mate = nations.find(x => x.player && x.player === fields.player);
@@ -2983,6 +3006,8 @@ function allyNow() {
   return now;
 }
 
+// the sat a nation loses to its empire's size, which no building can win back
+const empireSat = m => { const e = m.sat.find(p => p[0].startsWith("Empire of")); return e ? e[2] : 0; };
 function renderAlliance() {
   if (views.alliance.hidden) return;
   $("alBudget").value = ally.budgetAll;
@@ -2999,15 +3024,18 @@ function renderAlliance() {
     const diff = s ? planDiff(h, { counts: s.counts, off: s.off }).length : 0;
     return `<tr class="${on ? "" : "off"}"><td><input type="checkbox" data-in="${esc(n.id)}"${on ? " checked" : ""} aria-label="Include ${esc(nationName(n))}"></td>`
       + `<td><a class="al-name" data-open="${esc(n.id)}"><i class="ov-dot" style="background:${isColour(n.color) ? n.color : MANILA}"></i>${esc(nationName(n))}</a>`
-      + (n.player ? `<span class="al-who">${esc(n.player)}</span>` : "") + "</td>"
+      + (n.player || regionOf(n) ? `<span class="al-who">${esc([n.player, regionOf(n)].filter(Boolean).join(" · "))}</span>` : "") + "</td>"
       + `<td><input type="text" data-bud="${esc(n.id)}" value="${esc(ally.budget[n.id] || "")}" placeholder="${esc(shortBits(budgetOf(n)))}" spellcheck="false" autocomplete="off" aria-label="Budget for ${esc(nationName(n))}"></td>`
+      + `<td class="${empireSat(m) ? "neg" : "zero"}" title="${empireSat(m) ? `An empire of ${fmt(n.empire)} nations` : "No empire to pay for"}">${empireSat(m) ? signed(empireSat(m)) : "—"}</td>`
       + `<td class="${cls(m.satTotal).trim()}">${signed(m.satTotal)}</td>`
       + (s ? `<td class="${cls(s.model.satTotal).trim()}">${signed(s.model.satTotal)}</td><td>${s.cost.bits ? shortBits(s.cost.bits) : "—"}</td><td>${diff || "—"}</td>`
            : "<td></td><td></td><td></td>") + "</tr>";
   }).join("");
-  $("alNations").innerHTML = `<thead><tr><th></th><th>Nation</th><th>Budget</th><th>Sat</th><th>After</th><th>Cost</th><th>Changes</th></tr></thead><tbody>${rows}</tbody>`;
+  $("alNations").innerHTML = `<thead><tr><th></th><th>Nation</th><th>Budget</th><th title="Sat a tick lost to the empire's size, already in Sat">Empire</th><th>Sat</th><th>After</th><th>Cost</th><th>Changes</th></tr></thead><tbody>${rows}</tbody>`;
+  const noRegion = inAlliance().filter(n => !regionOf(n)).length;
   $("alNationsHint").textContent = nations.length
     ? `${inAlliance().length} of ${many(nations.length, "envelope")} in the alliance. A blank budget is the one up top.`
+      + (noRegion ? ` ${many(noRegion, "nation")} ${noRegion === 1 ? "has" : "have"} no region set, so may mine, farm or drill anything: set it in the envelope, or Refresh all.` : "")
     : "No envelopes yet. Add players above, or make some on the Planner tab.";
 
   // the nets: what to raise, by how much it counts, the least it may fall to
