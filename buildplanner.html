@@ -328,7 +328,7 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
   display:flex;flex-direction:column;gap:1px;min-width:0;
 }
 .env-name{font:700 14px/1.2 var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.env-sub{font:11px/1.2 var(--font);color:#7a7060}
+.env-sub{font:11px/1.2 var(--font);color:#7a7060;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* the empty slot that makes a new one */
 .env-new{background:none;box-shadow:none;border:2px dashed var(--text-dim);color:var(--text-dim);opacity:.75;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
@@ -619,6 +619,61 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
 .mx-tbl td + td{text-align:right;font:12.5px var(--mono);color:var(--strong);font-variant-numeric:tabular-nums}
 .mx-chart{position:relative;height:280px}
 .badge-danger{background-image:linear-gradient(to bottom,var(--btn-danger-a),var(--btn-danger-b));color:var(--btn-ink);text-shadow:var(--btn-shadow)}
+
+/* ---------- Alliance: players from 4clop, and every envelope's nets raised together ---------- */
+.al-panel{margin-bottom:14px}
+.al-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.al-in,.al-tbl input:not([type=checkbox]),.al-opts input[type=number]{background:var(--input-bg);color:var(--input-ink);border:1px solid var(--border-soft);
+  border-radius:3px;padding:4px 7px;font:13px var(--font)}
+.al-in{flex:1 1 220px;min-width:0}
+.al-row select{font-size:13px;padding:4px 4px;max-width:260px}
+:is(.al-in,.al-tbl input,.al-opts input):focus{outline:2px solid var(--accent);outline-offset:-1px}
+.api-age{cursor:pointer;font-family:var(--font)}
+.api-age.busy{opacity:.6;cursor:progress}
+.api-age.bad{background-image:linear-gradient(to bottom,var(--btn-danger-a),var(--btn-danger-b));color:var(--btn-ink);text-shadow:var(--btn-shadow)}
+.al-note{margin:8px 0 0}
+.al-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start;margin-bottom:14px}
+@media (max-width:1180px){.al-grid{grid-template-columns:minmax(0,1fr)}}
+.al-scroll{overflow-x:auto}
+.al-tbl{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}
+.al-tbl th{font:600 10.5px var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);text-align:right;padding:0 0 6px 10px;white-space:nowrap}
+.al-tbl td{padding:3px 0 3px 10px;text-align:right;font-family:var(--mono);color:var(--strong);white-space:nowrap}
+.al-tbl tr > :first-child{padding-left:0;text-align:center;width:22px}
+.al-tbl tr > :nth-child(2){text-align:left;font-family:var(--font)}
+.al-tbl tbody tr + tr td{border-top:1px solid var(--border-soft)}
+.al-tbl td.pos{color:var(--pos)}
+.al-tbl td.neg{color:var(--neg)}
+.al-tbl td.zero{color:var(--text-dim)}
+.al-tbl td.stale{opacity:.45}
+.al-tbl tr.off td:not(:first-child){opacity:.45}
+.al-tbl input:not([type=checkbox]){width:7.5em;padding:2px 5px;font:12px var(--mono);text-align:right}
+.al-tbl input.w{width:4.5em}
+.al-tbl input:disabled{opacity:.4}
+.al-tbl input::placeholder{color:color-mix(in srgb,var(--input-ink) 45%,transparent)}
+.al-name{display:inline-flex;align-items:center;gap:7px;font-weight:600;color:var(--res,var(--strong))}
+.al-name img{width:16px;height:16px;image-rendering:pixelated}
+.al-tbl a.al-name{text-decoration:none;cursor:pointer}
+.al-tbl a.al-name:hover{text-decoration:underline}
+.al-who{display:block;font-size:11px;font-weight:400;color:var(--text-dim)}
+.al-hint{font-size:12px;color:var(--text-dim);margin:10px 0 0}
+.al-opts{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;font-size:12px;color:var(--text-dim)}
+.al-opts label{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;cursor:pointer}
+.al-opts input[type=number]{width:5.5em;padding:2px 5px;font:12px var(--mono)}
+.al-opts input.al-bud{width:7.5em;padding:2px 5px;font:12px var(--mono);background:var(--input-bg);color:var(--input-ink);border:1px solid var(--border-soft);border-radius:3px}
+.al-builds{margin-top:12px;font-size:12px}
+.al-builds summary{cursor:pointer;color:var(--text-dim);font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-size:10.5px}
+.al-builds summary:hover{color:var(--strong)}
+.al-bgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:2px 14px;padding:8px 2px 0}
+.al-bgrid label{display:flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.al-bgrid label span{font-weight:600;color:var(--res,var(--text))}
+:is([data-theme="white"],[data-theme="applejack"],[data-theme="rainbow"]) :is(.al-bgrid label span,.al-name){color:color-mix(in srgb,var(--res,var(--text-dim)) 58%,#000)}
+.al-go{font-size:14px;padding:6px 18px}
+.al-go:disabled{opacity:.6;cursor:progress}
+.al-out .stats{margin-bottom:12px}
+.al-warn{color:var(--neg);font-size:12.5px;margin:0 0 12px}
+.al-warn li{margin:2px 0}
+.al-save{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:6px}
+.al-save .has-note{margin:0}
 </style>
 <script>
 /* the theme goes on before anything paints. Same list and key as Warcalc */
@@ -653,6 +708,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
     cx="12" cy="12" r="3"/></svg></button></span>
   <button class="tab active" type="button" data-view="buildings">Buildings</button>
   <button class="tab" type="button" data-view="planner">Planner</button>
+  <button class="tab" type="button" data-view="alliance">Alliance</button>
   <button class="tab" type="button" data-view="mine">Mine mix</button>
   <button class="tab" type="button" data-view="wells">Well mix</button>
 </div>
@@ -841,6 +897,68 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
   </div>
 </div>
 
+<div id="viewAlliance" hidden>
+  <section class="panel al-panel">
+    <div class="panel-head">
+      <h2>Players</h2>
+      <span class="spacer"></span>
+      <button id="apiAge" class="badge api-age" type="button" title="Fetch the nations from 4clop.org again">Not fetched</button>
+    </div>
+    <div class="al-row">
+      <input id="apiWho" class="al-in" type="text" list="apiNames" spellcheck="false" autocomplete="off"
+        placeholder="Player names, commas between" aria-label="Player names">
+      <datalist id="apiNames"></datalist>
+      <button id="apiAdd" class="btn btn-success" type="button">Add players</button>
+      <select id="apiAlly" aria-label="Add every nation in an alliance"><option value="">Or a whole alliance…</option></select>
+      <button id="apiRefresh" class="btn" type="button" title="Fetch every envelope that came from 4clop again: its buildings, government and economy">Refresh all</button>
+    </div>
+    <p id="apiNote" class="has-note al-note" hidden></p>
+  </section>
+
+  <div class="al-grid">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Nations</h2>
+        <span class="spacer"></span>
+        <span class="al-opts">
+          <label title="What each nation may spend on new buildings, unless it has its own below. 10 mil, 2.5b, 750k…">Budget each
+            <input id="alBudget" class="al-bud" type="text" spellcheck="false" autocomplete="off"></label>
+          <label title="One purse for the whole alliance: the budgets added up, spent wherever they do the most"><input id="alPool" type="checkbox"> Pool</label>
+        </span>
+      </div>
+      <div class="al-scroll"><table class="al-tbl" id="alNations"></table></div>
+      <p class="al-hint" id="alNationsHint"></p>
+    </section>
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Nets</h2>
+        <span class="spacer"></span>
+        <button id="alGo" class="btn btn-success al-go" type="button">Optimise</button>
+      </div>
+      <div class="al-scroll"><table class="al-tbl" id="alRes"></table></div>
+      <p class="al-hint">Ticked nets are raised, each counted by its weight. A blank minimum holds a ticked net
+        where it is now, keeps an unticked one out of the red, and never lets GDP drop.
+        Now and Planned are the planner's own sums, with everything built switched on.</p>
+    </section>
+  </div>
+
+  <section class="panel al-panel">
+    <div class="panel-head"><h2>Limits</h2></div>
+    <div class="al-opts">
+      <label title="No nation's sat a tick may end below this. One already under it may not get worse">Sat at least
+        <input id="alSat" type="number" step="1"></label>
+      <label title="Each nation's Solar Empire and New Lunar Republic relations a tick stay at 0 or more, or no worse than now if they're already under"><input id="alRel" type="checkbox"> Hold relations</label>
+      <label title="Let it knock down buildings it would rather not keep. Off, whatever isn't wanted stays standing, switched off, at a sat each"><input id="alTear" type="checkbox"> Allow tearing down</label>
+    </div>
+    <details class="al-builds">
+      <summary id="alBuildsSum">Buildings it may use</summary>
+      <div class="al-bgrid" id="alBuilds"></div>
+    </details>
+  </section>
+
+  <div id="alOut" class="al-out" hidden></div>
+</div>
+
 <div id="viewMine" hidden>
   <section class="panel mx-in">
     <div class="mx-fields">
@@ -981,7 +1099,8 @@ const ALIASES = {
   "toy & candy shop": "Toy and Candy Shop",
   // the energy collector goes by what it collects; both kinds share the one row
   "solar collector": "Energy Collector",
-  "tidal collector": "Energy Collector"
+  "tidal collector": "Energy Collector",
+  "tidal generator": "Energy Collector"
 };
 const norm = s => s.trim().replace(/\s+/g, " ").toLowerCase();
 const KNOWN = new Map();
@@ -1326,7 +1445,7 @@ function renderGrid() {
     const total = sumMap(parseHas(n.has || "").counts);
     return `<button class="env" type="button" data-id="${esc(n.id)}" style="--env:${isColour(n.color) ? n.color : MANILA}">`
          + `<span class="env-label"><span class="env-name">${esc(nationName(n))}</span>`
-         + `<span class="env-sub">${fmt(total)} building${total === 1 ? "" : "s"}</span></span></button>`;
+         + `<span class="env-sub">${n.player ? esc(n.player) + " · " : ""}${fmt(total)} building${total === 1 ? "" : "s"}</span></span></button>`;
   }).join("") + `<button class="env env-new" type="button" id="envNew" title="New nation"><b>+</b><span>New nation</span></button>`;
   renderOverall();
 }
@@ -2161,6 +2280,939 @@ $("nShare").addEventListener("click", () => copyText(nationsCode([current])));
 $("plCopyAll").addEventListener("click", () => (current.plans || []).length && copyText(plansCode(current, current.plans)));
 $("pShare").addEventListener("click", () => copyText(plansCode(current, [plan])));
 
+/* ===================== Alliance =====================
+   The envelopes as one alliance pooling what it makes: every nation gets a
+   building plan, and together they raise the alliance's nets as far as the
+   budget and each nation's sat allow, with no net falling under its minimum.
+
+   It is a linear programme. Each nation's count of each building is split into
+   stretches: the ones it already has cost nothing to keep running, more cost
+   their bits, and past a building's soft cap each stretch carries the chord of
+   its pollution curve, which only gets steeper, so the solver always fills them
+   in order. Upgrades (a mechanised mine on top of a basic one) can also be
+   built by converting buildings already there. The solver's answer is then
+   rounded and checked against the planner's own sums, nudged one building at a
+   time until every limit holds, and topped up while a building still fits */
+
+// the ones it never touches: environmental facilities scale every other
+// building's pollution, and the rest make things the planner doesn't count
+const BLOC_FIXED = new Set(["Lunar Environmental Facility", "Solar Environmental Facility", "DNA Extraction Facility",
+                            "Barracks", "Alicornification Facility"]);
+const BLOC_BUILDINGS = LAYOUT.filter(e => e && BUILD[e[0]] && !BLOC_FIXED.has(e[0])).map(e => e[0]);
+// what a working building does for GDP (thousands of bits, before the government's
+// multiplier) and for relations with the Solar Empire and the New Lunar Republic
+const BLOC_GDP = { "Mall": 250, "Basic Factory": 10, "Advanced Factory": 20 };
+const BLOC_REL = { "Drug Farm": [-1, -1], "Forbidden Research Facility": [-15, -15],
+                   "Sun Worship Center": [1, 0], "Moon Worship Center": [0, 1] };
+// every net the alliance can aim at: the resources, then GDP
+const BLOC_KEYS = [...PLAN_RES.map(r => r[0]), "gdp"];
+const UPGRADES = Object.entries(BUILD).filter(([, b]) => b.from).map(([u, b]) => [b.from, u]);
+const buildBits = (name, prze) => { const b = BUILD[name].bits; return Array.isArray(b) ? b[prze ? 1 : 0] : b; };
+
+const modelNet = (m, k) => k === "gdp" ? m.gdp : m.res[k] ? m.res[k].made - m.res[k].used : 0;
+
+/* everything about one nation that the optimiser needs, before any choice is made.
+   opt: { teardown, allowed: Set, budget (bits), relations, satFloor } */
+function blocPrep(n, opt) {
+  const has = parseHas(n.has || "");
+  const H = b => has.counts.get(b) || 0;
+  const gov = GOVS[n.gov] || GOVS[DEFAULT_GOV];
+  const mult = gov.gdp[n.maxSat ? 1 : 0];
+  const envCut = 0.9 ** (H("Lunar Environmental Facility") + H("Solar Environmental Facility"));
+  // a building it may change: allowed, and the Przewalskian factory only in Przewalskia
+  const free = b => opt.allowed.has(b) && (b !== "Przewalskian Plastics Factory" || n.prze);
+  const opts = BLOC_BUILDINGS.filter(free);
+  // the ones it can't change run as they are now
+  const fixedCounts = new Map(), fixedOff = new Map();
+  for (const [b, c] of has.counts) if (!opts.includes(b)) { fixedCounts.set(b, c); if (has.off.get(b)) fixedOff.set(b, has.off.get(b)); }
+  const now = nationModel(n, has.counts, has.off);
+  // what one more working building adds to each net: the nets move in step with the
+  // working counts, so a change can be scored before the exact sums are run
+  const unit = new Map(opts.map(b => [b, BLOC_KEYS.map(k => k === "gdp" ? (BLOC_GDP[b] || 0) * mult : (TICK[b] || {})[k] || 0)]));
+  return { n, has, H, mult, envCut, opts, unit, fixedCounts, fixedOff, now, prze: !!n.prze,
+           satFloor: Math.min(opt.satFloor, now.satTotal),
+           seFloor: Math.min(0, now.seTotal), nlrFloor: Math.min(0, now.nlrTotal) };
+}
+
+// the nation a set of working counts leaves: totals, what's left switched off,
+// its model and the bill. Without tearing down, everything it has stays standing
+// (switched off if it isn't working) unless an upgrade was built on top of it
+function blocApply(P, work, teardown) {
+  const counts = new Map(P.fixedCounts), off = new Map(P.fixedOff);
+  const total = new Map();
+  for (const b of P.opts) total.set(b, teardown ? work.get(b) || 0 : Math.max(work.get(b) || 0, P.H(b)));
+  for (const [a, u] of UPGRADES) {
+    if (!total.has(a)) continue;
+    const newU = total.has(u) ? Math.max(0, total.get(u) - P.H(u)) : 0;
+    if (!teardown) total.set(a, Math.max(work.get(a) || 0, P.H(a) - newU));
+  }
+  for (const [b, t] of total) {
+    if (t) counts.set(b, t);
+    const o = t - (work.get(b) || 0);
+    if (o) off.set(b, o);
+  }
+  const model = nationModel(P.n, counts, off), cost = planCost(P.has.counts, counts, P.prze);
+  return { counts, off, model, cost };
+}
+
+/* the linear programme for every nation at once.
+   goal: { [key]: { max, w, min } } with min already resolved to a number or null */
+function blocLP(preps, goal, opt) {
+  const rows = [], b = [], cols = [];
+  const row = (label, rhs) => { rows.push(label); b.push(rhs); return rows.length - 1; };
+  // the alliance's nets: Σ coef·x ≥ min − constant, written as −Σ coef·x ≤ constant − min
+  const constNet = {};
+  const fixedModels = preps.map(P => nationModel(P.n, P.fixedCounts, P.fixedOff));
+  for (const k of BLOC_KEYS) constNet[k] = fixedModels.reduce((t, m) => t + modelNet(m, k), 0);
+  const netRow = {};
+  for (const k of BLOC_KEYS) if (goal[k].min != null) netRow[k] = row({ kind: "net", k }, constNet[k] - goal[k].min);
+  const pooled = opt.pool ? row({ kind: "pool" }, preps.reduce((t, P) => t + P.budget, 0)) : -1;
+
+  const meta = [];                                  // what each column is
+  preps.forEach((P, pi) => {
+    const fm = fixedModels[pi];
+    const teardown = opt.teardown;
+    // sat: Σ coef·x ≥ floor − constant. Without tearing down, every building it has starts out
+    // counted as switched off (−1 each) and each one kept running gives that back
+    let satConst = fm.satTotal;
+    if (!teardown) for (const bd of P.opts) satConst -= P.H(bd);
+    const satRow = row({ kind: "sat", pi }, satConst - P.satFloor);
+    const budRow = opt.pool ? pooled : row({ kind: "bits", pi }, P.budget);
+    const relRows = opt.relations && P.opts.some(bd => BLOC_REL[bd])
+      ? [row({ kind: "se", pi }, fm.seTotal - P.seFloor), row({ kind: "nlr", pi }, fm.nlrTotal - P.nlrFloor)] : null;
+    const conv = {};                                // upgrade pairs it could convert, keyed by base and upgrade
+    for (const [a, u] of UPGRADES) if (P.opts.includes(a) && P.opts.includes(u) && P.H(a))
+      conv[a] = conv[u] = { a, u, ra: row({ kind: "conva", pi, a }, P.H(a)), ru: row({ kind: "convu", pi, u }, 0) };
+    const cap = opt.pool ? opt.poolBudget : P.budget;
+    // the most sat the nation could ever put toward one building: all it moves now, either
+    // way, and a generous 100 a tick for every million spent on shops
+    const satRoom = P.now.sat.reduce((t, p) => t + Math.abs(p[2]), 0) + cap / 1e4 + 100;
+
+    for (const bd of P.opts) {
+      const tick = TICK[bd] || {}, s = SAT[bd], h = P.H(bd);
+      const fresh = buildBits(bd, P.prze) + (BUILD[bd].from ? buildBits(BUILD[bd].from, P.prze) : 0);
+      const per = s ? s[0] : 0, sc = s && s[1] != null ? s[1] : null, div = s && s[2];
+      // no more than the budget buys, nor more than that sat could keep running
+      const satMax = Math.min(per < 0 ? Math.ceil(satRoom / -per) : Infinity,
+                              sc != null ? sc + Math.ceil(Math.sqrt(satRoom * div / P.envCut)) + 1 : Infinity);
+      const maxC = Math.min(h + Math.floor(cap / fresh), Math.max(h, satMax));
+      const pol = c => sc == null || c <= sc ? 0 : Math.ceil((c - sc) ** 2 / div) * P.envCut;
+      // breakpoints: none, what it has, the soft cap, then ever wider steps past it
+      const pts = new Set([0, h, maxC]);
+      if (sc != null && sc < maxC) { pts.add(sc); for (let d = 1; sc + d < maxC; d += Math.max(1, Math.floor(d / 4))) pts.add(sc + d); }
+      const ps = [...pts].filter(p => p <= maxC).sort((x, y) => x - y);
+      const val = {};
+      for (const k of BLOC_KEYS) {
+        const v = k === "gdp" ? (BLOC_GDP[bd] || 0) * P.mult : tick[k] || 0;
+        if (v) val[k] = v;
+      }
+      let obj = 0;
+      for (const [k, v] of Object.entries(val)) if (goal[k].max) obj += goal[k].w * v;
+      for (let i = 1; i < ps.length; i++) {
+        const lo = ps[i - 1], hi = ps[i], width = hi - lo;
+        const old = hi <= h;
+        const idx = [], vals = [];
+        const put = (r, v) => { if (v) { idx.push(r); vals.push(v); } };
+        for (const [k, v] of Object.entries(val)) if (netRow[k] != null) put(netRow[k], -v);
+        put(satRow, -(per - (pol(hi) - pol(lo)) / width + (old && !teardown ? 1 : 0)));
+        if (!old) put(budRow, fresh);
+        if (relRows && BLOC_REL[bd]) { put(relRows[0], -BLOC_REL[bd][0]); put(relRows[1], -BLOC_REL[bd][1]); }
+        const cv = conv[bd];
+        if (cv && cv.a === bd && old) put(cv.ra, 1);
+        if (cv && cv.u === bd && !old) put(cv.ru, -1);
+        // a hair of preference for keeping what's there and for the cheaper of two equals
+        cols.push({ c: obj + (old ? 1e-6 : -1e-9 * fresh), ub: width, idx, val: vals, start: old ? 1 : 0 });
+        meta.push({ pi, bd });
+      }
+    }
+    // converting one it has: the upgrade's own column paid for a base too, so this gives that back
+    for (const cv of new Set(Object.values(conv))) {
+      const idx = [budRow, cv.ra, cv.ru], vals = [-buildBits(cv.a, P.prze), 1, 1];
+      if (!teardown) { idx.push(satRow); vals.push(-1); }
+      cols.push({ c: 0, ub: P.H(cv.a), idx, val: vals, start: 0 });
+      meta.push({ pi, conv: cv });
+    }
+  });
+  return { lp: { m: rows.length, b, cols }, rows, meta };
+}
+
+// the solver runs off the page's own thread where the host allows it, so a big alliance
+// doesn't freeze the tab; where it doesn't, it runs here
+let lpWorker;
+function lpSolve(lp) {
+  return new Promise(resolve => {
+    if (lpWorker === undefined) {
+      try {
+        const src = `const lpMax = ${lpMax};\nonmessage = e => postMessage(lpMax(e.data));`;
+        lpWorker = new Worker(URL.createObjectURL(new Blob([src], { type: "text/javascript" })));
+      } catch (e) { lpWorker = null; }
+    }
+    if (!lpWorker) { resolve(lpMax(lp)); return; }
+    const done = r => { if (lpWorker) lpWorker.onmessage = lpWorker.onerror = null; resolve(r); };
+    lpWorker.onmessage = e => done(e.data);
+    lpWorker.onerror = e => { e.preventDefault(); lpWorker.terminate(); lpWorker = null; done(lpMax(lp)); };
+    lpWorker.postMessage(lp);
+  });
+}
+
+/* the whole run: solve, round, repair, top up. Returns per-nation results and the
+   alliance's nets before and after, or { error } */
+async function blocSolve(nations, goalIn, opt) {
+  const preps = nations.map(n => Object.assign(blocPrep(n, opt), { budget: Math.max(0, opt.budgetOf(n)) }));
+  opt.poolBudget = preps.reduce((t, P) => t + P.budget, 0);
+  const nowNet = {};
+  for (const k of BLOC_KEYS) nowNet[k] = preps.reduce((t, P) => t + modelNet(P.now, k), 0);
+  // a blank minimum holds a ticked net where it is and keeps an unticked one out of the red;
+  // GDP, ticked or not, never drops
+  const goal = {};
+  for (const k of BLOC_KEYS) {
+    const g = goalIn[k] || {};
+    const auto = g.max || k === "gdp" ? nowNet[k] : Math.min(0, nowNet[k]);
+    goal[k] = { max: !!g.max, w: Number.isFinite(g.w) ? g.w : 1, min: Number.isFinite(g.min) ? g.min : auto };
+  }
+  // whole buildings can fall a little short of what the solver planned in fractions; when they
+  // leave a net under its minimum, the solver goes again aiming that much higher. Only when
+  // that runs out does a nation get put back as it is now
+  const aim = JSON.parse(JSON.stringify(goal));
+  let last = null, lastSol = null;
+  for (let round = 0; round < 4; round++) {
+    const { lp, rows, meta } = blocLP(preps, aim, opt);
+    const sol = await lpSolve(lp);
+    if (sol.status !== "optimal") {
+      if (!last) return { error: sol.status, short: (sol.short || []).map(i => rows[i]), preps, goal, nowNet };
+      // aimed past what can be had: halve the extra and try again
+      for (const k of BLOC_KEYS) aim[k].min = goal[k].min + Math.floor((aim[k].min - goal[k].min) / 2);
+      continue;
+    }
+    const r = blocRound(preps, goal, opt, sol, meta, false);
+    if (!last || r.hard < last.hard - 1e-9 || (r.hard <= last.hard + 1e-9 && (r.ally < last.ally - 1e-9 || (r.ally <= last.ally + 1e-9 && r.obj > last.obj)))) { last = r; lastSol = [sol, meta]; }
+    if (r.hard > 1e-9 || r.ally < 1e-9) break;
+    for (const k of BLOC_KEYS) { const d = goal[k].min - r.net[k]; if (d > 0) aim[k].min += d + 1; }
+  }
+  if (last.hard < 1e-9 && last.ally > 1e-9) last = blocRound(preps, goal, opt, lastSol[0], lastSol[1], true);
+  return Object.assign(last, { preps, goal, nowNet, objNow: blocScore(goal, nowNet) });
+}
+const blocScore = (goal, nets) => BLOC_KEYS.reduce((t, k) => t + (goal[k].max ? goal[k].w * nets[k] : 0), 0);
+
+// the solver's fractions to whole buildings: round down, mend what that broke, then add
+// what still fits. A nation's own limits (sat, relations, its budget) are never traded away
+// for the alliance's; the alliance's minimums are mended only by moves that keep them.
+// Every move is scored from the nets first, which is cheap, and only the best few are
+// put through the planner's exact sums for sat and cost
+function blocRound(preps, goal, opt, sol, meta, revert) {
+  const K = BLOC_KEYS.length;
+  const mins = BLOC_KEYS.map(k => goal[k].min), wts = BLOC_KEYS.map(k => goal[k].max ? goal[k].w : 0);
+  const work = preps.map(() => new Map());
+  meta.forEach((mt, j) => { if (mt.bd) { const w = work[mt.pi]; w.set(mt.bd, (w.get(mt.bd) || 0) + sol.x[j]); } });
+  // the ones rounded down are the first a nation looks at to mend itself
+  const roundedDown = preps.map(() => []);
+  work.forEach((w, i) => { for (const [bd, v] of w) { const f = Math.floor(v + 1e-6); if (v - f > 1e-6) roundedDown[i].push(bd); w.set(bd, f); } });
+
+  const state = preps.map((P, i) => blocApply(P, work[i], opt.teardown));
+  const net = BLOC_KEYS.map(k => state.reduce((t, s) => t + modelNet(s.model, k), 0));
+  const allyOf = nets => { let t = 0; for (let k = 0; k < K; k++) if (nets[k] < mins[k]) t += mins[k] - nets[k]; return t; };
+  const scoreOf = nets => { let t = 0; for (let k = 0; k < K; k++) t += wts[k] * nets[k]; return t; };
+  // how far a nation is from its own limits
+  const nationShort = (P, s) => Math.max(0, P.satFloor - s.model.satTotal)
+    + (opt.relations ? Math.max(0, P.seFloor - s.model.seTotal) + Math.max(0, P.nlrFloor - s.model.nlrTotal) : 0)
+    + (opt.pool ? 0 : Math.max(0, s.cost.bits - P.budget) / 1e5);
+  const poolOver = bits => opt.pool ? Math.max(0, bits - opt.poolBudget) / 1e5 : 0;
+  // each nation's own shortfall is kept, so a move only re-sums the nation it touches
+  const own = preps.map((P, j) => nationShort(P, state[j]));
+  let ownSum = own.reduce((a, v) => a + v, 0), bitsSum = state.reduce((t, s) => t + s.cost.bits, 0);
+  const hardNow = () => ownSum + poolOver(bitsSum);
+
+  // a move: nation i's working counts become w2. Its nets come from the per-building
+  // amounts; exact() runs the planner's sums for sat and cost
+  const move = (i, w2) => {
+    const P = preps[i], w = work[i], nets2 = net.slice();
+    for (const bd of P.opts) {
+      const d = (w2.get(bd) || 0) - (w.get(bd) || 0);
+      if (d) { const u = P.unit.get(bd); for (let k = 0; k < K; k++) nets2[k] += d * u[k]; }
+    }
+    return { i, w2, nets2, ally: allyOf(nets2), score: scoreOf(nets2) };
+  };
+  const step = (i, changes) => {
+    const w2 = new Map(work[i]);
+    for (const [bd, d] of changes) { const v = (w2.get(bd) || 0) + d; if (v < 0) return null; w2.set(bd, v); }
+    return move(i, w2);
+  };
+  const exact = t => {
+    if (t.s2) return t;
+    const P = preps[t.i];
+    t.s2 = blocApply(P, t.w2, opt.teardown);
+    t.own2 = nationShort(P, t.s2);
+    t.bits2 = bitsSum - state[t.i].cost.bits + t.s2.cost.bits;
+    t.hard = ownSum - own[t.i] + t.own2 + poolOver(t.bits2);
+    return t;
+  };
+  const take = t => {
+    exact(t);
+    work[t.i] = t.w2; state[t.i] = t.s2; for (let k = 0; k < K; k++) net[k] = t.nets2[k];
+    ownSum += t.own2 - own[t.i]; own[t.i] = t.own2; bitsSum = t.bits2;
+  };
+  // a quick look before the exact sums: a building it would have to put up needs at least
+  // its own price left in the budget, and one more can't cost less sat than its base
+  const mayFit = (i, bd, d) => {
+    const P = preps[i], s = state[i], w = work[i].get(bd) || 0, sat = SAT[bd], per = sat ? sat[0] : 0;
+    const room = s.model.satTotal - P.satFloor + (!opt.teardown && (d > 0 ? w < P.H(bd) : w <= P.H(bd)) ? d : 0);
+    if (d > 0) {
+      const bits = opt.pool ? opt.poolBudget - bitsSum : P.budget - s.cost.bits;
+      if (w >= P.H(bd) && bits < buildBits(bd, P.prze)) return false;
+      return room + per >= 0;
+    }
+    return room - per >= 0;
+  };
+  const singles = (i, quick) => preps[i].opts.flatMap(bd => [1, -1].map(d => !quick || mayFit(i, bd, d) ? step(i, [[bd, d]]) : null)).filter(Boolean);
+  // the first, in order, that passes the exact sums
+  const firstFit = (cands, ok) => { for (const t of cands) if (ok(exact(t))) return t; return null; };
+  const byAlly = (a, b) => a.ally - b.ally || b.score - a.score;
+
+  // a nation over its own limits mends them first, a building at a time, hurting the alliance
+  // as little as it can. Over the pooled budget, any nation can give something up
+  for (let guard = 0; guard < 5000 && hardNow() > 1e-9; guard++) {
+    const pool = poolOver(bitsSum) > 1e-9;
+    const i = pool ? -1 : own.findIndex(v => v > 1e-9);
+    const mend = list => list.map(exact).filter(t => t.hard < hardNow() - 1e-9).sort((a, b) => a.hard - b.hard || byAlly(a, b))[0];
+    const best = pool ? mend(preps.flatMap((P, j) => singles(j)))
+      : mend(roundedDown[i].map(bd => step(i, [[bd, 1]])).filter(Boolean)) || mend(singles(i));
+    if (!best) break;
+    take(best);
+  }
+  // then the alliance's minimums, by moves that keep every nation inside its own
+  const asNow = i => new Map(preps[i].opts.map(bd => [bd, preps[i].H(bd) - Math.min(preps[i].has.off.get(bd) || 0, preps[i].H(bd))]));
+  const fits = t => t.hard < 1e-9;
+  const mendAlly = () => {
+    for (let guard = 0; hardNow() < 1e-9 && guard < 5000; guard++) {
+      const a = allyOf(net); if (a < 1e-9) return;
+      const better = list => list.filter(t => t && t.ally < a - 1e-9).sort(byAlly);
+      let best = firstFit(better(preps.flatMap((P, i) => singles(i, true))), fits);
+      // one building that helps a short net, paired with another the nation gives up to afford it
+      if (!best) {
+        const short = BLOC_KEYS.map((k, j) => net[j] < mins[j] - 1e-9);
+        const helps = (P, bd, d) => P.unit.get(bd).some((v, j) => short[j] && d * v > 0);
+        const pairs = [];
+        preps.forEach((P, i) => { for (const bd of P.opts) for (const d of [1, -1]) if (helps(P, bd, d))
+          for (const bd2 of P.opts) if (bd2 !== bd) for (const d2 of [1, -1]) pairs.push(step(i, [[bd, d], [bd2, d2]])); });
+        best = firstFit(better(pairs), fits);
+      }
+      // or one building put back as it is now
+      if (!best) best = firstFit(better(preps.flatMap((P, i) => { const now = asNow(i);
+        return P.opts.filter(bd => (work[i].get(bd) || 0) !== now.get(bd)).map(bd => move(i, new Map(work[i]).set(bd, now.get(bd)))); })), fits);
+      if (!best) return;
+      take(best);
+    }
+  };
+  mendAlly();
+  // still short: put whole nations back as they are now, the one that leaves the least
+  // shortfall first, mending after each. Every nation as it is now meets the minimums a
+  // blank box sets, so this always ends somewhere that holds
+  const reverted = new Set();
+  while (revert && hardNow() < 1e-9 && allyOf(net) > 1e-9 && reverted.size < preps.length) {
+    const best = firstFit(preps.map((P, i) => reverted.has(i) ? null : move(i, asNow(i))).filter(Boolean).sort(byAlly), fits);
+    if (!best) break;
+    take(best); reverted.add(best.i);
+    mendAlly();
+  }
+  // top up: any single building more or less that still fits and scores higher, the best
+  // first. A nation nothing changed in is looked at again only once a full pass has gone quiet
+  if (hardNow() < 1e-9 && allyOf(net) < 1e-9) {
+    let dirty = new Set(preps.keys()), full = true;
+    for (let guard = 0; guard < 200 && dirty.size; guard++) {
+      const next = new Set();
+      for (const i of dirty) {
+        const P = preps[i];
+        const gain = (bd, d) => d * P.unit.get(bd).reduce((t, v, k) => t + wts[k] * v, 0);
+        const tries = P.opts.flatMap(bd => [[bd, 1], [bd, -1]]).filter(([bd, d]) => gain(bd, d) > 1e-9)
+          .sort((a, b) => gain(b[0], b[1]) - gain(a[0], a[1]));
+        for (const [bd, d] of tries) for (let g = 0; g < 500; g++) {
+          const t = mayFit(i, bd, d) && step(i, [[bd, d]]);
+          if (!t || t.ally > 1e-9 || !fits(exact(t))) break;
+          take(t); next.add(i);
+        }
+      }
+      if (next.size) { dirty = next; full = false; }
+      else if (!full) { dirty = new Set(preps.keys()); full = true; }
+      else break;
+    }
+  }
+  return { net: Object.fromEntries(BLOC_KEYS.map((k, j) => [k, net[j]])), state, hard: hardNow(), ally: allyOf(net),
+           own: own.slice(), bits: bitsSum, lpObj: sol.obj, iters: sol.iters, obj: scoreOf(net) };
+}
+
+/* Maximise c·x subject to A x ≤ b, 0 ≤ x ≤ ub, by the bounded revised simplex.
+   lp = { m, cols: [{ c, ub, idx: [row…], val: [coef…], start: 0|1 }], b: [m] }
+   start 1 puts a column at its upper bound to begin with, which saves Phase 1
+   most of its work when the caller knows a point close to feasible.
+   Returns { status: "optimal"|"infeasible", x, obj, short: [rows still broken], iters } */
+function lpMax(lp, opts) {
+  const m = lp.m, cols = lp.cols, n = cols.length, b = lp.b;
+  const maxIter = (opts && opts.maxIter) || 200000;
+  const EPS = 1e-9, DTOL = 1e-7, PTOL = 1e-9;
+  const SECTION = Math.max(200, Math.ceil((n + 2 * m) / 32));
+  // variables: 0..n-1 structural, n..n+m-1 slack (+e_i), n+m..n+2m-1 artificial (−e_i)
+  const N = n + 2 * m;
+  const ub = new Float64Array(N), cost = new Float64Array(N);
+  const status = new Uint8Array(N);          // 0 at lower, 1 at upper, 2 basic
+  for (let j = 0; j < n; j++) { ub[j] = cols[j].ub; status[j] = cols[j].start && Number.isFinite(cols[j].ub) ? 1 : 0; }
+  for (let i = 0; i < m; i++) { ub[n + i] = Infinity; ub[n + m + i] = Infinity; }
+  const colOf = j => j < n ? cols[j] : null;
+  const xval = j => status[j] === 1 ? ub[j] : 0;
+
+  // the slack basis, with an artificial wherever the start point breaks a row
+  const r0 = Float64Array.from(b);
+  for (let j = 0; j < n; j++) if (status[j] === 1) { const c = cols[j]; for (let k = 0; k < c.idx.length; k++) r0[c.idx[k]] -= c.val[k] * ub[j]; }
+  const head = new Int32Array(m), xB = new Float64Array(m);
+  let Binv = [];
+  for (let i = 0; i < m; i++) {
+    const row = new Float64Array(m);
+    if (r0[i] >= -EPS) { head[i] = n + i; xB[i] = Math.max(0, r0[i]); row[i] = 1; }
+    else { head[i] = n + m + i; xB[i] = -r0[i]; row[i] = -1; }
+    status[head[i]] = 2;
+    Binv.push(row);
+  }
+  // artificials that never entered stay shut
+  for (let i = 0; i < m; i++) if (head[i] !== n + m + i) ub[n + m + i] = 0;
+
+  // A_j as sparse pairs, with the slack and artificial columns made up on the fly
+  const colIdx = j => j < n ? cols[j].idx : [ (j - n) % m ];
+  const colVal = j => j < n ? cols[j].val : [ j < n + m ? 1 : -1 ];
+
+  const y = new Float64Array(m), alpha = new Float64Array(m), nzIdx = new Int32Array(m);
+  const computeY = () => {
+    y.fill(0);
+    for (let i = 0; i < m; i++) { const cb = cost[head[i]]; if (!cb) continue; const r = Binv[i]; for (let k = 0; k < m; k++) y[k] += cb * r[k]; }
+  };
+  const recomputeXB = () => {
+    const r = Float64Array.from(b);
+    for (let j = 0; j < N; j++) if (status[j] === 1) { const ix = colIdx(j), v = colVal(j); for (let k = 0; k < ix.length; k++) r[ix[k]] -= v[k] * ub[j]; }
+    for (let i = 0; i < m; i++) { let s = 0; const row = Binv[i]; for (let k = 0; k < m; k++) s += row[k] * r[k]; xB[i] = s; }
+  };
+  // Gauss–Jordan on the basis, skipping the zeros a block-shaped basis is mostly made of
+  const reinvert = () => {
+    const B = [];
+    for (let i = 0; i < m; i++) B.push(new Float64Array(m));
+    for (let p = 0; p < m; p++) { const ix = colIdx(head[p]), v = colVal(head[p]); for (let k = 0; k < ix.length; k++) B[ix[k]][p] = v[k]; }
+    const I = []; for (let i = 0; i < m; i++) { const r = new Float64Array(m); r[i] = 1; I.push(r); }
+    const order = new Int32Array(m);              // which row ends up holding each basic column
+    const used = new Uint8Array(m);
+    for (let p = 0; p < m; p++) {
+      let best = -1, bv = 0;
+      for (let i = 0; i < m; i++) if (!used[i] && Math.abs(B[i][p]) > bv) { bv = Math.abs(B[i][p]); best = i; }
+      if (best < 0 || bv < 1e-12) return false;
+      used[best] = 1; order[p] = best;
+      const piv = B[best][p], rb = B[best], ib = I[best];
+      for (let k = 0; k < m; k++) { rb[k] /= piv; ib[k] /= piv; }
+      for (let i = 0; i < m; i++) {
+        if (i === best) continue;
+        const f = B[i][p]; if (!f) continue;
+        const ri = B[i], ii = I[i];
+        for (let k = 0; k < m; k++) { if (rb[k]) ri[k] -= f * rb[k]; if (ib[k]) ii[k] -= f * ib[k]; }
+      }
+    }
+    Binv = []; for (let p = 0; p < m; p++) Binv.push(I[order[p]]);
+    return true;
+  };
+
+  let iters = 0;
+  const run = () => {
+    computeY();
+    let since = 0, bland = false, start = 0;
+    for (;;) {
+      if (++iters > maxIter) return "limit";
+      if (iters % 400 === 0) { reinvert(); recomputeXB(); computeY(); }
+      else if (iters % 60 === 0) { recomputeXB(); computeY(); }
+      // pricing, a section at a time: the best in the first section that has anything.
+      // Bland's rule instead takes the first that has anything at all
+      let q = -1, dq = 0, best = 0;
+      for (let seen = 0; seen < N && q < 0; ) {
+        const end = Math.min(N, seen + (bland ? N : SECTION));
+        for (let jj = seen; jj < end; jj++) {
+          const j = bland ? jj : (jj + start) % N;
+          const st = status[j]; if (st === 2) continue;
+          if (ub[j] === 0) continue;
+          let d = cost[j];
+          if (j < n) { const c = cols[j]; for (let k = 0; k < c.idx.length; k++) d -= y[c.idx[k]] * c.val[k]; }
+          else if (j < n + m) d -= y[j - n];
+          else d += y[j - n - m];
+          const gain = st === 0 ? d : -d;
+          if (gain > DTOL) {
+            if (bland) { q = j; dq = d; break; }
+            if (gain > best) { best = gain; q = j; dq = d; }
+          }
+        }
+        seen = end;
+      }
+      if (!bland) start = (start + SECTION) % N;
+      if (q < 0) return "optimal";
+      const dir = status[q] === 0 ? 1 : -1;
+      // alpha = B^-1 A_q
+      alpha.fill(0);
+      const qi = colIdx(q), qv = colVal(q);
+      for (let i = 0; i < m; i++) { const row = Binv[i]; let s = 0; for (let k = 0; k < qi.length; k++) s += row[qi[k]] * qv[k]; alpha[i] = s; }
+      // ratio test
+      let theta = ub[q], r = -1, rAlpha = 0, toUpper = false;
+      for (let i = 0; i < m; i++) {
+        const a = dir * alpha[i];
+        if (a > PTOL) {
+          const t = Math.max(0, xB[i]) / a;
+          if (t < theta - 1e-12 || (r >= 0 && Math.abs(t - theta) <= 1e-12 && Math.abs(alpha[i]) > Math.abs(rAlpha))) { theta = t; r = i; rAlpha = alpha[i]; toUpper = false; }
+        } else if (a < -PTOL) {
+          const u = ub[head[i]]; if (!Number.isFinite(u)) continue;
+          const t = Math.max(0, u - xB[i]) / -a;
+          if (t < theta - 1e-12 || (r >= 0 && Math.abs(t - theta) <= 1e-12 && Math.abs(alpha[i]) > Math.abs(rAlpha))) { theta = t; r = i; rAlpha = alpha[i]; toUpper = true; }
+        }
+      }
+      if (!Number.isFinite(theta)) return "unbounded";
+      for (let i = 0; i < m; i++) xB[i] -= dir * theta * alpha[i];
+      if (r < 0) {
+        // the entering variable runs to its other bound before any basic one stops it
+        status[q] = status[q] === 0 ? 1 : 0;
+      } else {
+        const leave = head[r];
+        status[leave] = toUpper ? 1 : 0;
+        xB[r] = (dir === 1 ? 0 : ub[q]) + dir * theta;
+        head[r] = q; status[q] = 2;
+        // the pivot row is mostly zeros, so only its nonzeros are carried into the others
+        const pr = Binv[r], inv = 1 / alpha[r];
+        let nz = 0;
+        for (let k = 0; k < m; k++) if (pr[k]) { pr[k] *= inv; nzIdx[nz++] = k; }
+        for (let i = 0; i < m; i++) {
+          if (i === r) continue;
+          const f = alpha[i]; if (Math.abs(f) < 1e-15) continue;
+          const row = Binv[i];
+          for (let t = 0; t < nz; t++) { const k = nzIdx[t]; row[k] -= f * pr[k]; }
+        }
+        // y moves along the new row r
+        for (let t = 0; t < nz; t++) { const k = nzIdx[t]; y[k] += dq * pr[k]; }
+      }
+      // stalling on a degenerate vertex: Bland's rule until the objective moves again
+      if (dq * dir * theta > 1e-9) { since = 0; bland = false; }
+      else if (++since > 50) bland = true;
+    }
+  };
+
+  // phase 1: drive the artificials out
+  let anyArt = false;
+  for (let i = 0; i < m; i++) if (head[i] >= n + m) { cost[head[i]] = -1; anyArt = true; }
+  if (anyArt) {
+    const s1 = run();
+    if (s1 === "limit") return { status: "limit", iters };
+    reinvert(); recomputeXB();
+    const short = [];
+    for (let i = 0; i < m; i++) if (head[i] >= n + m && xB[i] > 1e-6) short.push(head[i] - n - m);
+    if (short.length) return { status: "infeasible", short, iters };
+    for (let j = n + m; j < N; j++) { cost[j] = 0; ub[j] = 0; }
+  }
+  // phase 2
+  for (let j = 0; j < n; j++) cost[j] = cols[j].c || 0;
+  const s2 = run();
+  if (s2 !== "optimal") return { status: s2, iters };
+  reinvert(); recomputeXB();
+  const x = new Float64Array(n);
+  for (let j = 0; j < n; j++) x[j] = status[j] === 1 ? ub[j] : 0;
+  for (let i = 0; i < m; i++) if (head[i] < n) x[head[i]] = Math.min(ub[head[i]], Math.max(0, xB[i]));
+  let obj = 0; for (let j = 0; j < n; j++) obj += (cols[j].c || 0) * x[j];
+  return { status: "optimal", x, obj, iters };
+}
+
+/* ---- players, fetched from 4clop ----
+   The public API lists every nation with what it has built. A player's nations
+   come in as envelopes, or update the ones that came in before; the API doesn't
+   say what's switched off, so whatever was marked off here is kept */
+const API_URL = "https://4clop.org/api/public/v1.php";
+// a host that serves this page under a Content-Security-Policy without 4clop.org in its
+// connect-src blocks the fetch before it leaves, and the browser only says "NetworkError"
+const API_CSP = "blocked by the Content-Security-Policy of the site showing this page; open buildplanner.html from a file or a plain web host";
+let api = null, apiBusy = null, apiErr = "", apiBlocked = false;
+addEventListener("securitypolicyviolation", e => { if (String(e.blockedURI).startsWith(new URL(API_URL).origin)) apiBlocked = true; });
+
+function apiFetch() {
+  if (apiBusy) return apiBusy;
+  apiBlocked = false;
+  apiBusy = (async () => {
+    try {
+      const r = await fetch(API_URL, { cache: "no-store" });
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      const d = await r.json();
+      if (!Array.isArray(d.nations) || !d.nations.length) throw new Error("no nations in the reply");
+      api = { at: Date.now(), nations: d.nations.filter(n => n && n.nation_id != null), alliances: Array.isArray(d.alliances) ? d.alliances : [] };
+      apiErr = "";
+    } catch (e) { apiErr = apiBlocked ? API_CSP : e.message || String(e); }
+    apiBusy = null;
+    apiPaint();
+    return api;
+  })();
+  apiPaint();
+  return apiBusy;
+}
+const ago = ms => {
+  const m = Math.floor(ms / 60e3);
+  return m < 1 ? "just now" : m < 60 ? `${m} min ago` : m < 48 * 60 ? `${Math.floor(m / 60)} h ago` : `${Math.floor(m / 1440)} d ago`;
+};
+function apiPaint() {
+  const el = $("apiAge");
+  el.textContent = apiBusy ? "Fetching…" : apiErr ? "Fetch failed" : api ? "Fetched " + ago(Date.now() - api.at) : "Not fetched";
+  el.classList.toggle("busy", !!apiBusy);
+  el.classList.toggle("bad", !apiBusy && !!apiErr);
+  el.title = (apiErr ? `Couldn't reach 4clop.org (${apiErr}). ` : "") + "Click to fetch the nations from 4clop.org again";
+  if (!api) return;
+  const users = [...new Set(api.nations.map(n => String(n.username || "")).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  $("apiNames").innerHTML = users.map(u => `<option value="${esc(u)}"></option>`).join("");
+  const count = new Map();
+  api.nations.forEach(n => n.alliance_id != null && count.set(n.alliance_id, (count.get(n.alliance_id) || 0) + 1));
+  $("apiAlly").innerHTML = '<option value="">Or a whole alliance…</option>' + api.alliances.filter(a => count.get(a.alliance_id))
+    .sort((a, b) => count.get(b.alliance_id) - count.get(a.alliance_id))
+    .map(a => `<option value="${esc(String(a.alliance_id))}">${esc(String(a.name))} (${count.get(a.alliance_id)})</option>`).join("");
+}
+function apiNote(text, warn) {
+  const nt = $("apiNote");
+  nt.textContent = text; nt.hidden = !text;
+  nt.className = "has-note al-note" + (warn ? " warn" : "");
+}
+
+// an API nation's buildings, read the way a paste from the game is
+const apiCounts = nat => parse((nat.structures || []).map(s => `${s.name}\t${s.amount}`).join("\n"));
+// a player's nations share an envelope colour, and each one past the first costs its empire sat
+function apiUpsert(list) {
+  const owned = new Map();
+  api.nations.forEach(n => owned.set(n.user_id, (owned.get(n.user_id) || 0) + 1));
+  const added = [], updated = [], skipped = new Set();
+  for (const nat of list) {
+    const { counts, unknown } = apiCounts(nat);
+    unknown.forEach(u => skipped.add(u));
+    let n = nations.find(x => x.apiId === nat.nation_id);
+    const old = n ? parseHas(n.has || "").off : new Map();
+    const off = new Map([...old].filter(([b]) => counts.get(b)).map(([b, o]) => [b, Math.min(o, counts.get(b))]));
+    const fields = { name: String(nat.name || `Nation ${nat.nation_id}`), has: columnOf(counts, off),
+                     gov: nat.government, econ: nat.economy, prze: nat.region_name === "Przewalskia",
+                     empire: owned.get(nat.user_id) || 1, apiId: nat.nation_id, player: String(nat.username || "") };
+    if (n) { Object.assign(n, fields); updated.push(n); continue; }
+    const mate = nations.find(x => x.player && x.player === fields.player);
+    const color = mate ? mate.color : ENV_COLOURS[1 + Math.abs(Number(nat.user_id) || 0) % (ENV_COLOURS.length - 1)];
+    n = Object.assign({ id: newId(), color, plans: [] }, fields);
+    nations.push(n); added.push(n);
+  }
+  saveNations();
+  const msg = [];
+  if (added.length) msg.push("Added " + many(added.length, "nation") + ": " + added.map(nationName).join(", "));
+  if (updated.length) msg.push("Updated " + many(updated.length, "nation"));
+  if (skipped.size) msg.push("Buildings it didn't know: " + [...skipped].join(", "));
+  return msg;
+}
+
+async function apiAddPlayers() {
+  const want = $("apiWho").value.split(/[,\n]/).map(s => s.trim()).filter(Boolean);
+  if (!want.length) { $("apiWho").focus(); return; }
+  if (!api) { apiNote("Fetching from 4clop…"); await apiFetch(); }
+  if (!api) { apiNote(`Couldn't reach 4clop.org: ${apiErr}`, true); return; }
+  const found = [], missing = [];
+  for (const w of want) {
+    const k = w.toLowerCase();
+    // a player by name, or failing that a nation by name
+    let hits = api.nations.filter(n => String(n.username || "").toLowerCase() === k);
+    if (!hits.length) hits = api.nations.filter(n => String(n.name || "").toLowerCase() === k);
+    if (hits.length) found.push(...hits); else missing.push(w);
+  }
+  const msg = found.length ? apiUpsert(found) : [];
+  if (missing.length) msg.push("No player or nation called " + missing.join(", "));
+  apiNote(msg.join(". "), missing.length && !found.length);
+  if (found.length) $("apiWho").value = missing.join(", ");
+  renderAlliance();
+}
+$("apiAdd").addEventListener("click", apiAddPlayers);
+$("apiWho").addEventListener("keydown", ev => { if (ev.key === "Enter") { ev.preventDefault(); apiAddPlayers(); } });
+$("apiAlly").addEventListener("change", () => {
+  const id = $("apiAlly").value; $("apiAlly").value = "";
+  if (!id || !api) return;
+  const list = api.nations.filter(n => String(n.alliance_id) === id);
+  apiNote(apiUpsert(list).join(". "));
+  renderAlliance();
+});
+$("apiAge").addEventListener("click", () => apiFetch());
+$("apiRefresh").addEventListener("click", async () => {
+  const mine = nations.filter(n => n.apiId != null);
+  if (!mine.length) { apiNote("No envelope here came from 4clop yet.", true); return; }
+  apiNote("Fetching from 4clop…");
+  await apiFetch();
+  if (!api || apiErr) { apiNote(`Couldn't reach 4clop.org: ${apiErr}`, true); return; }
+  const byId = new Map(api.nations.map(n => [n.nation_id, n]));
+  const gone = mine.filter(n => !byId.has(n.apiId));
+  const msg = apiUpsert(mine.map(n => byId.get(n.apiId)).filter(Boolean));
+  if (gone.length) msg.push("No longer on 4clop: " + gone.map(nationName).join(", "));
+  apiNote(msg.join(". "), gone.length);
+  renderAlliance();
+});
+
+/* ---- the Alliance tab ---- */
+const LS_ALLY = "buildplanner.alliance";
+let ally = {};
+try { ally = JSON.parse(localStorage.getItem(LS_ALLY)) || {}; } catch (e) {}
+{
+  const dflt = { skip: [], budget: {}, budgetAll: "10 mil", pool: false, teardown: false, relations: true, satFloor: 0,
+                 goal: {}, deny: ["Forbidden Research Facility"] };
+  if (!ally || typeof ally !== "object") ally = {};
+  for (const [k, v] of Object.entries(dflt))
+    if (ally[k] === undefined || Array.isArray(v) !== Array.isArray(ally[k]) || typeof ally[k] !== typeof v) ally[k] = v;
+}
+const saveAlly = () => { try { localStorage.setItem(LS_ALLY, JSON.stringify(ally)); } catch (e) {} };
+const allyGoal = k => ally.goal[k] || (ally.goal[k] = { max: k !== "gdp", w: "", min: "" });
+
+// bits as people write them: 10 mil, 2.5b, 750k, 1,000,000
+function parseBits(t) {
+  const m = String(t == null ? "" : t).toLowerCase().replace(/[,\s฿]/g, "").match(/^(\d*\.?\d+)(k|m|mil|million|b|bil|bn|billion)?$/);
+  if (!m) return NaN;
+  return Math.round(+m[1] * ({ k: 1e3, m: 1e6, mil: 1e6, million: 1e6, b: 1e9, bil: 1e9, bn: 1e9, billion: 1e9 }[m[2]] || 1));
+}
+const parseNum = t => { const s = String(t == null ? "" : t).replace(/[,\s]/g, "").replace(/^−/, "-"); return s === "" || !/^-?\d*\.?\d+$/.test(s) ? NaN : +s; };
+const budgetOf = n => { const own = parseBits(ally.budget[n.id]); return Number.isFinite(own) ? own : Math.max(0, parseBits(ally.budgetAll) || 0); };
+const inAlliance = () => nations.filter(n => !ally.skip.includes(n.id));
+const BLOC_LABEL = Object.fromEntries([...PLAN_RES.map(r => [r[0], r[1]]), ["gdp", "GDP"]]);
+const netFmt = (k, v) => k === "gdp" ? fmt(v) + "k" : fmt(v);
+const netSigned = (k, v) => k === "gdp" ? signed(v) + "k" : signed(v);
+
+let allyResult = null, allyStale = false;
+// the alliance's nets as they stand, and what a blank minimum would hold each to
+function allyNow() {
+  const now = {};
+  for (const k of BLOC_KEYS) now[k] = 0;
+  for (const n of inAlliance()) {
+    const h = parseHas(n.has || ""), m = nationModel(n, h.counts, h.off);
+    for (const k of BLOC_KEYS) now[k] += modelNet(m, k);
+  }
+  return now;
+}
+
+function renderAlliance() {
+  if (views.alliance.hidden) return;
+  $("alBudget").value = ally.budgetAll;
+  $("alPool").checked = ally.pool;
+  $("alSat").value = ally.satFloor;
+  $("alRel").checked = ally.relations;
+  $("alTear").checked = ally.teardown;
+  const R = allyResult && !allyStale ? allyResult : null;
+  const after = new Map(R && !R.error ? R.preps.map((P, i) => [P.n, R.state[i]]) : []);
+
+  // the nations: in or out, their budget, and where the plan leaves them
+  const rows = nations.map(n => {
+    const on = !ally.skip.includes(n.id), h = parseHas(n.has || ""), m = nationModel(n, h.counts, h.off), s = after.get(n);
+    const diff = s ? planDiff(h, { counts: s.counts, off: s.off }).length : 0;
+    return `<tr class="${on ? "" : "off"}"><td><input type="checkbox" data-in="${esc(n.id)}"${on ? " checked" : ""} aria-label="Include ${esc(nationName(n))}"></td>`
+      + `<td><a class="al-name" data-open="${esc(n.id)}"><i class="ov-dot" style="background:${isColour(n.color) ? n.color : MANILA}"></i>${esc(nationName(n))}</a>`
+      + (n.player ? `<span class="al-who">${esc(n.player)}</span>` : "") + "</td>"
+      + `<td><input type="text" data-bud="${esc(n.id)}" value="${esc(ally.budget[n.id] || "")}" placeholder="${esc(shortBits(budgetOf(n)))}" spellcheck="false" autocomplete="off" aria-label="Budget for ${esc(nationName(n))}"></td>`
+      + `<td class="${cls(m.satTotal).trim()}">${signed(m.satTotal)}</td>`
+      + (s ? `<td class="${cls(s.model.satTotal).trim()}">${signed(s.model.satTotal)}</td><td>${s.cost.bits ? shortBits(s.cost.bits) : "—"}</td><td>${diff || "—"}</td>`
+           : "<td></td><td></td><td></td>") + "</tr>";
+  }).join("");
+  $("alNations").innerHTML = `<thead><tr><th></th><th>Nation</th><th>Budget</th><th>Sat</th><th>After</th><th>Cost</th><th>Changes</th></tr></thead><tbody>${rows}</tbody>`;
+  $("alNationsHint").textContent = nations.length
+    ? `${inAlliance().length} of ${many(nations.length, "envelope")} in the alliance. A blank budget is the one up top.`
+    : "No envelopes yet. Add players above, or make some on the Planner tab.";
+
+  // the nets: what to raise, by how much it counts, the least it may fall to
+  const now = allyNow();
+  const res = BLOC_KEYS.map(k => {
+    const g = allyGoal(k), r = RES_BY_KEY[k];
+    const auto = g.max || k === "gdp" ? now[k] : Math.min(0, now[k]);
+    const icon = r ? resImg(r[3]) : `<span class="bit">${BIT}</span>`;
+    const planned = R && !R.error ? R.net[k] : null;
+    const d = planned == null ? 0 : planned - now[k];
+    return `<tr><td><input type="checkbox" data-max="${k}"${g.max ? " checked" : ""} aria-label="Raise ${BLOC_LABEL[k]}"></td>`
+      + `<td><span class="al-name"${r ? ` style="--res:${r[2]}"` : ""}>${icon}${BLOC_LABEL[k]}</span></td>`
+      + `<td><input class="w" type="text" inputmode="decimal" data-w="${k}" value="${esc(String(g.w))}" placeholder="1"${g.max ? "" : " disabled"} aria-label="Weight of ${BLOC_LABEL[k]}"></td>`
+      + `<td><input type="text" inputmode="decimal" data-min="${k}" value="${esc(String(g.min))}" placeholder="${netFmt(k, auto)}" aria-label="Minimum ${BLOC_LABEL[k]}"></td>`
+      + `<td class="${now[k] ? cls(now[k]).trim() : "zero"}">${netFmt(k, now[k])}</td>`
+      + (planned == null ? "<td></td><td></td>"
+        : `<td class="${planned ? cls(planned).trim() : "zero"}">${netFmt(k, planned)}</td><td class="${d ? cls(d).trim() : "zero"}">${d ? netSigned(k, d) : "·"}</td>`)
+      + "</tr>";
+  }).join("");
+  $("alRes").innerHTML = `<thead><tr><th></th><th>Net a tick</th><th title="How much one of these counts against one of the others">Weight</th>`
+    + `<th>Minimum</th><th>Now</th><th>Planned</th><th>Change</th></tr></thead><tbody>${res}</tbody>`;
+
+  // the buildings it may put up or take down
+  const allowed = BLOC_BUILDINGS.filter(b => !ally.deny.includes(b)).length;
+  $("alBuildsSum").textContent = `Buildings it may use · ${allowed} of ${BLOC_BUILDINGS.length}`;
+  if (!$("alBuilds").childElementCount) $("alBuilds").innerHTML = BLOC_BUILDINGS.map(b => {
+    const e = LAYOUT.find(x => x && x[0] === b);
+    return `<label title="${esc(b)}"><input type="checkbox" data-use="${esc(b)}"${ally.deny.includes(b) ? "" : " checked"}>`
+         + `<span${e && e[1] ? ` style="--res:${RES[e[1]]}"` : ""}>${esc(b)}</span></label>`;
+  }).join("");
+  renderAllyOut();
+}
+
+// what the last run came to: the headline numbers, any limit it couldn't meet, a slip per nation
+function renderAllyOut() {
+  const out = $("alOut"), R = allyResult;
+  out.hidden = !R;
+  if (!R) return;
+  if (allyStale) {
+    out.innerHTML = '<p class="al-hint">Something changed since the last run. Optimise again to see where it leaves the alliance.</p>';
+    return;
+  }
+  if (R.error) {
+    const why = (R.short || []).slice(0, 6).map(r => {
+      const P = r.pi != null ? R.preps[r.pi] : null;
+      if (r.kind === "net") return `${BLOC_LABEL[r.k]} can't be held at ${netFmt(r.k, R.goal[r.k].min)} or more`;
+      if (r.kind === "sat") return `${nationName(P.n)} can't keep its sat at ${signed(P.satFloor)} a tick or more`;
+      if (r.kind === "se" || r.kind === "nlr") return `${nationName(P.n)} can't keep its ${r.kind === "se" ? "Solar Empire" : "New Lunar Republic"} relations up`;
+      return "";
+    }).filter(Boolean);
+    out.innerHTML = `<section class="panel al-panel"><div class="panel-head"><h2>No plan fits</h2></div><ul class="al-warn">`
+      + (why.length ? why.map(w => `<li>${esc(w)}</li>`).join("") : `<li>${R.error === "limit" ? "The solver ran out of steps." : "The limits can't all be met at once."}</li>`)
+      + `</ul><p class="al-hint">Lower a minimum, raise a budget, or take a nation out.</p></section>`;
+    return;
+  }
+  const changed = R.preps.map((P, i) => [P, R.state[i], planDiff(P.has, { counts: R.state[i].counts, off: R.state[i].off })]).filter(x => x[2].length);
+  const bits = R.state.reduce((t, s) => t + s.cost.bits, 0);
+  const stat = (label, v, c) => `<div class="stat well"><span class="stat-k">${label}</span><span class="stat-v${c || ""}">${v}</span></div>`;
+  let h = '<div class="stats">'
+    + stat("Score", `${fmt(Math.round(R.objNow))} → ${fmt(Math.round(R.obj))}`)
+    + stat("Raised by", signed(Math.round(R.obj - R.objNow)), cls(Math.round(R.obj - R.objNow)))
+    + stat("Total cost", bits ? shortBits(bits) : "—")
+    + stat("Nations changed", `${changed.length} of ${R.preps.length}`) + "</div>";
+  const broke = [];
+  R.preps.forEach((P, i) => { if (R.own[i] > 1e-9) broke.push(`${nationName(P.n)} ends over one of its own limits`); });
+  BLOC_KEYS.forEach(k => { if (R.net[k] < R.goal[k].min) broke.push(`${BLOC_LABEL[k]} ends at ${netFmt(k, R.net[k])}, under its minimum of ${netFmt(k, R.goal[k].min)}`); });
+  if (R.pool && R.bits > R.poolBudget) broke.push(`The pooled budget runs ${shortBits(R.bits - R.poolBudget)} over`);
+  if (broke.length) h += `<ul class="al-warn">${broke.map(b => `<li>${esc(b)}</li>`).join("")}</ul>`;
+  h += '<div class="slips">' + (changed.length ? changed.map(([P, s, diff]) => {
+    const row = (l, v, c) => `<div class="slip-l${c ? " " + c : ""}"><span>${l}</span><span class="v">${v}</span></div>`;
+    const lead = (label, v, f, colour) => row(label, `<span class="${colour ? cls(v).trim() : ""}">${f(v)}</span>`, "lead");
+    const moved = PLAN_RES.map(([k, label, , img]) => {
+      const a = modelNet(P.now, k), b = modelNet(s.model, k);
+      return a !== b ? lead(`${resImg(img)} ${label}`, b - a, signed, true) : "";
+    }).join("");
+    return `<div class="slip" role="button" tabindex="0" data-open="${esc(P.n.id)}" style="${paperStyle({ paper: "navy" })}">
+      <div class="slip-name">${esc(nationName(P.n))}</div>
+      <div class="slip-meta">${P.n.player ? esc(P.n.player) + " · " : ""}${many(diff.length, "change")}</div>
+      <div class="slip-cut"></div>
+      ${diff.map(([n, d, o]) => (d ? row(`<span class="q ${cls(d).trim()}">${signed(d)}</span>${esc(n)}`, "") : "")
+        + (o ? row(`<span class="q ${cls(-o).trim()}">${fmt(Math.abs(o))}</span>${esc(n)} ${o < 0 ? "switched on" : "switched off"}`, "") : "")).join("")}
+      <div class="slip-cut"></div>
+      ${s.cost.count ? row(`<span class="bit">${BIT}</span> Total`, fmt(s.cost.bits), "slip-tot") : '<div class="slip-none">Nothing to build</div>'}
+      ${PLAN_RES.filter(r => s.cost.res[r[0]]).map(([k, label, , img]) => row(`${resImg(img)} ${label}`, fmt(s.cost.res[k]))).join("")}
+      <div class="slip-cut double"></div>
+      <div class="slip-sub">A tick after</div>
+      ${lead("Sat", s.model.satTotal, signed, true) + lead("GDP", s.model.gdp, v => fmt(v) + "k")}
+      <div class="slip-cut"></div>
+      <div class="slip-sub">Nets it moves</div>
+      ${moved || '<div class="slip-none">None</div>'}
+    </div>`;
+  }).join("") : '<p class="al-hint">Nothing to change: the alliance is as good as these limits let it be.</p>') + "</div>";
+  if (changed.length) h += `<div class="al-save"><p id="alSaved" class="has-note" hidden></p>`
+    + `<button id="alSave" class="btn btn-success" type="button" title="Each nation gets an Alliance plan holding these buildings, and the Planner's Overall counts it">Save as plans</button></div>`;
+  out.innerHTML = h;
+}
+
+function allyRun() {
+  const list = inAlliance();
+  if (!list.length) { allyResult = null; renderAllyOut(); return; }
+  const btn = $("alGo");
+  if (btn.disabled) return;
+  btn.disabled = true; btn.textContent = "Working…";
+  // let the button repaint before the sums start
+  setTimeout(async () => {
+    try {
+      const goal = {};
+      for (const k of BLOC_KEYS) {
+        const g = allyGoal(k), w = parseNum(g.w), mn = parseNum(g.min);
+        goal[k] = { max: g.max, w: Number.isFinite(w) ? w : 1, min: Number.isFinite(mn) ? mn : null };
+      }
+      const opt = { teardown: ally.teardown, relations: ally.relations, pool: ally.pool,
+                    satFloor: Number.isFinite(+ally.satFloor) ? +ally.satFloor : 0,
+                    allowed: new Set(BLOC_BUILDINGS.filter(b => !ally.deny.includes(b))), budgetOf };
+      allyResult = Object.assign(await blocSolve(list, goal, opt), { pool: opt.pool, poolBudget: opt.poolBudget });
+    } catch (e) {
+      allyResult = { error: "failed", short: [], preps: [] };
+      console.error(e);
+    }
+    allyStale = false;
+    btn.disabled = false; btn.textContent = "Optimise";
+    renderAlliance();
+  }, 30);
+}
+$("alGo").addEventListener("click", allyRun);
+
+// a result stops matching the moment anything it was worked out from changes
+const allyChanged = () => { if (allyResult && !allyStale) { allyStale = true; renderAlliance(); } };
+$("alBudget").addEventListener("input", () => {
+  ally.budgetAll = $("alBudget").value; saveAlly();
+  document.querySelectorAll("[data-bud]").forEach(i => { const n = nations.find(x => x.id === i.dataset.bud); if (n) i.placeholder = shortBits(budgetOf(n)); });
+  allyChanged();
+});
+$("alPool").addEventListener("change", () => { ally.pool = $("alPool").checked; saveAlly(); allyChanged(); });
+$("alSat").addEventListener("input", () => { ally.satFloor = Math.floor(+$("alSat").value || 0); saveAlly(); allyChanged(); });
+$("alRel").addEventListener("change", () => { ally.relations = $("alRel").checked; saveAlly(); allyChanged(); });
+$("alTear").addEventListener("change", () => { ally.teardown = $("alTear").checked; saveAlly(); allyChanged(); });
+$("alBuilds").addEventListener("change", ev => {
+  const b = ev.target.dataset.use; if (!b) return;
+  ally.deny = ally.deny.filter(x => x !== b);
+  if (!ev.target.checked) ally.deny.push(b);
+  saveAlly();
+  $("alBuildsSum").textContent = `Buildings it may use · ${BLOC_BUILDINGS.length - ally.deny.filter(x => BLOC_BUILDINGS.includes(x)).length} of ${BLOC_BUILDINGS.length}`;
+  allyChanged();
+});
+$("alNations").addEventListener("change", ev => {
+  const id = ev.target.dataset.in; if (!id) return;
+  ally.skip = ally.skip.filter(x => x !== id);
+  if (!ev.target.checked) ally.skip.push(id);
+  saveAlly();
+  if (allyResult) allyStale = true;
+  renderAlliance();
+});
+// typing in a box keeps its place; only the result is marked out of date
+$("alNations").addEventListener("input", ev => {
+  const id = ev.target.dataset.bud; if (!id) return;
+  if (ev.target.value.trim()) ally.budget[id] = ev.target.value; else delete ally.budget[id];
+  saveAlly(); allyChanged();
+});
+$("alRes").addEventListener("change", ev => {
+  const k = ev.target.dataset.max; if (!k) return;
+  allyGoal(k).max = ev.target.checked; saveAlly();
+  if (allyResult) allyStale = true;
+  renderAlliance();
+});
+$("alRes").addEventListener("input", ev => {
+  const k = ev.target.dataset.w || ev.target.dataset.min; if (!k) return;
+  allyGoal(k)[ev.target.dataset.w ? "w" : "min"] = ev.target.value; saveAlly(); allyChanged();
+});
+// a nation's name, or its slip, opens its envelope
+document.getElementById("viewAlliance").addEventListener("click", ev => {
+  const a = ev.target.closest("[data-open]");
+  if (a) { go("#planner/" + a.dataset.open); return; }
+  if (ev.target.closest("#alSave")) allySave();
+});
+document.getElementById("viewAlliance").addEventListener("keydown", ev => {
+  const a = ev.target.closest(".slip[data-open]");
+  if (a && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); a.click(); }
+});
+
+// each nation changed gets an Alliance plan holding its new buildings, picked for the Overall;
+// one it leaves alone loses any Alliance plan an earlier run gave it
+function allySave() {
+  const R = allyResult; if (!R || R.error || allyStale) return;
+  let saved = 0;
+  R.preps.forEach((P, i) => {
+    const n = P.n, s = R.state[i], plans = n.plans || (n.plans = []);
+    const changed = planDiff(P.has, { counts: s.counts, off: s.off }).length > 0;
+    let pl = plans.find(p => p.alliance);
+    if (!changed) {
+      if (pl) { n.plans = plans.filter(p => p !== pl); if (n.usePlan === pl.id) delete n.usePlan; }
+      return;
+    }
+    if (!pl) { pl = { id: newId(), name: "Alliance plan", paper: "navy", alliance: true }; plans.push(pl); }
+    pl.want = {}; pl.off = {};
+    for (const e of LAYOUT) if (e) { pl.want[e[0]] = s.counts.get(e[0]) || 0; pl.off[e[0]] = s.off.get(e[0]) || 0; }
+    n.usePlan = pl.id;
+    saved++;
+  });
+  saveNations();
+  const nt = $("alSaved");
+  nt.textContent = `Saved an Alliance plan in ${many(saved, "envelope")}; the Planner's Overall now counts them.`;
+  nt.hidden = false;
+}
+
 /* ===================== Mine mix and Well mix =====================
    From the copper planner: the cheapest way, in sat, to hit a copper or oil target.
    Its maths is kept as it was there: pollution past the soft cap is
@@ -2430,9 +3482,10 @@ oMode.addEventListener("change", () => { oOverride = null; syncWellMode(); });
 syncMineMode();
 syncWellMode();
 
-/* views: Buildings at the bare address, the envelopes at #planner, one nation at #planner/<id> */
+/* views: Buildings at the bare address, the envelopes at #planner, one nation at #planner/<id>,
+   the alliance at #alliance */
 const views = { buildings: $("viewBuildings"), planner: $("viewPlanner"), nation: $("viewNation"), plan: $("viewPlan"),
-                mine: $("viewMine"), wells: $("viewWells") };
+                alliance: $("viewAlliance"), mine: $("viewMine"), wells: $("viewWells") };
 function show(view) {
   for (const [k, el] of Object.entries(views)) el.hidden = k !== view;
   document.querySelectorAll(".tab[data-view]").forEach(t =>
@@ -2472,6 +3525,11 @@ function route() {
   current = null; hideTip();
   document.title = "CLOP Build Planner";
   if (m) { renderGrid(); show("planner"); }
+  else if (location.hash === "#alliance") {
+    // the player list comes from 4clop the first time the tab opens
+    show("alliance"); renderAlliance();
+    if (!api && !apiBusy && !apiErr) apiFetch();
+  }
   else if (location.hash === "#mine" || location.hash === "#wells") { const v = location.hash.slice(1); show(v); mixShown(v); }
   else show("buildings");
 }
