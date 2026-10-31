@@ -20,7 +20,8 @@
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font:14px/1.45 var(--font);padding:20px 16px}
+body{background:var(--bg);color:var(--text);font:14px/1.45 var(--font);padding:0 16px 20px}
+.top{position:sticky;top:0;z-index:2;background:var(--bg);padding:20px 0 14px}
 .wrap{max-width:1100px;margin:0 auto}
 
 .picks{display:flex;gap:4px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}
@@ -42,12 +43,12 @@ body{background:var(--bg);color:var(--text);font:14px/1.45 var(--font);padding:2
   background:var(--input-bg);color:var(--input-ink);border:1px solid var(--border-soft);border-radius:3px;
 }
 .count input:focus{outline:2px solid var(--accent);outline-offset:-1px}
-.note{text-align:center;color:var(--text-dim);font-size:15px;margin-bottom:14px}
+.note{text-align:center;color:var(--text-dim);font-size:15px;margin:0}
 
-.panel{background:var(--raised);border:1px solid var(--border);border-radius:4px;overflow:hidden}
+.panel{background:var(--raised);border:1px solid var(--border);border-radius:4px}
 table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
 th,td{padding:4px 12px;text-align:right}
-th{position:sticky;top:0;background:var(--sunken);color:var(--strong);font-weight:600;font-size:12px;
+th{position:sticky;top:var(--top,0);z-index:1;background:var(--sunken);color:var(--strong);font-weight:600;font-size:12px;
   letter-spacing:.04em;text-transform:uppercase;border-bottom:1px solid var(--border-soft)}
 td:first-child,th:first-child{text-align:center}
 tbody tr:nth-child(even){background:rgba(0,0,0,.12)}
@@ -55,11 +56,11 @@ td.loss{color:var(--neg)}
 td.zero{color:var(--text-dim)}
 tr.cap td{border-bottom:1px solid var(--text-dim)}
 tr.you td{background:var(--btn-info-b);color:#fff;font-weight:700}
-.scroll{max-height:70vh;overflow:auto}
 </style>
 </head>
 <body>
 <div class="wrap">
+  <div class="top" id="top">
   <div class="picks" id="picks" role="group" aria-label="Building"></div>
 
   <div class="count">
@@ -67,14 +68,13 @@ tr.you td{background:var(--btn-info-b);color:#fff;font-weight:700}
     <input type="number" id="n" min="0" step="1" value="0" inputmode="numeric">
   </div>
   <p class="note" id="note"></p>
+  </div>
 
   <div class="panel">
-    <div class="scroll" id="scroll">
       <table>
         <thead><tr><th>Number</th><th>Total penalty</th><th>Total loss</th><th>Increase</th></tr></thead>
         <tbody id="rows"></tbody>
       </table>
-    </div>
   </div>
 </div>
 
@@ -132,9 +132,17 @@ function render(jump) {
   }
   $("rows").innerHTML = html;
 
-  const row = $("you"), box = $("scroll");
-  if (jump) box.scrollTop = row ? row.offsetTop - box.clientHeight / 2 + row.offsetHeight / 2 : 0;
+  pinHead();
+  if (!jump) return;
+  // centre your row in the part of the window below the pinned top
+  const row = $("you"), topH = $("top").offsetHeight + $("rows").parentNode.tHead.offsetHeight;
+  if (!row) return window.scrollTo(0, 0);
+  const r = row.getBoundingClientRect();
+  window.scrollTo(0, scrollY + r.top + r.height / 2 - (topH + innerHeight) / 2);
 }
+// the table header pins just under the top section, wherever that ends
+const pinHead = () => document.documentElement.style.setProperty("--top", $("top").offsetHeight + "px");
+addEventListener("resize", pinHead);
 render(false);
 </script>
 </body>
