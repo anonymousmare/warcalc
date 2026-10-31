@@ -42,7 +42,7 @@ body{background:var(--bg);color:var(--text);font:14px/1.45 var(--font);padding:2
   background:var(--input-bg);color:var(--input-ink);border:1px solid var(--border-soft);border-radius:3px;
 }
 .count input:focus{outline:2px solid var(--accent);outline-offset:-1px}
-.note{text-align:center;color:var(--text-dim);font-size:12px;margin-bottom:14px}
+.note{text-align:center;color:var(--text-dim);font-size:15px;margin-bottom:14px}
 
 .panel{background:var(--raised);border:1px solid var(--border);border-radius:4px;overflow:hidden}
 table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
@@ -117,8 +117,7 @@ function render(jump) {
   const have = Math.max(0, Math.floor(+$("n").value || 0));
   const start = have > 0 ? Math.min(cap, have) : cap;
   const end = have > 200 ? have + 25 : 200;
-  $("note").textContent = `${label}: soft cap ${cap}, ${per} sat each, ` +
-    `penalty past the cap is roundup((n − ${cap})² / ${div})`;
+  $("note").textContent = `⌈(n − ${cap})² / ${div}⌉`;
 
   const loss = n => per * n + penalty(n, cap, div);
   let html = "";
