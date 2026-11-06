@@ -2707,6 +2707,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
     <h2>Solver</h2>
     <span class="spacer"></span>
     <button class="btn btn-xs" id="btnSolveOpts" aria-expanded="false">Options</button>
+    <button class="btn btn-xs" id="btnSolveDrain" aria-pressed="false">Training drain</button>
     <button class="btn btn-warning" id="btnSolve" style="padding:7px 18px;font-size:14px">Find cheapest force</button>
     <button class="btn" id="btnSolveClear" style="padding:7px 16px;font-size:14px">Clear</button>
     <button class="btn btn-danger btn-xs" id="btnSolveStop" style="display:none">Stop</button>
@@ -9201,6 +9202,20 @@ function hitDamage(src, dst, bonus){
   return bonus ? d * 0.75 : d;
 }
 
+/* a unit's training on battle tick n under a drift, the way chainBattles moves
+   it: tick 1 never moves, raising stops at 20, reinforcements never move */
+function driftedTrain(tr, n, d){
+  const c = Math.floor(Math.max(0, n - 1 - d.skip) / d.every);
+  if (!c) return tr;
+  return d.step < 0 ? Math.max(0, tr + c * d.step) : tr >= 20 ? tr : Math.min(20, tr + c * d.step);
+}
+/* a solver profile as it stands on tick n; `own` says which side it is on */
+function driftProfile(p, n, d, own){
+  if (!d || own !== d.own || (!own && p.arrive > 1)) return p;
+  const tr = driftedTrain(p.training, n, d);
+  return tr === p.training ? p : Object.assign({}, p, {training: tr});
+}
+
 /* Stable insertion sort of `base` into `out`, biggest stack first. Both the
    bucket lists and the tied stretches of a target pool are a handful of entries
    at most, so this beats handing Array#sort a fresh closure a few million
@@ -9374,7 +9389,7 @@ function runAlloc(srcTypes, srcSizes, srcHits, dstSize, dstDam, MAT, stride, job
    enemy in one tick can still grind them down over several. Tracking losses is
    optional at one tick but mandatory beyond it — the next tick fires from
    whatever is left. */
-function makeContext(ownProfiles, foeProfiles, bonusOwn, bonusFoe, wantLosses, ticks){
+function makeContext(ownProfiles, foeProfiles, bonusOwn, bonusFoe, wantLosses, ticks, drift){
   const own = ownProfiles, foe = foeProfiles;
   const T = Math.max(1, ticks || 1);
   const losses = wantLosses || T > 1;
@@ -9392,6 +9407,25 @@ function makeContext(ownProfiles, foeProfiles, bonusOwn, bonusFoe, wantLosses, t
       for (let i = 0; i < K; i++) MF[j * K + i] = hitDamage(foe[j], own[i], bonusFoe);
   }
 
+  /* with the training drifting, every tick fights from tables of its own */
+  let MOt = null, MFt = null, driftEnd = 0;
+  if (drift && T > 1){
+    MOt = [MO]; MFt = [MF];
+    const same = (a, b) => { for (let k = 0; k < a.length; k++) if (a[k] !== b[k]) return false; return true; };
+    for (let t = 2; t <= T; t++){
+      const ot = own.map(u => driftProfile(u, t, drift, true));
+      const ft = foe.map(u => driftProfile(u, t, drift, false));
+      const mo = new Float64Array(K * M), mf = new Float64Array(M * K);
+      for (let i = 0; i < K; i++)
+        for (let j = 0; j < M; j++){ mo[i * M + j] = hitDamage(ot[i], ft[j], bonusOwn);
+                                     mf[j * K + i] = hitDamage(ft[j], ot[i], bonusFoe); }
+      const po = MOt[t - 2], pf = MFt[t - 2];
+      if (same(mo, po) && same(mf, pf)){ MOt.push(po); MFt.push(pf); }
+      else { MOt.push(mo); MFt.push(mf); driftEnd = t; }
+    }
+    if (!driftEnd){ MOt = MFt = null; }
+  }
+
   const ownTypes = Int32Array.from(own, u => u.typeNum);
   const foeTypes = Int32Array.from(foe, u => u.typeNum);
   const foePools = poolCache(foe), ownPools = losses ? poolCache(own) : null;
@@ -9407,7 +9441,7 @@ function makeContext(ownProfiles, foeProfiles, bonusOwn, bonusFoe, wantLosses, t
 
   return {
     own, foe, K, M, wantLosses: losses, ticks: T,
-    MO, MF, ownTypes, foeTypes,
+    MO, MF, MOt, MFt, driftEnd, ownTypes, foeTypes,
     foeSize: Float64Array.from(foe, f => f.arrive > 1 ? 0 : f.size),
     foeLate: late.length ? late : null,
     foeDue: late.reduce((s, r) => s + r.size, 0),
@@ -9487,7 +9521,7 @@ function trySizes(sizes, ctx, wantLog){
       foeDam.fill(0);
       for (let i = 0; i < K; i++) ownHits[i] = ownSize[i];
       runAlloc(ctx.ownTypes, ownSize, ownHits, foeSize, foeDam,
-               ctx.MO, M, ctx.ownBuckets, poolsFor(ctx.foePoolCache, foeSize));
+               ctx.MOt ? ctx.MOt[t - 1] : ctx.MO, M, ctx.ownBuckets, poolsFor(ctx.foePoolCache, foeSize));
     }
 
     let ownDam = null;
@@ -9495,7 +9529,7 @@ function trySizes(sizes, ctx, wantLog){
       ownDam = ownDamBuf; ownDam.fill(0);
       for (let j = 0; j < M; j++) foeHits[j] = foeSize[j];
       runAlloc(ctx.foeTypes, foeSize, foeHits, ownSize, ownDam,
-               ctx.MF, K, ctx.foeBuckets, poolsFor(ctx.ownPoolCache, ownSize));
+               ctx.MFt ? ctx.MFt[t - 1] : ctx.MF, K, ctx.foeBuckets, poolsFor(ctx.ownPoolCache, ownSize));
     }
 
     /* round6 inlined and the loss branch lifted out of the loop: this runs
@@ -9524,7 +9558,7 @@ function trySizes(sizes, ctx, wantLog){
     if (perTick) perTick.push({tick:t, foeKilled, ownKilled, foeLeft, ownLeft});
     if (!foeLeft){ wipe = true; break; }
     if (!ownLeft) break;
-    if (!foeKilled && !ownKilled && !due) break;   // deadlock: every later tick repeats it
+    if (!foeKilled && !ownKilled && !due && t >= ctx.driftEnd) break;   // deadlock: every later tick repeats it
   }
 
   if (wantLog)
@@ -9554,7 +9588,14 @@ function buildCandidates(opts, foeProfiles, bonusOwn, bonusFoe){
       if (overCaps(capsFor([{type, weapon:w, armor:a}], opts), [1])) return;
       const cost = loadoutBits(type, w, a, opts.resValue);
       const p = solProfile({type, weapon:w, armor:a, size:1, training:opts.training});
-      const perHit = foeProfiles.map(f => hitDamage(p, f, bonusOwn));
+      const T = opts.drift ? Math.max(1, opts.ticks || 1) : 1;
+      const perHit = foeProfiles.map(f => {
+        let best = hitDamage(p, f, bonusOwn);
+        for (let t = 2; t <= T; t++)
+          best = Math.max(best, hitDamage(driftProfile(p, t, opts.drift, true),
+                                          driftProfile(f, t, opts.drift, false), bonusOwn));
+        return best;
+      });
       const incoming = foeProfiles.map(f => hitDamage(f, p, bonusFoe));
       if (opts.goal !== "survive" && !perHit.some(v => v > 0)) return;
       out.push({type, weapon:w, armor:a, bits:cost.bits, wbits:cost.bits * lean, lean,
@@ -9626,7 +9667,7 @@ function claimMemo(K){
 
 function makeSolver(subset, foeProfiles, o){
   const ctx = makeContext(subset.map(c => c.p), foeProfiles, o.bonusOwn, o.bonusFoe,
-                          o.wantLosses, o.ticks);
+                          o.wantLosses, o.ticks, o.drift);
   const fctx = feasContext(ctx, o.goal);
   const bitsArr = subset.map(c => c.wbits);
   const K = subset.length;
@@ -9986,7 +10027,7 @@ function* solveGen(opts, foeRows, bonusOwn, bonusFoe){
   const ticks = Math.max(1, opts.ticks || 1);
   const o = {
     goal: opts.goal, minSurvivors: Math.max(1, opts.minSurvivors || 1),
-    bonusOwn, bonusFoe, ticks, budget: opts.budget || {}, stock: opts.stock || {},
+    bonusOwn, bonusFoe, ticks, budget: opts.budget || {}, stock: opts.stock || {}, drift: opts.drift || null,
     /* past one tick the losses drive the next tick, so they are never optional */
     wantLosses: ticks > 1 || opts.goal !== "wipe" || opts.objective !== "upfront"
   };
@@ -10359,7 +10400,7 @@ function* deepSolveGen(opts, foeRows, bonusOwn, bonusFoe){
   const ticks = Math.max(1, opts.ticks || 1);
   const o = {
     goal: opts.goal, minSurvivors: Math.max(1, opts.minSurvivors || 1),
-    bonusOwn, bonusFoe, ticks, budget: opts.budget || {}, stock: opts.stock || {},
+    bonusOwn, bonusFoe, ticks, budget: opts.budget || {}, stock: opts.stock || {}, drift: opts.drift || null,
     wantLosses: ticks > 1 || opts.goal !== "wipe" || opts.objective !== "upfront"
   };
   const needKill = o.goal !== "survive";
@@ -10768,7 +10809,7 @@ function* ceSolveGen(opts, foeRows, bonusOwn, bonusFoe){
   const ticks = Math.max(1, opts.ticks || 1);
   const o = {
     goal: opts.goal, minSurvivors: Math.max(1, opts.minSurvivors || 1),
-    bonusOwn, bonusFoe, ticks, budget: opts.budget || {}, stock: opts.stock || {},
+    bonusOwn, bonusFoe, ticks, budget: opts.budget || {}, stock: opts.stock || {}, drift: opts.drift || null,
     wantLosses: ticks > 1 || opts.goal !== "wipe" || opts.objective !== "upfront"
   };
   const needKill = o.goal !== "survive";
@@ -11360,10 +11401,16 @@ function solveCosts(rows){
    rest on tick 2 (or later, held back further), behind them in the list,
    the way the battle view brings them in. Until they have, the enemy is not wiped, a quiet tick is not a
    deadlock, and they count among the enemy left. */
-function realCheck(ownRows, foeRows, side, bonus, goal, minSurv, ticks, budget, stock){
+function realCheck(ownRows, foeRows, side, bonus, goal, minSurv, ticks, budget, stock, drift){
   const T = Math.max(1, ticks || 1);
+  const trAt = (u, own, t) => !drift || own !== drift.own || (!own && u.reserve) ? u.training
+                                                                                : driftedTrain(u.training, t, drift);
+  let tickNow = 1;
   const named = (rows, p) => rows.map((u, i) => ({type:u.type, weapon:u.weapon, armor:u.armor,
-    size:u.size, training:u.training, name:p + i}));
+    size:u.size, training:trAt(u, p === (side === "defender" ? "D" : "A"), tickNow), name:p + i}));
+  /* the training still has somewhere to go after tick t */
+  const moving = t => drift && [...own.map(u => [u, true]), ...foe.map(u => [u, false])]
+    .some(([u, o]) => trAt(u, o, T) !== trAt(u, o, t));
   let own = ownRows.map((u, i) => Object.assign({}, u, {at:i}));
   let foe = foeRows.filter(u => !u.reserve).map(u => Object.assign({}, u));
   const reinf = foeRows.filter(u => u.reserve).map(u => Object.assign({}, u));
@@ -11379,6 +11426,7 @@ function realCheck(ownRows, foeRows, side, bonus, goal, minSurv, ticks, budget, 
     if (land.length){ foe = foe.concat(land); due -= dueAt(t); }
     if (!own.length || !(foe.length || due)) break;
     addRes(up, upkeepOf(own));
+    tickNow = t;
     let r;
     try {
       r = simulate(side === "defender" ? named(foe, "A") : named(own, "A"),
@@ -11401,7 +11449,7 @@ function realCheck(ownRows, foeRows, side, bonus, goal, minSurv, ticks, budget, 
     log.push({tick:t, foeKilled, ownKilled, foeLeft, ownLeft:left});
     if (!foeLeft){ wipe = true; break; }
     if (!left) break;
-    if (!foeKilled && !ownKilled && !due) break;   // deadlock: every later tick repeats it
+    if (!foeKilled && !ownKilled && !due && !moving(t)) break;   // deadlock: every later tick repeats it
   }
 
   const gear = solveCosts(ownRows).gearRes;
@@ -11412,8 +11460,8 @@ function realCheck(ownRows, foeRows, side, bonus, goal, minSurv, ticks, budget, 
                                                                    : wipe && left >= minSurv)};
 }
 
-function verifyAndRepair(rows, foeRows, side, bonus, goal, minSurv, deadline, ticks, lean, budget, stock){
-  const check = () => realCheck(rows, foeRows, side, bonus, goal, minSurv, ticks, budget, stock);
+function verifyAndRepair(rows, foeRows, side, bonus, goal, minSurv, deadline, ticks, lean, budget, stock, drift){
+  const check = () => realCheck(rows, foeRows, side, bonus, goal, minSurv, ticks, budget, stock, drift);
   /* which stack to top up, and which to shave first, is a question about
      what this nation can spare — so it is asked in leaned bits */
   const leaned = u => troopBits(u) * leanOf(lean, u.type);
@@ -11687,6 +11735,23 @@ function setupLimits(){
   paintLimits();
 }
 
+/* the chevrons' drift, once the solver's Training drain is pressed: own says
+   whether it is the side being solved for that drifts */
+const LS_SOLVE_DRAIN = "warcalc.solverDrain";
+function solveDrift(side){
+  const d = document.getElementById("btnSolveDrain").getAttribute("aria-pressed") === "true" && trainDrift();
+  return d ? Object.assign({}, d, {own: d.side === side}) : null;
+}
+(() => {
+  const b = document.getElementById("btnSolveDrain");
+  const set = on => { b.setAttribute("aria-pressed", on); b.classList.toggle("btn-info", on); };
+  set(store.get(LS_SOLVE_DRAIN, false) === true);
+  b.addEventListener("click", () => {
+    const on = b.getAttribute("aria-pressed") !== "true";
+    set(on); store.set(LS_SOLVE_DRAIN, on);
+  });
+})();
+
 function readSolveOpts(){
   const side = document.getElementById("solveSide").value;
   const goal = document.getElementById("solveGoal").value;
@@ -11705,6 +11770,7 @@ function readSolveOpts(){
     maxStacks: clampInt(document.getElementById("solveStacks").value, 1, MAX_SOLVE_STACKS),
     minSurvivors: Math.max(1, clampInt(document.getElementById("solveSurv").value, 1, 1e9)),
     algo: ({classic: "classic", ce: "ce"})[document.getElementById("solveAlgo").value] || "deep",
+    drift: solveDrift(side),
     /* over several ticks armour earns its keep even on a pure wipe: a troop
        that lives through this tick fires again in the next one */
     useArmor: ticks > 1 || goal !== "wipe" || objective !== "upfront"
@@ -11788,7 +11854,7 @@ async function runSolver(){
       if (Date.now() > deadline){
         const v = realCheck(sol.live.map(l => ({type:l.c.type, weapon:l.c.weapon, armor:l.c.armor,
           size:l.size, training:opts.training})), foeRows, opts.side, bonus, opts.goal,
-          opts.minSurvivors, opts.ticks, opts.budget, opts.stock);
+          opts.minSurvivors, opts.ticks, opts.budget, opts.stock, opts.drift);
         if (v){ sol.upTotal = v.up; sol.ticks = v.ticks; }
         keep.push(sol);
         continue;
@@ -11797,7 +11863,7 @@ async function runSolver(){
       const rows = sol.live.map(l => ({type:l.c.type, weapon:l.c.weapon, armor:l.c.armor,
                                        size:l.size, training:opts.training}));
       const fix = verifyAndRepair(rows, foeRows, opts.side, bonus, opts.goal,
-                                  opts.minSurvivors, deadline, opts.ticks, opts.lean, opts.budget, opts.stock);
+                                  opts.minSurvivors, deadline, opts.ticks, opts.lean, opts.budget, opts.stock, opts.drift);
       if (!fix || !fix.ok) continue;
       sol.live = fix.rows.map((u, i) => ({c:{type:u.type, weapon:u.weapon, armor:u.armor,
         bits: troopBits(u)}, size:u.size, lost: fix.v.lost[i] ?? 0}));
