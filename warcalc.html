@@ -547,6 +547,8 @@ tr.reserve[data-wait="4"] .spriteSlot{transform:translateX(10px)}
 .drill-pop select,.drill-pop input{width:auto;margin:0;padding:1px 4px;font-size:12px}
 .drill-pop input{width:52px}
 .run-opts.drill-on .drill-btn{color:var(--atk)}
+#solveDrainPop{left:auto;right:-6px;font-weight:normal;width:max-content;max-width:calc(100vw - 16px)}
+#solveDrainPop .drill-line{flex-wrap:wrap;white-space:normal}
 .drill-pop .run-sep{margin:0}
 .run-sep{align-self:stretch;margin:2px 0;border:0;border-top:1px solid var(--border-soft)}
 #logBothWrap,#logNumsWrap,#logTrainWrap,#logHitsWrap,#logDDmgWrap{margin-left:18px}
@@ -2707,7 +2709,29 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
     <h2>Solver</h2>
     <span class="spacer"></span>
     <button class="btn btn-xs" id="btnSolveOpts" aria-expanded="false">Options</button>
-    <button class="btn btn-xs" id="btnSolveDrain" aria-pressed="false">Training drain</button>
+    <span class="run-opts" id="solveDrainOpts">
+    <button class="btn btn-xs" id="btnSolveDrain" aria-expanded="false" aria-controls="solveDrainPop">Training drain</button>
+    <div class="run-pop drill-pop" id="solveDrainPop" role="group" aria-label="Solver training drain">
+      <label class="hk-toggle log-opt" for="sdOn">
+        <input type="checkbox" id="sdOn"> Enabled</label>
+      <hr class="run-sep">
+      <div class="drill-line">
+      Shift training of
+      <select id="sdSide" aria-label="Which side">
+        <option value="">none</option><option value="attacker">attacker</option>
+        <option value="defender">defender</option></select>
+      by
+      <input type="number" id="sdBy" min="-99" max="99" value="-1"
+        aria-label="Training points, negative to drain">
+      every
+      <select id="sdEvery" aria-label="How many ticks">
+        <option value="1">1</option><option value="2">2</option></select>
+      ticks
+      </div>
+      <label class="hk-toggle log-opt" for="sdSkip">
+        <input type="checkbox" id="sdSkip"> Ignore next tick</label>
+    </div>
+    </span>
     <button class="btn btn-warning" id="btnSolve" style="padding:7px 18px;font-size:14px">Find cheapest force</button>
     <button class="btn" id="btnSolveClear" style="padding:7px 16px;font-size:14px">Clear</button>
     <button class="btn btn-danger btn-xs" id="btnSolveStop" style="display:none">Stop</button>
@@ -11735,22 +11759,57 @@ function setupLimits(){
   paintLimits();
 }
 
-/* the chevrons' drift, once the solver's Training drain is pressed: own says
-   whether it is the side being solved for that drifts */
+/* the solver's own training drift, set in its Training drain picker: {side,
+   step, every, skip, own}, or null while off. own says whether it is the side
+   being solved for that drifts */
 const LS_SOLVE_DRAIN = "warcalc.solverDrain";
+function solveDrainOf(){
+  const side = document.getElementById("sdSide").value;
+  const step = clampInt(document.getElementById("sdBy").value, -99, 99);
+  if (!document.getElementById("sdOn").checked || !side || !step) return null;
+  return {side, step, every: +document.getElementById("sdEvery").value || 1,
+          skip: document.getElementById("sdSkip").checked ? 1 : 0};
+}
 function solveDrift(side){
-  const d = document.getElementById("btnSolveDrain").getAttribute("aria-pressed") === "true" && trainDrift();
+  const d = solveDrainOf();
   return d ? Object.assign({}, d, {own: d.side === side}) : null;
 }
-(() => {
-  const b = document.getElementById("btnSolveDrain");
-  const set = on => { b.setAttribute("aria-pressed", on); b.classList.toggle("btn-info", on); };
-  set(store.get(LS_SOLVE_DRAIN, false) === true);
-  b.addEventListener("click", () => {
-    const on = b.getAttribute("aria-pressed") !== "true";
-    set(on); store.set(LS_SOLVE_DRAIN, on);
+{
+  const wrap = document.getElementById("solveDrainOpts"), btn = document.getElementById("btnSolveDrain");
+  const pop = document.getElementById("solveDrainPop");
+  /* kept on screen on a narrow page */
+  const show = on => { wrap.classList.toggle("open", on); btn.setAttribute("aria-expanded", on);
+    pop.style.transform = "";
+    if (!on) return;
+    const r = pop.getBoundingClientRect(), vw = document.documentElement.clientWidth;
+    const dx = r.left < 8 ? 8 - r.left : r.right > vw - 8 ? vw - 8 - r.right : 0;
+    if (dx) pop.style.transform = `translateX(${dx}px)`; };
+  btn.addEventListener("click", ()=>show(!wrap.classList.contains("open")));
+  document.addEventListener("click", e=>{ if (!wrap.contains(e.target)) show(false); });
+  document.addEventListener("keydown", e=>{ if (e.key === "Escape" && wrap.classList.contains("open")) show(false); });
+
+  const ids = {on:"sdOn", side:"sdSide", by:"sdBy", every:"sdEvery", skip:"sdSkip"};
+  let saved = store.get(LS_SOLVE_DRAIN, {});
+  if (!saved || typeof saved !== "object") saved = {};
+  Object.entries(ids).forEach(([k, id])=>{
+    const el = document.getElementById(id);
+    if (el.type === "checkbox"){ el.checked = saved[k] === true; return; }
+    if (saved[k] != null) el.value = saved[k];
+    if (el.tagName === "SELECT" && el.selectedIndex < 0) el.selectedIndex = 0;
   });
-})();
+  const mark = () => btn.classList.toggle("btn-info", !!solveDrainOf());
+  mark();
+  Object.entries(ids).forEach(([k, id])=>
+    document.getElementById(id).addEventListener("change", ()=>{
+      const el = document.getElementById(id);
+      if (k === "by") el.value = clampInt(el.value, -99, 99);
+      const cur = store.get(LS_SOLVE_DRAIN, {});
+      const next = cur && typeof cur === "object" ? cur : {};
+      next[k] = el.type === "checkbox" ? el.checked : el.value;
+      store.set(LS_SOLVE_DRAIN, next);
+      mark();
+    }));
+}
 
 function readSolveOpts(){
   const side = document.getElementById("solveSide").value;
