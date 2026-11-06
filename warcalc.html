@@ -12013,9 +12013,8 @@ function renderSolutions(out, opts, bonus, secs){
   const dr = opts.drift;
   el.classList.toggle("drain-on", !!dr);
   const drainNote = !dr ? "" : `
-    <div class="drain-banner">⚠ Training drain was on: ${esc(dr.side)} training
-      ${dr.step > 0 ? "+" : "−"}${Math.abs(dr.step)} every ${dr.every > 1 ? dr.every + " ticks" : "tick"}${dr.skip ? ", skipping the next tick" : ""}.
-      These answers only hold if that drift really happens.</div>`;
+    <div class="drain-banner">Training Drain enabled : ${esc(dr.side[0].toUpperCase() + dr.side.slice(1))}
+      [${dr.step > 0 ? "+" : "-"}${Math.abs(dr.step)}] per ${dr.every > 1 ? dr.every + " ticks" : "tick"}</div>`;
 
   const goalName = {upfront:"up-front ฿", losses:"฿ burned", both:"up front + burned ฿"}[opts.objective];
   const sideWord = opts.side === "defender" ? "defence" : "attack";
