@@ -2653,7 +2653,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
         <option value="">none</option><option value="attacker">attacker</option>
         <option value="defender">defender</option></select>
       by
-      <input type="number" id="drillBy" min="-99" max="99" value="1"
+      <input type="text" id="drillBy" class="signed-in" value="+1" autocomplete="off" spellcheck="false"
         aria-label="Training points, negative to drain">
       every
       <select id="drillEvery" aria-label="How many ticks">
@@ -2729,7 +2729,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
         <option value="">none</option><option value="attacker">attacker</option>
         <option value="defender">defender</option></select>
       by
-      <input type="number" id="sdBy" min="-99" max="99" value="-1"
+      <input type="text" id="sdBy" class="signed-in" value="-1" autocomplete="off" spellcheck="false"
         aria-label="Training points, negative to drain">
       every
       <select id="sdEvery" aria-label="How many ticks">
@@ -3419,6 +3419,21 @@ function resChips(res){
 const IMG_BASE = "https://4clop.org/images/";
 
 const clampInt = (v, lo, hi) => Math.min(hi, Math.max(lo, parseInt(v, 10) || 0));
+/* a signed shift written out with its sign, +2 or -2, so a raise never reads as a drain */
+const signedStr = n => n > 0 ? `+${n}` : String(n);
+/* a text box holding a signed whole number in lo..hi: it shows the + on a
+   positive figure, which a number box cannot, and still steps with the arrow keys */
+function signedField(el, lo, hi){
+  const tidy = () => { el.value = signedStr(clampInt(el.value, lo, hi)); };
+  tidy();
+  el.addEventListener("keydown", e=>{
+    if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+    e.preventDefault();
+    el.value = signedStr(clampInt(clampInt(el.value, lo, hi) + (e.key === "ArrowUp" ? 1 : -1), lo, hi));
+    el.dispatchEvent(new Event("change"));
+  });
+  return tidy;
+}
 
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 
@@ -11805,12 +11820,13 @@ function solveDrift(side){
     if (saved[k] != null) el.value = saved[k];
     if (el.tagName === "SELECT" && el.selectedIndex < 0) el.selectedIndex = 0;
   });
+  const tidyBy = signedField(document.getElementById("sdBy"), -99, 99);
   const mark = () => btn.classList.toggle("btn-danger", !!solveDrainOf());
   mark();
   Object.entries(ids).forEach(([k, id])=>
     document.getElementById(id).addEventListener("change", ()=>{
       const el = document.getElementById(id);
-      if (k === "by") el.value = clampInt(el.value, -99, 99);
+      if (k === "by") tidyBy();
       const cur = store.get(LS_SOLVE_DRAIN, {});
       const next = cur && typeof cur === "object" ? cur : {};
       next[k] = el.type === "checkbox" ? el.checked : el.value;
@@ -12333,12 +12349,13 @@ const LS_LOG_OPTS = "warcalc.logOpts";
     if (saved[k] != null) el.value = saved[k];
     if (el.tagName === "SELECT" && el.selectedIndex < 0) el.selectedIndex = 0;
   });
+  const tidyBy = signedField(document.getElementById("drillBy"), -99, 99);
   const mark = () => wrap.classList.toggle("drill-on", !!trainDrift());
   mark();
   Object.entries(ids).forEach(([k, id])=>
     document.getElementById(id).addEventListener("change", ()=>{
       const el = document.getElementById(id);
-      if (k === "by") el.value = clampInt(el.value, -99, 99);
+      if (k === "by") tidyBy();
       const cur = store.get(LS_DRILL, {}) || {};
       delete cur.dir;
       cur[k] = el.type === "checkbox" ? el.checked : el.value;
