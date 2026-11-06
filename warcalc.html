@@ -1532,6 +1532,14 @@ body.align-costs .forces-grid > .panel{display:grid;grid-row:span 4;grid-templat
 .solve-bar{height:100%;width:0;transition:width .12s linear;
   background-image:linear-gradient(to bottom,var(--btn-warning-a),var(--btn-warning-b))}
 #solveOut .surv-grid{justify-content:flex-start}
+/* answers found under the solver's training drain: washed red so nobody
+   loads one thinking it was fought at steady training */
+#solveOut.drain-on{margin-top:10px;padding:2px 12px 12px;border-radius:6px;
+  background:color-mix(in srgb,var(--btn-danger-b) 30%,transparent);
+  border:2px solid var(--btn-danger-b)}
+#solveOut.drain-on .well{background:color-mix(in srgb,var(--btn-danger-b) 16%,var(--sunken));
+  border-color:color-mix(in srgb,var(--btn-danger-b) 55%,transparent)}
+.drain-banner{margin:10px 0 2px;font-weight:700;font-size:13px}
 .tick-table{width:auto;min-width:340px}
 .tick-table th{font-size:10px;padding:2px 14px 4px 0}
 .tick-table td{padding:2px 14px 2px 0;font-family:var(--mono);font-size:12px}
@@ -11797,7 +11805,7 @@ function solveDrift(side){
     if (saved[k] != null) el.value = saved[k];
     if (el.tagName === "SELECT" && el.selectedIndex < 0) el.selectedIndex = 0;
   });
-  const mark = () => btn.classList.toggle("btn-info", !!solveDrainOf());
+  const mark = () => btn.classList.toggle("btn-danger", !!solveDrainOf());
   mark();
   Object.entries(ids).forEach(([k, id])=>
     document.getElementById(id).addEventListener("change", ()=>{
@@ -11880,7 +11888,7 @@ async function runSolver(){
   document.getElementById("btnSolve").disabled = true;
   document.getElementById("solveBar").style.width = "0%";
   document.getElementById("solveMsg").textContent = "Working out which loadouts are worth trying…";
-  document.getElementById("solveOut").innerHTML = "";
+  document.getElementById("solveOut").innerHTML = ""; document.getElementById("solveOut").classList.remove("drain-on");
 
   const started = performance.now();
   let last = null, tick = performance.now();
@@ -12002,6 +12010,11 @@ function renderSolutions(out, opts, bonus, secs){
     return;
   }
   solveLast = {results: out.results, training: opts.training, side: opts.side};
+  const dr = opts.drift;
+  el.classList.toggle("drain-on", !!dr);
+  const drainNote = !dr ? "" : `
+    <div class="drain-banner">Training Drain enabled : ${esc(dr.side[0].toUpperCase() + dr.side.slice(1))}
+      [${dr.step > 0 ? "+" : "-"}${Math.abs(dr.step)}] per ${dr.every > 1 ? dr.every + " ticks" : "tick"}</div>`;
 
   const goalName = {upfront:"up-front ฿", losses:"฿ burned", both:"up front + burned ฿"}[opts.objective];
   const sideWord = opts.side === "defender" ? "defence" : "attack";
@@ -12079,7 +12092,7 @@ function renderSolutions(out, opts, bonus, secs){
       </div>`;
   };
 
-  el.innerHTML = `
+  el.innerHTML = `${drainNote}
     <div class="small muted" style="margin:10px 0 8px">
       Cheapest ${esc(sideWord)} found · ${out.candCount} loadouts survived pruning ·
       ${out.comboCount.toLocaleString("en-US")} combinations considered${out.beam ? ` (beam search, up to ${out.maxStacks} stacks)` : ""} ·
@@ -12112,7 +12125,7 @@ function applySolution(i, alsoRun){
 document.getElementById("btnSolve").addEventListener("click", runSolver);
 document.getElementById("btnSolveClear").addEventListener("click", ()=>{
   if (solveBusy) return;                     // Stop is the button for a running search
-  document.getElementById("solveOut").innerHTML = "";
+  document.getElementById("solveOut").innerHTML = ""; document.getElementById("solveOut").classList.remove("drain-on");
   solveLast = null;
   document.getElementById("solveProg").style.display = "none";
 });
