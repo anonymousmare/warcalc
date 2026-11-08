@@ -608,15 +608,20 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
 .ov-extra > summary h2::before{content:"▸";display:inline-block;margin-right:6px;transition:transform .12s}
 .ov-extra[open] > summary{padding-bottom:10px;margin-bottom:12px;border-bottom:1px solid var(--border-soft)}
 .ov-extra[open] > summary h2::before{transform:rotate(90deg)}
-.ex-bar{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
-.ex-bar .has-note{margin:0;max-width:60ch}
-.ex-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:3px 18px;font-size:12px}
-.ex-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.ex-row .pt-name{text-align:left;white-space:normal}
-.ex-row input{width:56px;background:var(--input-bg);color:var(--input-ink);border:1px solid var(--border-soft);border-radius:3px;
+.ex-mult{font:600 12px var(--mono);color:var(--strong)}
+/* the sheet's groups down columns, each name right up against its box */
+.ex-grid{columns:4 220px;column-gap:28px;font-size:12px}
+.ex-grp{break-inside:avoid;display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:8px;row-gap:3px;align-items:center;margin-bottom:14px}
+.ex-head{grid-column:1 / -1;display:flex;align-items:baseline;gap:8px;padding-bottom:3px;margin-bottom:1px;border-bottom:1px solid var(--border-soft);
+  font:600 10.5px var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
+.ex-head .ex-sum{margin-left:auto;font:600 11px var(--mono);letter-spacing:0;color:var(--strong)}
+.ex-row{display:contents;cursor:pointer}
+.ex-row .pt-name{white-space:normal;line-height:1.25}
+.ex-row input{width:52px;background:var(--input-bg);color:var(--input-ink);border:1px solid var(--border-soft);border-radius:3px;
   padding:1px 3px;font:12px var(--mono);text-align:center;-moz-appearance:textfield;appearance:textfield}
 .ex-row input::-webkit-inner-spin-button,.ex-row input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .ex-row input:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.ex-row input:not(.changed){color:var(--text-dim)}
 .ex-row input.changed{border-color:var(--accent);font-weight:700}
 
 /* ---------- nations read off the 4clop API ---------- */
@@ -786,14 +791,19 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
     </div>
     <details class="panel ov-extra" id="ovExtra">
       <summary class="panel-head"><h2>Extra buildings</h2><span class="spacer"></span><span id="ovExtraBadge" class="badge">none</span></summary>
-      <div class="ex-bar">
+      <div class="gov-bar ex-bar">
+        <label title="Extra buildings are in no nation, so pick the government whose multiplier their malls' and factories' GDP gets">GDP under
+          <select id="ovExtraGov"></select></label>
+        <label title="At max sat the government's GDP multiplier is the higher one"><input id="ovExtraMaxSat" type="checkbox"> Max sat</label>
+        <span id="ovExtraMult" class="ex-mult"></span>
         <span class="spacer"></span>
         <button id="ovExtraClear" class="btn" type="button">Clear</button>
       </div>
       <div id="ovExtraTable" class="ex-grid"></div>
     </details>
     <section class="panel">
-      <div class="panel-head"><h2>Projected nets</h2></div>
+      <div class="panel-head"><h2>Projected nets</h2><span class="spacer"></span>
+        <button id="ovDnaBtn" class="btn" type="button" aria-pressed="false">Hide DNA</button></div>
       <div id="ovNets" class="well"></div>
     </section>
   </div>
@@ -1478,6 +1488,7 @@ function renderOverall() {
   if (!nations.length) return;
   const bits = { total: 0 }, res = {}, resNow = {}, resAfter = {};
   let gdpNow = 0, gdpAfter = 0;
+  const gdpByNow = [], gdpByAfter = [];
   const rows = nations.map(n => {
     const has = parseHas(n.has || ""), pl = usedPlan(n);
     const want = pl ? planCounts(pl, has) : has;
@@ -1488,6 +1499,7 @@ function renderOverall() {
     addRes(resNow, now.res); addRes(resAfter, after.res);
     addDna(resNow, n); addDna(resAfter, n);
     gdpNow += now.gdp; gdpAfter += after.gdp;
+    gdpByNow.push([nationName(n), 0, now.gdp]); gdpByAfter.push([nationName(n), 0, after.gdp]);
     const opts = `<option value=""${pl ? "" : " selected"}>No plan</option>`
       + (n.plans || []).map(p => `<option value="${esc(p.id)}"${p === pl ? " selected" : ""}>${esc(planName(p))}</option>`).join("");
     return `<tr><td><button type="button" class="ov-go" data-go="${esc(n.id)}" title="Open ${esc(nationName(n))}">`
@@ -1498,8 +1510,20 @@ function renderOverall() {
       + `<td>${fmt(after.gdp)}k</td></tr>`;
   }).join("");
   $("ovNations").innerHTML = `<tr><th>Nation</th><th>Plan</th><th>Cost</th><th>Sat</th><th>GDP</th></tr>` + rows;
-  // the extra buildings belong to nobody: what they make and eat goes on the projected side only
-  if (extraCounts().size) addRes(resAfter, nationModel({}, extraCounts(), new Map()).res, " (extra)");
+  // the extra buildings belong to nobody: what they make and eat goes on the projected side only,
+  // and so does the GDP from their malls and factories, with no base and the multiplier picked for them
+  const ex = extraCounts();
+  let exGdp = null;
+  if (ex.size) {
+    const m = nationModel({}, ex, new Map());
+    addRes(resAfter, m.res, " (extra)");
+    const made = m.gdpParts.filter(p => p[0] !== "Base");
+    if (made.length) {
+      exGdp = { parts: made, mult: extraMult(), count: made.reduce((t, p) => t + p[1], 0) };
+      exGdp.v = made.reduce((t, p) => t + p[2], 0) * exGdp.mult;
+      gdpAfter += exGdp.v;
+    }
+  }
 
   const line = (l, v, c) => `<div class="cost-l${c ? " " + c : ""}">${l}<span class="v">${v}</span></div>`;
   $("ovCost").innerHTML = !bits.total ? '<p class="cost-none">Nothing to build.</p>'
@@ -1512,9 +1536,19 @@ function renderOverall() {
   const plain = (v, tip) => `<td${tip ? ` tabindex="0" data-tip="${tip}"` : ""} class="${v ? "" : "zero"}">${v ? fmt(v) : "0"}</td>`;
   const dcol = d => `<td class="dcol${showDiff ? "" : " hidden"} ${d ? cls(d).trim() : "zero"}">${d ? signed(d) : "·"}</td>`;
   const dgdp = gdpAfter - gdpNow;
-  let body = `<tr class="gdp-row"><th scope="row">GDP</th><td></td><td></td><td>${k(gdpAfter)}</td><td>${k(gdpNow)}</td>`
+  // GDP's hover card: what each nation makes, and on the projected side, the extra buildings
+  const gdpTip = (by, total, extraPart) => `<div class="tip-head"><span class="tip-name">GDP</span><span class="tip-total">${k(total)} a tick</span></div>`
+    + by.map(([name, c, v]) => tipRow(name, c, k(v))).join("")
+    + (extraPart ? `<div class="tip-sec">Extra buildings ${k(extraPart.v)}</div>`
+      + extraPart.parts.map(([name, c, v]) => tipRow(name, c, k(v * extraPart.mult))).join("")
+      + `<div class="tip-row"><span class="sub">× ${extraPart.mult} for ${esc(extraGov.gov)}${extraGov.maxSat ? " at max sat" : ""}</span></div>` : "");
+  tips.set("ovp-gdp", gdpTip(gdpByAfter, gdpAfter, exGdp));
+  tips.set("ovh-gdp", gdpTip(gdpByNow, gdpNow, null));
+  let body = `<tr class="gdp-row"><th scope="row">GDP</th><td></td><td></td>`
+    + `<td tabindex="0" data-tip="ovp-gdp">${k(gdpAfter)}</td><td tabindex="0" data-tip="ovh-gdp">${k(gdpNow)}</td>`
     + `<td class="dcol${showDiff ? "" : " hidden"} ${dgdp ? cls(dgdp).trim() : "zero"}">${dgdp ? signed(dgdp) + "k" : "·"}</td></tr>`;
   for (const [key, label, col, img] of NET_ORDER) {
+    if (hideDna && DNA_RES.includes(key)) continue;
     const r0 = resNow[key] || blankRes(), r1 = resAfter[key] || blankRes();
     const a = r0.made - r0.used, b = r1.made - r1.used;
     tips.set("ovh-" + key, tipMade(label, col, img, r0));
@@ -2592,19 +2626,42 @@ $("apiGo").addEventListener("click", () => {
 syncPaint();
 
 /* ---- extra buildings: in no nation, laid over the projected nets ---- */
-const LS_EXTRA = "buildplanner.extra";
+const LS_EXTRA = "buildplanner.extra", LS_EXTRA_GOV = "buildplanner.extraGov";
 let extra = {};
 try { const e = JSON.parse(localStorage.getItem(LS_EXTRA)); if (e && typeof e === "object" && !Array.isArray(e)) extra = e; } catch (e) {}
 const extraCounts = () => new Map(LAYOUT.filter(e => e && +extra[e[0]] > 0).map(e => [e[0], Math.floor(+extra[e[0]])]));
+// with no nation of their own, their GDP takes the multiplier of the government picked for them
+let extraGov = { gov: DEFAULT_GOV, maxSat: false };
+try { const g = JSON.parse(localStorage.getItem(LS_EXTRA_GOV)); if (g && GOVS[g.gov]) extraGov = { gov: g.gov, maxSat: !!g.maxSat }; } catch (e) {}
+const extraMult = () => GOVS[extraGov.gov].gdp[extraGov.maxSat ? 1 : 0];
+$("ovExtraGov").innerHTML = Object.keys(GOVS).map(g => `<option>${g}</option>`).join("");
+$("ovExtraGov").value = extraGov.gov; $("ovExtraMaxSat").checked = extraGov.maxSat;
+const extraMultPaint = () => $("ovExtraMult").textContent = "×" + extraMult();
+for (const el of [$("ovExtraGov"), $("ovExtraMaxSat")]) el.addEventListener("change", () => {
+  extraGov = { gov: $("ovExtraGov").value, maxSat: $("ovExtraMaxSat").checked };
+  try { localStorage.setItem(LS_EXTRA_GOV, JSON.stringify(extraGov)); } catch (e) {}
+  extraMultPaint(); renderOverall();
+});
+extraMultPaint();
+
+// the boxes in the sheet's own groups, each headed with how many extras it holds
+const EXTRA_GROUPS = ["Mines", "Farms", "Wells", "Industry", "Shops", "Factories", "Worship", "Special"];
+const extraGroups = LAYOUT.reduce((gs, e) => (e ? gs[gs.length - 1].push(e) : gs.push([]), gs), [[]]);
 function extraBadge() {
   const t = sumMap(extraCounts());
   $("ovExtraBadge").textContent = t ? many(t, "building") : "none";
+  extraGroups.forEach((g, i) => {
+    const s = g.reduce((a, e) => a + Math.max(0, Math.floor(+extra[e[0]] || 0)), 0);
+    $("ovExtraTable").querySelector(`[data-grp="${i}"] .ex-sum`).textContent = s ? fmt(s) : "";
+  });
 }
-$("ovExtraTable").innerHTML = LAYOUT.filter(Boolean).map(e => {
-  const v = Math.max(0, Math.floor(+extra[e[0]] || 0));
-  return `<label class="ex-row"><span class="pt-name"${e[1] ? ` style="--res:${RES[e[1]]}"` : ""}>${esc(e[0])}</span>`
-    + `<input type="number" min="0" step="1" inputmode="numeric" data-ex="${esc(e[0])}" value="${v}"${v ? ' class="changed"' : ""} aria-label="Extra ${esc(e[0])}"></label>`;
-}).join("");
+$("ovExtraTable").innerHTML = extraGroups.map((g, i) => `<div class="ex-grp" data-grp="${i}">`
+  + `<div class="ex-head">${EXTRA_GROUPS[i] || ""}<span class="ex-sum"></span></div>`
+  + g.map(e => {
+    const v = Math.max(0, Math.floor(+extra[e[0]] || 0));
+    return `<label class="ex-row"><span class="pt-name"${e[1] ? ` style="--res:${RES[e[1]]}"` : ""}>${esc(e[0])}</span>`
+      + `<input type="number" min="0" step="1" inputmode="numeric" data-ex="${esc(e[0])}" value="${v}"${v ? ' class="changed"' : ""} aria-label="Extra ${esc(e[0])}"></label>`;
+  }).join("") + "</div>").join("");
 $("ovExtraTable").addEventListener("input", ev => {
   const b = ev.target.dataset.ex; if (!b) return;
   const v = Math.max(0, Math.floor(+ev.target.value || 0));
@@ -2613,6 +2670,8 @@ $("ovExtraTable").addEventListener("input", ev => {
   try { localStorage.setItem(LS_EXTRA, JSON.stringify(extra)); } catch (e) {}
   extraBadge(); renderOverall();
 });
+// a box takes a fresh number straight over the old one
+$("ovExtraTable").addEventListener("focusin", ev => { if (ev.target.dataset.ex) ev.target.select(); });
 $("ovExtraClear").addEventListener("click", () => {
   extra = {};
   try { localStorage.removeItem(LS_EXTRA); } catch (e) {}
@@ -2620,6 +2679,17 @@ $("ovExtraClear").addEventListener("click", () => {
   extraBadge(); renderOverall();
 });
 extraBadge();
+
+// the twelve DNA rows can be folded out of the projected nets
+let hideDna = false;
+try { hideDna = localStorage.getItem("buildplanner.hideDna") === "1"; } catch (e) {}
+const dnaPaint = () => { const b = $("ovDnaBtn"); b.textContent = hideDna ? "Show DNA" : "Hide DNA"; b.setAttribute("aria-pressed", hideDna); };
+$("ovDnaBtn").addEventListener("click", () => {
+  hideDna = !hideDna;
+  try { localStorage.setItem("buildplanner.hideDna", hideDna ? "1" : "0"); } catch (e) {}
+  dnaPaint(); renderOverall();
+});
+dnaPaint();
 
 /* ===================== Mine mix and Well mix =====================
    From the copper planner: the cheapest way, in sat, to hit a copper or oil target.
