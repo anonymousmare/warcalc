@@ -1315,6 +1315,12 @@ const ENV_COLOURS = ["#d6b47a", "#b98a5b", "#c4574c", "#d98a3d", "#e0c44c", "#7f
                      "#4f9c97", "#5b86c4", "#8a6bbf", "#d27fb0", "#8d9096", "#3c3f45"];
 const MANILA = ENV_COLOURS[0];
 const isColour = c => /^#[0-9a-f]{6}$/i.test(c || "");
+// a new envelope takes a colour at random, from those the fewest envelopes have, so they spread over the swatches
+const randomColour = () => {
+  const used = c => nations.filter(n => (n.color || "").toLowerCase() === c).length;
+  const least = Math.min(...ENV_COLOURS.map(used)), pool = ENV_COLOURS.filter(c => used(c) === least);
+  return pool[Math.floor(Math.random() * pool.length)];
+};
 
 const LS_NATIONS = "buildplanner.nations";
 let nations = [];
@@ -1539,7 +1545,7 @@ envGrid.addEventListener("click", ev => {
   if (!b) return;
   if (b.id === "envNew") {
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    nations.push({ id, name: "New nation", color: MANILA, has: "" });
+    nations.push({ id, name: "New nation", color: randomColour(), has: "" });
     saveNations();
     go("#planner/" + id);
     const nm = $("nName"); nm.focus(); nm.select();
@@ -2526,16 +2532,15 @@ $("apiBox").addEventListener("change", ev => {
   } else return;
   renderApi();
 });
-// each one comes in as an envelope, coloured by its alliance; one already here is read afresh instead
+// each one comes in as an envelope; one already here is read afresh instead
 $("apiGo").addEventListener("click", () => {
   const groups = apiGroups(apiActive());
-  const colour = aid => { const i = groups.findIndex(g => g.id === aid); return aid && i >= 0 ? ENV_COLOURS[1 + i % (ENV_COLOURS.length - 1)] : MANILA; };
   let added = 0, again = 0;
   for (const g of groups) for (const a of g.ns) {
     if (!apiPick.has(a.id)) continue;
     let n = nations.find(x => x.api === a.id);
     if (n) again++;
-    else { n = { id: newId(), name: a.name, color: colour(a.aid), api: a.id, plans: [] }; nations.push(n); added++; }
+    else { n = { id: newId(), name: a.name, color: randomColour(), api: a.id, plans: [] }; nations.push(n); added++; }
     n.has = apiColumn(a); n.dna = a.dna; n.apiIdle = false; delete n.apiGone;
     n.gov = GOVS[a.gov] ? a.gov : DEFAULT_GOV; n.econ = ECONOMIES[a.econ] ? a.econ : DEFAULT_ECON; n.prze = a.prze;
   }
