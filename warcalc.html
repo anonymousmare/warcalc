@@ -476,10 +476,14 @@ tbody tr:last-child{border-bottom:none}
    type selector, shown while the sprite or type cell is hovered, taking no
    room so the row never grows */
 .force-table td.col-sprite,.force-table td.col-type{position:relative}
-.reinf-sw{position:absolute;left:5px;top:3px;display:none;gap:3px;line-height:1}
-.force-table tr:has(td.col-sprite:hover, td.col-type:hover) .reinf-sw{display:flex}
+.reinf-sw{position:absolute;left:5px;top:3px;display:flex;align-items:center;gap:3px;line-height:1;pointer-events:none}
+/* hidden, not removed, so a $ or × left on keeps its own spot */
+.force-table .reinf-sw > *{visibility:hidden;pointer-events:auto}
+.force-table tr:has(td.col-sprite:hover, td.col-type:hover) .reinf-sw > *,
+.force-table .reinf-sw button.ex.on{visibility:visible}
+.reinf-sw .sw-div{width:1px;height:8px;background:var(--sw-ink);opacity:.3;margin:0 1px}
 .reinf-sw button{
-  all:unset;cursor:pointer;position:relative;width:12px;height:12px;opacity:.45;
+  all:unset;pointer-events:auto;cursor:pointer;position:relative;width:12px;height:12px;opacity:.45;
   border-radius:50%;background:rgba(var(--grey-rgb),.14);font-size:0;color:var(--sw-ink);
 }
 /* the - and + are drawn as bars so they sit dead centre in the circle */
@@ -488,6 +492,15 @@ tbody tr:last-child{border-bottom:none}
   width:6px;height:1.5px;transform:translate(-50%,-50%);
 }
 .reinf-sw button[data-reinf="1"]::after{width:1.5px;height:6px}
+/* the exemptions: $ leaves the raise cost off, × the equipment */
+.reinf-sw button[data-ex="hire"]::before{content:"$";background:none;width:auto;height:auto;
+  font:700 8.5px/1 var(--mono);}
+.reinf-sw button[data-ex="gear"]::before,.reinf-sw button[data-ex="gear"]::after{
+  content:"";position:absolute;left:50%;top:50%;background:currentColor;
+  width:6px;height:1.5px;transform:translate(-50%,-50%) rotate(45deg);
+}
+.reinf-sw button[data-ex="gear"]::after{transform:translate(-50%,-50%) rotate(-45deg)}
+.reinf-sw button.ex.on{background:rgba(var(--gold-rgb),.35)}
 .reinf-sw button:hover,.reinf-sw button.on{opacity:1}
 /* the same bare - and + beside the Tr heading step every row's training */
 .force-table th.col-train{position:relative}
@@ -3642,6 +3655,9 @@ function makeRow(side, data){
     <td class="col-type"><span class="reinf-sw">
       <button type="button" data-reinf="0" aria-label="A tick sooner (front line)">−</button>
       <button type="button" data-reinf="1" aria-label="Reinforcement — press again to hold it back another tick">+</button>
+      <span class="sw-div" aria-hidden="true"></span>
+      <button type="button" class="ex" data-ex="hire" title="exempt raise cost" aria-label="exempt raise cost" aria-pressed="false">$</button>
+      <button type="button" class="ex" data-ex="gear" title="exempt equipment cost" aria-label="exempt equipment cost" aria-pressed="false">×</button>
     </span><select class="type">
       ${typeOpts.map(t=>`<option value="${t}">${t}</option>`).join("")}
     </select></td>
@@ -3676,6 +3692,12 @@ function makeRow(side, data){
     refreshCosts();
   }));
   setReserve(tr, waitOf(data));
+  tr.querySelectorAll("[data-ex]").forEach(b=>b.addEventListener("click", ()=>{
+    setExempt(tr, b.dataset.ex, b.getAttribute("aria-pressed") !== "true");
+    refreshCosts();
+  }));
+  setExempt(tr, "hire", data?.freeHire);
+  setExempt(tr, "gear", data?.freeGear);
 
   document.getElementById(side === "attacker" ? "tbodyAttacker" : "tbodyDefender").appendChild(tr);
 
@@ -3703,6 +3725,16 @@ function setReserve(tr, wait){
   plus.setAttribute("aria-label", on ? `Joins on tick ${w + 1}` + (w < REINF_MAX ? " — press again to hold it back another tick" : "")
                   : "Reinforcement — press again to hold it back another tick");
   tr.querySelector('[data-reinf="0"]').classList.toggle("on", !on);
+}
+
+/* a unit already raised, or already kitted out, costs nothing for it:
+   its raise cost ($) or its equipment cost (×) is left off the bill */
+function setExempt(tr, which, on){
+  const b = tr.querySelector(`[data-ex="${which}"]`);
+  on = !!on;
+  tr.dataset[which === "hire" ? "freeHire" : "freeGear"] = on ? "1" : "";
+  b.classList.toggle("on", on);
+  b.setAttribute("aria-pressed", on);
 }
 
 /* the battle on screen was fought with the old front line, so its ticks and
@@ -3788,10 +3820,13 @@ function costsOf(rows){
   rows.forEach(u=>{
     const n = Math.max(0, u.size);            // every cost is per troop
     const uc = u.noHire ? {hire:0, upkeep:{}} : UNIT_COST[u.type] || {hire:0, upkeep:{}};
-    hire += uc.hire * n;
+    const hireEach = u.freeHire ? 0 : uc.hire;     // already raised: no raise cost
+    hire += hireEach * n;
     addRes(upkeep, uc.upkeep, n);
 
-    const w = u.noW ? NONE : gearCost("weapon", u.weapon), a = u.noA ? NONE : gearCost("armor", u.armor);
+    /* already kitted out: no equipment cost */
+    const w = u.noW || u.freeGear ? NONE : gearCost("weapon", u.weapon),
+          a = u.noA || u.freeGear ? NONE : gearCost("armor", u.armor);
     const gb = (w.bits + a.bits) * n;
     gearBits += gb;
     addRes(gearRes, w.res, n); addRes(gearRes, a.res, n);
@@ -3799,7 +3834,7 @@ function costsOf(rows){
     items.push({u, n, w, a,
       res: addRes(addRes({}, w.res, n), a.res, n),
       gbits: gb,
-      hire: uc.hire * n,
+      hire: hireEach * n,
       upkeep: addRes({}, uc.upkeep, n)});
   });
 
@@ -4150,7 +4185,7 @@ function builderText(rows, noGroup){
 /* the one builder line that makes the gear itself — build "Item":count …,
    each piece sized to every troop that carries it, in the Units list's order */
 function builderGearText(rows){
-  const {gear} = unitTally(rows);
+  const {gear} = unitTally(rows.filter(u => !u.freeGear));     // written-off kit is not built
   const items = [];
   UNIT_ORDER.forEach(g => g.gear.forEach(k=>{
     if (gear[k] > 0) items.push(`${bq(label(k))}:${gear[k]}`);
@@ -4218,6 +4253,22 @@ function unitsBlock(rows, open, byTick){
       <div class="raw-body" style="${nWidth}">${body}</div>
     </details>`;
 }
+
+/* a drag across the Units list copies one line a row with a space between
+   the count and the name ("19,680 Cavalry", "ACFU 17,230"): its columns are
+   flex boxes with no text between them, so a plain copy runs them together */
+document.addEventListener("copy", e=>{
+  const sel = getSelection();
+  if (!sel.rangeCount || sel.isCollapsed) return;
+  const r = sel.getRangeAt(0);
+  const anc = r.commonAncestorContainer;
+  if (!(anc.nodeType === 1 ? anc : anc.parentElement)?.closest(".units-drop")) return;
+  const lines = [...document.querySelectorAll(".units-drop .gear-line")].filter(l => r.intersectsNode(l));
+  if (!lines.length) return;
+  const text = lines.map(l => [...l.children].map(c => c.textContent.trim()).filter(Boolean).join(" ")).join("\n");
+  e.clipboardData.setData("text/plain", text);
+  e.preventDefault();
+});
 
 /* Builder Copy writes its text on the click, not on the draw, so the made-up
    names are new every time; the button only holds a key to its rows. Keys
@@ -4334,10 +4385,26 @@ function prettyPlan(side, noFight){
     (total ? "\n" + planHead("Upkeep Total") + "\n" + planResLines(total, w) : "")));
   if (fight && fight.lost)
     out.push(planFence("ansi", `${ANSI}[7;41m${ANSI}[48;2;255;0;0mBATTLE LOSS?${ANSI}[0m${ANSI}[7;41m${ANSI}[0m`));
+  const off = writeoffText(rows);
+  if (off) out.push(planFence("", off));
   return out.join("\n");
 }
 
 const planFence = (lang, body) => "```" + lang + "\n" + body + "\n```";
+
+/* what the $ and × switches leave off the bill: the troops not raised, then
+   the kit not bought, a type's troops before its gear as the Units list has it */
+function writeoffText(rows){
+  const {head} = unitTally(rows.filter(u => u.freeHire));
+  const {gear} = unitTally(rows.filter(u => u.freeGear));
+  const n = v => v.toLocaleString("en-US");
+  const out = [];
+  UNIT_ORDER.forEach(g=>{
+    if (head[g.type] > 0) out.push(`${n(head[g.type])} ${g.type}`);
+    g.gear.forEach(k=>{ if (gear[k] > 0) out.push(`${n(gear[k])} ${label(k)}`); });
+  });
+  return out.length ? "Writeoffs:\n" + out.join("\n") : "";
+}
 
 /* the roster, a type's stacks together, and what the instructions raise and re-equip */
 function planRoster(rows, extra){
@@ -4402,6 +4469,7 @@ function readSide(side){
     const training = clampInt(tr.querySelector(".training").value, 0, trainCap(side));
     const nick = tr.querySelector(".uname").value.trim();
     out.push({type, weapon, armor, size, training, nick, reserve: +tr.dataset.wait || 0,
+      freeHire: tr.dataset.freeHire === "1", freeGear: tr.dataset.freeGear === "1",
       fid: fidPre(side) + tr.dataset.fid,
       name:`${type}_${weapon}_${armor}_size_${size}_train_${training}`});
   });
@@ -6059,7 +6127,7 @@ function encodeArmy(units, barracks){
   for (let w = 1; w <= REINF_MAX; w++) waves.push(wave(w));
   while (waves.length > 1 && !waves[waves.length - 1].length) waves.pop();
   return waves.map(r => encodeStacks(r, barracks)).join("_")
-       + encodeNames(waves.flat())
+       + encodeNames(waves.flat())       // the $ / × exemptions ride in here too
        + (barracks == null ? "" : "~" + clampInt(barracks, 0, TRAIN_UNCAPPED))    // the side's Barracks level
        + (units?.orders ? "!" + ordToCode(units.orders) : "");                    // its advanced instructions
 }
@@ -6069,10 +6137,38 @@ function encodeArmy(units, barracks){
    as one base-62 number. A leading 1 byte keeps any zero bytes. */
 function encodeNames(units){
   const names = units.map(u => String(u.name || "").replace(/\s+/g, " ").trim());
+  const ex = encodeExempt(units);
+  if (ex) names.push(ex);
   if (!names.some(Boolean)) return "";
   let v = 1n;
   for (const b of new TextEncoder().encode(names.join("\n"))) v = v * 256n + BigInt(b);
   return "." + b62(v);
+}
+
+/* The $ / × exemptions go as one more line after the last unit's name: "$",
+   then two units to a character, each unit 0-3 (1 raise, 2 equipment), the
+   trailing zeros dropped. Every page that reads a "~" Barracks also reads the
+   names, and skips any line past the last unit, so an older page takes the
+   code just the same and only the exemptions are lost. */
+function encodeExempt(units){
+  const f = units.map(u => (u.freeHire ? 1 : 0) | (u.freeGear ? 2 : 0));
+  while (f.length && !f[f.length - 1]) f.pop();
+  if (!f.length) return "";
+  let s = "$";
+  for (let i = 0; i < f.length; i += 2) s += CODE_ALPHA[f[i] + 4 * (f[i + 1] || 0)];
+  return s;
+}
+function decodeExempt(line, units){
+  if (!/^\$[0-9A-F]+$/.test(line || "")) return;
+  [...line.slice(1)].forEach((ch, j) => {
+    const d = parseInt(ch, 16);
+    [d & 3, d >> 2].forEach((f, k) => {
+      const u = units[2 * j + k];
+      if (!u || !f) return;
+      if (f & 1) u.freeHire = true;
+      if (f & 2) u.freeGear = true;
+    });
+  });
 }
 
 function decodeNames(code){
@@ -6115,9 +6211,13 @@ function decodeArmy(code){
   if (waves.length > REINF_MAX) throw new Error("not a code");
   const units = decodeStacks(front || "0").concat(...waves.map((r, i) =>
     decodeStacks(r).map(u => Object.assign(u, packWait({reserve: i + 1})))));
-  if (names) decodeNames(names).forEach((n, i) => {
-    if (units[i] && n.trim()) units[i].name = n.trim().slice(0, 50);
-  });
+  if (names){
+    const lines = decodeNames(names);
+    lines.forEach((n, i) => {
+      if (units[i] && n.trim()) units[i].name = n.trim().slice(0, 50);
+    });
+    decodeExempt(lines[units.length], units);       // the line past the last unit
+  }
   if (brk !== undefined) units.barracks = clampInt(brk, 0, TRAIN_UNCAPPED);   // rides on the list, not in it
   /* an older code under a Barracks past 20 had every level past 20 cut to
      20 on the way out; the Barracks level is the best guess at what they were */
@@ -7226,7 +7326,8 @@ const store = {
    for the autosave and the survivors' undo, which put the same rows back */
 const packSide = (side, ids) => readSide(side).map(u=>Object.assign({
   type:u.type, weapon:u.weapon, armor:u.armor, size:u.size, training:u.training},
-  u.nick ? {name:u.nick} : {}, packWait(u), ids ? {fid:u.fid} : {}));
+  u.nick ? {name:u.nick} : {}, packWait(u), ids ? {fid:u.fid} : {},
+  u.freeHire ? {freeHire:true} : {}, u.freeGear ? {freeGear:true} : {}));
 
 function setSide(side, units){
   (units || []).forEach(u=>uncapFor(side, u.training));
