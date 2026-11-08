@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CurioCalc 2.7 — CLOP</title>
+<title>CurioCalc 2.71 — CLOP</title>
 <style>
 :root{
   --bg:#272b30;
@@ -1255,7 +1255,10 @@ details summary{cursor:pointer;color:var(--strong);font-size:13px;padding:2px 0}
 .topbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;position:relative}
 /* Clear all sits over the gap between the two army panels, lifted out of the
    row so the bar keeps its height */
-.clear-all{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
+.clear-mid{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  display:flex;align-items:center;gap:8px}
+.clear-mid .clear-all{position:static;transform:none}
+.sprite-theme{width:auto;margin:0;padding:1px 4px;font-size:11px;background:var(--sunken);color:var(--text);border-color:var(--border-soft)}
 .topbar h1{margin:0}
 .caret-btn{
   background:none;border:none;color:var(--text-dim);font-size:20px;line-height:1;
@@ -1524,6 +1527,18 @@ body.align-costs .forces-grid > .panel{display:grid;grid-row:span 4;grid-templat
 .solve-off{display:inline-flex;align-items:center;gap:6px;margin:0 0 10px;font-size:12px;color:var(--text);cursor:pointer}
 .solve-off input{width:auto;margin:0}
 .solve-limit-sets.off{opacity:.4}
+.solve-stock-head{display:flex;align-items:center;gap:12px;margin-top:10px}
+.solve-stock-head > label:first-child{margin:0}
+.solve-raw{margin:0}
+.solve-budget .solve-gem{display:inline-flex;align-items:center;gap:5px;padding:5px 5px 5px 8px;
+  background:var(--sunken);border:1px solid var(--border-soft);border-radius:4px}
+.solve-budget .solve-gem label{background:none;border:0;padding:0}
+.solve-link{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin:0;padding:0;
+  background:none;border:0;border-radius:3px;cursor:pointer;color:var(--text-dim)}
+.solve-link:hover{color:var(--text);background:rgba(var(--gold-rgb),.08)}
+.solve-link svg{width:15px;height:15px;display:block}
+.solve-link[aria-pressed="true"]{color:var(--gold)}
+.solve-link[hidden]{display:none}
 .solve-limits-note{text-transform:none;letter-spacing:0;font-weight:400;color:var(--text-dim)}
 .solve-nation{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .solve-nation .note-lean{flex:1 1 260px;min-width:200px}
@@ -2407,7 +2422,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
 <body>
 
 <div class="tabstrip">
-  <span class="tab-brand">CurioCalc 2.7<button class="gear-btn" id="btnTools"
+  <span class="tab-brand">CurioCalc 2.71<button class="gear-btn" id="btnTools"
     aria-label="Settings, import / export presets" aria-expanded="false"><svg viewBox="0 0 24 24"
     aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path
     d="M10.3 2.5h3.4l.5 2.6a7.6 7.6 0 0 1 2 1.2l2.5-.9 1.7 2.9-2 1.8a7.7 7.7 0 0 1 0 2.3l2 1.8-1.7 2.9-2.5-.9a7.6 7.6 0 0 1-2 1.2l-.5 2.6h-3.4l-.5-2.6a7.6 7.6 0 0 1-2-1.2l-2.5.9-1.7-2.9 2-1.8a7.7 7.7 0 0 1 0-2.3l-2-1.8 1.7-2.9 2.5.9a7.6 7.6 0 0 1 2-1.2z"/><circle
@@ -2442,8 +2457,12 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
     <button class="bp-btn" id="btlLink" data-icon="link"
       aria-label="Copy a link that loads this battle"></button>
   </div>
-  <button class="btn btn-xs clear-all" id="btnClearAll"
-    aria-label="Clear the attackers and the defenders, and close the battle and solver logs">Clear all</button>
+  <div class="clear-mid">
+    <select class="sprite-theme" id="themeAttacker" data-sprite-theme="attacker" aria-label="Attacker sprites"></select>
+    <button class="btn btn-xs clear-all" id="btnClearAll"
+      aria-label="Clear the attackers and the defenders, and close the battle and solver logs">Clear all</button>
+    <select class="sprite-theme" id="themeDefender" data-sprite-theme="defender" aria-label="Defender sprites"></select>
+  </div>
   <span class="spacer"></span>
   <div class="battle-presets">
     <span class="bp-lab">battle</span>
@@ -2827,32 +2846,32 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
           <div class="solve-type" data-lean-cell="Cavalry">
             <label><input type="checkbox" data-solve-type="1" value="Cavalry" checked> Cavalry</label>
             <input class="lean" type="number" data-solve-lean="Cavalry" min="0.1" max="10" step="0.05"
-              value="1" title="Cost multiplier the search optimises against — under 1 you field plenty of these, over 1 every one is a stretch">
+              value="1">
           </div>
           <div class="solve-type" data-lean-cell="Tanks">
             <label><input type="checkbox" data-solve-type="1" value="Tanks" checked> Tanks</label>
             <input class="lean" type="number" data-solve-lean="Tanks" min="0.1" max="10" step="0.05"
-              value="1" title="Cost multiplier the search optimises against — under 1 you field plenty of these, over 1 every one is a stretch">
+              value="1">
           </div>
           <div class="solve-type" data-lean-cell="Pegasi">
             <label><input type="checkbox" data-solve-type="1" value="Pegasi" checked> Pegasi</label>
             <input class="lean" type="number" data-solve-lean="Pegasi" min="0.1" max="10" step="0.05"
-              value="1" title="Cost multiplier the search optimises against — under 1 you field plenty of these, over 1 every one is a stretch">
+              value="1">
           </div>
           <div class="solve-type" data-lean-cell="Unicorns">
             <label><input type="checkbox" data-solve-type="1" value="Unicorns" checked> Unicorns</label>
             <input class="lean" type="number" data-solve-lean="Unicorns" min="0.1" max="10" step="0.05"
-              value="1" title="Cost multiplier the search optimises against — under 1 you field plenty of these, over 1 every one is a stretch">
+              value="1">
           </div>
           <div class="solve-type" data-lean-cell="Naval">
             <label><input type="checkbox" data-solve-type="1" value="Naval" checked> Naval</label>
             <input class="lean" type="number" data-solve-lean="Naval" min="0.1" max="10" step="0.05"
-              value="1" title="Cost multiplier the search optimises against — under 1 you field plenty of these, over 1 every one is a stretch">
+              value="1">
           </div>
           <div class="solve-type" data-lean-cell="Alicorns">
             <label><input type="checkbox" data-solve-type="1" value="Alicorns"> Alicorns</label>
             <input class="lean" type="number" data-solve-lean="Alicorns" min="0.1" max="10" step="0.05"
-              value="1" title="Cost multiplier the search optimises against — under 1 you field plenty of these, over 1 every one is a stretch">
+              value="1">
           </div>
         </div>
       </div>
@@ -2866,7 +2885,8 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
             <div class="solve-limit-sets" id="solveLimitSets">
               <label>Battle upkeep budget</label>
               <div class="solve-budget" id="solveBudget"></div>
-              <label style="margin-top:10px">Resources for equipment</label>
+              <div class="solve-stock-head"><label>Resources for equipment</label>
+                <label class="solve-off solve-raw"><input type="checkbox" id="solveStockRaw"> Raws only</label></div>
               <div class="solve-budget" id="solveStock"></div>
             </div>
           </div>
@@ -3437,17 +3457,67 @@ function signedField(el, lo, hi){
 
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 
-function spritePath(type, weapon, armor){
-  return `${IMG_BASE}${type.toLowerCase()}/w-${ARMOR_IDS[armor]}-${WEAPON_IDS[weapon]}.png`;
+/* Sprite themes, picked per side over the battle: the same filenames under
+   another site's images. A sprite the theme lacks falls back to Equestrian. */
+const SPRITE_THEMES = {
+  Equestrian: IMG_BASE,
+  Rheinmetall: "https://cloppenmanager.neocities.org/"
+};
+const LS_SPRITE_THEME = "warcalc.spriteTheme";
+const spriteTheme = (() => {
+  let t = {};
+  try { t = JSON.parse(localStorage.getItem(LS_SPRITE_THEME) || "{}") || {}; } catch(e){}
+  const ok = k => SPRITE_THEMES[k] ? k : "Equestrian";
+  return {attacker: ok(t.attacker), defender: ok(t.defender)};
+})();
+
+/* side is "attacker" or "defender"; without one it is Equestrian */
+function spritePath(type, weapon, armor, side){
+  const base = (side && SPRITE_THEMES[spriteTheme[side]]) || IMG_BASE;
+  return `${base}${type.toLowerCase()}/w-${ARMOR_IDS[armor]}-${WEAPON_IDS[weapon]}.png`;
 }
 
 function buildSprite(type, weapon, armor, big, meta){
+  const side = meta?.side;
   const tip = typeof tipAttrs === "function"
     ? tipAttrs(type, weapon, armor, meta?.size, meta?.training, meta?.fid) +
       (meta?.left != null ? ` data-tip-left="${esc(meta.left)}"` : "") : "";
-  return `<img class="sprite${big ? " sprite-lg" : ""}" src="${esc(spritePath(type, weapon, armor))}"
+  const src = spritePath(type, weapon, armor, side), plain = spritePath(type, weapon, armor);
+  return `<img class="sprite${big ? " sprite-lg" : ""}" src="${esc(src)}"
     alt="${esc(type)} — ${esc(label(weapon))} / ${esc(label(armor))}" loading="lazy"
-    ${tip} onerror="this.replaceWith(spriteMissing(this))">`;
+    ${side ? `data-sp-side="${side}" data-sp="${esc(type)}|${esc(weapon)}|${esc(armor)}"` : ""}
+    ${src !== plain ? `data-sp-fb="${esc(plain)}"` : ""}
+    ${tip} onerror="spriteFail(this)">`;
+}
+
+/* a themed sprite that will not load tries Equestrian's before giving up */
+function spriteFail(img){
+  const fb = img.dataset.spFb;
+  if (fb && img.getAttribute("src") !== fb){
+    delete img.dataset.spFb;
+    img.src = fb;
+    return;
+  }
+  img.replaceWith(spriteMissing(img));
+}
+
+/* repaint every sprite on one side in its theme, question marks included */
+function repaintSprites(side){
+  document.querySelectorAll(`[data-sp-side="${side}"]`).forEach(el => {
+    const [type, weapon, armor] = el.dataset.sp.split("|");
+    const src = spritePath(type, weapon, armor, side), plain = spritePath(type, weapon, armor);
+    let img = el;
+    if (el.tagName !== "IMG"){
+      img = document.createElement("img");
+      img.className = "sprite" + (el.classList.contains("sprite-lg") ? " sprite-lg" : "");
+      img.alt = `${type} — ${label(weapon)} / ${label(armor)}`;
+      Object.entries(el.dataset).forEach(([k, v]) => { img.dataset[k] = v; });
+      img.setAttribute("onerror", "spriteFail(this)");
+      el.replaceWith(img);
+    }
+    if (src !== plain) img.dataset.spFb = plain; else delete img.dataset.spFb;
+    img.src = src;
+  });
 }
 
 /* attributes that turn a unit card into a one-click target for the counter
@@ -3662,13 +3732,14 @@ function paintRow(tr){
   // keep the same <img> when only size/training moved — avoids a sprite reload
   const cur = slot.querySelector("[data-tip-t]");
   const fid = fidPre(tr.dataset.side) + tr.dataset.fid;
-  if (type && cur && cur.dataset.tipT === type && cur.dataset.tipW === weapon && cur.dataset.tipA === armor){
+  if (type && cur && cur.dataset.tipT === type && cur.dataset.tipW === weapon && cur.dataset.tipA === armor
+      && cur.dataset.spSide === tr.dataset.side){
     cur.dataset.tipSize = size;
     cur.dataset.tipTrain = training;
     cur.dataset.tipFid = fid;
   } else {
     slot.innerHTML = type
-      ? buildSprite(type, weapon, armor, false, {size, training, fid})
+      ? buildSprite(type, weapon, armor, false, {size, training, fid, side: tr.dataset.side})
       : `<span class="muted small">—</span>`;
   }
   refreshCosts();
@@ -4563,7 +4634,7 @@ function effectiveStats(type, weapon, armor){
   return {dmg, arm};
 }
 
-function tipHTML(type, weapon, armor, size, training){
+function tipHTML(type, weapon, armor, size, training, side){
   const {dmg, arm} = effectiveStats(type, weapon, armor);
   const rows = TYPE_NUMS.map(n=>{
     const t = TYPES[n];
@@ -4581,7 +4652,7 @@ function tipHTML(type, weapon, armor, size, training){
 
   return `<div class="tip-head">
       <div>
-        ${buildSprite(type, weapon, armor, false)}
+        ${buildSprite(type, weapon, armor, false, side ? {side} : undefined)}
         ${hasUpkeep ? `<div class="tip-upkeep" title="Upkeep per 12 hours">${resChips(upkeep)}</div>` : ""}
       </div>
       <div>
@@ -5148,7 +5219,8 @@ function pinUnit(U, swings, now){
     <span class="pu-size">${swings || now == null || now >= U.size ? money(U.size)
       : `<span class="pu-was">${money(U.size)}</span> → ${money(now)}`}</span>
     <span class="pu-left">${swings && now != null ? `${money(now)} <span class="muted">swings left</span>` : "&nbsp;"}</span>
-    ${buildSprite(U.origType, U.weapon, U.armor, true, {size: U.size, training: U.training, fid: U.fid})}
+    ${buildSprite(U.origType, U.weapon, U.armor, true, {size: U.size, training: U.training, fid: U.fid,
+                                                         side: atk ? "attacker" : "defender"})}
     <span class="pu-gear${swings ? "" : " pu-off"}">${esc(label(U.weapon))}</span>
     <span class="pu-gear${swings ? " pu-off" : ""}">${esc(label(U.armor))}</span>
     <span class="pu-train">training ${esc(U.training)}</span>
@@ -5797,7 +5869,7 @@ function survivorsGrid(all){
               ${pickAttrs(u.origType, u.weapon, u.armor, u.size, u.training)}>
               ${u.fid ? `<span class="surv-fid">${esc(u.fid)}</span>` : ""}
               ${buildSprite(u.origType, u.weapon, u.armor, true, {size:u.size, training:u.training, fid:u.fid,
-                  left: u.remaining < u.size ? Math.max(0, u.remaining || 0) : null})}
+                  side: inv ? "attacker" : "defender", left: u.remaining < u.size ? Math.max(0, u.remaining || 0) : null})}
               ${u.nick ? `<div class="small" style="margin-top:6px;font-weight:600;word-break:break-all">${esc(u.nick)}</div>` : ""}
               ${cardGear(u.weapon, u.armor)}
               <div class="mono" style="margin-top:4px;font-size:15px;${u.dead?'color:var(--atk)':''}">
@@ -6926,7 +6998,7 @@ function reinfRowHTML(r, i, ticks){
     : ` title="New — joins as ${esc(fid)} when Add changes to defence brings it in"`}>${esc(fid)}</span>` : "";
   return `<tr class="${r.kind}${wiped ? " wiped" : ""}">
     <td class="l"><span class="reinf-tag ${r.kind}">${REINF_TAG[r.kind]}</span></td>
-    <td class="l unit"><span class="reinf-unit">${buildSprite(u.type, u.weapon, u.armor, false, {size: u.size, training: u.training, fid})}<span>${fidTag}<span class="unit-txt">${
+    <td class="l unit"><span class="reinf-unit">${buildSprite(u.type, u.weapon, u.armor, false, {size: u.size, training: u.training, fid, side: "defender"})}<span>${fidTag}<span class="unit-txt">${
       name ? `<b>${esc(name)}</b> · ` : ""}${esc(u.type)} <span class="muted">${gear(u.weapon, r.from?.weapon)} / ${gear(u.armor, r.from?.armor)}</span></span>${
       was.length ? `<span class="was">was ${esc(was.join(" / "))}</span>` : ""}${tr}</span></span></td>
     <td class="n">${pred}</td>
@@ -7654,7 +7726,7 @@ function ordRender(side){
   if (!ordSlotList(side, ordArmed[side])) ordArmed[side] = "root";
   el.querySelector(".ord-drop").classList.toggle("has-ord", ORD[side].length > 0);
   el.querySelector(".ord-script").innerHTML = ordSlotHTML(ORD[side], "root", side, F,
-    "Drag blocks here, or click one above");
+    "Empty");
 }
 const ordRenderAll = () => ORD_SIDES.forEach(ordRender);
 
@@ -8675,6 +8747,18 @@ document.querySelectorAll("[data-clear]").forEach(b=>
   }));
 
 /* both sides at once, and the battle and solver logs with them */
+/* the sprite theme each side is drawn in */
+document.querySelectorAll("[data-sprite-theme]").forEach(sel => {
+  const side = sel.dataset.spriteTheme;
+  sel.innerHTML = Object.keys(SPRITE_THEMES).map(k => `<option value="${esc(k)}">${esc(k)}</option>`).join("");
+  sel.value = spriteTheme[side];
+  sel.addEventListener("change", () => {
+    spriteTheme[side] = SPRITE_THEMES[sel.value] ? sel.value : "Equestrian";
+    try { localStorage.setItem(LS_SPRITE_THEME, JSON.stringify(spriteTheme)); } catch(e){}
+    repaintSprites(side);
+  });
+});
+
 document.getElementById("btnClearAll").addEventListener("click", ()=>{
   document.getElementById("tbodyAttacker").innerHTML = "";
   document.getElementById("tbodyDefender").innerHTML = "";
@@ -8944,14 +9028,14 @@ document.addEventListener("mouseover", e=>{
     /* a unit that lost troops: as it went in, greyed, and as it stands now */
     const now = +d.tipLeft;
     tipEl.innerHTML = `<div class="tip-dual">
-      <div class="tip-was">${tipHTML(d.tipT, d.tipW, d.tipA, d.tipSize, d.tipTrain)}</div>
-      <div class="tip-now">${now > 0 ? tipHTML(d.tipT, d.tipW, d.tipA, now, d.tipTrain)
+      <div class="tip-was">${tipHTML(d.tipT, d.tipW, d.tipA, d.tipSize, d.tipTrain, d.spSide)}</div>
+      <div class="tip-now">${now > 0 ? tipHTML(d.tipT, d.tipW, d.tipA, now, d.tipTrain, d.spSide)
         : `<div class="tip-gone">DESTROYED</div>`}</div>
     </div>`;
     tipEl.classList.add("tip-wide");
   } else {
     tipEl.innerHTML = tipHTML(d.tipT, d.tipW, d.tipA,
-      d.tipSize !== undefined ? d.tipSize : null, d.tipTrain);
+      d.tipSize !== undefined ? d.tipSize : null, d.tipTrain, d.spSide);
   }
   if (d.tipFid && !d.tipKey && !full) tipEl.insertAdjacentHTML("afterbegin", `<span class="tip-fid">${esc(d.tipFid)}</span>`);
   if (!d.tipLeft || PREFS.plainHover || d.tipKey) tipEl.classList.remove("tip-wide");
@@ -9790,7 +9874,7 @@ function makeSolver(subset, foeProfiles, o){
     }
     sims++;
     const res = trySizes(sz, fctx);
-    const ok = meets(res) && !(upCaps.length && T > 1 && overCaps(upCaps, res.troopTicks));
+    const ok = meets(res) && !(upCaps.length && T > 1 && overFight(upCaps, res.troopTicks, sz));
     for (let i = 0; i < K; i++) keys[base + i] = sz[i];
     val[slot] = ok ? 1 : 2;
     gen[slot] = epoch;
@@ -10075,6 +10159,7 @@ function* solveGen(opts, foeRows, bonusOwn, bonusFoe){
   const o = {
     goal: opts.goal, minSurvivors: Math.max(1, opts.minSurvivors || 1),
     bonusOwn, bonusFoe, ticks, budget: opts.budget || {}, stock: opts.stock || {}, drift: opts.drift || null,
+    raws: !!opts.raws, gemLink: !!opts.gemLink,
     /* past one tick the losses drive the next tick, so they are never optional */
     wantLosses: ticks > 1 || opts.goal !== "wipe" || opts.objective !== "upfront"
   };
@@ -10448,6 +10533,7 @@ function* deepSolveGen(opts, foeRows, bonusOwn, bonusFoe){
   const o = {
     goal: opts.goal, minSurvivors: Math.max(1, opts.minSurvivors || 1),
     bonusOwn, bonusFoe, ticks, budget: opts.budget || {}, stock: opts.stock || {}, drift: opts.drift || null,
+    raws: !!opts.raws, gemLink: !!opts.gemLink,
     wantLosses: ticks > 1 || opts.goal !== "wipe" || opts.objective !== "upfront"
   };
   const needKill = o.goal !== "survive";
@@ -10857,6 +10943,7 @@ function* ceSolveGen(opts, foeRows, bonusOwn, bonusFoe){
   const o = {
     goal: opts.goal, minSurvivors: Math.max(1, opts.minSurvivors || 1),
     bonusOwn, bonusFoe, ticks, budget: opts.budget || {}, stock: opts.stock || {}, drift: opts.drift || null,
+    raws: !!opts.raws, gemLink: !!opts.gemLink,
     wantLosses: ticks > 1 || opts.goal !== "wipe" || opts.objective !== "upfront"
   };
   const needKill = o.goal !== "survive";
@@ -11448,7 +11535,7 @@ function solveCosts(rows){
    rest on tick 2 (or later, held back further), behind them in the list,
    the way the battle view brings them in. Until they have, the enemy is not wiped, a quiet tick is not a
    deadlock, and they count among the enemy left. */
-function realCheck(ownRows, foeRows, side, bonus, goal, minSurv, ticks, budget, stock, drift){
+function realCheck(ownRows, foeRows, side, bonus, goal, minSurv, ticks, budget, stock, drift, lk){
   const T = Math.max(1, ticks || 1);
   const trAt = (u, own, t) => !drift || own !== drift.own || (!own && u.reserve) ? u.training
                                                                                 : driftedTrain(u.training, t, drift);
@@ -11499,16 +11586,18 @@ function realCheck(ownRows, foeRows, side, bonus, goal, minSurv, ticks, budget, 
     if (!foeKilled && !ownKilled && !due && !moving(t)) break;   // deadlock: every later tick repeats it
   }
 
-  const gear = solveCosts(ownRows).gearRes;
-  const fits = !Object.keys(budget || {}).some(k => (up[k] || 0) > budget[k] + 1e-9)
+  const sc = solveCosts(ownRows), gear = lk && lk.raws ? sc.rawRes : sc.gearRes;
+  /* gems shared with the upkeep: the bill and the gear come out of one pool */
+  const pooled = k => k === "gems" && lk && lk.gemLink ? (gear.gems || 0) : 0;
+  const fits = !Object.keys(budget || {}).some(k => (up[k] || 0) + pooled(k) > budget[k] + 1e-9)
             && !Object.keys(stock || {}).some(k => (gear[k] || 0) > stock[k] + 1e-9);
   return {wipe, left, lost, ticks: used || 1, log, up,
           ok: fits && (goal === "wipe" ? wipe : goal === "survive" ? left >= minSurv
                                                                    : wipe && left >= minSurv)};
 }
 
-function verifyAndRepair(rows, foeRows, side, bonus, goal, minSurv, deadline, ticks, lean, budget, stock, drift){
-  const check = () => realCheck(rows, foeRows, side, bonus, goal, minSurv, ticks, budget, stock, drift);
+function verifyAndRepair(rows, foeRows, side, bonus, goal, minSurv, deadline, ticks, lean, budget, stock, drift, lk){
+  const check = () => realCheck(rows, foeRows, side, bonus, goal, minSurv, ticks, budget, stock, drift, lk);
   /* which stack to top up, and which to shave first, is a question about
      what this nation can spare — so it is asked in leaned bits */
   const leaned = u => troopBits(u) * leanOf(lean, u.type);
@@ -11691,17 +11780,26 @@ function setupLean(){
    The battle upkeep budget is what the force eats over the whole fight.
    The equipment resources are the stock its gear is built from, counted the
    way the recipes call for them: a Precision Part is a Precision Part, not
-   the gems and copper it was crafted from. */
+   the gems and copper it was crafted from. Raws only counts every part as
+   what it is crafted from instead, so a tungsten limit covers the tungsten in
+   the composites too; gems then come into it, and while the chain is on the
+   gear's gems come out of the upkeep's gems pool. */
 const LS_BUDGET = "warcalc.solverBudget";
 const LS_STOCK = "warcalc.solverStock";
 const LS_LIMITS_OFF = "warcalc.solverLimitsOff";
+const LS_STOCK_RAW = "warcalc.solverStockRaw";
+const LS_GEM_LINK = "warcalc.solverGemLink";
 const BUDGET_RES = RES_ORDER.filter(k =>
   Object.values(UNIT_COST).some(uc => (uc.upkeep || {})[k]));
-const STOCK_RES = RES_ORDER.filter(k =>
-  [WEAPON_COST, ARMOR_COST].some(t => Object.values(t).some(g => (g.res || {})[k])));
+const gearRecipes = () => [WEAPON_COST, ARMOR_COST].flatMap(t => Object.values(t));
+const STOCK_RES = RES_ORDER.filter(k => gearRecipes().some(g => (g.res || {})[k]));
+const STOCK_RAW_RES = RES_ORDER.filter(k => gearRecipes().some(g => toRaw(g.res || {}).res[k]));
 const solveBudgetBoxes = () => [...document.querySelectorAll("[data-solve-budget]")];
 const solveStockBoxes = () => [...document.querySelectorAll("[data-solve-stock]")];
 const limitsOff = () => !!document.getElementById("solveLimitsOff")?.checked;
+const stockRaw = () => !!document.getElementById("solveStockRaw")?.checked;
+/* the gear's gems share the upkeep's pool: only raws count gems at all */
+const gemLinked = () => stockRaw() && document.querySelector("[data-gem-link]")?.getAttribute("aria-pressed") === "true";
 
 /* what the boxes hold, whether or not the limits are switched on */
 function readLimitBoxes(boxes, key){
@@ -11712,26 +11810,38 @@ function readLimitBoxes(boxes, key){
   });
   return out;
 }
+/* the equipment boxes, less the gems box while it only mirrors the pool */
+const stockLimits = () => {
+  const out = readLimitBoxes(solveStockBoxes(), "solveStock");
+  if (gemLinked()) delete out.gems;
+  return out;
+};
 const readBudget = () => limitsOff() ? {} : readLimitBoxes(solveBudgetBoxes(), "solveBudget");
-const readStock  = () => limitsOff() ? {} : readLimitBoxes(solveStockBoxes(), "solveStock");
+const readStock  = () => limitsOff() ? {} : stockLimits();
 
-/* what one troop of a loadout takes out of the equipment stock */
-function gearUse(type, weapon, armor){
-  return addRes(addRes({}, gearCost("weapon", weapon).res), gearCost("armor", armor).res);
+/* what one troop of a loadout takes out of the equipment stock: parts as
+   parts, or under raws only what the parts are crafted from */
+function gearUse(type, weapon, armor, raws){
+  const res = addRes(addRes({}, gearCost("weapon", weapon).res), gearCost("armor", armor).res);
+  return raws ? toRaw(res).res : res;
 }
 
 /* Every limit that is linear in the starting sizes, as one list: the first
    tick's upkeep (a floor on the whole fight's, since that tick bills the whole
    starting force) and the stock the gear is built from. use[i] is what one
-   troop of subset[i] takes. */
+   troop of subset[i] takes; on an upkeep cap up[i] is its upkeep a tick and
+   gear[i] whatever its gear takes out of the same pool. */
 function capsFor(subset, o){
   const caps = [];
   for (const k of Object.keys(o.budget || {})){
-    const use = subset.map(c => ((UNIT_COST[c.type] || {}).upkeep || {})[k] || 0);
-    if (use.some(v => v > 0)) caps.push({k, lim: o.budget[k], use, upkeep: true});
+    const up = subset.map(c => ((UNIT_COST[c.type] || {}).upkeep || {})[k] || 0);
+    const gear = k === "gems" && o.gemLink && o.raws
+      ? subset.map(c => gearUse(c.type, c.weapon, c.armor, true)[k] || 0) : null;
+    const use = gear ? up.map((v, i) => v + gear[i]) : up;
+    if (use.some(v => v > 0)) caps.push({k, lim: o.budget[k], use, up, gear, upkeep: true});
   }
   for (const k of Object.keys(o.stock || {})){
-    const use = subset.map(c => gearUse(c.type, c.weapon, c.armor)[k] || 0);
+    const use = subset.map(c => gearUse(c.type, c.weapon, c.armor, o.raws)[k] || 0);
     if (use.some(v => v > 0)) caps.push({k, lim: o.stock[k], use});
   }
   return caps;
@@ -11745,39 +11855,97 @@ const overCaps = (caps, sizes) => {
   }
   return null;
 };
+/* the first upkeep cap the fought-out fight breaks: every troop-tick billed,
+   and the gear sharing the pool bought once for the starting sizes */
+const overFight = (caps, troopTicks, sizes) => {
+  for (const cap of caps){
+    let used = 0;
+    for (let i = 0; i < sizes.length; i++)
+      used += troopTicks[i] * cap.up[i] + (cap.gear ? sizes[i] * cap.gear[i] : 0);
+    if (used > cap.lim + 1e-9) return cap.k;
+  }
+  return null;
+};
 
 /* the heading says how many limits are set, or that they are off */
 function paintLimits(){
   const off = limitsOff();
   const n = Object.keys(readLimitBoxes(solveBudgetBoxes(), "solveBudget")).length
-          + Object.keys(readLimitBoxes(solveStockBoxes(), "solveStock")).length;
+          + Object.keys(stockLimits()).length;
   document.getElementById("solveLimitSets").classList.toggle("off", off);
   document.getElementById("solveLimitsNote").textContent =
     off ? (n ? `· off (${n} set)` : "· off") : n ? `· ${n} set` : "· none";
 }
 
+const CHAIN_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/>
+  <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>`;
+
 function setupLimits(){
-  const boxes = (id, list, attr, saved, title) => {
-    document.getElementById(id).innerHTML = list.map(k => `
-      <label title="${esc(title(RESOURCES[k].name.toLowerCase()))} — leave blank for no limit">
-        ${resIcon(k)}
+  const box = (k, attr, saved) => `
+      <label>
+        ${resIcon(k).replace(/ title="[^"]*"/, "")}
         <input type="number" min="0" step="1000" placeholder="no limit" data-${attr}="${k}"
-          value="${saved[k] != null ? esc(saved[k]) : ""}"></label>`).join("");
+          value="${saved[k] != null ? esc(saved[k]) : ""}"></label>`;
+  /* the gems box carries the chain inside its own pill, on both rows */
+  const linkBtn = () => `<button type="button" class="solve-link" data-gem-link
+    aria-pressed="${linkOn}" aria-label="Gems shared between upkeep and equipment">${CHAIN_SVG}</button>`;
+  const gemPill = (attr, saved) => `<span class="solve-gem">${box("gems", attr, saved)}${linkBtn()}</span>`;
+  const budgetEl = document.getElementById("solveBudget"), stockEl = document.getElementById("solveStock");
+  const raw = document.getElementById("solveStockRaw");
+  raw.checked = store.get(LS_STOCK_RAW, false) === true;
+  let linkOn = store.get(LS_GEM_LINK, true) !== false;
+  const gemBox = id => document.querySelector(`[data-${id}="gems"]`);
+  /* the gems the boxes mirror while they share a pool */
+  const mirror = from => {
+    if (!gemLinked()) return;
+    const a = gemBox("solve-budget"), b = gemBox("solve-stock");
+    if (!a || !b) return;
+    if (from === b) a.value = b.value; else b.value = a.value;
   };
-  boxes("solveBudget", BUDGET_RES, "solve-budget", store.get(LS_BUDGET, null) || {},
-        r => `Most ${r} the force may eat over the whole fight, every tick billed on the troops standing at its start`);
-  boxes("solveStock", STOCK_RES, "solve-stock", store.get(LS_STOCK, null) || {},
-        r => `Most ${r} the force's weapons and armour may take to build`);
+  /* both modes' numbers live in one saved set, so a toggle loses none of them */
+  const saveStock = () => {
+    const all = Object.assign({}, store.get(LS_STOCK, null) || {});
+    solveStockBoxes().forEach(b => delete all[b.dataset.solveStock]);
+    store.set(LS_STOCK, Object.assign(all, readLimitBoxes(solveStockBoxes(), "solveStock")));
+  };
+  const saveBudget = () => store.set(LS_BUDGET, readLimitBoxes(solveBudgetBoxes(), "solveBudget"));
+  /* the upkeep row's chain only means something while the gear counts gems */
+  const paintLink = () => document.querySelectorAll("[data-gem-link]").forEach(b => {
+    b.setAttribute("aria-pressed", String(linkOn));
+    if (b.closest("#solveBudget")) b.hidden = !raw.checked;
+  });
+
+  const bsaved = store.get(LS_BUDGET, null) || {};
+  budgetEl.innerHTML = BUDGET_RES.map(k => k === "gems" ? gemPill("solve-budget", bsaved)
+                                                        : box(k, "solve-budget", bsaved)).join("");
+  const paintStock = () => {
+    const saved = store.get(LS_STOCK, null) || {};
+    stockEl.innerHTML = (raw.checked ? STOCK_RAW_RES : STOCK_RES).map(k => k === "gems" ? gemPill("solve-stock", saved)
+                                                                                 : box(k, "solve-stock", saved)).join("");
+    solveStockBoxes().forEach(b => {
+      b.addEventListener("change", () => { saveStock(); if (gemLinked() && b.dataset.solveStock === "gems") saveBudget(); });
+      b.addEventListener("input", () => { if (b.dataset.solveStock === "gems") mirror(b); paintLimits(); });
+    });
+    paintLink();
+    mirror(gemBox("solve-budget"));
+  };
+  paintStock();
+  document.getElementById("solveLimitSets").addEventListener("click", e => {
+    if (!e.target.closest("[data-gem-link]")) return;
+    linkOn = !linkOn;
+    store.set(LS_GEM_LINK, linkOn);
+    paintLink();
+    mirror(gemBox("solve-budget"));
+    saveStock(); paintLimits();
+  });
+  solveBudgetBoxes().forEach(b => {
+    b.addEventListener("change", () => { saveBudget(); if (gemLinked() && b.dataset.solveBudget === "gems") saveStock(); });
+    b.addEventListener("input", () => { if (b.dataset.solveBudget === "gems") mirror(b); paintLimits(); });
+  });
+  raw.addEventListener("change", () => { store.set(LS_STOCK_RAW, raw.checked); paintStock(); paintLimits(); });
   const off = document.getElementById("solveLimitsOff");
   off.checked = store.get(LS_LIMITS_OFF, false) === true;
-  solveBudgetBoxes().forEach(b => {
-    b.addEventListener("change", () => store.set(LS_BUDGET, readLimitBoxes(solveBudgetBoxes(), "solveBudget")));
-    b.addEventListener("input", paintLimits);
-  });
-  solveStockBoxes().forEach(b => {
-    b.addEventListener("change", () => store.set(LS_STOCK, readLimitBoxes(solveStockBoxes(), "solveStock")));
-    b.addEventListener("input", paintLimits);
-  });
   off.addEventListener("change", () => { store.set(LS_LIMITS_OFF, off.checked); paintLimits(); });
   paintLimits();
 }
@@ -11849,6 +12017,7 @@ function readSolveOpts(){
     lean: readLean(),
     budget: readBudget(),
     stock: readStock(),
+    raws: stockRaw(), gemLink: gemLinked(),
     training: clampInt(document.getElementById("solveTrain").value, 0, TRAIN_UNCAPPED),
     maxStacks: clampInt(document.getElementById("solveStacks").value, 1, MAX_SOLVE_STACKS),
     minSurvivors: Math.max(1, clampInt(document.getElementById("solveSurv").value, 1, 1e9)),
@@ -11937,7 +12106,7 @@ async function runSolver(){
       if (Date.now() > deadline){
         const v = realCheck(sol.live.map(l => ({type:l.c.type, weapon:l.c.weapon, armor:l.c.armor,
           size:l.size, training:opts.training})), foeRows, opts.side, bonus, opts.goal,
-          opts.minSurvivors, opts.ticks, opts.budget, opts.stock, opts.drift);
+          opts.minSurvivors, opts.ticks, opts.budget, opts.stock, opts.drift, opts);
         if (v){ sol.upTotal = v.up; sol.ticks = v.ticks; }
         keep.push(sol);
         continue;
@@ -11946,7 +12115,7 @@ async function runSolver(){
       const rows = sol.live.map(l => ({type:l.c.type, weapon:l.c.weapon, armor:l.c.armor,
                                        size:l.size, training:opts.training}));
       const fix = verifyAndRepair(rows, foeRows, opts.side, bonus, opts.goal,
-                                  opts.minSurvivors, deadline, opts.ticks, opts.lean, opts.budget, opts.stock, opts.drift);
+                                  opts.minSurvivors, deadline, opts.ticks, opts.lean, opts.budget, opts.stock, opts.drift, opts);
       if (!fix || !fix.ok) continue;
       sol.live = fix.rows.map((u, i) => ({c:{type:u.type, weapon:u.weapon, armor:u.armor,
         bits: troopBits(u)}, size:u.size, lost: fix.v.lost[i] ?? 0}));
@@ -12055,7 +12224,7 @@ function renderSolutions(out, opts, bonus, secs){
     const stacks = rows.map((u, k) => `
       <div class="surv-card ${opts.side === "defender" ? "surv-def" : "surv-atk"}" style="min-width:118px"
         ${pickAttrs(u.type, u.weapon, u.armor, u.size, u.training)}>
-        ${buildSprite(u.type, u.weapon, u.armor, true, {size:u.size, training:u.training})}
+        ${buildSprite(u.type, u.weapon, u.armor, true, {size:u.size, training:u.training, side: opts.side})}
         ${cardGear(u.weapon, u.armor)}
         <div class="mono" style="margin-top:4px;font-size:15px"><b>${u.size.toLocaleString("en-US")}</b></div>
         <div class="small muted mono">${money(troopBits(u) * u.size)}
@@ -12090,7 +12259,7 @@ function renderSolutions(out, opts, bonus, secs){
             <span class="cost-val bits">${money(c.gearBits + c.craftBits)}</span></div>
           <div class="cost-row"><span class="cost-label">Raw resources</span>
             <span class="cost-val">${resChips(c.rawRes)}</span></div>
-          ${Object.keys(opts.stock || {}).length ? `<div class="cost-row" title="What the weapons and armour call for, parts as parts — the numbers the equipment limits are held to">
+          ${Object.keys(opts.stock || {}).length && !opts.raws ? `<div class="cost-row" title="What the weapons and armour call for, parts as parts — the numbers the equipment limits are held to">
             <span class="cost-label">Equipment parts</span>
             <span class="cost-val">${resChips(c.gearRes)}</span></div>` : ""}
           <div class="cost-row"><span class="cost-label">Upkeep / 12 h</span>
@@ -15180,8 +15349,7 @@ function libMullRender(){
       }).join("")}</tr>`).join("")}${libSimRow(T, M)}</tbody></table>`;
     const a = libMwRows(units), b = libMull ? libMwRows(libMull.units) : null;
     libEl("libMw").innerHTML = `<div class="lib-mw-c l"><div class="lib-h">Original · ${esc(lib.sel)}</div></div>
-      <div class="lib-mw-c r"><div class="lib-h">Mulligan</div>${b ? "" : `<div class="lib-empty">Press Mulligan for a
-        different army whose figures above all land within ${Math.round(tol * 100)}% of these.</div>`}</div>
+      <div class="lib-mw-c r"><div class="lib-h">Mulligan</div>${b ? "" : `<div class="lib-empty">Range is ${Math.round(tol * 100)}%</div>`}</div>
       ${a.map((x, i) => `<div class="lib-mw-c l">${x}</div><div class="lib-mw-c r">${b ? b[i] : ""}</div>`).join("")}`;
     libLegendLay(libEl("libMw"));
   }
