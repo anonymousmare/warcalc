@@ -4254,6 +4254,22 @@ function unitsBlock(rows, open, byTick){
     </details>`;
 }
 
+/* a drag across the Units list copies one line a row with a space between
+   the count and the name ("19,680 Cavalry", "ACFU 17,230"): its columns are
+   flex boxes with no text between them, so a plain copy runs them together */
+document.addEventListener("copy", e=>{
+  const sel = getSelection();
+  if (!sel.rangeCount || sel.isCollapsed) return;
+  const r = sel.getRangeAt(0);
+  const anc = r.commonAncestorContainer;
+  if (!(anc.nodeType === 1 ? anc : anc.parentElement)?.closest(".units-drop")) return;
+  const lines = [...document.querySelectorAll(".units-drop .gear-line")].filter(l => r.intersectsNode(l));
+  if (!lines.length) return;
+  const text = lines.map(l => [...l.children].map(c => c.textContent.trim()).filter(Boolean).join(" ")).join("\n");
+  e.clipboardData.setData("text/plain", text);
+  e.preventDefault();
+});
+
 /* Builder Copy writes its text on the click, not on the draw, so the made-up
    names are new every time; the button only holds a key to its rows. Keys
    whose button has left the page are dropped once a few pile up */
