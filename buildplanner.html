@@ -317,7 +317,16 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
   background:#f6f1e2;box-shadow:0 1px 2px rgba(0,0,0,.25);transform:rotate(-1deg);
   display:flex;flex-direction:column;gap:1px;min-width:0;
 }
-.env-name{font:700 14px/1.2 var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.env-top{display:flex;align-items:center;gap:5px;min-width:0}
+.env-name{min-width:0;font:700 14px/1.2 var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* the type's icon: the game's 16px sprite at its own size. The label is pale paper on every theme, so it takes the light themes' halo */
+.reg-ic{width:16px;height:16px;flex:0 0 16px;image-rendering:pixelated}
+.env-label .reg-ic{filter:drop-shadow(0 0 .5px rgba(0,0,0,.5)) drop-shadow(0 1px 1px rgba(0,0,0,.15))}
+/* each player's envelopes together, under their name */
+.env-groups{display:flex;flex-direction:column;gap:22px}
+.env-owner{display:flex;align-items:baseline;gap:10px;margin:0 2px 4px;padding-bottom:5px;border-bottom:1px solid var(--border-soft);
+  font:500 16px/1.2 var(--head-font);color:var(--strong);min-width:0;overflow-wrap:anywhere}
+.env-owner .n{margin-left:auto;flex:0 0 auto;font:600 10.5px var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
 .env-sub{font:11px/1.2 var(--font);color:#7a7060}
 /* the empty slot that makes a new one */
 .env-new{background:none;box-shadow:none;border:2px dashed var(--text-dim);color:var(--text-dim);opacity:.75;
@@ -330,6 +339,8 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
 .nation-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
 .nation-head .env{width:54px;flex:0 0 auto;cursor:default}
 .nation-head .env:hover{transform:none}
+.type-ic{display:contents}
+.crumb .reg-ic{vertical-align:-2px;margin-right:6px}
 .name-input{
   flex:1 1 200px;min-width:0;background:none;border:none;border-bottom:1px solid transparent;border-radius:0;
   color:var(--strong);font:500 21px/1.2 var(--head-font);padding:2px 0;
@@ -584,6 +595,12 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
 .ov-go:hover{text-decoration:underline;text-underline-offset:3px}
 .ov-go:focus-visible{outline:2px solid var(--strong);outline-offset:2px}
 .ov-dot{display:inline-block;width:12px;height:9px;border-radius:2px;margin-right:7px;vertical-align:0;box-shadow:0 0 0 1px rgba(0,0,0,.3)}
+.ov-go .reg-ic{vertical-align:-3px;margin-right:6px}
+/* on a phone a long name wraps rather than push the table past the page */
+@media (max-width:520px){.ov-tbl td:first-child{white-space:normal}}
+/* a player's name over their nations */
+.ov-tbl tr.ov-grp th{text-align:left;padding:12px 0 4px;font:600 12px var(--font);letter-spacing:0;text-transform:none;color:var(--text-dim);
+  border-bottom:1px solid var(--border-soft)}
 /* the projected nets down a list, in the game's own order, as its Alliance Resources table has them */
 .ptab.vtab{width:auto;min-width:0;table-layout:auto}
 .vtab thead th{font:600 10.5px var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);padding:0 4px 5px 14px}
@@ -777,7 +794,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
       </div>
     </div>
   </section>
-  <div class="env-grid" id="envGrid"></div>
+  <div class="env-groups" id="envGrid"></div>
   <div id="ovBox" hidden>
     <hr class="plans-rule">
     <div class="plans-head"><h2>Overall</h2></div>
@@ -823,6 +840,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
 <div id="viewNation" hidden>
   <div class="nation-head">
     <span class="env" id="nEnv" aria-hidden="true"></span>
+    <span id="nTypeIc" class="type-ic"></span>
     <input id="nName" class="name-input" type="text" spellcheck="false" maxlength="60" aria-label="Nation name">
     <div class="head-tools">
     <div class="swatches" id="nSwatches" role="group" aria-label="Envelope colour"></div>
@@ -854,6 +872,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
       <div class="gov-bar">
         <label>Government <select id="nGov"></select></label>
         <label>Economy <select id="nEcon"></select></label>
+        <label id="nRegionLab" title="The nation's region: its envelope takes the region's colour">Type <select id="nRegion"></select></label>
         <label title="How many nations are in your empire: every one past the first costs sat">Nations
           <input id="nEmpire" type="number" min="1" step="1"></label>
         <label title="Units in your army: every unit past 20 costs half a sat">Army
@@ -1316,11 +1335,20 @@ const ENV_COLOURS = ["#d6b47a", "#b98a5b", "#c4574c", "#d98a3d", "#e0c44c", "#7f
                      "#4f9c97", "#5b86c4", "#8a6bbf", "#d27fb0", "#8d9096", "#3c3f45"];
 const MANILA = ENV_COLOURS[0];
 const isColour = c => /^#[0-9a-f]{6}$/i.test(c || "");
-// a new envelope takes a colour at random, from those the fewest envelopes have, so they spread over the swatches
-const randomColour = () => {
-  const used = c => nations.filter(n => (n.color || "").toLowerCase() === c).length;
-  const least = Math.min(...ENV_COLOURS.map(used)), pool = ENV_COLOURS.filter(c => used(c) === least);
-  return pool[Math.floor(Math.random() * pool.length)];
+// a nation's type is its region: the resource it is known for leads its name, and its envelope wears
+// the type's colour. Share codes number the types in this order: append, never reorder
+const REGIONS = {
+  "Burrozil":      { res: "apples", color: "#7fa65a" },
+  "Saddle Arabia": { res: "oil",    color: "#c4574c" },
+  "Przewalskia":   { res: "mparts", color: "#5b86c4" },
+  "Zebrica":       { res: "copper", color: "#d98a3d" }
+};
+const regionOf = n => REGIONS[n && n.region] ? n.region : "";
+// an envelope with a type is that type's colour; one without keeps the colour picked for it, or manila
+const envColour = n => regionOf(n) ? REGIONS[n.region].color : isColour(n.color) ? n.color : MANILA;
+const regionIc = n => {
+  const r = regionOf(n);
+  return r ? `<img class="res-ic reg-ic" src="${IMG_BASE}${encodeURIComponent(RES_BY_KEY[REGIONS[r].res][3])}.png" alt="${r}" title="${r}">` : "";
 };
 
 const LS_NATIONS = "buildplanner.nations";
@@ -1437,13 +1465,51 @@ const cls = v => v > 0 ? " pos" : v < 0 ? " neg" : "";
 const signed = n => (n > 0 ? "+" : n < 0 ? "−" : "") + fmt(Math.abs(n));
 
 const envGrid = $("envGrid");
+/* ---- each player's empire together ---- */
+// the player who owns a nation read off the API, told apart as the API's own empire count tells them
+// (by user id, or by name in a sync kept from before ids were); a nation made here or brought in by code has none
+function nationOwner(n) {
+  if (n.api == null) return null;
+  const a = n.uid == null && !n.owner ? apiFind(n.api) : null;
+  const uid = a ? a.uid : n.uid, user = a ? a.user : n.owner || "";
+  return uid != null ? { key: "#" + uid, name: user || `Player ${uid}` } : user ? { key: "@" + user, name: user } : null;
+}
+// players by name, each one's nations by name, and the nations with no player last
+function ownerGroups() {
+  const by = new Map();
+  for (const n of nations) {
+    const o = nationOwner(n) || { key: "", name: "No player" };
+    (by.get(o.key) || by.set(o.key, { ...o, ns: [] }).get(o.key)).ns.push(n);
+  }
+  const byName = (x, y) => x.localeCompare(y, undefined, { sensitivity: "base" });
+  const groups = [...by.values()].sort((x, y) => !x.key - !y.key || byName(x.name, y.name));
+  groups.forEach(g => g.ns.sort((x, y) => byName(nationName(x), nationName(y))));
+  return groups;
+}
+// how many nations the API says a player owns, when it says
+const ownedCount = key => key && sync ? sync.nations.filter(a => apiOwner(a) === key).length : 0;
+
 function renderGrid() {
-  envGrid.innerHTML = nations.map(n => {
+  const env = n => {
     const total = sumMap(parseHas(n.has || "").counts);
-    return `<button class="env" type="button" data-id="${esc(n.id)}" style="--env:${isColour(n.color) ? n.color : MANILA}">`
-         + `<span class="env-label"><span class="env-name">${esc(nationName(n))}</span>`
+    return `<button class="env" type="button" data-id="${esc(n.id)}" style="--env:${envColour(n)}">`
+         + `<span class="env-label"><span class="env-top">${regionIc(n)}<span class="env-name">${esc(nationName(n))}</span></span>`
          + `<span class="env-sub">${fmt(total)} building${total === 1 ? "" : "s"}${n.api != null ? '<span class="env-api" title="Has is read off the 4clop API">API</span>' : ""}</span></span></button>`;
-  }).join("") + `<button class="env env-new" type="button" id="envNew" title="New nation"><b>+</b><span>New nation</span></button>`;
+  };
+  const slot = `<button class="env env-new" type="button" id="envNew" title="New nation"><b>+</b><span>New nation</span></button>`;
+  const groups = ownerGroups();
+  // with no player to sort by, the envelopes lie as one pile
+  if (!groups.some(g => g.key)) envGrid.innerHTML = `<div class="env-grid">${nations.length ? groups[0].ns.map(env).join("") : ""}${slot}</div>`;
+  else envGrid.innerHTML = groups.map((g, i) => {
+    const owned = ownedCount(g.key), here = g.ns.length;
+    const count = owned > here ? `<span class="n" title="${fmt(here)} of the ${fmt(owned)} nations ${esc(g.name)} owns are here">${fmt(here)} of ${fmt(owned)}</span>`
+      : `<span class="n">${many(here, "nation")}</span>`;
+    // a new nation has no player, so its slot ends the pile of those with none
+    const last = i === groups.length - 1;
+    return `<section class="env-group"><h3 class="env-owner">${esc(g.name)}${count}</h3>`
+      + `<div class="env-grid">${g.ns.map(env).join("")}${last && !g.key ? slot : ""}</div></section>`
+      + (last && g.key ? `<div class="env-grid">${slot}</div>` : "");
+  }).join("");
   $("envClearAll").disabled = !nations.length;
   renderOverall();
 }
@@ -1492,7 +1558,7 @@ function renderOverall() {
   const bits = { total: 0 }, res = {}, resNow = {}, resAfter = {};
   let gdpNow = 0, gdpAfter = 0;
   const gdpByNow = [], gdpByAfter = [];
-  const rows = nations.map(n => {
+  const row = n => {
     const has = parseHas(n.has || ""), pl = usedPlan(n);
     const want = pl ? planCounts(pl, has) : has;
     const now = nationModel(n, has.counts, has.off), after = pl ? nationModel(n, want.counts, want.off) : now;
@@ -1506,12 +1572,16 @@ function renderOverall() {
     const opts = `<option value=""${pl ? "" : " selected"}>No plan</option>`
       + (n.plans || []).map(p => `<option value="${esc(p.id)}"${p === pl ? " selected" : ""}>${esc(planName(p))}</option>`).join("");
     return `<tr><td><button type="button" class="ov-go" data-go="${esc(n.id)}" title="Open ${esc(nationName(n))}">`
-      + `<i class="ov-dot" style="background:${isColour(n.color) ? n.color : MANILA}"></i>${esc(nationName(n))}</button></td>`
+      + `${regionIc(n) || `<i class="ov-dot" style="background:${envColour(n)}"></i>`}${esc(nationName(n))}</button></td>`
       + `<td>${(n.plans || []).length ? `<select data-ov="${esc(n.id)}" aria-label="Plan for ${esc(nationName(n))}">${opts}</select>` : '<span style="color:var(--text-dim)">no plans</span>'}</td>`
       + `<td>${cost.bits ? shortBits(cost.bits) : "—"}</td>`
       + `<td class="${cls(after.satTotal).trim()}">${signed(after.satTotal)}</td>`
       + `<td>${fmt(after.gdp)}k</td></tr>`;
-  }).join("");
+  };
+  // in the same order as the envelopes, each player's nations under their name
+  const groups = ownerGroups(), grouped = groups.some(g => g.key);
+  const rows = groups.map(g => (grouped ? `<tr class="ov-grp"><th colspan="5" scope="colgroup">${esc(g.name)}</th></tr>` : "")
+    + g.ns.map(row).join("")).join("");
   $("ovNations").innerHTML = `<tr><th>Nation</th><th>Plan</th><th>Cost</th><th>Sat</th><th>GDP</th></tr>` + rows;
   // the extra buildings belong to nobody: what they make and eat goes on the projected side only,
   // and so does the GDP from their malls and factories, with no base and the multiplier picked for them
@@ -1582,7 +1652,7 @@ envGrid.addEventListener("click", ev => {
   if (!b) return;
   if (b.id === "envNew") {
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    nations.push({ id, name: "New nation", color: randomColour(), has: "" });
+    nations.push({ id, name: "New nation", has: "" });
     saveNations();
     go("#planner/" + id);
     const nm = $("nName"); nm.focus(); nm.select();
@@ -1593,13 +1663,17 @@ let current = null;
 const nName = $("nName"), nHas = $("nHas");
 
 function renderSwatches() {
+  // a nation with a type wears its type's colour, so there is nothing to pick
+  $("nSwatches").hidden = !!regionOf(current);
+  $("nEnv").style.setProperty("--env", envColour(current));
+  $("nTypeIc").innerHTML = regionIc(current);
   const c = isColour(current.color) ? current.color.toLowerCase() : MANILA;
   const custom = !ENV_COLOURS.includes(c);
   $("nSwatches").innerHTML = ENV_COLOURS.map(k =>
       `<button class="swatch${k === c ? " on" : ""}" type="button" data-c="${k}" style="--sw:${k}" title="${k}"></button>`).join("")
     + `<label class="swatch swatch-custom${custom ? " on" : ""}" title="Any colour"${custom ? ` style="background:${c}"` : ""}>`
     + `<input type="color" value="${c}" aria-label="Any colour"></label>`;
-  $("nEnv").style.setProperty("--env", c);
+  if (!regionOf(current)) $("nEnv").style.setProperty("--env", c);
 }
 function setColour(c) {
   current.color = c; saveNations(); renderSwatches();
@@ -1782,12 +1856,28 @@ addEventListener("scroll", hideTip, { passive: true });
 const nGov = $("nGov"), nEcon = $("nEcon"), nEmpire = $("nEmpire"), nArmy = $("nArmy"), nMaxSat = $("nMaxSat");
 nGov.innerHTML = Object.keys(GOVS).map(g => `<option>${g}</option>`).join("");
 nEcon.innerHTML = Object.keys(ECONOMIES).map(g => `<option>${g}</option>`).join("");
+// the type: a nation read off the API is in the region the API says, and that can't be picked over
+const nRegion = $("nRegion");
+nRegion.innerHTML = `<option value="">None</option>` + Object.keys(REGIONS).map(r => `<option>${r}</option>`).join("");
+function fillRegion() {
+  const api = current.api != null;
+  nRegion.value = regionOf(current); nRegion.disabled = api;
+  $("nRegionLab").title = api ? "The nation's region, read off the 4clop API: its envelope takes the region's colour"
+                              : "The nation's region: its envelope takes the region's colour";
+}
+nRegion.addEventListener("change", () => {
+  if (nRegion.value) current.region = nRegion.value; else delete current.region;
+  // Przewalskia builds some things cheaper, so its plans' costs follow the type
+  current.prze = current.region === "Przewalskia";
+  saveNations(); renderSwatches();
+});
 function fillGov() {
   nGov.value = GOVS[current.gov] ? current.gov : DEFAULT_GOV;
   nEcon.value = ECONOMIES[current.econ] ? current.econ : DEFAULT_ECON;
   nEmpire.value = current.empire || 1;
   nArmy.value = current.army || 0;
   nMaxSat.checked = !!current.maxSat;
+  fillRegion();
 }
 const govInput = () => {
   current.gov = nGov.value; current.econ = nEcon.value;
@@ -2212,7 +2302,7 @@ $("pDelete").addEventListener("click", () => {
    CODE_BUILDINGS is the order buildings are numbered in. It is the code's
    alphabet: append to it, never reorder it */
 const CODE_BUILDINGS = LAYOUT.filter(Boolean).map(e => e[0]);
-const CODE_GOVS = Object.keys(GOVS), CODE_ECONS = Object.keys(ECONOMIES), CODE_PAPERS = Object.keys(PAPERS);
+const CODE_GOVS = Object.keys(GOVS), CODE_ECONS = Object.keys(ECONOMIES), CODE_PAPERS = Object.keys(PAPERS), CODE_REGIONS = Object.keys(REGIONS);
 const CODE_MAGIC = 0xB7, CODE_VERSION = 1, KIND_NATIONS = 0, KIND_PLANS = 1;
 const ALPHA62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
@@ -2273,11 +2363,11 @@ function readPlan(r) {
   return { id: newId(), name, paper, want, off: offs };
 }
 function writeNation(w, n) {
-  const has = parseHas(n.has || ""), col = isColour(n.color) ? n.color : MANILA;
+  const has = parseHas(n.has || ""), col = envColour(n);
   w.str(nationName(n));
   w.bytes.push(...[1, 3, 5].map(i => parseInt(col.slice(i, i + 2), 16)));
   w.u(Math.max(0, CODE_GOVS.indexOf(n.gov))).u(Math.max(0, CODE_ECONS.indexOf(n.econ)))
-   .u(n.empire || 1).u(n.army || 0).u((n.maxSat ? 1 : 0) | (n.prze ? 2 : 0))
+   .u(n.empire || 1).u(n.army || 0).u((n.maxSat ? 1 : 0) | (n.prze ? 2 : 0) | (CODE_REGIONS.indexOf(regionOf(n)) + 1) << 2)
    .counts(has.counts).counts(has.off);
   const plans = n.plans || [];
   w.u(plans.length); plans.forEach(pl => writePlan(w, pl, has));
@@ -2294,6 +2384,8 @@ function readNation(r) {
   const used = r.u();
   const n = { id: newId(), name, color, gov, econ, empire, army, maxSat: !!(flags & 1), prze: !!(flags & 2),
               has: columnOf(counts, off), plans };
+  const region = CODE_REGIONS[((flags >> 2) & 7) - 1];
+  if (region) n.region = region;
   if (used === 1) n.usePlan = ""; else if (used >= 2 && plans[used - 2]) n.usePlan = plans[used - 2].id;
   return n;
 }
@@ -2372,7 +2464,7 @@ $("pShare").addEventListener("click", () => copyText(plansCode(current, [plan]))
 const SYNC_URL = "https://4clop.org/api/public/v1.1.php";
 const LS_SYNC = "buildplanner.sync";
 const SYNC_STALE = 2 * 3600e3;                         // a sync older than this shows red, and is fetched again on load
-const SYNC_FIT = 2;                                    // how the switched-off buildings are worked out; a sync kept from another way is fetched again
+const SYNC_FIT = 3;                                    // how a sync is kept (the switched-off buildings' fit, regions); one kept another way is fetched again
 let sync = null;
 try {
   const s = JSON.parse(localStorage.getItem(LS_SYNC));
@@ -2398,7 +2490,7 @@ function apiNation(n, allyName) {
   const gov = String(n.government || ""), econ = String(n.economy || "");
   return { id: n.nation_id, name: String(n.name || `Nation ${n.nation_id}`), user: String(n.username || ""), uid: n.user_id ?? null,
            aid: n.alliance_id || 0, ally: allyName, idle: n.in_stasis === true,
-           gov, econ, prze: n.region_name === "Przewalskia", has, dna, skipped,
+           gov, econ, prze: n.region_name === "Przewalskia", region: String(n.region_name || ""), has, dna, skipped,
            off: deduceOff(has, gov, econ, gen, used, Object.values(dna).reduce((t, d) => t + d[0], 0),
                           n.in_stasis === true ? 0 : (+n.gdp_last_turn || 0) / 1000) };
 }
@@ -2406,9 +2498,11 @@ const API_RES = Object.fromEntries(PLAN_RES.map(r => [r[1].toLowerCase(), r[0]])
 const apiColumn = a => columnOf(new Map(Object.entries(a.has)), new Map(Object.entries(a.off || {})));
 // Has has no row for the buildings that can't be switched off, so those the fit finds going without ride beside it
 const apiEnvIdle = a => Object.fromEntries(Object.entries(a.off || {}).filter(([k]) => NEVER_DISABLED.has(k)));
-// an envelope takes what the API says its nation has now
+// an envelope takes what the API says its nation has now, the region that makes its type, and who owns it
 function apiTake(n, a) {
   n.has = apiColumn(a); n.dna = a.dna; n.envIdle = apiEnvIdle(a); n.apiIdle = a.idle; delete n.apiGone;
+  if (REGIONS[a.region]) n.region = a.region; else delete n.region;
+  n.owner = a.user; n.uid = a.uid;
 }
 
 /* The API gives each building's count but not how many are switched off. It does give what
@@ -2535,8 +2629,8 @@ function apiRefresh() {
   if (changed) saveNations();
 }
 function rerender() {
-  if (plan && !views.plan.hidden) { renderPlanTable(); renderPlanCalc(); }
-  else if (current && !views.nation.hidden) renderNation();
+  if (plan && !views.plan.hidden) { planHead(); renderPlanTable(); renderPlanCalc(); }
+  else if (current && !views.nation.hidden) { fillRegion(); renderSwatches(); renderNation(); }
   else if (!views.planner.hidden) renderGrid();
 }
 
@@ -2625,7 +2719,7 @@ $("apiGo").addEventListener("click", () => {
     if (!apiPick.has(a.id)) continue;
     let n = nations.find(x => x.api === a.id);
     if (n) again++;
-    else { n = { id: newId(), name: a.name, color: randomColour(), api: a.id, plans: [] }; nations.push(n); added++; }
+    else { n = { id: newId(), name: a.name, api: a.id, plans: [] }; nations.push(n); added++; }
     apiTake(n, a);
     n.gov = GOVS[a.gov] ? a.gov : DEFAULT_GOV; n.econ = ECONOMIES[a.econ] ? a.econ : DEFAULT_ECON; n.prze = a.prze;
     n.empire = apiEmpire(a);
@@ -2970,6 +3064,11 @@ function show(view) {
 }
 // popstate and hashchange can both fire for one step back, so a nation already
 // open is left alone rather than refilled under the cursor
+// a plan's head: its nation's envelope, type and name
+function planHead() {
+  $("pNation").innerHTML = regionIc(current) + esc(nationName(current));
+  $("pEnv").style.setProperty("--env", envColour(current));
+}
 function route() {
   const m = location.hash.match(/^#planner(?:\/([^/]+)(?:\/([^/]+))?)?$/);
   const next = m && m[1] ? nations.find(n => n.id === decodeURIComponent(m[1])) || null : null;
@@ -2979,8 +3078,7 @@ function route() {
       current = next; plan = nextPlan;
       if (!plan.want) plan.want = {};
       if (!plan.off) plan.off = {};
-      $("pNation").textContent = nationName(current);
-      $("pEnv").style.setProperty("--env", isColour(current.color) ? current.color : MANILA);
+      planHead();
       pName.value = plan.name; $("pPrze").checked = !!current.prze;
       renderPapers(); renderPlanTable(); renderPlanCalc(); show("plan");
       document.title = planName(plan) + " · " + nationName(current);
