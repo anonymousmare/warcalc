@@ -580,6 +580,9 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
 .ov-tbl td.pos{color:var(--pos)}
 .ov-tbl td.neg{color:var(--neg)}
 .ov-tbl select{background:var(--input-bg);color:var(--input-ink);border:1px solid var(--border-soft);border-radius:3px;padding:1px 4px;font:12px var(--font);max-width:180px}
+.ov-go{all:unset;cursor:pointer;border-radius:2px}
+.ov-go:hover{text-decoration:underline;text-underline-offset:3px}
+.ov-go:focus-visible{outline:2px solid var(--strong);outline-offset:2px}
 .ov-dot{display:inline-block;width:12px;height:9px;border-radius:2px;margin-right:7px;vertical-align:0;box-shadow:0 0 0 1px rgba(0,0,0,.3)}
 /* the projected nets down a list, in the game's own order, as its Alliance Resources table has them */
 .ptab.vtab{width:auto;min-width:0;table-layout:auto}
@@ -1487,7 +1490,8 @@ function renderOverall() {
     gdpNow += now.gdp; gdpAfter += after.gdp;
     const opts = `<option value=""${pl ? "" : " selected"}>No plan</option>`
       + (n.plans || []).map(p => `<option value="${esc(p.id)}"${p === pl ? " selected" : ""}>${esc(planName(p))}</option>`).join("");
-    return `<tr><td><i class="ov-dot" style="background:${isColour(n.color) ? n.color : MANILA}"></i>${esc(nationName(n))}</td>`
+    return `<tr><td><button type="button" class="ov-go" data-go="${esc(n.id)}" title="Open ${esc(nationName(n))}">`
+      + `<i class="ov-dot" style="background:${isColour(n.color) ? n.color : MANILA}"></i>${esc(nationName(n))}</button></td>`
       + `<td>${(n.plans || []).length ? `<select data-ov="${esc(n.id)}" aria-label="Plan for ${esc(nationName(n))}">${opts}</select>` : '<span style="color:var(--text-dim)">no plans</span>'}</td>`
       + `<td>${cost.bits ? shortBits(cost.bits) : "—"}</td>`
       + `<td class="${cls(after.satTotal).trim()}">${signed(after.satTotal)}</td>`
@@ -1530,6 +1534,11 @@ $("ovNations").addEventListener("change", ev => {
   const sel = ev.target.closest("[data-ov]"); if (!sel) return;
   const n = nations.find(x => x.id === sel.dataset.ov); if (!n) return;
   n.usePlan = sel.value; saveNations(); renderOverall();
+});
+// a nation's name opens its envelope
+$("ovNations").addEventListener("click", ev => {
+  const b = ev.target.closest("[data-go]");
+  if (b) go("#planner/" + b.dataset.go);
 });
 envGrid.addEventListener("click", ev => {
   const b = ev.target.closest(".env");
