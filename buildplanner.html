@@ -790,7 +790,8 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
       <div id="ovExtraTable" class="ex-grid"></div>
     </details>
     <section class="panel">
-      <div class="panel-head"><h2>Projected nets</h2></div>
+      <div class="panel-head"><h2>Projected nets</h2><span class="spacer"></span>
+        <label class="hk-toggle"><input id="ovHideDna" type="checkbox"> Hide DNA</label></div>
       <div id="ovNets" class="well"></div>
     </section>
   </div>
@@ -1508,6 +1509,7 @@ function renderOverall() {
   let body = `<tr class="gdp-row"><th scope="row">GDP</th><td></td><td></td><td>${k(gdpAfter)}</td><td>${k(gdpNow)}</td>`
     + `<td class="dcol${showDiff ? "" : " hidden"} ${dgdp ? cls(dgdp).trim() : "zero"}">${dgdp ? signed(dgdp) + "k" : "·"}</td></tr>`;
   for (const [key, label, col, img] of NET_ORDER) {
+    if (hideDna && DNA_RES.includes(key)) continue;
     const r0 = resNow[key] || blankRes(), r1 = resAfter[key] || blankRes();
     const a = r0.made - r0.used, b = r1.made - r1.used;
     tips.set("ovh-" + key, tipMade(label, col, img, r0));
@@ -1523,6 +1525,14 @@ function renderOverall() {
   $("ovNets").innerHTML = `<div class="ptab-wrap"><table class="ptab vtab"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
   hideTip();
 }
+let hideDna = false;
+try { hideDna = localStorage.getItem("buildplanner.hideDna") === "1"; } catch (e) {}
+$("ovHideDna").checked = hideDna;
+$("ovHideDna").addEventListener("change", ev => {
+  hideDna = ev.target.checked;
+  try { localStorage.setItem("buildplanner.hideDna", hideDna ? "1" : "0"); } catch (e) {}
+  renderOverall();
+});
 $("ovNations").addEventListener("change", ev => {
   const sel = ev.target.closest("[data-ov]"); if (!sel) return;
   const n = nations.find(x => x.id === sel.dataset.ov); if (!n) return;
