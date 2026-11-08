@@ -477,7 +477,7 @@ tbody tr:last-child{border-bottom:none}
    room so the row never grows */
 .force-table td.col-sprite,.force-table td.col-type{position:relative}
 .reinf-sw{position:absolute;left:5px;top:3px;display:flex;align-items:center;gap:3px;line-height:1;pointer-events:none}
-/* hidden, not removed, so a $ or × left on keeps its own spot */
+/* hidden, not removed, so an exemption left on keeps its own spot */
 .force-table .reinf-sw > *{visibility:hidden;pointer-events:auto}
 .force-table tr:has(td.col-sprite:hover, td.col-type:hover) .reinf-sw > *,
 .force-table .reinf-sw button.ex.on{visibility:visible}
@@ -492,14 +492,14 @@ tbody tr:last-child{border-bottom:none}
   width:6px;height:1.5px;transform:translate(-50%,-50%);
 }
 .reinf-sw button[data-reinf="1"]::after{width:1.5px;height:6px}
-/* the exemptions: $ leaves the raise cost off, × the equipment */
+/* the exemptions: $ leaves the raise cost off, the gun the weapon, the shield the armour */
 .reinf-sw button[data-ex="hire"]::before{content:"$";background:none;width:auto;height:auto;
   font:700 8.5px/1 var(--mono);}
-.reinf-sw button[data-ex="gear"]::before,.reinf-sw button[data-ex="gear"]::after{
-  content:"";position:absolute;left:50%;top:50%;background:currentColor;
-  width:6px;height:1.5px;transform:translate(-50%,-50%) rotate(45deg);
+.reinf-sw button[data-ex="weap"]::before,.reinf-sw button[data-ex="arm"]::before{
+  width:8px;height:8px;-webkit-mask:var(--ex-ic) center/contain no-repeat;mask:var(--ex-ic) center/contain no-repeat;
 }
-.reinf-sw button[data-ex="gear"]::after{transform:translate(-50%,-50%) rotate(-45deg)}
+.reinf-sw button[data-ex="weap"]{--ex-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M1 3.5h14v4.5H9.2l-.6 1.6c-.2.5-.7.9-1.3.9H6.4L5.3 14.5H1.6l1.6-6.5H1z'/%3E%3C/svg%3E")}
+.reinf-sw button[data-ex="arm"]{--ex-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1 2 3.2v4.6c0 3.4 2.5 6 6 7.2 3.5-1.2 6-3.8 6-7.2V3.2z'/%3E%3C/svg%3E")}
 .reinf-sw button.ex.on{background:rgba(var(--gold-rgb),.35)}
 .reinf-sw button:hover,.reinf-sw button.on{opacity:1}
 /* the same bare - and + beside the Tr heading step every row's training */
@@ -3671,7 +3671,8 @@ function makeRow(side, data){
       <button type="button" data-reinf="1" aria-label="Reinforcement — press again to hold it back another tick">+</button>
       <span class="sw-div" aria-hidden="true"></span>
       <button type="button" class="ex" data-ex="hire" title="exempt raise cost" aria-label="exempt raise cost" aria-pressed="false">$</button>
-      <button type="button" class="ex" data-ex="gear" title="exempt equipment cost" aria-label="exempt equipment cost" aria-pressed="false">×</button>
+      <button type="button" class="ex" data-ex="weap" title="exempt weapon cost" aria-label="exempt weapon cost" aria-pressed="false"></button>
+      <button type="button" class="ex" data-ex="arm" title="exempt armor cost" aria-label="exempt armor cost" aria-pressed="false"></button>
     </span><select class="type">
       ${typeOpts.map(t=>`<option value="${t}">${t}</option>`).join("")}
     </select></td>
@@ -3711,7 +3712,8 @@ function makeRow(side, data){
     refreshCosts();
   }));
   setExempt(tr, "hire", data?.freeHire);
-  setExempt(tr, "gear", data?.freeGear);
+  setExempt(tr, "weap", data?.freeWeap || data?.freeGear);   // freeGear: saved before the split, both
+  setExempt(tr, "arm", data?.freeArm || data?.freeGear);
 
   document.getElementById(side === "attacker" ? "tbodyAttacker" : "tbodyDefender").appendChild(tr);
 
@@ -3742,11 +3744,12 @@ function setReserve(tr, wait){
 }
 
 /* a unit already raised, or already kitted out, costs nothing for it:
-   its raise cost ($) or its equipment cost (×) is left off the bill */
+   its raise cost ($), its weapon cost or its armour cost is left off the bill */
+const EX_KEY = {hire:"freeHire", weap:"freeWeap", arm:"freeArm"};
 function setExempt(tr, which, on){
   const b = tr.querySelector(`[data-ex="${which}"]`);
   on = !!on;
-  tr.dataset[which === "hire" ? "freeHire" : "freeGear"] = on ? "1" : "";
+  tr.dataset[EX_KEY[which]] = on ? "1" : "";
   b.classList.toggle("on", on);
   b.setAttribute("aria-pressed", on);
 }
@@ -3838,9 +3841,9 @@ function costsOf(rows){
     hire += hireEach * n;
     addRes(upkeep, uc.upkeep, n);
 
-    /* already kitted out: no equipment cost */
-    const w = u.noW || u.freeGear ? NONE : gearCost("weapon", u.weapon),
-          a = u.noA || u.freeGear ? NONE : gearCost("armor", u.armor);
+    /* already kitted out: no weapon / armour cost */
+    const w = u.noW || u.freeWeap ? NONE : gearCost("weapon", u.weapon),
+          a = u.noA || u.freeArm ? NONE : gearCost("armor", u.armor);
     const gb = (w.bits + a.bits) * n;
     gearBits += gb;
     addRes(gearRes, w.res, n); addRes(gearRes, a.res, n);
@@ -4199,7 +4202,8 @@ function builderText(rows, noGroup){
 /* the one builder line that makes the gear itself — build "Item":count …,
    each piece sized to every troop that carries it, in the Units list's order */
 function builderGearText(rows){
-  const {gear} = unitTally(rows.filter(u => !u.freeGear));     // written-off kit is not built
+  const {gear} = unitTally(rows.map(u => ({...u,                 // written-off kit is not built
+    noW: u.noW || u.freeWeap, noA: u.noA || u.freeArm})));
   const items = [];
   UNIT_ORDER.forEach(g => g.gear.forEach(k=>{
     if (gear[k] > 0) items.push(`${bq(label(k))}:${gear[k]}`);
@@ -4406,11 +4410,12 @@ function prettyPlan(side, noFight){
 
 const planFence = (lang, body) => "```" + lang + "\n" + body + "\n```";
 
-/* what the $ and × switches leave off the bill: the troops not raised, then
+/* what the exemption switches leave off the bill: the troops not raised, then
    the kit not bought, a type's troops before its gear as the Units list has it */
 function writeoffText(rows){
   const {head} = unitTally(rows.filter(u => u.freeHire));
-  const {gear} = unitTally(rows.filter(u => u.freeGear));
+  const {gear} = unitTally(rows.map(u => ({...u,
+    noW: u.noW || !u.freeWeap, noA: u.noA || !u.freeArm})));
   const n = v => v.toLocaleString("en-US");
   const out = [];
   UNIT_ORDER.forEach(g=>{
@@ -4483,7 +4488,8 @@ function readSide(side){
     const training = clampInt(tr.querySelector(".training").value, 0, trainCap(side));
     const nick = tr.querySelector(".uname").value.trim();
     out.push({type, weapon, armor, size, training, nick, reserve: +tr.dataset.wait || 0,
-      freeHire: tr.dataset.freeHire === "1", freeGear: tr.dataset.freeGear === "1",
+      freeHire: tr.dataset.freeHire === "1", freeWeap: tr.dataset.freeWeap === "1",
+      freeArm: tr.dataset.freeArm === "1",
       fid: fidPre(side) + tr.dataset.fid,
       name:`${type}_${weapon}_${armor}_size_${size}_train_${training}`});
   });
@@ -6141,7 +6147,7 @@ function encodeArmy(units, barracks){
   for (let w = 1; w <= REINF_MAX; w++) waves.push(wave(w));
   while (waves.length > 1 && !waves[waves.length - 1].length) waves.pop();
   return waves.map(r => encodeStacks(r, barracks)).join("_")
-       + encodeNames(waves.flat())       // the $ / × exemptions ride in here too
+       + encodeNames(waves.flat())       // the exemptions ride in here too
        + (barracks == null ? "" : "~" + clampInt(barracks, 0, TRAIN_UNCAPPED))    // the side's Barracks level
        + (units?.orders ? "!" + ordToCode(units.orders) : "");                    // its advanced instructions
 }
@@ -6159,29 +6165,39 @@ function encodeNames(units){
   return "." + b62(v);
 }
 
-/* The $ / × exemptions go as one more line after the last unit's name: "$",
-   then two units to a character, each unit 0-3 (1 raise, 2 equipment), the
-   trailing zeros dropped. Every page that reads a "~" Barracks also reads the
-   names, and skips any line past the last unit, so an older page takes the
-   code just the same and only the exemptions are lost. */
+/* The exemptions go as one more line after the last unit's name: "$",
+   then two units to a character, each unit 0-3 (1 raise, 2 weapon and armour
+   both), the trailing zeros dropped. A unit let off only one of its weapon
+   and armour can't be written that way, so then the line is "&" and one unit
+   to a character, each 0-7 (1 raise, 2 weapon, 4 armour). Every page that
+   reads a "~" Barracks also reads the names, and skips any line past the
+   last unit, so an older page takes the code just the same and only the
+   exemptions are lost. */
 function encodeExempt(units){
-  const f = units.map(u => (u.freeHire ? 1 : 0) | (u.freeGear ? 2 : 0));
+  const f = units.map(u => (u.freeHire ? 1 : 0) | (u.freeWeap ? 2 : 0) | (u.freeArm ? 4 : 0));
   while (f.length && !f[f.length - 1]) f.pop();
   if (!f.length) return "";
+  if (f.some(x => !(x & 2) !== !(x & 4))) return "&" + f.map(x => CODE_ALPHA[x]).join("");
+  const g = f.map(x => x & 3);
   let s = "$";
-  for (let i = 0; i < f.length; i += 2) s += CODE_ALPHA[f[i] + 4 * (f[i + 1] || 0)];
+  for (let i = 0; i < g.length; i += 2) s += CODE_ALPHA[g[i] + 4 * (g[i + 1] || 0)];
   return s;
 }
 function decodeExempt(line, units){
+  const set = (u, f) => {
+    if (!u || !f) return;
+    if (f & 1) u.freeHire = true;
+    if (f & 2) u.freeWeap = true;
+    if (f & 4) u.freeArm = true;
+  };
+  if (/^&[0-7]+$/.test(line || "")){
+    [...line.slice(1)].forEach((ch, i) => set(units[i], +ch));
+    return;
+  }
   if (!/^\$[0-9A-F]+$/.test(line || "")) return;
   [...line.slice(1)].forEach((ch, j) => {
     const d = parseInt(ch, 16);
-    [d & 3, d >> 2].forEach((f, k) => {
-      const u = units[2 * j + k];
-      if (!u || !f) return;
-      if (f & 1) u.freeHire = true;
-      if (f & 2) u.freeGear = true;
-    });
+    [d & 3, d >> 2].forEach((f, k) => set(units[2 * j + k], (f & 1) | (f & 2 ? 6 : 0)));
   });
 }
 
@@ -7341,7 +7357,8 @@ const store = {
 const packSide = (side, ids) => readSide(side).map(u=>Object.assign({
   type:u.type, weapon:u.weapon, armor:u.armor, size:u.size, training:u.training},
   u.nick ? {name:u.nick} : {}, packWait(u), ids ? {fid:u.fid} : {},
-  u.freeHire ? {freeHire:true} : {}, u.freeGear ? {freeGear:true} : {}));
+  u.freeHire ? {freeHire:true} : {}, u.freeWeap ? {freeWeap:true} : {},
+  u.freeArm ? {freeArm:true} : {}));
 
 function setSide(side, units){
   (units || []).forEach(u=>uncapFor(side, u.training));
