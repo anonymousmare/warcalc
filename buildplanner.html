@@ -2389,7 +2389,7 @@ function apiNation(n, allyName) {
     if (k) { gen[k] = +r.generated || 0; used[k] = +r.used || 0; }
   }
   const gov = String(n.government || ""), econ = String(n.economy || "");
-  return { id: n.nation_id, name: String(n.name || `Nation ${n.nation_id}`), user: String(n.username || ""),
+  return { id: n.nation_id, name: String(n.name || `Nation ${n.nation_id}`), user: String(n.username || ""), uid: n.user_id ?? null,
            aid: n.alliance_id || 0, ally: allyName, idle: n.in_stasis === true,
            gov, econ, prze: n.region_name === "Przewalskia", has, dna, skipped,
            off: deduceOff(has, gov, econ, gen, used, Object.values(dna).reduce((t, d) => t + d[0], 0),
@@ -2488,6 +2488,12 @@ function deduceOff(has, gov, econ, gen, used, dnaMade, gdp = 0) {
   return off;
 }
 const apiFind = id => sync ? sync.nations.find(a => a.id === id) || null : null;
+// the empire is every nation its player owns, told apart by user id (by name in a sync kept from before ids were)
+const apiOwner = a => a.uid != null ? "#" + a.uid : a.user ? "@" + a.user : null;
+const apiEmpire = a => {
+  const o = apiOwner(a);
+  return o && sync ? Math.max(1, sync.nations.filter(b => apiOwner(b) === o).length) : 1;
+};
 
 async function syncNow() {
   if (syncBusy) return;
@@ -2615,6 +2621,7 @@ $("apiGo").addEventListener("click", () => {
     else { n = { id: newId(), name: a.name, color: randomColour(), api: a.id, plans: [] }; nations.push(n); added++; }
     apiTake(n, a);
     n.gov = GOVS[a.gov] ? a.gov : DEFAULT_GOV; n.econ = ECONOMIES[a.econ] ? a.econ : DEFAULT_ECON; n.prze = a.prze;
+    n.empire = apiEmpire(a);
   }
   saveNations();
   apiPick.clear();
