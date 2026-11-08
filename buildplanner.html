@@ -632,6 +632,7 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
 .sync-age.stale{color:var(--neg)}
 .sync-age.busy{opacity:.6;cursor:progress}
 .api-box{margin-bottom:14px}
+.api-bar .btn[disabled]{opacity:.5;cursor:default;filter:none}
 .api-box .btn[disabled]{opacity:.5;cursor:default;filter:none}
 .api-cols{display:grid;grid-template-columns:minmax(220px,320px) minmax(0,1fr);gap:14px;align-items:start}
 @media (max-width:640px){.api-cols{grid-template-columns:minmax(0,1fr)}}
@@ -754,6 +755,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
     <!-- when the nations were last fetched from 4clop.org; a click fetches them again -->
     <button id="apiAge" class="sync-age" type="button">Not synced</button>
     <button id="apiBtn" class="btn" type="button" aria-expanded="false">Import from API</button>
+    <button id="envClearAll" class="btn btn-danger" type="button" title="Delete every nation in the planner">Clear all</button>
   </div>
   <section id="apiBox" class="panel api-box" hidden>
     <div class="panel-head">
@@ -1442,6 +1444,7 @@ function renderGrid() {
          + `<span class="env-label"><span class="env-name">${esc(nationName(n))}</span>`
          + `<span class="env-sub">${fmt(total)} building${total === 1 ? "" : "s"}${n.api != null ? '<span class="env-api" title="Has is read off the 4clop API">API</span>' : ""}</span></span></button>`;
   }).join("") + `<button class="env env-new" type="button" id="envNew" title="New nation"><b>+</b><span>New nation</span></button>`;
+  $("envClearAll").disabled = !nations.length;
   renderOverall();
 }
 
@@ -1828,6 +1831,10 @@ $("nDelete").addEventListener("click", () => {
   if (!confirm(`Delete ${nationName(current)}? This can't be undone.`)) return;
   nations = nations.filter(n => n !== current); saveNations();
   go("#planner");
+});
+$("envClearAll").addEventListener("click", () => {
+  if (!nations.length || !confirm(`Delete all ${many(nations.length, "nation")}? This can't be undone.`)) return;
+  nations = []; saveNations(); renderGrid();
 });
 
 /* ===================== plans =====================
@@ -2389,7 +2396,7 @@ function apiNation(n, allyName) {
     if (k) { gen[k] = +r.generated || 0; used[k] = +r.used || 0; }
   }
   const gov = String(n.government || ""), econ = String(n.economy || "");
-  return { id: n.nation_id, name: String(n.name || `Nation ${n.nation_id}`), user: String(n.username || ""),
+  return { id: n.nation_id, name: String(n.name || `Nation ${n.nation_id}`), user: String(n.username || ""), uid: n.user_id ?? null,
            aid: n.alliance_id || 0, ally: allyName, idle: n.in_stasis === true,
            gov, econ, prze: n.region_name === "Przewalskia", has, dna, skipped,
            off: deduceOff(has, gov, econ, gen, used, Object.values(dna).reduce((t, d) => t + d[0], 0),
@@ -2488,6 +2495,12 @@ function deduceOff(has, gov, econ, gen, used, dnaMade, gdp = 0) {
   return off;
 }
 const apiFind = id => sync ? sync.nations.find(a => a.id === id) || null : null;
+// the empire is every nation its player owns, told apart by user id (by name in a sync kept from before ids were)
+const apiOwner = a => a.uid != null ? "#" + a.uid : a.user ? "@" + a.user : null;
+const apiEmpire = a => {
+  const o = apiOwner(a);
+  return o && sync ? Math.max(1, sync.nations.filter(b => apiOwner(b) === o).length) : 1;
+};
 
 async function syncNow() {
   if (syncBusy) return;
@@ -2615,6 +2628,7 @@ $("apiGo").addEventListener("click", () => {
     else { n = { id: newId(), name: a.name, color: randomColour(), api: a.id, plans: [] }; nations.push(n); added++; }
     apiTake(n, a);
     n.gov = GOVS[a.gov] ? a.gov : DEFAULT_GOV; n.econ = ECONOMIES[a.econ] ? a.econ : DEFAULT_ECON; n.prze = a.prze;
+    n.empire = apiEmpire(a);
   }
   saveNations();
   apiPick.clear();
