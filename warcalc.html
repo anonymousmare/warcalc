@@ -2827,32 +2827,32 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
           <div class="solve-type" data-lean-cell="Cavalry">
             <label><input type="checkbox" data-solve-type="1" value="Cavalry" checked> Cavalry</label>
             <input class="lean" type="number" data-solve-lean="Cavalry" min="0.1" max="10" step="0.05"
-              value="1" title="Cost multiplier the search optimises against — under 1 you field plenty of these, over 1 every one is a stretch">
+              value="1">
           </div>
           <div class="solve-type" data-lean-cell="Tanks">
             <label><input type="checkbox" data-solve-type="1" value="Tanks" checked> Tanks</label>
             <input class="lean" type="number" data-solve-lean="Tanks" min="0.1" max="10" step="0.05"
-              value="1" title="Cost multiplier the search optimises against — under 1 you field plenty of these, over 1 every one is a stretch">
+              value="1">
           </div>
           <div class="solve-type" data-lean-cell="Pegasi">
             <label><input type="checkbox" data-solve-type="1" value="Pegasi" checked> Pegasi</label>
             <input class="lean" type="number" data-solve-lean="Pegasi" min="0.1" max="10" step="0.05"
-              value="1" title="Cost multiplier the search optimises against — under 1 you field plenty of these, over 1 every one is a stretch">
+              value="1">
           </div>
           <div class="solve-type" data-lean-cell="Unicorns">
             <label><input type="checkbox" data-solve-type="1" value="Unicorns" checked> Unicorns</label>
             <input class="lean" type="number" data-solve-lean="Unicorns" min="0.1" max="10" step="0.05"
-              value="1" title="Cost multiplier the search optimises against — under 1 you field plenty of these, over 1 every one is a stretch">
+              value="1">
           </div>
           <div class="solve-type" data-lean-cell="Naval">
             <label><input type="checkbox" data-solve-type="1" value="Naval" checked> Naval</label>
             <input class="lean" type="number" data-solve-lean="Naval" min="0.1" max="10" step="0.05"
-              value="1" title="Cost multiplier the search optimises against — under 1 you field plenty of these, over 1 every one is a stretch">
+              value="1">
           </div>
           <div class="solve-type" data-lean-cell="Alicorns">
             <label><input type="checkbox" data-solve-type="1" value="Alicorns"> Alicorns</label>
             <input class="lean" type="number" data-solve-lean="Alicorns" min="0.1" max="10" step="0.05"
-              value="1" title="Cost multiplier the search optimises against — under 1 you field plenty of these, over 1 every one is a stretch">
+              value="1">
           </div>
         </div>
       </div>
@@ -7654,7 +7654,7 @@ function ordRender(side){
   if (!ordSlotList(side, ordArmed[side])) ordArmed[side] = "root";
   el.querySelector(".ord-drop").classList.toggle("has-ord", ORD[side].length > 0);
   el.querySelector(".ord-script").innerHTML = ordSlotHTML(ORD[side], "root", side, F,
-    "Drag blocks here, or click one above");
+    "Empty");
 }
 const ordRenderAll = () => ORD_SIDES.forEach(ordRender);
 
@@ -11757,17 +11757,15 @@ function paintLimits(){
 }
 
 function setupLimits(){
-  const boxes = (id, list, attr, saved, title) => {
+  const boxes = (id, list, attr, saved) => {
     document.getElementById(id).innerHTML = list.map(k => `
-      <label title="${esc(title(RESOURCES[k].name.toLowerCase()))} — leave blank for no limit">
-        ${resIcon(k)}
+      <label>
+        ${resIcon(k).replace(/ title="[^"]*"/, "")}
         <input type="number" min="0" step="1000" placeholder="no limit" data-${attr}="${k}"
           value="${saved[k] != null ? esc(saved[k]) : ""}"></label>`).join("");
   };
-  boxes("solveBudget", BUDGET_RES, "solve-budget", store.get(LS_BUDGET, null) || {},
-        r => `Most ${r} the force may eat over the whole fight, every tick billed on the troops standing at its start`);
-  boxes("solveStock", STOCK_RES, "solve-stock", store.get(LS_STOCK, null) || {},
-        r => `Most ${r} the force's weapons and armour may take to build`);
+  boxes("solveBudget", BUDGET_RES, "solve-budget", store.get(LS_BUDGET, null) || {});
+  boxes("solveStock", STOCK_RES, "solve-stock", store.get(LS_STOCK, null) || {});
   const off = document.getElementById("solveLimitsOff");
   off.checked = store.get(LS_LIMITS_OFF, false) === true;
   solveBudgetBoxes().forEach(b => {
@@ -15180,8 +15178,7 @@ function libMullRender(){
       }).join("")}</tr>`).join("")}${libSimRow(T, M)}</tbody></table>`;
     const a = libMwRows(units), b = libMull ? libMwRows(libMull.units) : null;
     libEl("libMw").innerHTML = `<div class="lib-mw-c l"><div class="lib-h">Original · ${esc(lib.sel)}</div></div>
-      <div class="lib-mw-c r"><div class="lib-h">Mulligan</div>${b ? "" : `<div class="lib-empty">Press Mulligan for a
-        different army whose figures above all land within ${Math.round(tol * 100)}% of these.</div>`}</div>
+      <div class="lib-mw-c r"><div class="lib-h">Mulligan</div>${b ? "" : `<div class="lib-empty">Range is ${Math.round(tol * 100)}%</div>`}</div>
       ${a.map((x, i) => `<div class="lib-mw-c l">${x}</div><div class="lib-mw-c r">${b ? b[i] : ""}</div>`).join("")}`;
     libLegendLay(libEl("libMw"));
   }
