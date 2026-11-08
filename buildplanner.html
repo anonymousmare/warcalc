@@ -302,26 +302,16 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
 .env-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:26px 22px;padding:8px 2px}
 .env{
   --env:#d6b47a;
-  position:relative;display:block;width:100%;aspect-ratio:3/2;padding:0;border:none;border-radius:5px;cursor:pointer;
+  position:relative;display:block;width:100%;aspect-ratio:680/490;padding:0;border:none;border-radius:3px;cursor:pointer;
   font:inherit;color:#2a2620;text-align:left;
-  background:
-    repeating-linear-gradient(115deg,rgba(255,255,255,.035) 0 2px,transparent 2px 5px),
-    linear-gradient(color-mix(in srgb,var(--env) 88%,#fff),var(--env));
-  box-shadow:0 1px 0 color-mix(in srgb,var(--env) 60%,#000),0 6px 14px rgba(0,0,0,.35);
+  /* the photographed envelope, white, dyed its colour: multiplied, so its folds and grain show through */
+  background:url("https://cloppenmanager.neocities.org/envelope.png") center/100% 100% no-repeat,var(--env);
+  background-blend-mode:multiply;
+  box-shadow:0 6px 14px rgba(0,0,0,.35);
   transition:transform .12s ease,box-shadow .12s ease;
 }
-.env:hover{transform:translateY(-3px) rotate(-.5deg);box-shadow:0 1px 0 color-mix(in srgb,var(--env) 60%,#000),0 10px 20px rgba(0,0,0,.4)}
+.env:hover{transform:translateY(-3px) rotate(-.5deg);box-shadow:0 10px 20px rgba(0,0,0,.4)}
 .env:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
-/* the flap, and the string-tie button at its point */
-.env::before{
-  content:"";position:absolute;left:0;right:0;top:0;height:46%;border-radius:5px 5px 0 0;
-  background:color-mix(in srgb,var(--env) 84%,#000);
-  clip-path:polygon(0 0,100% 0,100% 16%,56% 100%,44% 100%,0 16%);
-}
-.env::after{
-  content:"";position:absolute;left:50%;top:46%;width:11px;height:11px;margin:-6px 0 0 -6px;border-radius:50%;
-  background:color-mix(in srgb,var(--env) 55%,#7a1f12);box-shadow:0 1px 1px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.25);
-}
 .env-label{
   position:absolute;left:11%;right:11%;bottom:12%;padding:5px 9px 6px;border-radius:2px;
   background:#f6f1e2;box-shadow:0 1px 2px rgba(0,0,0,.25);transform:rotate(-1deg);
@@ -332,7 +322,6 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
 /* the empty slot that makes a new one */
 .env-new{background:none;box-shadow:none;border:2px dashed var(--text-dim);color:var(--text-dim);opacity:.75;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
-.env-new::before,.env-new::after{display:none}
 .env-new:hover{opacity:1;color:var(--strong);border-color:var(--strong);box-shadow:none}
 .env-new b{font:300 46px/1 var(--font)}
 .env-new span{font-size:11px;letter-spacing:.08em;text-transform:uppercase}
@@ -341,7 +330,6 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
 .nation-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
 .nation-head .env{width:54px;flex:0 0 auto;cursor:default}
 .nation-head .env:hover{transform:none}
-.nation-head .env::after{width:6px;height:6px;margin:-3px 0 0 -3px}
 .name-input{
   flex:1 1 200px;min-width:0;background:none;border:none;border-bottom:1px solid transparent;border-radius:0;
   color:var(--strong);font:500 21px/1.2 var(--head-font);padding:2px 0;
