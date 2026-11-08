@@ -302,26 +302,16 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
 .env-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:26px 22px;padding:8px 2px}
 .env{
   --env:#d6b47a;
-  position:relative;display:block;width:100%;aspect-ratio:3/2;padding:0;border:none;border-radius:5px;cursor:pointer;
+  position:relative;display:block;width:100%;aspect-ratio:680/490;padding:0;border:none;border-radius:3px;cursor:pointer;
   font:inherit;color:#2a2620;text-align:left;
-  background:
-    repeating-linear-gradient(115deg,rgba(255,255,255,.035) 0 2px,transparent 2px 5px),
-    linear-gradient(color-mix(in srgb,var(--env) 88%,#fff),var(--env));
-  box-shadow:0 1px 0 color-mix(in srgb,var(--env) 60%,#000),0 6px 14px rgba(0,0,0,.35);
+  /* the photographed envelope, white, dyed its colour: multiplied, so its folds and grain show through */
+  background:url("https://cloppenmanager.neocities.org/envelope.png") center/100% 100% no-repeat,var(--env);
+  background-blend-mode:multiply;
+  box-shadow:0 6px 14px rgba(0,0,0,.35);
   transition:transform .12s ease,box-shadow .12s ease;
 }
-.env:hover{transform:translateY(-3px) rotate(-.5deg);box-shadow:0 1px 0 color-mix(in srgb,var(--env) 60%,#000),0 10px 20px rgba(0,0,0,.4)}
+.env:hover{transform:translateY(-3px) rotate(-.5deg);box-shadow:0 10px 20px rgba(0,0,0,.4)}
 .env:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
-/* the flap, and the string-tie button at its point */
-.env::before{
-  content:"";position:absolute;left:0;right:0;top:0;height:46%;border-radius:5px 5px 0 0;
-  background:color-mix(in srgb,var(--env) 84%,#000);
-  clip-path:polygon(0 0,100% 0,100% 16%,56% 100%,44% 100%,0 16%);
-}
-.env::after{
-  content:"";position:absolute;left:50%;top:46%;width:11px;height:11px;margin:-6px 0 0 -6px;border-radius:50%;
-  background:color-mix(in srgb,var(--env) 55%,#7a1f12);box-shadow:0 1px 1px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.25);
-}
 .env-label{
   position:absolute;left:11%;right:11%;bottom:12%;padding:5px 9px 6px;border-radius:2px;
   background:#f6f1e2;box-shadow:0 1px 2px rgba(0,0,0,.25);transform:rotate(-1deg);
@@ -332,7 +322,6 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
 /* the empty slot that makes a new one */
 .env-new{background:none;box-shadow:none;border:2px dashed var(--text-dim);color:var(--text-dim);opacity:.75;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
-.env-new::before,.env-new::after{display:none}
 .env-new:hover{opacity:1;color:var(--strong);border-color:var(--strong);box-shadow:none}
 .env-new b{font:300 46px/1 var(--font)}
 .env-new span{font-size:11px;letter-spacing:.08em;text-transform:uppercase}
@@ -341,7 +330,6 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
 .nation-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
 .nation-head .env{width:54px;flex:0 0 auto;cursor:default}
 .nation-head .env:hover{transform:none}
-.nation-head .env::after{width:6px;height:6px;margin:-3px 0 0 -3px}
 .name-input{
   flex:1 1 200px;min-width:0;background:none;border:none;border-bottom:1px solid transparent;border-radius:0;
   color:var(--strong);font:500 21px/1.2 var(--head-font);padding:2px 0;
@@ -593,6 +581,71 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
 .ov-tbl td.neg{color:var(--neg)}
 .ov-tbl select{background:var(--input-bg);color:var(--input-ink);border:1px solid var(--border-soft);border-radius:3px;padding:1px 4px;font:12px var(--font);max-width:180px}
 .ov-dot{display:inline-block;width:12px;height:9px;border-radius:2px;margin-right:7px;vertical-align:0;box-shadow:0 0 0 1px rgba(0,0,0,.3)}
+/* the projected nets down a list, in the game's own order, as its Alliance Resources table has them */
+.ptab.vtab{width:auto;min-width:0;table-layout:auto}
+.vtab thead th{font:600 10.5px var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);padding:0 4px 5px 14px}
+.vtab thead th:first-child{text-align:left;padding-left:0}
+.vtab :is(td,th){padding-left:14px}
+.vtab th[scope=row]{padding-left:0;font:600 12px var(--font);letter-spacing:0;text-transform:none;color:var(--strong)}
+.vtab th[scope=row] .vt-res{display:inline-flex;align-items:center;gap:6px}
+.vtab th[scope=row] img,.vtab .dna-ic{width:16px;height:16px;image-rendering:pixelated;flex:0 0 auto}
+.vtab .dna-ic{display:inline-block;border-radius:50%;border:2px dotted var(--text-dim);box-sizing:border-box}
+.vtab tbody tr + tr :is(td,th){border-top:1px solid var(--border-soft)}
+.vtab tr.idle :is(th,td){opacity:.45}
+.vtab tr.gdp-row th{text-transform:uppercase;letter-spacing:.08em;font-size:10.5px}
+.vtab td.dcol{font-size:11px}
+.vtab .dcol.hidden{display:none}
+.vtab th.dcol-h{font:inherit;text-transform:none;letter-spacing:0}
+.vtab th.dcol-h .diff-tog{font:600 10.5px var(--font);letter-spacing:.08em;text-transform:uppercase}
+
+/* buildings that belong to no nation, laid over the projected nets */
+.ov-extra{margin-bottom:14px}
+.ov-extra > summary{cursor:pointer;list-style:none;margin-bottom:0;padding-bottom:0;border-bottom:none}
+.ov-extra > summary::-webkit-details-marker{display:none}
+.ov-extra > summary h2::before{content:"▸";display:inline-block;margin-right:6px;transition:transform .12s}
+.ov-extra[open] > summary{padding-bottom:10px;margin-bottom:12px;border-bottom:1px solid var(--border-soft)}
+.ov-extra[open] > summary h2::before{transform:rotate(90deg)}
+.ex-bar{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+.ex-bar .has-note{margin:0;max-width:60ch}
+.ex-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:3px 18px;font-size:12px}
+.ex-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ex-row .pt-name{text-align:left;white-space:normal}
+.ex-row input{width:56px;background:var(--input-bg);color:var(--input-ink);border:1px solid var(--border-soft);border-radius:3px;
+  padding:1px 3px;font:12px var(--mono);text-align:center;-moz-appearance:textfield;appearance:textfield}
+.ex-row input::-webkit-inner-spin-button,.ex-row input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.ex-row input:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.ex-row input.changed{border-color:var(--accent);font-weight:700}
+
+/* ---------- nations read off the 4clop API ---------- */
+.api-bar{align-items:center}
+.sync-age{background:none;border:none;padding:0 4px;cursor:pointer;font:600 11px var(--font);letter-spacing:.06em;
+  text-transform:uppercase;color:var(--text-dim)}
+.sync-age:hover{color:var(--strong);text-decoration:underline}
+.sync-age.stale{color:var(--neg)}
+.sync-age.busy{opacity:.6;cursor:progress}
+.api-box{margin-bottom:14px}
+.api-box .btn[disabled]{opacity:.5;cursor:default;filter:none}
+.api-cols{display:grid;grid-template-columns:minmax(220px,320px) minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:640px){.api-cols{grid-template-columns:minmax(0,1fr)}}
+.api-sub{font:600 10.5px var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:6px}
+.api-list{max-height:340px;overflow:auto;padding:4px 0;font-size:12.5px}
+.api-find{display:block;width:100%;box-sizing:border-box;margin-bottom:6px;background:var(--input-bg);color:var(--input-ink);
+  border:1px solid var(--border-soft);border-radius:3px;padding:4px 7px;font:12.5px var(--font)}
+.api-find:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.api-row{display:flex;align-items:center;gap:7px;padding:2px 10px;cursor:pointer;min-width:0}
+.api-row:hover{background:color-mix(in srgb,var(--strong) 7%,transparent)}
+.api-row input{margin:0;flex:0 0 auto;accent-color:var(--accent)}
+.api-nm{font-weight:600;color:var(--strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.api-user{color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.api-row .n{margin-left:auto;font:11px var(--mono);color:var(--text-dim);flex:0 0 auto}
+.api-tag{margin-left:auto;flex:0 0 auto;font:600 9.5px var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.api-grp{position:sticky;top:-4px;display:flex;gap:6px;padding:5px 10px 3px;background:var(--sunken);
+  font:600 10.5px var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
+.api-grp .n{font-family:var(--mono)}
+.api-none{padding:6px 10px;color:var(--text-dim)}
+.env-api{display:inline-block;margin-left:4px;padding:0 4px;border-radius:2px;background:#2a2620;color:#f6f1e2;
+  font:700 9px/1.5 var(--font);letter-spacing:.06em;vertical-align:1px}
+.pt-row input[readonly]{background:none;border-color:transparent;cursor:default}
 
 /* ---------- Mine mix and Well mix ---------- */
 .mx-in{margin-bottom:14px}
@@ -689,6 +742,31 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
 </div>
 
 <div id="viewPlanner" hidden>
+  <div class="code-bar api-bar">
+    <!-- when the nations were last fetched from 4clop.org; a click fetches them again -->
+    <button id="apiAge" class="sync-age" type="button">Not synced</button>
+    <button id="apiBtn" class="btn" type="button" aria-expanded="false">Import from API</button>
+  </div>
+  <section id="apiBox" class="panel api-box" hidden>
+    <div class="panel-head">
+      <h2>Import from the API</h2>
+      <span class="spacer"></span>
+      <span id="apiCount" class="badge">0 picked</span>
+      <button id="apiNone" class="btn" type="button">Untick all</button>
+      <button id="apiGo" class="btn btn-success" type="button" disabled>Import</button>
+    </div>
+    <div class="api-cols">
+      <div>
+        <div class="api-sub">Alliances</div>
+        <div id="apiAllies" class="api-list well"></div>
+      </div>
+      <div>
+        <div class="api-sub">Nations</div>
+        <input type="search" id="apiFind" class="api-find" placeholder="Search nations, rulers, alliances…" autocomplete="off" spellcheck="false">
+        <div id="apiNations" class="api-list well"></div>
+      </div>
+    </div>
+  </section>
   <div class="env-grid" id="envGrid"></div>
   <div id="ovBox" hidden>
     <hr class="plans-rule">
@@ -703,6 +781,14 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
         <div id="ovCost"></div>
       </section>
     </div>
+    <details class="panel ov-extra" id="ovExtra">
+      <summary class="panel-head"><h2>Extra buildings</h2><span class="spacer"></span><span id="ovExtraBadge" class="badge">none</span></summary>
+      <div class="ex-bar">
+        <span class="spacer"></span>
+        <button id="ovExtraClear" class="btn" type="button">Clear</button>
+      </div>
+      <div id="ovExtraTable" class="ex-grid"></div>
+    </details>
     <section class="panel">
       <div class="panel-head"><h2>Projected nets</h2></div>
       <div id="ovNets" class="well"></div>
@@ -743,6 +829,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
         <span class="spacer"></span>
         <span id="nHasBadge" class="badge">0 buildings</span>
         <button id="nEditHas" class="btn" type="button" aria-pressed="false">Edit</button>
+        <button id="nSync" class="btn" type="button" hidden title="Fetch every nation again from 4clop.org">Sync</button>
       </div>
       <textarea id="nHas" spellcheck="false" placeholder="Paste the spreadsheet column from the Buildings tab"></textarea>
       <p id="nHasNote" class="has-note"></p>
@@ -981,7 +1068,8 @@ const ALIASES = {
   "toy & candy shop": "Toy and Candy Shop",
   // the energy collector goes by what it collects; both kinds share the one row
   "solar collector": "Energy Collector",
-  "tidal collector": "Energy Collector"
+  "tidal collector": "Energy Collector",
+  "tidal generator": "Energy Collector"
 };
 const norm = s => s.trim().replace(/\s+/g, " ").toLowerCase();
 const KNOWN = new Map();
@@ -1198,7 +1286,11 @@ const GOVS = {
   "Oppression":       { se: 6, nlr: -3, gdp: [3, 3], empireDiv: 3, upkeep: { gasoline: 10, mparts: 5 } },
   "Independence":     { sat: 50, se: -3, nlr: 6, gdp: [1, 3.5], upkeep: { gasoline: 40, vparts: 4 } },
   "Alicorn Elite":    { gdp: [6, 6], empireDiv: 3, upkeep: { energy: 100, apples: 50 } },
-  "Transponyism":     { gdp: [8, 8], empireDiv: 3, upkeep: { energy: 300, apples: 150 } }
+  "Transponyism":     { gdp: [8, 8], empireDiv: 3, upkeep: { energy: 300, apples: 150 } },
+  // the two the API hands out that the planner didn't know: neither eats anything, and their
+  // nations at max sat make 2.25 times their base GDP. Kept last, as share codes number governments
+  "Solar Vassal":     { gdp: [1, 2.25] },
+  "Lunar Client":     { gdp: [1, 2.25] }
 };
 const ECONOMIES = {
   "Poorly Defined":   {},
@@ -1211,6 +1303,12 @@ const ENV_COLOURS = ["#d6b47a", "#b98a5b", "#c4574c", "#d98a3d", "#e0c44c", "#7f
                      "#4f9c97", "#5b86c4", "#8a6bbf", "#d27fb0", "#8d9096", "#3c3f45"];
 const MANILA = ENV_COLOURS[0];
 const isColour = c => /^#[0-9a-f]{6}$/i.test(c || "");
+// a new envelope takes a colour at random, from those the fewest envelopes have, so they spread over the swatches
+const randomColour = () => {
+  const used = c => nations.filter(n => (n.color || "").toLowerCase() === c).length;
+  const least = Math.min(...ENV_COLOURS.map(used)), pool = ENV_COLOURS.filter(c => used(c) === least);
+  return pool[Math.floor(Math.random() * pool.length)];
+};
 
 const LS_NATIONS = "buildplanner.nations";
 let nations = [];
@@ -1326,7 +1424,7 @@ function renderGrid() {
     const total = sumMap(parseHas(n.has || "").counts);
     return `<button class="env" type="button" data-id="${esc(n.id)}" style="--env:${isColour(n.color) ? n.color : MANILA}">`
          + `<span class="env-label"><span class="env-name">${esc(nationName(n))}</span>`
-         + `<span class="env-sub">${fmt(total)} building${total === 1 ? "" : "s"}</span></span></button>`;
+         + `<span class="env-sub">${fmt(total)} building${total === 1 ? "" : "s"}${n.api != null ? '<span class="env-api" title="Has is read off the 4clop API">API</span>' : ""}</span></span></button>`;
   }).join("") + `<button class="env env-new" type="button" id="envNew" title="New nation"><b>+</b><span>New nation</span></button>`;
   renderOverall();
 }
@@ -1337,10 +1435,42 @@ const usedPlan = n => {
   const plans = n.plans || [];
   return n.usePlan === undefined ? plans[0] || null : plans.find(p => p.id === n.usePlan) || null;
 };
+// the projected nets, down a list in the game's order: its Alliance Resources table
+const DNA_RES = ["Central", "North", "South"].flatMap(sub => ["Burrozil", "Przewalskia", "Saddle Arabia", "Zebrica"].map(r => `DNA - ${sub} ${r}`));
+const DNA_COLOUR = "#9fb7c9";
+const NET_ORDER = [
+  ...["apples", "cider", "coffee", "copper"].map(k => RES_BY_KEY[k]),
+  ...DNA_RES.map(name => [name, name, DNA_COLOUR, null]),
+  ...["drugs", "energy", "forbidden", "gasoline", "gems", "mparts", "oil", "pies", "plastics", "toys", "tungsten", "vparts"].map(k => RES_BY_KEY[k])
+];
+// one resource's makers and users summed over many nations, each building (or source) once
+const blankRes = () => ({ made: 0, used: 0, makers: [], users: [] });
+function addRes(into, res, tag = "") {
+  const merge = (to, from) => from.forEach(([name, c, v]) => {
+    const nm = name + tag, e = to.find(x => x[0] === nm);
+    if (e) { e[1] += c; e[2] += v; } else to.push([nm, c, v]);
+  });
+  for (const [k, r] of Object.entries(res)) {
+    const t = into[k] || (into[k] = blankRes());
+    t.made += r.made; t.used += r.used; merge(t.makers, r.makers); merge(t.users, r.users || []);
+  }
+}
+// DNA turns up by chance rather than by a rate, so a nation read off the API brings what it last reported,
+// and no plan moves it
+function addDna(into, n) {
+  if (n.api == null || !n.dna) return;
+  for (const [k, [made, used]] of Object.entries(n.dna)) {
+    const t = into[k] || (into[k] = blankRes());
+    t.made += made; t.used += used;
+    if (made) t.makers.push([nationName(n), 0, made]);
+    if (used) t.users.push([nationName(n), 0, -used]);
+  }
+}
+
 function renderOverall() {
   $("ovBox").hidden = !nations.length;
   if (!nations.length) return;
-  const bits = { total: 0 }, res = {}, netNow = {}, netAfter = {};
+  const bits = { total: 0 }, res = {}, resNow = {}, resAfter = {};
   let gdpNow = 0, gdpAfter = 0;
   const rows = nations.map(n => {
     const has = parseHas(n.has || ""), pl = usedPlan(n);
@@ -1349,11 +1479,8 @@ function renderOverall() {
     const cost = pl ? planCost(has.counts, want.counts, n.prze) : { bits: 0, res: {} };
     bits.total += cost.bits;
     for (const [k, v] of Object.entries(cost.res)) res[k] = (res[k] || 0) + v;
-    for (const [k] of PLAN_RES) {
-      const a = now.res[k], b = after.res[k];
-      netNow[k] = (netNow[k] || 0) + (a ? a.made - a.used : 0);
-      netAfter[k] = (netAfter[k] || 0) + (b ? b.made - b.used : 0);
-    }
+    addRes(resNow, now.res); addRes(resAfter, after.res);
+    addDna(resNow, n); addDna(resAfter, n);
     gdpNow += now.gdp; gdpAfter += after.gdp;
     const opts = `<option value=""${pl ? "" : " selected"}>No plan</option>`
       + (n.plans || []).map(p => `<option value="${esc(p.id)}"${p === pl ? " selected" : ""}>${esc(planName(p))}</option>`).join("");
@@ -1364,25 +1491,37 @@ function renderOverall() {
       + `<td>${fmt(after.gdp)}k</td></tr>`;
   }).join("");
   $("ovNations").innerHTML = `<tr><th>Nation</th><th>Plan</th><th>Cost</th><th>Sat</th><th>GDP</th></tr>` + rows;
+  // the extra buildings belong to nobody: what they make and eat goes on the projected side only
+  if (extraCounts().size) addRes(resAfter, nationModel({}, extraCounts(), new Map()).res, " (extra)");
 
   const line = (l, v, c) => `<div class="cost-l${c ? " " + c : ""}">${l}<span class="v">${v}</span></div>`;
   $("ovCost").innerHTML = !bits.total ? '<p class="cost-none">Nothing to build.</p>'
     : line(`<span class="bit">${BIT}</span> Bits`, fmt(bits.total), "cost-tot")
     + PLAN_RES.filter(r => res[r[0]]).map(([k, label, , img]) => line(`${resImg(img)} ${label}`, fmt(res[k]))).join("");
 
-  const cell = (v, f = signed) => `<td class="${v ? cls(v).trim() : "zero"}">${v ? f(v) : "0"}</td>`;
+  tips.clear();
   const k = v => fmt(v) + "k";
-  let head = '<tr><th></th><th>GDP</th>', rh = `<tr><th scope="row">Has</th><td>${k(gdpNow)}</td>`,
-      rw = `<tr><th scope="row">Projected</th><td>${k(gdpAfter)}</td>`;
-  let rd = `<tr class="diff${showDiff ? "" : " hidden"}"><th scope="row"><button type="button" class="diff-tog" aria-expanded="${showDiff}">Difference</button></th>`
-         + (gdpAfter - gdpNow ? `<td class="${cls(gdpAfter - gdpNow).trim()}">${signed(gdpAfter - gdpNow)}k</td>` : '<td class="zero">·</td>');
-  for (const [key, label, , img] of PLAN_RES) {
-    const a = netNow[key], b = netAfter[key];
-    head += `<th title="${label}">${resImg(img)}</th>`;
-    rh += cell(a); rw += cell(b);
-    rd += `<td class="${b - a ? cls(b - a).trim() : "zero"}">${b - a ? signed(b - a) : "·"}</td>`;
+  const td = (v, f, tip, extra = "") => `<td${tip ? ` tabindex="0" data-tip="${tip}"` : ""} class="${v ? cls(v).trim() : "zero"}${extra}">${v ? f(v) : "0"}</td>`;
+  const plain = (v, tip) => `<td${tip ? ` tabindex="0" data-tip="${tip}"` : ""} class="${v ? "" : "zero"}">${v ? fmt(v) : "0"}</td>`;
+  const dcol = d => `<td class="dcol${showDiff ? "" : " hidden"} ${d ? cls(d).trim() : "zero"}">${d ? signed(d) : "·"}</td>`;
+  const dgdp = gdpAfter - gdpNow;
+  let body = `<tr class="gdp-row"><th scope="row">GDP</th><td></td><td></td><td>${k(gdpAfter)}</td><td>${k(gdpNow)}</td>`
+    + `<td class="dcol${showDiff ? "" : " hidden"} ${dgdp ? cls(dgdp).trim() : "zero"}">${dgdp ? signed(dgdp) + "k" : "·"}</td></tr>`;
+  for (const [key, label, col, img] of NET_ORDER) {
+    const r0 = resNow[key] || blankRes(), r1 = resAfter[key] || blankRes();
+    const a = r0.made - r0.used, b = r1.made - r1.used;
+    tips.set("ovh-" + key, tipMade(label, col, img, r0));
+    tips.set("ovp-" + key, tipMade(label, col, img, r1));
+    const idle = !r0.made && !r0.used && !r1.made && !r1.used;
+    body += `<tr${idle ? ' class="idle"' : ""}><th scope="row"><span class="vt-res">${img ? resImg(img) : '<i class="dna-ic"></i>'}${esc(label)}</span></th>`
+      + plain(r1.made, "ovp-" + key) + plain(r1.used, "ovp-" + key) + td(b, signed, "ovp-" + key)
+      + td(a, signed, "ovh-" + key) + dcol(b - a) + "</tr>";
   }
-  $("ovNets").innerHTML = `<div class="ptab-wrap"><table class="ptab"><col class="lab"><col class="gdp"><thead>${head}</tr></thead><tbody>${rh}</tr>${rw}</tr>${rd}</tr></tbody></table></div>`;
+  const head = `<tr><th>Resource</th><th title="Made a tick, on the plans in use and the extra buildings">Generated</th><th title="Eaten a tick">Used</th>`
+    + `<th title="Generated less used: what the plans leave a tick">Net</th><th title="The net a tick as every nation stands now">Has</th>`
+    + `<th class="dcol-h"><button type="button" class="diff-tog" aria-expanded="${showDiff}">Difference</button></th></tr>`;
+  $("ovNets").innerHTML = `<div class="ptab-wrap"><table class="ptab vtab"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+  hideTip();
 }
 $("ovNations").addEventListener("change", ev => {
   const sel = ev.target.closest("[data-ov]"); if (!sel) return;
@@ -1394,7 +1533,7 @@ envGrid.addEventListener("click", ev => {
   if (!b) return;
   if (b.id === "envNew") {
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    nations.push({ id, name: "New nation", color: MANILA, has: "" });
+    nations.push({ id, name: "New nation", color: randomColour(), has: "" });
     saveNations();
     go("#planner/" + id);
     const nm = $("nName"); nm.focus(); nm.select();
@@ -1426,12 +1565,20 @@ $("nSwatches").addEventListener("input", ev => {
 $("nSwatches").addEventListener("change", ev => { if (ev.target.type === "color") renderSwatches(); });
 
 function renderNation(keepList) {
-  const { counts, off, warn, note } = parseHas(current.has || "");
+  const { counts, off, warn } = parseHas(current.has || "");
   const total = sumMap(counts), totalOff = sumMap(off);
-  $("nHasBadge").textContent = fmt(total) + " buildings" + (totalOff ? ` · ${fmt(totalOff)} off` : "");
+  // a nation read off the API has what the API says it has, and nothing typed in changes that
+  const api = current.api != null;
+  $("nHasBadge").textContent = fmt(total) + " buildings" + (totalOff ? ` · ${fmt(totalOff)} off` : "")
+    + (api && current.apiIdle ? " · stasis" : api && current.apiGone ? " · gone" : "");
+  if (api && editingHas) {
+    editingHas = false;
+    $("nEditHas").setAttribute("aria-pressed", false); $("nEditHas").textContent = "Edit";
+  }
+  nHas.hidden = api; $("nEditHas").hidden = api; $("nSync").hidden = !api;
   const hn = $("nHasNote");
-  hn.textContent = warn || note || (current.has ? "" : "Paste the column the Buildings tab copies.");
-  hn.className = "has-note" + (warn ? " warn" : "");
+  hn.textContent = api ? "" : warn;
+  hn.className = "has-note warn";
   hn.hidden = !hn.textContent;
 
   const list = $("nBuildings");
@@ -1850,7 +1997,8 @@ function renderPlanTable() {
   for (const e of LAYOUT) {
     if (!e) { rows += '<div class="pt-gap"></div>'; continue; }
     rows += `<div class="pt-row" data-b="${esc(e[0])}"><span class="pt-name"${e[1] ? ` style="--res:${RES[e[1]]}"` : ""}>${esc(e[0])}</span>`
-          + `<input type="number" min="0" step="1" inputmode="numeric" data-col="has" class="pt-hasin" value="${has.counts.get(e[0]) || 0}" aria-label="Has ${esc(e[0])}">`
+          + `<input type="number" min="0" step="1" inputmode="numeric" data-col="has" class="pt-hasin" value="${has.counts.get(e[0]) || 0}" aria-label="Has ${esc(e[0])}"${
+              current.api != null ? ' readonly tabindex="-1" title="Read off the 4clop API"' : ""}>`
           + `<input type="number" min="0" step="1" inputmode="numeric" data-col="want" value="${planWant(plan, has, e[0])}" aria-label="Want ${esc(e[0])}">`
           + `<input type="number" min="0" step="1" inputmode="numeric" data-col="off" class="pt-off" value="${planOffTyped(plan, has, e[0])}" aria-label="Disabled ${esc(e[0])}">`
           + `<span class="pt-d"></span></div>`;
@@ -1876,6 +2024,7 @@ function markRows(has) {
 $("pTable").addEventListener("input", ev => {
   const r = ev.target.closest("[data-b]"), col = ev.target.dataset.col; if (!r || !col) return;
   if (col === "has") {
+    if (current.api != null) return;
     editHas(current, r.dataset.b, Math.max(0, Math.floor(+ev.target.value || 0)), null);
     const has = parseHas(current.has || "");
     markRows(has); renderPlanCalc(has);
@@ -1905,7 +2054,7 @@ document.addEventListener("click", ev => {
   showDiff = !showDiff;
   try { localStorage.setItem("buildplanner.planDiff", showDiff ? "1" : "0"); } catch (e) {}
   document.querySelectorAll(".diff-tog").forEach(b => b.setAttribute("aria-expanded", showDiff));
-  document.querySelectorAll(".ptab tr.diff").forEach(r => r.classList.toggle("hidden", !showDiff));
+  document.querySelectorAll(".ptab tr.diff, .ptab .dcol").forEach(r => r.classList.toggle("hidden", !showDiff));
 });
 
 // a plan goes out as the same column the Buildings tab copies, and comes back in the same way
@@ -1972,7 +2121,7 @@ function renderPlanCalc(has = parseHas(current.has || "")) {
 
   const cost = planCost(has.counts, want.counts, current.prze);
   const line = (l, v, c) => `<div class="cost-l${c ? " " + c : ""}">${l}<span class="v">${v}</span></div>`;
-  $("pCost").innerHTML = !cost.count ? '<p class="cost-none">Nothing to build. Raise a Want above its Has and the bill shows here.</p>'
+  $("pCost").innerHTML = !cost.count ? '<p class="cost-none">Nothing to build.</p>'
     : line(`<span class="bit">${BIT}</span> Bits`, fmt(cost.bits), "cost-tot")
     + PLAN_RES.filter(r => cost.res[r[0]]).map(([k, label, , img]) => line(`${resImg(img)} ${label}`, fmt(cost.res[k]))).join("")
     + `<div class="cost-sub">${fmt(cost.count)} to build</div>`
@@ -2160,6 +2309,267 @@ $("envCopyAll").addEventListener("click", () => nations.length && copyText(natio
 $("nShare").addEventListener("click", () => copyText(nationsCode([current])));
 $("plCopyAll").addEventListener("click", () => (current.plans || []).length && copyText(plansCode(current, current.plans)));
 $("pShare").addEventListener("click", () => copyText(plansCode(current, [plan])));
+
+/* ===================== the 4clop API =====================
+   The same public API Warcalc syncs from lists every nation with its alliance,
+   its government and economy, and every building it has. Nations ticked here, one
+   by one or a whole alliance at a time, come in as envelopes whose Has is read off
+   the API: it follows each sync and can't be typed over. A nation in stasis is on
+   vacation, out of play, so it is never offered */
+const SYNC_URL = "https://4clop.org/api/public/v1.1.php";
+const LS_SYNC = "buildplanner.sync";
+const SYNC_STALE = 2 * 3600e3;                         // a sync older than this shows red, and is fetched again on load
+let sync = null;
+try {
+  const s = JSON.parse(localStorage.getItem(LS_SYNC));
+  if (s && s.at > 0 && Array.isArray(s.nations) && Array.isArray(s.alliances)) sync = s;
+} catch (e) {}
+let syncBusy = false, syncErr = "";
+
+// one nation as it is kept: its buildings by the planner's own names, the DNA it reported, and where it is
+function apiNation(n, allyName) {
+  const has = {}, skipped = [];
+  for (const st of n.structures || []) {
+    const name = lookup(norm(String(st.name || ""))), c = Math.max(0, Math.floor(+st.amount || 0));
+    if (!c) continue;
+    if (!name) { skipped.push(String(st.name)); continue; }
+    has[name] = (has[name] || 0) + c;
+  }
+  const dna = {}, gen = {}, used = {};
+  for (const r of n.resources || []) {
+    if (DNA_RES.includes(r.name)) { if (+r.generated || +r.used) dna[r.name] = [+r.generated || 0, +r.used || 0]; continue; }
+    const k = API_RES[String(r.name).toLowerCase()];
+    if (k) { gen[k] = +r.generated || 0; used[k] = +r.used || 0; }
+  }
+  const gov = String(n.government || ""), econ = String(n.economy || "");
+  return { id: n.nation_id, name: String(n.name || `Nation ${n.nation_id}`), user: String(n.username || ""),
+           aid: n.alliance_id || 0, ally: allyName, idle: n.in_stasis === true,
+           gov, econ, prze: n.region_name === "Przewalskia", has, dna, skipped,
+           off: deduceOff(has, gov, econ, gen, used, Object.values(dna).reduce((t, d) => t + d[0], 0)) };
+}
+const API_RES = Object.fromEntries(PLAN_RES.map(r => [r[1].toLowerCase(), r[0]]));
+const apiColumn = a => columnOf(new Map(Object.entries(a.has)), new Map(Object.entries(a.off || {})));
+
+/* The API gives each building's count but not how many are switched off. It does give what
+   the nation made and used last tick, so the planner finds how many of each building were
+   running to make and use exactly that, and counts the rest off. The fit minimises the gap
+   over every resource, made and used apart, and among equal fits keeps the most switched on.
+   A DNA facility eats its apples only on the tick it turns up DNA, so it isn't fitted: it is
+   charged 10 apples for each DNA made and counted on. Buildings that move no resource
+   (statues, barracks) can't be told apart, and are counted on */
+function deduceOff(has, gov, econ, gen, used, dnaMade) {
+  const names = Object.keys(has).filter(n => TICK[n] && n !== "DNA Extraction Facility");
+  const res = {};
+  for (const [k] of PLAN_RES) { res["g" + k] = -(gen[k] || 0); res["u" + k] = -(used[k] || 0); }
+  res.uapples += 10 * dnaMade;
+  for (const src of [GOVS[gov] || {}, ECONOMIES[econ] || {}])
+    for (const [k, a] of Object.entries(src.upkeep || {})) res["u" + k] += a;
+  const coef = names.map(n => Object.entries(TICK[n]).map(([k, a]) => [a > 0 ? "g" + k : "u" + k, Math.abs(a)]));
+  const max = names.map(n => has[n]), on = [...max];
+  names.forEach((n, i) => coef[i].forEach(([k, a]) => res[k] += a * on[i]));
+  const SPARE = 1e-3;                                   // the nudge toward switched on, among fits otherwise as good
+  const cost = () => { let c = 0; for (const k in res) c += Math.abs(res[k]); for (let i = 0; i < on.length; i++) c += SPARE * (max[i] - on[i]); return c; };
+  const set = (i, v) => { const d = v - on[i]; if (d) { coef[i].forEach(([k, a]) => res[k] += a * d); on[i] = v; } };
+  // the best count for one building with the rest held: the gap is piecewise linear in it, so try where each piece breaks
+  const best = i => {
+    const tries = new Set([0, max[i], on[i]]);
+    for (const [k, a] of coef[i]) { const b = on[i] - res[k] / a; tries.add(Math.floor(b)); tries.add(Math.ceil(b)); }
+    const was = on[i]; let bv = was, bc = cost();
+    for (const v of tries) { if (v < 0 || v > max[i]) continue; set(i, v); const c = cost(); if (c < bc - 1e-9) { bc = c; bv = v; } }
+    set(i, was);
+    return bv;
+  };
+  const STEPS = [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 50, 75, 100].flatMap(v => [v, -v]);
+  for (let pass = 0; pass < 50; pass++) {
+    let moved = false;
+    for (let i = 0; i < names.length; i++) { const v = best(i); if (v !== on[i]) { set(i, v); moved = true; } }
+    if (moved) continue;
+    // stuck: move one building a step and let another follow, for buildings that trade off against each other
+    const c0 = cost();
+    pairs: for (let i = 0; i < names.length; i++) for (let j = 0; j < names.length; j++) {
+      if (i === j) continue;
+      for (const d of STEPS) {
+        const oi = on[i], oj = on[j];
+        if (oi + d < 0 || oi + d > max[i]) continue;
+        set(i, oi + d); set(j, best(j));
+        if (cost() < c0 - 1e-9) { moved = true; break pairs; }
+        set(j, oj); set(i, oi);
+      }
+    }
+    if (!moved) break;
+  }
+  const off = {};
+  names.forEach((n, i) => { if (max[i] > on[i]) off[n] = max[i] - on[i]; });
+  return off;
+}
+const apiFind = id => sync ? sync.nations.find(a => a.id === id) || null : null;
+
+async function syncNow() {
+  if (syncBusy) return;
+  syncBusy = true; syncPaint(); renderApi();
+  try {
+    const r = await fetch(SYNC_URL, { cache: "no-store" });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const d = await r.json();
+    const ally = new Map((d.alliances || []).map(a => [a.alliance_id, String(a.name)]));
+    const list = (d.nations || []).filter(n => n && n.nation_id != null)
+      .map(n => apiNation(n, n.alliance_id ? ally.get(n.alliance_id) || `Alliance ${n.alliance_id}` : ""));
+    if (!list.length) throw new Error("no nations in the reply");
+    sync = { at: Date.now(), alliances: [...ally].map(([id, name]) => ({ id, name })), nations: list };
+    syncErr = "";
+    try { localStorage.setItem(LS_SYNC, JSON.stringify(sync)); } catch (e) {}
+    apiRefresh();
+  } catch (e) { syncErr = e.message || String(e); }
+  syncBusy = false;
+  syncPaint(); renderApi(); rerender();
+}
+
+// every envelope read off the API takes what the API says it has now
+function apiRefresh() {
+  let changed = false;
+  for (const n of nations) {
+    if (n.api == null) continue;
+    const a = apiFind(n.api);
+    changed = true;
+    if (!a) { n.apiGone = true; continue; }
+    delete n.apiGone;
+    n.has = apiColumn(a); n.dna = a.dna; n.apiIdle = a.idle;
+  }
+  if (changed) saveNations();
+}
+function rerender() {
+  if (plan && !views.plan.hidden) { renderPlanTable(); renderPlanCalc(); }
+  else if (current && !views.nation.hidden) renderNation();
+  else if (!views.planner.hidden) renderGrid();
+}
+
+const syncAgo = ms => {
+  const m = Math.floor(ms / 60e3);
+  return m < 1 ? "just now" : m < 60 ? `${m} min ago` : m < 48 * 60 ? `${Math.floor(m / 60)} h ago` : `${Math.floor(m / 1440)} d ago`;
+};
+function syncPaint() {
+  const el = $("apiAge"), age = sync ? Date.now() - sync.at : Infinity;
+  el.textContent = syncBusy ? "Syncing…"
+    : syncErr ? (sync ? `Sync failed · last ${syncAgo(age)}` : "Sync failed")
+    : sync ? `Synced ${syncAgo(age)}` : "Not synced";
+  el.classList.toggle("stale", !syncBusy && age > SYNC_STALE);
+  el.classList.toggle("busy", syncBusy);
+  el.title = [sync ? `Nations last fetched from 4clop.org at ${new Date(sync.at).toLocaleString()}` : "",
+              syncErr ? `The last try failed: ${syncErr}` : "", "Click to fetch them again"].filter(Boolean).join(". ");
+  $("nSync").disabled = syncBusy;
+  $("nSync").textContent = syncBusy ? "Syncing…" : "Sync";
+}
+/* ---- the picker: alliances to tick whole, and nations to tick one by one ---- */
+const apiPick = new Set();
+const apiActive = () => sync ? sync.nations.filter(a => !a.idle) : [];
+// biggest alliance first, the nations in none last, each group by name
+function apiGroups(list) {
+  const by = new Map();
+  for (const a of list) (by.get(a.aid) || by.set(a.aid, []).get(a.aid)).push(a);
+  return [...by.entries()].map(([id, ns]) => ({ id, name: id ? ns[0].ally : "No alliance", ns: ns.sort((x, y) => x.name.localeCompare(y.name)) }))
+    .sort((x, y) => !x.id - !y.id || y.ns.length - x.ns.length || x.name.localeCompare(y.name));
+}
+function renderApi() {
+  if ($("apiBox").hidden) return;
+  const act = apiActive();
+  for (const id of [...apiPick]) if (!act.some(a => a.id === id)) apiPick.delete(id);
+  const groups = apiGroups(act);
+  const empty = `<div class="api-none">${syncBusy ? "Fetching the nations…" : syncErr ? "Couldn't reach 4clop.org: " + esc(syncErr) : "Nothing fetched yet."}</div>`;
+  $("apiAllies").innerHTML = !groups.length ? empty : groups.map(g => {
+    const on = g.ns.filter(a => apiPick.has(a.id)).length;
+    return `<label class="api-row"><input type="checkbox" data-ally="${g.id}"${on === g.ns.length ? " checked" : ""}${on && on < g.ns.length ? " data-mixed" : ""}>`
+      + `<span class="api-nm">${esc(g.name)}</span><span class="n">${g.ns.length}</span></label>`;
+  }).join("");
+  $("apiAllies").querySelectorAll("[data-mixed]").forEach(b => b.indeterminate = true);
+
+  const q = $("apiFind").value.trim().toLowerCase();
+  const hit = a => !q || [a.name, a.user, a.ally || "No alliance"].some(t => t.toLowerCase().includes(q));
+  const mine = new Set(nations.filter(n => n.api != null).map(n => n.api));
+  const shown = groups.map(g => ({ ...g, hits: g.ns.filter(hit) })).filter(g => g.hits.length);
+  $("apiNations").innerHTML = !groups.length ? empty : !shown.length ? '<div class="api-none">No nation matches that.</div>'
+    : shown.map(g => `<div class="api-grp">${esc(g.name)}<span class="n">${g.hits.length}</span></div>` + g.hits.map(a =>
+        `<label class="api-row"><input type="checkbox" data-nat="${a.id}"${apiPick.has(a.id) ? " checked" : ""}>`
+        + `<span class="api-nm">${esc(a.name)}</span><span class="api-user">${esc(a.user)}</span>`
+        + (mine.has(a.id) ? '<span class="api-tag" title="Already in the planner: importing it again reads its Has afresh">in planner</span>' : "")
+        + "</label>").join("")).join("");
+
+  const n = apiPick.size;
+  $("apiCount").textContent = `${fmt(n)} picked`;
+  $("apiGo").disabled = !n;
+  $("apiGo").textContent = n ? `Import ${many(n, "nation")}` : "Import";
+  $("apiNone").hidden = !n;
+}
+$("apiBtn").addEventListener("click", () => {
+  const box = $("apiBox"), open = box.hidden;
+  box.hidden = !open; $("apiBtn").setAttribute("aria-expanded", open);
+  if (!open) return;
+  if (!sync || Date.now() - sync.at > SYNC_STALE) syncNow();
+  renderApi();
+});
+$("apiAge").addEventListener("click", syncNow);
+$("nSync").addEventListener("click", syncNow);
+$("apiFind").addEventListener("input", renderApi);
+$("apiNone").addEventListener("click", () => { apiPick.clear(); renderApi(); });
+$("apiBox").addEventListener("change", ev => {
+  const t = ev.target;
+  if (t.dataset.nat) { const id = +t.dataset.nat; if (t.checked) apiPick.add(id); else apiPick.delete(id); }
+  else if (t.dataset.ally != null) {
+    const g = apiGroups(apiActive()).find(x => String(x.id) === t.dataset.ally); if (!g) return;
+    const all = g.ns.every(a => apiPick.has(a.id));
+    g.ns.forEach(a => all ? apiPick.delete(a.id) : apiPick.add(a.id));
+  } else return;
+  renderApi();
+});
+// each one comes in as an envelope; one already here is read afresh instead
+$("apiGo").addEventListener("click", () => {
+  const groups = apiGroups(apiActive());
+  let added = 0, again = 0;
+  for (const g of groups) for (const a of g.ns) {
+    if (!apiPick.has(a.id)) continue;
+    let n = nations.find(x => x.api === a.id);
+    if (n) again++;
+    else { n = { id: newId(), name: a.name, color: randomColour(), api: a.id, plans: [] }; nations.push(n); added++; }
+    n.has = apiColumn(a); n.dna = a.dna; n.apiIdle = false; delete n.apiGone;
+    n.gov = GOVS[a.gov] ? a.gov : DEFAULT_GOV; n.econ = ECONOMIES[a.econ] ? a.econ : DEFAULT_ECON; n.prze = a.prze;
+  }
+  saveNations();
+  apiPick.clear();
+  $("apiBox").hidden = true; $("apiBtn").setAttribute("aria-expanded", false);
+  renderGrid();
+  const msg = [added ? `Added ${many(added, "nation")}` : "", again ? `read ${many(again, "nation")} afresh` : ""].filter(Boolean).join(", ");
+  if (msg) { const t = $("toast"); t.textContent = msg[0].toUpperCase() + msg.slice(1); t.hidden = false; clearTimeout(t.t); t.t = setTimeout(() => t.hidden = true, 2200); }
+});
+syncPaint();
+
+/* ---- extra buildings: in no nation, laid over the projected nets ---- */
+const LS_EXTRA = "buildplanner.extra";
+let extra = {};
+try { const e = JSON.parse(localStorage.getItem(LS_EXTRA)); if (e && typeof e === "object" && !Array.isArray(e)) extra = e; } catch (e) {}
+const extraCounts = () => new Map(LAYOUT.filter(e => e && +extra[e[0]] > 0).map(e => [e[0], Math.floor(+extra[e[0]])]));
+function extraBadge() {
+  const t = sumMap(extraCounts());
+  $("ovExtraBadge").textContent = t ? many(t, "building") : "none";
+}
+$("ovExtraTable").innerHTML = LAYOUT.filter(Boolean).map(e => {
+  const v = Math.max(0, Math.floor(+extra[e[0]] || 0));
+  return `<label class="ex-row"><span class="pt-name"${e[1] ? ` style="--res:${RES[e[1]]}"` : ""}>${esc(e[0])}</span>`
+    + `<input type="number" min="0" step="1" inputmode="numeric" data-ex="${esc(e[0])}" value="${v}"${v ? ' class="changed"' : ""} aria-label="Extra ${esc(e[0])}"></label>`;
+}).join("");
+$("ovExtraTable").addEventListener("input", ev => {
+  const b = ev.target.dataset.ex; if (!b) return;
+  const v = Math.max(0, Math.floor(+ev.target.value || 0));
+  if (v) extra[b] = v; else delete extra[b];
+  ev.target.classList.toggle("changed", v > 0);
+  try { localStorage.setItem(LS_EXTRA, JSON.stringify(extra)); } catch (e) {}
+  extraBadge(); renderOverall();
+});
+$("ovExtraClear").addEventListener("click", () => {
+  extra = {};
+  try { localStorage.removeItem(LS_EXTRA); } catch (e) {}
+  $("ovExtraTable").querySelectorAll("[data-ex]").forEach(i => { i.value = 0; i.classList.remove("changed"); });
+  extraBadge(); renderOverall();
+});
+extraBadge();
 
 /* ===================== Mine mix and Well mix =====================
    From the copper planner: the cheapest way, in sat, to hit a copper or oil target.
@@ -2485,6 +2895,8 @@ document.querySelectorAll(".tab[data-view]").forEach(t =>
 window.addEventListener("hashchange", route);
 window.addEventListener("popstate", route);
 route();
+// envelopes read off the API follow it: a stale sync is fetched again as the page opens
+if (nations.some(n => n.api != null) && (!sync || Date.now() - sync.at > SYNC_STALE)) syncNow();
 </script>
 
 </body>
