@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CurioCalc 2.7 — CLOP</title>
+<title>CurioCalc 2.71 — CLOP</title>
 <style>
 :root{
   --bg:#272b30;
@@ -1527,12 +1527,15 @@ body.align-costs .forces-grid > .panel{display:grid;grid-row:span 4;grid-templat
 .solve-stock-head{display:flex;align-items:center;gap:12px;margin-top:10px}
 .solve-stock-head > label:first-child{margin:0}
 .solve-raw{margin:0}
-.solve-gem{display:inline-flex;align-items:stretch;gap:4px}
-.solve-budget .solve-link{padding:5px 6px;cursor:pointer;color:var(--text-dim)}
-.solve-link input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+.solve-budget .solve-gem{display:inline-flex;align-items:center;gap:5px;padding:5px 5px 5px 8px;
+  background:var(--sunken);border:1px solid var(--border-soft);border-radius:4px}
+.solve-budget .solve-gem label{background:none;border:0;padding:0}
+.solve-link{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin:0;padding:0;
+  background:none;border:0;border-radius:3px;cursor:pointer;color:var(--text-dim)}
+.solve-link:hover{color:var(--text);background:rgba(var(--gold-rgb),.08)}
 .solve-link svg{width:15px;height:15px;display:block}
-.solve-budget .solve-link.on{color:var(--text);border-color:var(--text-dim)}
-.solve-link:focus-within{outline:2px solid var(--border-soft);outline-offset:1px}
+.solve-link[aria-pressed="true"]{color:var(--gold)}
+.solve-link[hidden]{display:none}
 .solve-limits-note{text-transform:none;letter-spacing:0;font-weight:400;color:var(--text-dim)}
 .solve-nation{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .solve-nation .note-lean{flex:1 1 260px;min-width:200px}
@@ -2416,7 +2419,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
 <body>
 
 <div class="tabstrip">
-  <span class="tab-brand">CurioCalc 2.7<button class="gear-btn" id="btnTools"
+  <span class="tab-brand">CurioCalc 2.71<button class="gear-btn" id="btnTools"
     aria-label="Settings, import / export presets" aria-expanded="false"><svg viewBox="0 0 24 24"
     aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path
     d="M10.3 2.5h3.4l.5 2.6a7.6 7.6 0 0 1 2 1.2l2.5-.9 1.7 2.9-2 1.8a7.7 7.7 0 0 1 0 2.3l2 1.8-1.7 2.9-2.5-.9a7.6 7.6 0 0 1-2 1.2l-.5 2.6h-3.4l-.5-2.6a7.6 7.6 0 0 1-2-1.2l-2.5.9-1.7-2.9 2-1.8a7.7 7.7 0 0 1 0-2.3l-2-1.8 1.7-2.9 2.5.9a7.6 7.6 0 0 1 2-1.2z"/><circle
@@ -11725,7 +11728,7 @@ const solveStockBoxes = () => [...document.querySelectorAll("[data-solve-stock]"
 const limitsOff = () => !!document.getElementById("solveLimitsOff")?.checked;
 const stockRaw = () => !!document.getElementById("solveStockRaw")?.checked;
 /* the gear's gems share the upkeep's pool: only raws count gems at all */
-const gemLinked = () => stockRaw() && !!document.getElementById("solveGemLink")?.checked;
+const gemLinked = () => stockRaw() && document.querySelector("[data-gem-link]")?.getAttribute("aria-pressed") === "true";
 
 /* what the boxes hold, whether or not the limits are switched on */
 function readLimitBoxes(boxes, key){
@@ -11813,6 +11816,10 @@ function setupLimits(){
         ${resIcon(k).replace(/ title="[^"]*"/, "")}
         <input type="number" min="0" step="1000" placeholder="no limit" data-${attr}="${k}"
           value="${saved[k] != null ? esc(saved[k]) : ""}"></label>`;
+  /* the gems box carries the chain inside its own pill, on both rows */
+  const linkBtn = () => `<button type="button" class="solve-link" data-gem-link
+    aria-pressed="${linkOn}" aria-label="Gems shared between upkeep and equipment">${CHAIN_SVG}</button>`;
+  const gemPill = (attr, saved) => `<span class="solve-gem">${box("gems", attr, saved)}${linkBtn()}</span>`;
   const budgetEl = document.getElementById("solveBudget"), stockEl = document.getElementById("solveStock");
   const raw = document.getElementById("solveStockRaw");
   raw.checked = store.get(LS_STOCK_RAW, false) === true;
@@ -11832,28 +11839,35 @@ function setupLimits(){
     store.set(LS_STOCK, Object.assign(all, readLimitBoxes(solveStockBoxes(), "solveStock")));
   };
   const saveBudget = () => store.set(LS_BUDGET, readLimitBoxes(solveBudgetBoxes(), "solveBudget"));
+  /* the upkeep row's chain only means something while the gear counts gems */
+  const paintLink = () => document.querySelectorAll("[data-gem-link]").forEach(b => {
+    b.setAttribute("aria-pressed", String(linkOn));
+    if (b.closest("#solveBudget")) b.hidden = !raw.checked;
+  });
 
-  budgetEl.innerHTML = BUDGET_RES.map(k => box(k, "solve-budget", store.get(LS_BUDGET, null) || {})).join("");
+  const bsaved = store.get(LS_BUDGET, null) || {};
+  budgetEl.innerHTML = BUDGET_RES.map(k => k === "gems" ? gemPill("solve-budget", bsaved)
+                                                        : box(k, "solve-budget", bsaved)).join("");
   const paintStock = () => {
     const saved = store.get(LS_STOCK, null) || {};
-    stockEl.innerHTML = (raw.checked ? STOCK_RAW_RES : STOCK_RES).map(k => k !== "gems" ? box(k, "solve-stock", saved)
-      : `<span class="solve-gem">${box(k, "solve-stock", saved)}<label class="solve-link${linkOn ? " on" : ""}"
-          aria-label="Gems shared with the upkeep budget"><input type="checkbox" id="solveGemLink"${linkOn ? " checked" : ""}>${CHAIN_SVG}</label></span>`).join("");
+    stockEl.innerHTML = (raw.checked ? STOCK_RAW_RES : STOCK_RES).map(k => k === "gems" ? gemPill("solve-stock", saved)
+                                                                                 : box(k, "solve-stock", saved)).join("");
     solveStockBoxes().forEach(b => {
       b.addEventListener("change", () => { saveStock(); if (gemLinked() && b.dataset.solveStock === "gems") saveBudget(); });
       b.addEventListener("input", () => { if (b.dataset.solveStock === "gems") mirror(b); paintLimits(); });
     });
-    const link = document.getElementById("solveGemLink");
-    if (link) link.addEventListener("change", () => {
-      linkOn = link.checked;
-      store.set(LS_GEM_LINK, linkOn);
-      link.parentElement.classList.toggle("on", linkOn);
-      mirror(gemBox("solve-budget"));
-      saveStock(); paintLimits();
-    });
+    paintLink();
     mirror(gemBox("solve-budget"));
   };
   paintStock();
+  document.getElementById("solveLimitSets").addEventListener("click", e => {
+    if (!e.target.closest("[data-gem-link]")) return;
+    linkOn = !linkOn;
+    store.set(LS_GEM_LINK, linkOn);
+    paintLink();
+    mirror(gemBox("solve-budget"));
+    saveStock(); paintLimits();
+  });
   solveBudgetBoxes().forEach(b => {
     b.addEventListener("change", () => { saveBudget(); if (gemLinked() && b.dataset.solveBudget === "gems") saveStock(); });
     b.addEventListener("input", () => { if (b.dataset.solveBudget === "gems") mirror(b); paintLimits(); });
