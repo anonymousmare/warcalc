@@ -1298,6 +1298,8 @@ const ECONOMIES = {
   "State Controlled": { se: 1, nlr: -3, upkeep: { cider: 6 } }
 };
 const DEFAULT_GOV = "Loose Despotism", DEFAULT_ECON = "Poorly Defined";
+// GDP a tick in thousands of bits: a base, and what each working building adds, before the government's multiplier
+const GDP_BASE = 50, GDP_PER = { "Mall": 250, "Basic Factory": 10, "Advanced Factory": 20 };
 
 const ENV_COLOURS = ["#d6b47a", "#b98a5b", "#c4574c", "#d98a3d", "#e0c44c", "#7fa65a",
                      "#4f9c97", "#5b86c4", "#8a6bbf", "#d27fb0", "#8d9096", "#3c3f45"];
@@ -1359,10 +1361,17 @@ function nationModel(n, counts, off) {
   const off1 = name => Math.min(off.get(name) || 0, has(name));
   const on = name => has(name) - off1(name);
 
+  // what ran last tick of what is switched on. A DNA facility eats its apples only on a tick it
+  // turns up DNA, and an environmental facility can't be switched off, yet the API can show some
+  // going without. One read off the API runs as the API last had it, which no plan moves; one typed in runs in full
+  const api = n.api != null;
+  const dnaMade = api && n.dna ? Object.values(n.dna).reduce((t, d) => t + d[0], 0) : Infinity;
+  const runs = name => name === "DNA Extraction Facility" ? Math.min(on(name), dnaMade)
+    : Math.max(0, on(name) - (api && n.envIdle ? n.envIdle[name] || 0 : 0));
   const res = {};
   const R = k => res[k] || (res[k] = { made: 0, used: 0, makers: [], users: [] });
   for (const [name, per] of Object.entries(TICK)) {
-    const c = on(name); if (!c) continue;
+    const c = runs(name); if (!c) continue;
     for (const [k, a] of Object.entries(per)) {
       const v = a * c, r = R(k);
       if (v > 0) { r.made += v; r.makers.push([name, c, v]); } else { r.used -= v; r.users.push([name, c, v]); }
@@ -1392,9 +1401,7 @@ function nationModel(n, counts, off) {
   if (n.maxSat) sat.push(["Kept spare to hold max sat", 0, -30, 0]);
 
   // GDP, in thousands of bits
-  const gdpParts = [["Base", 0, 50], ["Mall", on("Mall"), on("Mall") * 250],
-                    ["Basic Factory", on("Basic Factory"), on("Basic Factory") * 10],
-                    ["Advanced Factory", on("Advanced Factory"), on("Advanced Factory") * 20]].filter(p => p[2]);
+  const gdpParts = [["Base", 0, GDP_BASE], ...Object.entries(GDP_PER).map(([b, per]) => [b, on(b), on(b) * per])].filter(p => p[2]);
   const mult = gov.gdp[n.maxSat ? 1 : 0];
 
   // relations with the Solar Empire and the New Lunar Republic
@@ -2319,10 +2326,11 @@ $("pShare").addEventListener("click", () => copyText(plansCode(current, [plan]))
 const SYNC_URL = "https://4clop.org/api/public/v1.1.php";
 const LS_SYNC = "buildplanner.sync";
 const SYNC_STALE = 2 * 3600e3;                         // a sync older than this shows red, and is fetched again on load
+const SYNC_FIT = 2;                                    // how the switched-off buildings are worked out; a sync kept from another way is fetched again
 let sync = null;
 try {
   const s = JSON.parse(localStorage.getItem(LS_SYNC));
-  if (s && s.at > 0 && Array.isArray(s.nations) && Array.isArray(s.alliances)) sync = s;
+  if (s && s.at > 0 && s.fit === SYNC_FIT && Array.isArray(s.nations) && Array.isArray(s.alliances)) sync = s;
 } catch (e) {}
 let syncBusy = false, syncErr = "";
 
@@ -2345,31 +2353,52 @@ function apiNation(n, allyName) {
   return { id: n.nation_id, name: String(n.name || `Nation ${n.nation_id}`), user: String(n.username || ""),
            aid: n.alliance_id || 0, ally: allyName, idle: n.in_stasis === true,
            gov, econ, prze: n.region_name === "Przewalskia", has, dna, skipped,
-           off: deduceOff(has, gov, econ, gen, used, Object.values(dna).reduce((t, d) => t + d[0], 0)) };
+           off: deduceOff(has, gov, econ, gen, used, Object.values(dna).reduce((t, d) => t + d[0], 0),
+                          n.in_stasis === true ? 0 : (+n.gdp_last_turn || 0) / 1000) };
 }
 const API_RES = Object.fromEntries(PLAN_RES.map(r => [r[1].toLowerCase(), r[0]]));
 const apiColumn = a => columnOf(new Map(Object.entries(a.has)), new Map(Object.entries(a.off || {})));
+// Has has no row for the buildings that can't be switched off, so those the fit finds going without ride beside it
+const apiEnvIdle = a => Object.fromEntries(Object.entries(a.off || {}).filter(([k]) => NEVER_DISABLED.has(k)));
+// an envelope takes what the API says its nation has now
+function apiTake(n, a) {
+  n.has = apiColumn(a); n.dna = a.dna; n.envIdle = apiEnvIdle(a); n.apiIdle = a.idle; delete n.apiGone;
+}
 
 /* The API gives each building's count but not how many are switched off. It does give what
    the nation made and used last tick, so the planner finds how many of each building were
    running to make and use exactly that, and counts the rest off. The fit minimises the gap
    over every resource, made and used apart, and among equal fits keeps the most switched on.
    A DNA facility eats its apples only on the tick it turns up DNA, so it isn't fitted: it is
-   charged 10 apples for each DNA made and counted on. Buildings that move no resource
-   (statues, barracks) can't be told apart, and are counted on */
-function deduceOff(has, gov, econ, gen, used, dnaMade) {
+   charged 10 apples for each DNA made and counted on. GDP comes only from running malls and
+   factories, so what the nation made last tick, at its government's best multiplier, says how
+   many at least were running; that weighs less than one of any resource, so it only picks
+   between fits otherwise as good. Buildings that move no resource (statues, barracks) can't be
+   told apart, and are counted on */
+function deduceOff(has, gov, econ, gen, used, dnaMade, gdp = 0) {
   const names = Object.keys(has).filter(n => TICK[n] && n !== "DNA Extraction Facility");
   const res = {};
   for (const [k] of PLAN_RES) { res["g" + k] = -(gen[k] || 0); res["u" + k] = -(used[k] || 0); }
   res.uapples += 10 * dnaMade;
   for (const src of [GOVS[gov] || {}, ECONOMIES[econ] || {}])
     for (const [k, a] of Object.entries(src.upkeep || {})) res["u" + k] += a;
-  const coef = names.map(n => Object.entries(TICK[n]).map(([k, a]) => [a > 0 ? "g" + k : "u" + k, Math.abs(a)]));
+  res.gdp = GDP_BASE - gdp / (GOVS[gov] || GOVS[DEFAULT_GOV]).gdp[1];  // short of the GDP made while below 0
+  const coef = names.map(n => Object.entries(TICK[n]).map(([k, a]) => [a > 0 ? "g" + k : "u" + k, Math.abs(a)])
+    .concat(GDP_PER[n] ? [["gdp", GDP_PER[n]]] : []));
   const max = names.map(n => has[n]), on = [...max];
   names.forEach((n, i) => coef[i].forEach(([k, a]) => res[k] += a * on[i]));
+  // the gap and the count switched off are kept as they change, so a try costs only the resources it moves
   const SPARE = 1e-3;                                   // the nudge toward switched on, among fits otherwise as good
-  const cost = () => { let c = 0; for (const k in res) c += Math.abs(res[k]); for (let i = 0; i < on.length; i++) c += SPARE * (max[i] - on[i]); return c; };
-  const set = (i, v) => { const d = v - on[i]; if (d) { coef[i].forEach(([k, a]) => res[k] += a * d); on[i] = v; } };
+  const GDP_W = 1e-3;                                   // a mall short costs a quarter of one resource
+  const pen = (k, v) => k === "gdp" ? GDP_W * Math.max(0, -v) : Math.abs(v);
+  let gap = 0, idle = 0;
+  for (const k in res) gap += pen(k, res[k]);
+  const cost = () => gap + SPARE * idle;
+  const set = (i, v) => {
+    const d = v - on[i]; if (!d) return;
+    for (const [k, a] of coef[i]) { gap -= pen(k, res[k]); res[k] += a * d; gap += pen(k, res[k]); }
+    idle -= d; on[i] = v;
+  };
   // the best count for one building with the rest held: the gap is piecewise linear in it, so try where each piece breaks
   const best = i => {
     const tries = new Set([0, max[i], on[i]]);
@@ -2379,13 +2408,20 @@ function deduceOff(has, gov, econ, gen, used, dnaMade) {
     set(i, was);
     return bv;
   };
+  // every building but one to its best, over and over until none moves
+  const settle = hold => {
+    for (let sweep = 0; sweep < 20; sweep++) {
+      let moved = false;
+      for (let i = 0; i < names.length; i++) if (i !== hold) { const v = best(i); if (v !== on[i]) { set(i, v); moved = true; } }
+      if (!moved) return;
+    }
+  };
   const STEPS = [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 50, 75, 100].flatMap(v => [v, -v]);
   for (let pass = 0; pass < 50; pass++) {
-    let moved = false;
-    for (let i = 0; i < names.length; i++) { const v = best(i); if (v !== on[i]) { set(i, v); moved = true; } }
-    if (moved) continue;
+    settle(-1);
     // stuck: move one building a step and let another follow, for buildings that trade off against each other
     const c0 = cost();
+    let moved = false;
     pairs: for (let i = 0; i < names.length; i++) for (let j = 0; j < names.length; j++) {
       if (i === j) continue;
       for (const d of STEPS) {
@@ -2395,6 +2431,16 @@ function deduceOff(has, gov, econ, gen, used, dnaMade) {
         if (cost() < c0 - 1e-9) { moved = true; break pairs; }
         set(j, oj); set(i, oi);
       }
+    }
+    if (moved) continue;
+    // still stuck: move one a step and let all the rest settle, for three or more that only pay off together
+    // (an oil burner off, a gasoline burner on in its place, and a refinery on to feed it)
+    chain: for (let i = 0; i < names.length; i++) for (const d of STEPS) {
+      if (on[i] + d < 0 || on[i] + d > max[i]) continue;
+      const was = [...on];
+      set(i, on[i] + d); settle(i);
+      if (cost() < c0 - 1e-9) { moved = true; break chain; }
+      was.forEach((v, j) => set(j, v));
     }
     if (!moved) break;
   }
@@ -2415,7 +2461,7 @@ async function syncNow() {
     const list = (d.nations || []).filter(n => n && n.nation_id != null)
       .map(n => apiNation(n, n.alliance_id ? ally.get(n.alliance_id) || `Alliance ${n.alliance_id}` : ""));
     if (!list.length) throw new Error("no nations in the reply");
-    sync = { at: Date.now(), alliances: [...ally].map(([id, name]) => ({ id, name })), nations: list };
+    sync = { at: Date.now(), fit: SYNC_FIT, alliances: [...ally].map(([id, name]) => ({ id, name })), nations: list };
     syncErr = "";
     try { localStorage.setItem(LS_SYNC, JSON.stringify(sync)); } catch (e) {}
     apiRefresh();
@@ -2432,8 +2478,7 @@ function apiRefresh() {
     const a = apiFind(n.api);
     changed = true;
     if (!a) { n.apiGone = true; continue; }
-    delete n.apiGone;
-    n.has = apiColumn(a); n.dna = a.dna; n.apiIdle = a.idle;
+    apiTake(n, a);
   }
   if (changed) saveNations();
 }
@@ -2529,7 +2574,7 @@ $("apiGo").addEventListener("click", () => {
     let n = nations.find(x => x.api === a.id);
     if (n) again++;
     else { n = { id: newId(), name: a.name, color: randomColour(), api: a.id, plans: [] }; nations.push(n); added++; }
-    n.has = apiColumn(a); n.dna = a.dna; n.apiIdle = false; delete n.apiGone;
+    apiTake(n, a);
     n.gov = GOVS[a.gov] ? a.gov : DEFAULT_GOV; n.econ = ECONOMIES[a.econ] ? a.econ : DEFAULT_ECON; n.prze = a.prze;
   }
   saveNations();
