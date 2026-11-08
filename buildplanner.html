@@ -1028,10 +1028,6 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
       <table class="mx-tbl" id="o_best"></table>
     </section>
   </div>
-  <section class="panel">
-    <div class="panel-head"><h2>Sat per oil, next well</h2></div>
-    <div class="mx-chart"><canvas id="c5"></canvas></div>
-  </section>
 </div>
 <span id="toast" class="badge badge-success" hidden>Copied</span>
 <div id="tip" role="tooltip" hidden></div>
@@ -2663,20 +2659,13 @@ function buildMineCharts() {
   mkChart("c1", t => [lineSet("Sat lost", t.line), dotSet("Slider", t.you), dotSet("Best", t.best)],
     "mechanised share of copper (%)", "sat lost a tick", { min: 0, max: 100 });
 }
-function buildWellCharts() {
-  if (!window.Chart) return;
-  mkChart("c5", t => WELL.map(w => lineSet(w.n, w.c)).concat([dotSet("Slider", t.strong, 5)]),
-    "wells of that grade", "sat per oil, next one", { min: 0, max: 200 });
-  charts.c5.options.scales.y.max = 1;
-}
 function mixShown(v) {
   if (mixBuilt[v]) return;
   mixBuilt[v] = true;
-  if (v === "mine") { buildMineCharts(); drawMine(); } else { buildWellCharts(); drawWell(); }
+  if (v === "mine") { buildMineCharts(); drawMine(); } else drawWell();
 }
 function mixRetheme() {
   if (mixBuilt.mine) { buildMineCharts(); drawMine(); }
-  if (mixBuilt.wells) { buildWellCharts(); drawWell(); }
 }
 
 /* ---- Mine mix ---- */
@@ -2829,7 +2818,6 @@ function syncWellMode() {
   $("o_sharebox").hidden = !sh; $("o_anchbox").hidden = sh;
   drawWell();
 }
-const nextCost = (w, x, k) => Math.round((w.inh + scrub(pol(x + 1, w.min, w.div), k) - scrub(pol(x, w.min, w.div), k)) / w.oil * 1000) / 1000;
 function drawWell() {
   const Q = iv("o_t", 0, 1e6, 0), k = 0.9 ** iv("o_cl", 0, 10, 10);
   let c;
@@ -2869,12 +2857,6 @@ function drawWell() {
     if (oMode.value !== "share") $("o_anch").value = best[parseInt(oMode.value, 10)];
     drawWell();
   };
-  if (charts.c5) {
-    const ch = charts.c5, xs = Array.from({ length: 201 }, (_, x) => x);
-    WELL.forEach((w, i) => { ch.data.datasets[i].data = xs.map(x => ({ x, y: nextCost(w, x, k) })); });
-    ch.data.datasets[3].data = WELL.map((w, i) => ({ x: c[i], y: nextCost(w, c[i], k) }));
-    ch.update("none");
-  }
 }
 oMode.addEventListener("change", () => { oOverride = null; syncWellMode(); });
 ["o_t", "o_cl", "o_anch", "o_ex"].forEach(id => $(id).addEventListener("input", () => { oOverride = null; drawWell(); }));
