@@ -13362,10 +13362,10 @@ const GS_COST  = ["bits","copper","tungsten","plastics","machinery","vehicle","p
 const GS_UPKEEP = ["apples","gems","coffee","gasoline"];
 const GS_GEAR  = UNIT_ORDER.flatMap(g => g.gear);
 
-/* adding a side's production up from its alliances is put away for now, waiting
-   on a change to the game's API: both sides are typed in by hand, and the
-   Manually define boxes are hidden. Set this to true to bring it back */
-const GS_ALLIES = false;
+/* each side's production can be added up from its alliances, or typed in by
+   hand. Set this to false to put the alliances away: both sides are then typed
+   in by hand, and the Manually define boxes are hidden */
+const GS_ALLIES = true;
 
 const gs = (()=>{
   const s = store.get(LS_GRAND, null);
@@ -13395,6 +13395,8 @@ const gsProdFor = (b, k) => b === "prod" ? gsProdOf(k) : gsProdThemOf(k);
    resource's net per turn. Each alliance's sums are kept, and a side
    not typed in by hand is the sum of the alliances ticked for it.
    GDP is the bits, as it is on the game's Alliance Resources table.
+   A nation in stasis is on vacation, out of play, so its nets are left
+   out of its alliance's sums and it is not counted among its nations.
    Each nation is kept as well, with its own nets, for Management */
 const LS_SYNC = "warcalc.sync";
 const SYNC_URL = "https://4clop.org/api/public/v1.1.php";
@@ -13430,11 +13432,12 @@ const syncKeys = () => {
 function syncSum(d){
   const keyOf = syncKeys();
   const byId = new Map();
-  (d.alliances || []).forEach(a => byId.set(a.alliance_id, {id: a.alliance_id, name: String(a.name), n: 0, net: {}}));
+  (d.alliances || []).forEach(a => byId.set(a.alliance_id, {id: a.alliance_id, name: String(a.name), n: 0, idle: 0, net: {}}));
   (d.nations || []).forEach(nat=>{
     const id = nat.alliance_id ?? 0;
     let a = byId.get(id);
-    if (!a) byId.set(id, a = {id, name: id ? `Alliance ${id}` : "", n: 0, net: {}});
+    if (!a) byId.set(id, a = {id, name: id ? `Alliance ${id}` : "", n: 0, idle: 0, net: {}});
+    if (nat.in_stasis === true){ a.idle = (a.idle || 0) + 1; return; }
     a.n++;
     a.net.bits = (a.net.bits || 0) + (Number(nat.gdp_last_turn) || 0);
     (nat.resources || []).forEach(r=>{
@@ -13442,7 +13445,7 @@ function syncSum(d){
       if (k) a.net[k] = (a.net[k] || 0) + (Number(r.net) || 0);
     });
   });
-  /* the empty ones have nothing to add; biggest first, and nations in none last, under a name of their own */
+  /* the empty ones, or those wholly in stasis, have nothing to add; biggest first, and nations in none last, under a name of their own */
   const nm = a => a.id ? a.name : "No alliance";
   return [...byId.values()].filter(a => a.n).map(a => Object.assign(a, {name: nm(a)}))
     .sort((a, b) => !a.id - !b.id || b.n - a.n || a.name.localeCompare(b.name));
@@ -13554,7 +13557,8 @@ function gsProdCol(bucket){
         <summary>${gsAllyPicked(side)}</summary>
         <div class="gs-dd-menu">${by.map(a => `<label class="gs-ally${a.id ? "" : " loose"}"><input type="checkbox"
           data-gs-ally="${side}" value="${a.id}"${gs.ally[side].includes(a.id) ? " checked" : ""}><span class="nm">${esc(a.name)}</span>
-          <span class="n" title="${a.n} nation${a.n === 1 ? "" : "s"}">${a.n}</span></label>`).join("")}</div></details>`;
+          <span class="n" title="${a.n} nation${a.n === 1 ? "" : "s"}${
+          a.idle ? `, besides ${a.idle} in stasis and left out` : ""}">${a.n}</span></label>`).join("")}</div></details>`;
   gsInputs(bucket === "prod" ? "gsProd" : "gsProdThem", bucket, GS_PROD);
 }
 
