@@ -1545,7 +1545,7 @@ function renderOverall() {
   tips.set("ovp-gdp", gdpTip(gdpByAfter, gdpAfter, exGdp));
   tips.set("ovh-gdp", gdpTip(gdpByNow, gdpNow, null));
   let body = `<tr class="gdp-row"><th scope="row">GDP</th><td></td><td></td>`
-    + `<td tabindex="0" data-tip="ovp-gdp">${k(gdpAfter)}</td><td tabindex="0" data-tip="ovh-gdp">${k(gdpNow)}</td>`
+    + `<td tabindex="0" data-tip="ovh-gdp">${k(gdpNow)}</td><td tabindex="0" data-tip="ovp-gdp">${k(gdpAfter)}</td>`
     + `<td class="dcol${showDiff ? "" : " hidden"} ${dgdp ? cls(dgdp).trim() : "zero"}">${dgdp ? signed(dgdp) + "k" : "·"}</td></tr>`;
   for (const [key, label, col, img] of NET_ORDER) {
     if (hideDna && DNA_RES.includes(key)) continue;
@@ -1555,11 +1555,11 @@ function renderOverall() {
     tips.set("ovp-" + key, tipMade(label, col, img, r1));
     const idle = !r0.made && !r0.used && !r1.made && !r1.used;
     body += `<tr${idle ? ' class="idle"' : ""}><th scope="row"><span class="vt-res">${img ? resImg(img) : '<i class="dna-ic"></i>'}${esc(label)}</span></th>`
-      + plain(r1.made, "ovp-" + key) + plain(r1.used, "ovp-" + key) + td(b, signed, "ovp-" + key)
-      + td(a, signed, "ovh-" + key) + dcol(b - a) + "</tr>";
+      + plain(r1.made, "ovp-" + key) + plain(r1.used, "ovp-" + key) + td(a, signed, "ovh-" + key)
+      + td(b, signed, "ovp-" + key) + dcol(b - a) + "</tr>";
   }
   const head = `<tr><th>Resource</th><th title="Made a tick, on the plans in use and the extra buildings">Generated</th><th title="Eaten a tick">Used</th>`
-    + `<th title="Generated less used: what the plans leave a tick">Net</th><th title="The net a tick as every nation stands now">Has</th>`
+    + `<th title="The net a tick as every nation stands now">Has</th><th title="Generated less used: what the plans leave a tick">Want</th>`
     + `<th class="dcol-h"><button type="button" class="diff-tog" aria-expanded="${showDiff}">Difference</button></th></tr>`;
   $("ovNets").innerHTML = `<div class="ptab-wrap"><table class="ptab vtab"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
   hideTip();
