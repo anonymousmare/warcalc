@@ -778,7 +778,6 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
         <div id="apiNations" class="api-list well"></div>
       </div>
     </div>
-    <p id="apiNote" class="has-note"></p>
   </section>
   <div class="env-grid" id="envGrid"></div>
   <div id="ovBox" hidden>
@@ -797,8 +796,6 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
     <details class="panel ov-extra" id="ovExtra">
       <summary class="panel-head"><h2>Extra buildings</h2><span class="spacer"></span><span id="ovExtraBadge" class="badge">none</span></summary>
       <div class="ex-bar">
-        <p class="has-note">Buildings that aren't in any nation, put on top of the plans to see what they do to the projected nets below.
-          They move resources only, not GDP.</p>
         <span class="spacer"></span>
         <button id="ovExtraClear" class="btn" type="button">Clear</button>
       </div>
@@ -1574,19 +1571,20 @@ $("nSwatches").addEventListener("input", ev => {
 $("nSwatches").addEventListener("change", ev => { if (ev.target.type === "color") renderSwatches(); });
 
 function renderNation(keepList) {
-  const { counts, off, warn, note } = parseHas(current.has || "");
+  const { counts, off, warn } = parseHas(current.has || "");
   const total = sumMap(counts), totalOff = sumMap(off);
-  $("nHasBadge").textContent = fmt(total) + " buildings" + (totalOff ? ` · ${fmt(totalOff)} off` : "");
   // a nation read off the API has what the API says it has, and nothing typed in changes that
   const api = current.api != null;
+  $("nHasBadge").textContent = fmt(total) + " buildings" + (totalOff ? ` · ${fmt(totalOff)} off` : "")
+    + (api && current.apiIdle ? " · stasis" : api && current.apiGone ? " · gone" : "");
   if (api && editingHas) {
     editingHas = false;
     $("nEditHas").setAttribute("aria-pressed", false); $("nEditHas").textContent = "Edit";
   }
   nHas.hidden = api; $("nEditHas").hidden = api; $("nSync").hidden = !api;
   const hn = $("nHasNote");
-  hn.textContent = api ? apiHasNote(current) : warn || note || (current.has ? "" : "Paste the column the Buildings tab copies.");
-  hn.className = "has-note" + (warn || (api && (current.apiGone || current.apiIdle)) ? " warn" : "");
+  hn.textContent = api ? "" : warn;
+  hn.className = "has-note warn";
   hn.hidden = !hn.textContent;
 
   const list = $("nBuildings");
@@ -2129,7 +2127,7 @@ function renderPlanCalc(has = parseHas(current.has || "")) {
 
   const cost = planCost(has.counts, want.counts, current.prze);
   const line = (l, v, c) => `<div class="cost-l${c ? " " + c : ""}">${l}<span class="v">${v}</span></div>`;
-  $("pCost").innerHTML = !cost.count ? '<p class="cost-none">Nothing to build. Raise a Want above its Has and the bill shows here.</p>'
+  $("pCost").innerHTML = !cost.count ? '<p class="cost-none">Nothing to build.</p>'
     : line(`<span class="bit">${BIT}</span> Bits`, fmt(cost.bits), "cost-tot")
     + PLAN_RES.filter(r => cost.res[r[0]]).map(([k, label, , img]) => line(`${resImg(img)} ${label}`, fmt(cost.res[k]))).join("")
     + `<div class="cost-sub">${fmt(cost.count)} to build</div>`
@@ -2343,15 +2341,73 @@ function apiNation(n, allyName) {
     if (!name) { skipped.push(String(st.name)); continue; }
     has[name] = (has[name] || 0) + c;
   }
-  const dna = {};
-  for (const r of n.resources || [])
-    if (DNA_RES.includes(r.name) && (+r.generated || +r.used)) dna[r.name] = [+r.generated || 0, +r.used || 0];
+  const dna = {}, gen = {}, used = {};
+  for (const r of n.resources || []) {
+    if (DNA_RES.includes(r.name)) { if (+r.generated || +r.used) dna[r.name] = [+r.generated || 0, +r.used || 0]; continue; }
+    const k = API_RES[String(r.name).toLowerCase()];
+    if (k) { gen[k] = +r.generated || 0; used[k] = +r.used || 0; }
+  }
+  const gov = String(n.government || ""), econ = String(n.economy || "");
   return { id: n.nation_id, name: String(n.name || `Nation ${n.nation_id}`), user: String(n.username || ""),
            aid: n.alliance_id || 0, ally: allyName, idle: n.in_stasis === true,
-           gov: String(n.government || ""), econ: String(n.economy || ""), prze: n.region_name === "Przewalskia",
-           has, dna, skipped };
+           gov, econ, prze: n.region_name === "Przewalskia", has, dna, skipped,
+           off: deduceOff(has, gov, econ, gen, used, Object.values(dna).reduce((t, d) => t + d[0], 0)) };
 }
-const apiColumn = a => columnOf(new Map(Object.entries(a.has)), new Map());
+const API_RES = Object.fromEntries(PLAN_RES.map(r => [r[1].toLowerCase(), r[0]]));
+const apiColumn = a => columnOf(new Map(Object.entries(a.has)), new Map(Object.entries(a.off || {})));
+
+/* The API gives each building's count but not how many are switched off. It does give what
+   the nation made and used last tick, so the planner finds how many of each building were
+   running to make and use exactly that, and counts the rest off. The fit minimises the gap
+   over every resource, made and used apart, and among equal fits keeps the most switched on.
+   A DNA facility eats its apples only on the tick it turns up DNA, so it isn't fitted: it is
+   charged 10 apples for each DNA made and counted on. Buildings that move no resource
+   (statues, barracks) can't be told apart, and are counted on */
+function deduceOff(has, gov, econ, gen, used, dnaMade) {
+  const names = Object.keys(has).filter(n => TICK[n] && n !== "DNA Extraction Facility");
+  const res = {};
+  for (const [k] of PLAN_RES) { res["g" + k] = -(gen[k] || 0); res["u" + k] = -(used[k] || 0); }
+  res.uapples += 10 * dnaMade;
+  for (const src of [GOVS[gov] || {}, ECONOMIES[econ] || {}])
+    for (const [k, a] of Object.entries(src.upkeep || {})) res["u" + k] += a;
+  const coef = names.map(n => Object.entries(TICK[n]).map(([k, a]) => [a > 0 ? "g" + k : "u" + k, Math.abs(a)]));
+  const max = names.map(n => has[n]), on = [...max];
+  names.forEach((n, i) => coef[i].forEach(([k, a]) => res[k] += a * on[i]));
+  const SPARE = 1e-3;                                   // the nudge toward switched on, among fits otherwise as good
+  const cost = () => { let c = 0; for (const k in res) c += Math.abs(res[k]); for (let i = 0; i < on.length; i++) c += SPARE * (max[i] - on[i]); return c; };
+  const set = (i, v) => { const d = v - on[i]; if (d) { coef[i].forEach(([k, a]) => res[k] += a * d); on[i] = v; } };
+  // the best count for one building with the rest held: the gap is piecewise linear in it, so try where each piece breaks
+  const best = i => {
+    const tries = new Set([0, max[i], on[i]]);
+    for (const [k, a] of coef[i]) { const b = on[i] - res[k] / a; tries.add(Math.floor(b)); tries.add(Math.ceil(b)); }
+    const was = on[i]; let bv = was, bc = cost();
+    for (const v of tries) { if (v < 0 || v > max[i]) continue; set(i, v); const c = cost(); if (c < bc - 1e-9) { bc = c; bv = v; } }
+    set(i, was);
+    return bv;
+  };
+  const STEPS = [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 50, 75, 100].flatMap(v => [v, -v]);
+  for (let pass = 0; pass < 50; pass++) {
+    let moved = false;
+    for (let i = 0; i < names.length; i++) { const v = best(i); if (v !== on[i]) { set(i, v); moved = true; } }
+    if (moved) continue;
+    // stuck: move one building a step and let another follow, for buildings that trade off against each other
+    const c0 = cost();
+    pairs: for (let i = 0; i < names.length; i++) for (let j = 0; j < names.length; j++) {
+      if (i === j) continue;
+      for (const d of STEPS) {
+        const oi = on[i], oj = on[j];
+        if (oi + d < 0 || oi + d > max[i]) continue;
+        set(i, oi + d); set(j, best(j));
+        if (cost() < c0 - 1e-9) { moved = true; break pairs; }
+        set(j, oj); set(i, oi);
+      }
+    }
+    if (!moved) break;
+  }
+  const off = {};
+  names.forEach((n, i) => { if (max[i] > on[i]) off[n] = max[i] - on[i]; });
+  return off;
+}
 const apiFind = id => sync ? sync.nations.find(a => a.id === id) || null : null;
 
 async function syncNow() {
@@ -2409,14 +2465,6 @@ function syncPaint() {
   $("nSync").disabled = syncBusy;
   $("nSync").textContent = syncBusy ? "Syncing…" : "Sync";
 }
-function apiHasNote(n) {
-  const when = sync ? `, synced ${syncAgo(Date.now() - sync.at)}` : "";
-  if (n.apiGone) return `The API no longer lists this nation, so Has stays as it was last read${when}.`;
-  if (n.apiIdle) return `This nation is in stasis: Has stays as the API last had it${when}.`;
-  const a = apiFind(n.api), skipped = a && a.skipped.length ? ` Not a building the planner knows: ${a.skipped.join(", ")}.` : "";
-  return `Read off the 4clop API${when}. Has follows the API and can't be edited here.${skipped}`;
-}
-
 /* ---- the picker: alliances to tick whole, and nations to tick one by one ---- */
 const apiPick = new Set();
 const apiActive = () => sync ? sync.nations.filter(a => !a.idle) : [];
@@ -2429,7 +2477,7 @@ function apiGroups(list) {
 }
 function renderApi() {
   if ($("apiBox").hidden) return;
-  const act = apiActive(), idle = sync ? sync.nations.length - act.length : 0;
+  const act = apiActive();
   for (const id of [...apiPick]) if (!act.some(a => a.id === id)) apiPick.delete(id);
   const groups = apiGroups(act);
   const empty = `<div class="api-none">${syncBusy ? "Fetching the nations…" : syncErr ? "Couldn't reach 4clop.org: " + esc(syncErr) : "Nothing fetched yet."}</div>`;
@@ -2456,9 +2504,6 @@ function renderApi() {
   $("apiGo").disabled = !n;
   $("apiGo").textContent = n ? `Import ${many(n, "nation")}` : "Import";
   $("apiNone").hidden = !n;
-  const note = $("apiNote");
-  note.textContent = idle ? `${many(idle, "nation")} in stasis ${idle === 1 ? "is" : "are"} left out.` : "";
-  note.hidden = !note.textContent;
 }
 $("apiBtn").addEventListener("click", () => {
   const box = $("apiBox"), open = box.hidden;
