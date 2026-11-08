@@ -1255,7 +1255,10 @@ details summary{cursor:pointer;color:var(--strong);font-size:13px;padding:2px 0}
 .topbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;position:relative}
 /* Clear all sits over the gap between the two army panels, lifted out of the
    row so the bar keeps its height */
-.clear-all{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
+.clear-mid{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  display:flex;align-items:center;gap:8px}
+.clear-mid .clear-all{position:static;transform:none}
+.sprite-theme{width:auto;margin:0;padding:1px 4px;font-size:11px;background:var(--sunken);color:var(--text);border-color:var(--border-soft)}
 .topbar h1{margin:0}
 .caret-btn{
   background:none;border:none;color:var(--text-dim);font-size:20px;line-height:1;
@@ -2454,8 +2457,12 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
     <button class="bp-btn" id="btlLink" data-icon="link"
       aria-label="Copy a link that loads this battle"></button>
   </div>
-  <button class="btn btn-xs clear-all" id="btnClearAll"
-    aria-label="Clear the attackers and the defenders, and close the battle and solver logs">Clear all</button>
+  <div class="clear-mid">
+    <select class="sprite-theme" id="themeAttacker" data-sprite-theme="attacker" aria-label="Attacker sprites"></select>
+    <button class="btn btn-xs clear-all" id="btnClearAll"
+      aria-label="Clear the attackers and the defenders, and close the battle and solver logs">Clear all</button>
+    <select class="sprite-theme" id="themeDefender" data-sprite-theme="defender" aria-label="Defender sprites"></select>
+  </div>
   <span class="spacer"></span>
   <div class="battle-presets">
     <span class="bp-lab">battle</span>
@@ -3450,17 +3457,67 @@ function signedField(el, lo, hi){
 
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 
-function spritePath(type, weapon, armor){
-  return `${IMG_BASE}${type.toLowerCase()}/w-${ARMOR_IDS[armor]}-${WEAPON_IDS[weapon]}.png`;
+/* Sprite themes, picked per side over the battle: the same filenames under
+   another site's images. A sprite the theme lacks falls back to Equestrian. */
+const SPRITE_THEMES = {
+  Equestrian: IMG_BASE,
+  Rheinmetall: "https://cloppenmanager.neocities.org/"
+};
+const LS_SPRITE_THEME = "warcalc.spriteTheme";
+const spriteTheme = (() => {
+  let t = {};
+  try { t = JSON.parse(localStorage.getItem(LS_SPRITE_THEME) || "{}") || {}; } catch(e){}
+  const ok = k => SPRITE_THEMES[k] ? k : "Equestrian";
+  return {attacker: ok(t.attacker), defender: ok(t.defender)};
+})();
+
+/* side is "attacker" or "defender"; without one it is Equestrian */
+function spritePath(type, weapon, armor, side){
+  const base = (side && SPRITE_THEMES[spriteTheme[side]]) || IMG_BASE;
+  return `${base}${type.toLowerCase()}/w-${ARMOR_IDS[armor]}-${WEAPON_IDS[weapon]}.png`;
 }
 
 function buildSprite(type, weapon, armor, big, meta){
+  const side = meta?.side;
   const tip = typeof tipAttrs === "function"
     ? tipAttrs(type, weapon, armor, meta?.size, meta?.training, meta?.fid) +
       (meta?.left != null ? ` data-tip-left="${esc(meta.left)}"` : "") : "";
-  return `<img class="sprite${big ? " sprite-lg" : ""}" src="${esc(spritePath(type, weapon, armor))}"
+  const src = spritePath(type, weapon, armor, side), plain = spritePath(type, weapon, armor);
+  return `<img class="sprite${big ? " sprite-lg" : ""}" src="${esc(src)}"
     alt="${esc(type)} — ${esc(label(weapon))} / ${esc(label(armor))}" loading="lazy"
-    ${tip} onerror="this.replaceWith(spriteMissing(this))">`;
+    ${side ? `data-sp-side="${side}" data-sp="${esc(type)}|${esc(weapon)}|${esc(armor)}"` : ""}
+    ${src !== plain ? `data-sp-fb="${esc(plain)}"` : ""}
+    ${tip} onerror="spriteFail(this)">`;
+}
+
+/* a themed sprite that will not load tries Equestrian's before giving up */
+function spriteFail(img){
+  const fb = img.dataset.spFb;
+  if (fb && img.getAttribute("src") !== fb){
+    delete img.dataset.spFb;
+    img.src = fb;
+    return;
+  }
+  img.replaceWith(spriteMissing(img));
+}
+
+/* repaint every sprite on one side in its theme, question marks included */
+function repaintSprites(side){
+  document.querySelectorAll(`[data-sp-side="${side}"]`).forEach(el => {
+    const [type, weapon, armor] = el.dataset.sp.split("|");
+    const src = spritePath(type, weapon, armor, side), plain = spritePath(type, weapon, armor);
+    let img = el;
+    if (el.tagName !== "IMG"){
+      img = document.createElement("img");
+      img.className = "sprite" + (el.classList.contains("sprite-lg") ? " sprite-lg" : "");
+      img.alt = `${type} — ${label(weapon)} / ${label(armor)}`;
+      Object.entries(el.dataset).forEach(([k, v]) => { img.dataset[k] = v; });
+      img.setAttribute("onerror", "spriteFail(this)");
+      el.replaceWith(img);
+    }
+    if (src !== plain) img.dataset.spFb = plain; else delete img.dataset.spFb;
+    img.src = src;
+  });
 }
 
 /* attributes that turn a unit card into a one-click target for the counter
@@ -3675,13 +3732,14 @@ function paintRow(tr){
   // keep the same <img> when only size/training moved — avoids a sprite reload
   const cur = slot.querySelector("[data-tip-t]");
   const fid = fidPre(tr.dataset.side) + tr.dataset.fid;
-  if (type && cur && cur.dataset.tipT === type && cur.dataset.tipW === weapon && cur.dataset.tipA === armor){
+  if (type && cur && cur.dataset.tipT === type && cur.dataset.tipW === weapon && cur.dataset.tipA === armor
+      && cur.dataset.spSide === tr.dataset.side){
     cur.dataset.tipSize = size;
     cur.dataset.tipTrain = training;
     cur.dataset.tipFid = fid;
   } else {
     slot.innerHTML = type
-      ? buildSprite(type, weapon, armor, false, {size, training, fid})
+      ? buildSprite(type, weapon, armor, false, {size, training, fid, side: tr.dataset.side})
       : `<span class="muted small">—</span>`;
   }
   refreshCosts();
@@ -4576,7 +4634,7 @@ function effectiveStats(type, weapon, armor){
   return {dmg, arm};
 }
 
-function tipHTML(type, weapon, armor, size, training){
+function tipHTML(type, weapon, armor, size, training, side){
   const {dmg, arm} = effectiveStats(type, weapon, armor);
   const rows = TYPE_NUMS.map(n=>{
     const t = TYPES[n];
@@ -4594,7 +4652,7 @@ function tipHTML(type, weapon, armor, size, training){
 
   return `<div class="tip-head">
       <div>
-        ${buildSprite(type, weapon, armor, false)}
+        ${buildSprite(type, weapon, armor, false, side ? {side} : undefined)}
         ${hasUpkeep ? `<div class="tip-upkeep" title="Upkeep per 12 hours">${resChips(upkeep)}</div>` : ""}
       </div>
       <div>
@@ -5161,7 +5219,8 @@ function pinUnit(U, swings, now){
     <span class="pu-size">${swings || now == null || now >= U.size ? money(U.size)
       : `<span class="pu-was">${money(U.size)}</span> → ${money(now)}`}</span>
     <span class="pu-left">${swings && now != null ? `${money(now)} <span class="muted">swings left</span>` : "&nbsp;"}</span>
-    ${buildSprite(U.origType, U.weapon, U.armor, true, {size: U.size, training: U.training, fid: U.fid})}
+    ${buildSprite(U.origType, U.weapon, U.armor, true, {size: U.size, training: U.training, fid: U.fid,
+                                                         side: atk ? "attacker" : "defender"})}
     <span class="pu-gear${swings ? "" : " pu-off"}">${esc(label(U.weapon))}</span>
     <span class="pu-gear${swings ? " pu-off" : ""}">${esc(label(U.armor))}</span>
     <span class="pu-train">training ${esc(U.training)}</span>
@@ -5810,7 +5869,7 @@ function survivorsGrid(all){
               ${pickAttrs(u.origType, u.weapon, u.armor, u.size, u.training)}>
               ${u.fid ? `<span class="surv-fid">${esc(u.fid)}</span>` : ""}
               ${buildSprite(u.origType, u.weapon, u.armor, true, {size:u.size, training:u.training, fid:u.fid,
-                  left: u.remaining < u.size ? Math.max(0, u.remaining || 0) : null})}
+                  side: inv ? "attacker" : "defender", left: u.remaining < u.size ? Math.max(0, u.remaining || 0) : null})}
               ${u.nick ? `<div class="small" style="margin-top:6px;font-weight:600;word-break:break-all">${esc(u.nick)}</div>` : ""}
               ${cardGear(u.weapon, u.armor)}
               <div class="mono" style="margin-top:4px;font-size:15px;${u.dead?'color:var(--atk)':''}">
@@ -6939,7 +6998,7 @@ function reinfRowHTML(r, i, ticks){
     : ` title="New — joins as ${esc(fid)} when Add changes to defence brings it in"`}>${esc(fid)}</span>` : "";
   return `<tr class="${r.kind}${wiped ? " wiped" : ""}">
     <td class="l"><span class="reinf-tag ${r.kind}">${REINF_TAG[r.kind]}</span></td>
-    <td class="l unit"><span class="reinf-unit">${buildSprite(u.type, u.weapon, u.armor, false, {size: u.size, training: u.training, fid})}<span>${fidTag}<span class="unit-txt">${
+    <td class="l unit"><span class="reinf-unit">${buildSprite(u.type, u.weapon, u.armor, false, {size: u.size, training: u.training, fid, side: "defender"})}<span>${fidTag}<span class="unit-txt">${
       name ? `<b>${esc(name)}</b> · ` : ""}${esc(u.type)} <span class="muted">${gear(u.weapon, r.from?.weapon)} / ${gear(u.armor, r.from?.armor)}</span></span>${
       was.length ? `<span class="was">was ${esc(was.join(" / "))}</span>` : ""}${tr}</span></span></td>
     <td class="n">${pred}</td>
@@ -8688,6 +8747,18 @@ document.querySelectorAll("[data-clear]").forEach(b=>
   }));
 
 /* both sides at once, and the battle and solver logs with them */
+/* the sprite theme each side is drawn in */
+document.querySelectorAll("[data-sprite-theme]").forEach(sel => {
+  const side = sel.dataset.spriteTheme;
+  sel.innerHTML = Object.keys(SPRITE_THEMES).map(k => `<option value="${esc(k)}">${esc(k)}</option>`).join("");
+  sel.value = spriteTheme[side];
+  sel.addEventListener("change", () => {
+    spriteTheme[side] = SPRITE_THEMES[sel.value] ? sel.value : "Equestrian";
+    try { localStorage.setItem(LS_SPRITE_THEME, JSON.stringify(spriteTheme)); } catch(e){}
+    repaintSprites(side);
+  });
+});
+
 document.getElementById("btnClearAll").addEventListener("click", ()=>{
   document.getElementById("tbodyAttacker").innerHTML = "";
   document.getElementById("tbodyDefender").innerHTML = "";
@@ -8957,14 +9028,14 @@ document.addEventListener("mouseover", e=>{
     /* a unit that lost troops: as it went in, greyed, and as it stands now */
     const now = +d.tipLeft;
     tipEl.innerHTML = `<div class="tip-dual">
-      <div class="tip-was">${tipHTML(d.tipT, d.tipW, d.tipA, d.tipSize, d.tipTrain)}</div>
-      <div class="tip-now">${now > 0 ? tipHTML(d.tipT, d.tipW, d.tipA, now, d.tipTrain)
+      <div class="tip-was">${tipHTML(d.tipT, d.tipW, d.tipA, d.tipSize, d.tipTrain, d.spSide)}</div>
+      <div class="tip-now">${now > 0 ? tipHTML(d.tipT, d.tipW, d.tipA, now, d.tipTrain, d.spSide)
         : `<div class="tip-gone">DESTROYED</div>`}</div>
     </div>`;
     tipEl.classList.add("tip-wide");
   } else {
     tipEl.innerHTML = tipHTML(d.tipT, d.tipW, d.tipA,
-      d.tipSize !== undefined ? d.tipSize : null, d.tipTrain);
+      d.tipSize !== undefined ? d.tipSize : null, d.tipTrain, d.spSide);
   }
   if (d.tipFid && !d.tipKey && !full) tipEl.insertAdjacentHTML("afterbegin", `<span class="tip-fid">${esc(d.tipFid)}</span>`);
   if (!d.tipLeft || PREFS.plainHover || d.tipKey) tipEl.classList.remove("tip-wide");
@@ -12153,7 +12224,7 @@ function renderSolutions(out, opts, bonus, secs){
     const stacks = rows.map((u, k) => `
       <div class="surv-card ${opts.side === "defender" ? "surv-def" : "surv-atk"}" style="min-width:118px"
         ${pickAttrs(u.type, u.weapon, u.armor, u.size, u.training)}>
-        ${buildSprite(u.type, u.weapon, u.armor, true, {size:u.size, training:u.training})}
+        ${buildSprite(u.type, u.weapon, u.armor, true, {size:u.size, training:u.training, side: opts.side})}
         ${cardGear(u.weapon, u.armor)}
         <div class="mono" style="margin-top:4px;font-size:15px"><b>${u.size.toLocaleString("en-US")}</b></div>
         <div class="small muted mono">${money(troopBits(u) * u.size)}
