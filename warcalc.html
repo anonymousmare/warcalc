@@ -1955,8 +1955,22 @@ body.snaps-hidden .snap{display:none}
 .gs-dd .picked{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gs-dd .none{color:var(--text-dim)}
 .gs-dd .tot{flex:0 0 auto;font:600 10px/1 var(--mono);color:var(--text-dim)}
-.gs-dd-menu{position:absolute;left:0;right:0;top:calc(100% + 3px);z-index:30;max-height:300px;overflow-y:auto;padding:3px 0;
+.gs-dd-menu{position:absolute;left:0;top:calc(100% + 3px);z-index:30;display:grid;grid-template-columns:360px 360px;grid-template-rows:minmax(0,1fr);
+  width:max-content;max-width:calc(100vw - 16px);height:320px;
   background:var(--raised);border:1px solid var(--border-soft);border-radius:4px;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.gs-dd-allies{overflow-y:auto;padding:3px 0;min-width:0}
+/* right of the alliances, the nations to add one by one */
+.gs-dd-nats{display:flex;flex-direction:column;min-width:0;padding:6px;border-left:1px solid var(--border-soft)}
+.gs-dd-nats input[type=search]{width:100%;box-sizing:border-box;margin:0 0 5px;font-size:12px}
+.gs-nlist{flex:1;min-height:0;overflow-y:auto}
+.gs-nat{display:flex;align-items:center;gap:7px;height:27px;margin:0;padding:0 8px;border-radius:3px;font-size:12px;cursor:pointer;color:var(--text)}
+.gs-nat:hover{background:rgba(var(--hi),.08)}
+.gs-nat input{width:auto;margin:0}
+.gs-nat .nm{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gs-nat .sub{margin-left:auto;padding-left:8px;font-size:11px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:45%}
+.gs-nat:has(input:checked){background:rgba(var(--hi),.06)}
+@media (max-width:760px){.gs-dd-menu{grid-template-columns:1fr;grid-template-rows:auto;height:auto;width:calc(100vw - 40px)}
+  .gs-dd-allies{max-height:200px}.gs-dd-nats{border-left:none;border-top:1px solid var(--border-soft)}.gs-nlist{max-height:240px}}
 .gs-ally{display:flex;align-items:center;gap:7px;margin:0;padding:4px 9px;font-size:12px;cursor:pointer;color:var(--text-dim)}
 .gs-ally:hover{background:rgba(var(--hi),.07)}
 .gs-ally input{width:auto;margin:0}
@@ -2993,7 +3007,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
     <div class="gs-prods" id="gsProds">
       <div class="gs-prod-us" id="gsColUs">
         <div class="gs-h"><span class="who-tag us">Us</span> Production / turn
-          <label class="gs-man" title="Type our production in by hand, or paste it in, instead of adding up the alliances ticked below">
+          <label class="gs-man" title="Type our production in by hand, or paste it in, instead of adding up the alliances and nations ticked below">
             <input type="checkbox" data-gs-man="us"> Manually define</label>
           <button type="button" class="btn btn-xs gs-pimp" data-gs-pimp="prod"
             aria-label="Paste our Alliance Resources table, copied off the game page">Import</button></div>
@@ -3003,7 +3017,7 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
       </div>
       <div class="gs-prod-them" id="gsColThem">
         <div class="gs-h"><span class="who-tag them">Them</span> Production / turn
-          <label class="gs-man" title="Type the other side's production in by hand, or paste it in, instead of adding up the alliances ticked below">
+          <label class="gs-man" title="Type the other side's production in by hand, or paste it in, instead of adding up the alliances and nations ticked below">
             <input type="checkbox" data-gs-man="them"> Manually define</label>
           <button type="button" class="btn btn-xs gs-pimp" data-gs-pimp="prodThem"
             aria-label="Paste the other side's Alliance Resources table, copied off the game page">Import</button></div>
@@ -13377,7 +13391,9 @@ const gs = (()=>{
           reader: Object.assign({res: true}, obj(o.reader)), folded: obj(o.folded),    // every visit opens on the x6 view
           /* each side's production is typed in by hand, or added up from the alliances ticked for it */
           manual: GS_ALLIES ? Object.assign({us: true, them: true}, obj(o.manual)) : {us: true, them: true},
-          ally: {us: Array.isArray(o.ally?.us) ? o.ally.us : [], them: Array.isArray(o.ally?.them) ? o.ally.them : []}};
+          ally: {us: Array.isArray(o.ally?.us) ? o.ally.us : [], them: Array.isArray(o.ally?.them) ? o.ally.them : []},
+          /* nations ticked one by one on top of the alliances: independents, or any reckoned on that side */
+          nats: {us: Array.isArray(o.nats?.us) ? o.nats.us : [], them: Array.isArray(o.nats?.them) ? o.nats.them : []}};
 })();
 const gsSave = () => store.set(LS_GRAND, gs);
 const gsNum  = v => Math.max(0, Number(String(v ?? "").replace(/,/g, "")) || 0);
@@ -13462,12 +13478,17 @@ function syncNations(d){
       if (k){ net[k] = (net[k] || 0) + (Number(r.net) || 0); used[k] = (used[k] || 0) + (Number(r.used) || 0); }
     });
     return {id: n.nation_id, name: String(n.name || `Nation ${n.nation_id}`), user: String(n.username || ""),
+            aid: n.alliance_id || 0, idle: n.in_stasis === true, gdp: Number(n.gdp_last_turn) || 0,
             ally: n.alliance_id ? ally.get(n.alliance_id) || `Alliance ${n.alliance_id}` : "", region: String(n.region_name || ""), net, used};
   });
 }
 
+/* the nations ticked on their own that count: not in stasis, and not already in an alliance ticked for that side */
+const syncLoose = side => !sync ? [] : sync.nations
+  .filter(n => gs.nats[side].includes(n.id) && !n.idle && n.aid != null && !gs.ally[side].includes(n.aid));
 const syncNet = (side, k) => !sync ? 0 : sync.alliances
-  .reduce((t, a) => t + (gs.ally[side].includes(a.id) ? a.net[k] || 0 : 0), 0);
+  .reduce((t, a) => t + (gs.ally[side].includes(a.id) ? a.net[k] || 0 : 0), 0)
+  + syncLoose(side).reduce((t, n) => t + (k === "bits" ? n.gdp || 0 : n.net[k] || 0), 0);
 
 async function syncNow(){
   if (syncBusy) return;
@@ -13555,21 +13576,56 @@ function gsProdCol(bucket){
     ? `<span class="small muted">${syncBusy ? "Fetching the alliances…" : "No alliances yet — click the sync time up top to fetch them."}</span>`
     : `<details class="gs-dd" data-gs-dd="${side}"${gsDdOpen === side ? " open" : ""}>
         <summary>${gsAllyPicked(side)}</summary>
-        <div class="gs-dd-menu">${by.map(a => `<label class="gs-ally${a.id ? "" : " loose"}"><input type="checkbox"
+        <div class="gs-dd-menu"><div class="gs-dd-allies">${by.map(a => `<label class="gs-ally${a.id ? "" : " loose"}"><input type="checkbox"
           data-gs-ally="${side}" value="${a.id}"${gs.ally[side].includes(a.id) ? " checked" : ""}><span class="nm">${esc(a.name)}</span>
           <span class="n" title="${a.n} nation${a.n === 1 ? "" : "s"}${
-          a.idle ? `, besides ${a.idle} in stasis and left out` : ""}">${a.n}</span></label>`).join("")}</div></details>`;
+          a.idle ? `, besides ${a.idle} in stasis and left out` : ""}">${a.n}</span></label>`).join("")}</div>
+          <div class="gs-dd-nats"><input type="search" data-gs-nfind="${side}" value="${esc(gsNFind[side])}"
+            placeholder="Add nations: search names, rulers, alliances…" autocomplete="off" spellcheck="false">
+            <div class="gs-nlist" id="gsNats${Side}"></div></div></div></details>`;
   gsInputs(bucket === "prod" ? "gsProd" : "gsProdThem", bucket, GS_PROD);
+  if (!man && sync && gsDdOpen === side){ gsNatList(side); gsDdFit(gsEl("gsAlly" + Side).querySelector(".gs-dd")); }
 }
 
-/* the dropdown's face: the alliances ticked, biggest first, and how many nations they come to */
+/* the nations to tick one by one, beside the alliances: grouped as in Management's list,
+   less those in stasis and those already counted with an alliance ticked for that side.
+   Drawn only while the list is open */
+const gsNFind = {us: "", them: ""};
+function gsNatList(side){
+  const box = gsEl("gsNats" + (side === "us" ? "Us" : "Them"));
+  if (!box || !sync) return;
+  const q = gsNFind[side].trim().toLowerCase(), picked = gs.nats[side];
+  const pool = sync.nations.filter(n => !n.idle && n.aid != null && !gs.ally[side].includes(n.aid));
+  const size = new Map();
+  pool.forEach(n => size.set(n.ally, (size.get(n.ally) || 0) + 1));
+  const hits = pool.filter(n => !q || [n.name, n.user, n.ally, n.region || ""].some(x => x.toLowerCase().includes(q)))
+    .sort((a, b) => !a.ally - !b.ally || size.get(b.ally) - size.get(a.ally) || a.ally.localeCompare(b.ally) || a.name.localeCompare(b.name));
+  box.innerHTML = !sync.nations.some(n => "aid" in n) ? `<div class="mg-none">Sync again to list the nations.</div>`
+    : hits.length ? hits.map((n, i) => (i && hits[i - 1].ally === n.ally ? "" : `<div class="mg-grp">${
+      esc(n.ally || "No alliance")}<span class="n">${hits.filter(h => h.ally === n.ally).length}</span></div>`) +
+      `<label class="gs-nat"><input type="checkbox" data-gs-nat="${side}" value="${n.id}"${picked.includes(n.id) ? " checked" : ""}>${
+      mgFace(n, n.name)}<span class="sub">${esc(n.user)}</span></label>`).join("")
+    : `<div class="mg-none">${pool.length ? "No nation matches that." : "Every nation is in an alliance ticked here."}</div>`;
+}
+/* the list hangs off the left of its box, and is pulled back in if it would run off the page */
+function gsDdFit(dd){
+  const m = dd.querySelector(".gs-dd-menu");
+  if (!m) return;
+  m.style.left = "0px";
+  const over = m.getBoundingClientRect().right - (document.documentElement.clientWidth - 8);
+  if (over > 0) m.style.left = -over + "px";
+}
+
+/* the dropdown's face: the alliances ticked, biggest first, then the nations added on their own,
+   and how many nations they come to */
 let gsDdOpen = null;
 function gsAllyPicked(side){
   const on = (sync?.alliances || []).filter(a => gs.ally[side].includes(a.id))
     .sort((a, b) => !a.id - !b.id || b.n - a.n || a.name.localeCompare(b.name));
-  if (!on.length) return `<span class="picked none">Pick alliances…</span>`;
-  const n = on.reduce((t, a) => t + a.n, 0);
-  const names = on.map(a => a.name).join(", ");
+  const loose = syncLoose(side).sort((a, b) => a.name.localeCompare(b.name));
+  if (!on.length && !loose.length) return `<span class="picked none">Pick alliances or nations…</span>`;
+  const n = on.reduce((t, a) => t + a.n, 0) + loose.length;
+  const names = on.map(a => a.name).concat(loose.map(x => x.name)).join(", ");
   return `<span class="picked" title="${esc(names)}">${esc(names)}</span><span class="tot">${n} nation${n === 1 ? "" : "s"}</span>`;
 }
 
@@ -14257,24 +14313,35 @@ gsEl("gsStockPanel").addEventListener("click", e=>{
   if (b) gsShowImport(b.dataset.gsPimp);
 });
 gsEl("gsStockPanel").addEventListener("change", e=>{
-  const man = e.target.closest("[data-gs-man]"), ally = e.target.closest("[data-gs-ally]");
+  const man = e.target.closest("[data-gs-man]"), ally = e.target.closest("[data-gs-ally]"), nat = e.target.closest("[data-gs-nat]");
   if (man){
     gs.manual[man.dataset.gsMan] = man.checked;
     gsSave();
     gsRefill();
     return;
   }
-  if (!ally) return;
-  /* the list stays open, and the tick keeps its focus: only the face and the figures change */
-  const side = ally.dataset.gsAlly, list = gs.ally[side], id = Number(ally.value);
-  gs.ally[side] = ally.checked ? list.concat(id) : list.filter(x => x !== id);
+  const box = ally || nat;
+  if (!box) return;
+  /* the list stays open, and the tick keeps its focus: only the face, the figures,
+     and (for an alliance) the nations left to tick on their own change */
+  const side = ally ? ally.dataset.gsAlly : nat.dataset.gsNat, key = ally ? "ally" : "nats";
+  const list = gs[key][side], id = Number(box.value);
+  gs[key][side] = box.checked ? list.filter(x => x !== id).concat(id) : list.filter(x => x !== id);
   gsSave();
-  ally.closest(".gs-dd").querySelector("summary").innerHTML = gsAllyPicked(side);
+  box.closest(".gs-dd").querySelector("summary").innerHTML = gsAllyPicked(side);
+  if (ally) gsNatList(side);
   const bucket = side === "us" ? "prod" : "prodThem";
   gsInputs(bucket === "prod" ? "gsProd" : "gsProdThem", bucket, GS_PROD);
   gsStrip();
   renderGrand();
   renderAssess();
+});
+/* the nation search narrows the list as it is typed */
+gsEl("gsStockPanel").addEventListener("input", e=>{
+  const f = e.target.closest("[data-gs-nfind]");
+  if (!f) return;
+  gsNFind[f.dataset.gsNfind] = f.value;
+  gsNatList(f.dataset.gsNfind);
 });
 /* one alliance list open at a time; a click anywhere else, or Escape, puts it away */
 gsEl("gsStockPanel").addEventListener("toggle", e=>{
@@ -14283,6 +14350,8 @@ gsEl("gsStockPanel").addEventListener("toggle", e=>{
   if (e.target.open){
     gsDdOpen = dd;
     gsEl("gsStockPanel").querySelectorAll(".gs-dd[open]").forEach(d => { if (d !== e.target) d.open = false; });
+    gsNatList(dd);
+    gsDdFit(e.target);
   } else if (gsDdOpen === dd) gsDdOpen = null;
 }, true);
 const gsDdShut = () => document.querySelectorAll(".gs-dd[open]").forEach(d => { d.open = false; });
