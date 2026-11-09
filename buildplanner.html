@@ -509,6 +509,11 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
 .crumb-sep{color:var(--text-dim);margin:0 -4px}
 .proj{margin-bottom:14px}
 .proj .stats{margin-bottom:8px}
+/* the numbers stay in sight while the buildings below scroll by, on a screen with the room for them */
+@media (min-width:761px) and (min-height:620px){
+  .proj{position:sticky;top:0;z-index:5;box-shadow:0 8px 16px -6px rgba(0,0,0,.45)}
+  [data-theme="rainbow"] .proj{background:#eff9ff}
+}
 /* each headline number split down the middle: Has on the left, Want on the right */
 .stat2{padding:5px 10px 6px}
 .stat2 .stat-k{margin-bottom:2px}
@@ -525,7 +530,7 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
 .ptab th,.ptab td{padding:2px 4px;text-align:right;white-space:nowrap}
 .ptab thead th{padding-bottom:4px}
 .ptab thead th img{width:16px;height:16px;image-rendering:pixelated;vertical-align:middle}
-.ptab col.lab{width:96px}
+.ptab col.lab{width:118px}
 .ptab col.gdp{width:84px}
 .ptab th[scope=row]{text-align:left;padding-right:10px;font:600 10.5px var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
 .ptab td{color:var(--strong);border-radius:3px;cursor:default}
@@ -534,6 +539,7 @@ textarea:focus,#out:focus,select:focus{outline:2px solid var(--accent);outline-o
 .ptab td.zero{color:var(--text-dim);opacity:.6}
 .ptab :is(td,th)[data-tip]:is(:hover,:focus-visible,.tip-on){background:color-mix(in srgb,var(--strong) 9%,transparent);outline:none}
 .ptab tr.diff td{font-size:11px}
+.ptab tr.ally :is(th,td){border-top:1px solid var(--border-soft);padding-top:4px}
 .ptab tr.diff.hidden td{display:none}
 .diff-tog{background:none;border:none;padding:0;cursor:pointer;color:inherit;font:inherit;letter-spacing:inherit;text-transform:inherit;
   display:inline-flex;align-items:center;gap:4px}
@@ -730,8 +736,8 @@ try{ applyTheme(JSON.parse(localStorage.getItem(LS_THEME))); }catch(e){}
     aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path
     d="M10.3 2.5h3.4l.5 2.6a7.6 7.6 0 0 1 2 1.2l2.5-.9 1.7 2.9-2 1.8a7.7 7.7 0 0 1 0 2.3l2 1.8-1.7 2.9-2.5-.9a7.6 7.6 0 0 1-2 1.2l-.5 2.6h-3.4l-.5-2.6a7.6 7.6 0 0 1-2-1.2l-2.5.9-1.7-2.9 2-1.8a7.7 7.7 0 0 1 0-2.3l-2-1.8 1.7-2.9 2.5.9a7.6 7.6 0 0 1 2-1.2z"/><circle
     cx="12" cy="12" r="3"/></svg></button></span>
-  <button class="tab active" type="button" data-view="buildings">Buildings</button>
-  <button class="tab" type="button" data-view="planner">Planner</button>
+  <button class="tab" type="button" data-view="buildings">Buildings</button>
+  <button class="tab active" type="button" data-view="planner">Planner</button>
   <button class="tab" type="button" data-view="mine">Mine mix</button>
   <button class="tab" type="button" data-view="wells">Well mix</button>
 </div>
@@ -2225,6 +2231,23 @@ $("pImport").addEventListener("input", () => {
   renderPlanTable(); renderPlanCalc();
 });
 
+// every nation in the planner summed, as it stands and on the plan picked for it in the Planner tab,
+// the nation whose plan is open on that plan instead, and the extra buildings on the projected side
+function allianceRes(nation, onPlan) {
+  const now = {}, after = {};
+  for (const n of nations) {
+    const has = parseHas(n.has || ""), pl = n === nation ? onPlan : usedPlan(n);
+    const m = nationModel(n, has.counts, has.off);
+    addRes(now, m.res);
+    if (!pl) { addRes(after, m.res); continue; }
+    const want = planCounts(pl, has);
+    addRes(after, nationModel(n, want.counts, want.off).res);
+  }
+  const ex = extraCounts();
+  if (ex.size) addRes(after, nationModel({}, ex, new Map()).res, " (extra)");
+  return { now, after };
+}
+
 function renderPlanCalc(has = parseHas(current.has || "")) {
   const want = planCounts(plan, has);
   const now = nationModel(current, has.counts, has.off), after = nationModel(current, want.counts, want.off);
@@ -2250,6 +2273,10 @@ function renderPlanCalc(has = parseHas(current.has || "")) {
   const cell = (key, v, sign) => `<td tabindex="0"${key ? ` data-tip="${key}"` : ""} class="${v ? cls(v).trim() : "zero"}">${v ? sign(v) : "0"}</td>`;
   let head = '<tr><th></th>', rh = '<tr><th scope="row">Has</th>', rw = '<tr><th scope="row">Want</th>';
   let rd = `<tr class="diff${showDiff ? "" : " hidden"}"><th scope="row"><button type="button" class="diff-tog" aria-expanded="${showDiff}">Difference</button></th>`;
+  // the whole alliance under it: every nation as it stands, then on its picked plan with this nation on this one
+  const ally = allianceRes(current, plan);
+  let ah = '<tr class="ally"><th scope="row" title="Every nation in the planner as it stands now">Alliance has</th>';
+  let aw = '<tr><th scope="row" title="Every nation on the plan picked for it in the Planner tab, this nation on this plan, and the extra buildings">Alliance want</th>';
   for (const [key, label, col, img] of PLAN_RES) {
     const r0 = now.res[key] || { made: 0, used: 0, makers: [] }, r1 = after.res[key] || { made: 0, used: 0, makers: [] };
     tips.set("h-" + key, tipMade(label, col, img, r0));
@@ -2259,8 +2286,14 @@ function renderPlanCalc(has = parseHas(current.has || "")) {
     rh += cell("h-" + key, a, signed);
     rw += cell("p-" + key, b, signed);
     rd += `<td class="${b - a ? cls(b - a).trim() : "zero"}">${b - a ? signed(b - a) : "·"}</td>`;
+    const q0 = ally.now[key], q1 = ally.after[key];
+    if (q0) tips.set("ah-" + key, tipMade(label, col, img, q0));
+    if (q1) tips.set("aw-" + key, tipMade(label, col, img, q1));
+    ah += cell(q0 && "ah-" + key, net(q0), signed);
+    aw += cell(q1 && "aw-" + key, net(q1), signed);
   }
-  $("pNets").innerHTML = `<div class="ptab-wrap"><table class="ptab"><col class="lab"><thead>${head}</tr></thead><tbody>${rh}</tr>${rw}</tr>${rd}</tr></tbody></table></div>`;
+  $("pNets").innerHTML = `<div class="ptab-wrap"><table class="ptab"><col class="lab"><thead>${head}</tr></thead>`
+    + `<tbody>${rh}</tr>${rw}</tr>${rd}</tr>${ah}</tr>${aw}</tr></tbody></table></div>`;
 
   const cost = planCost(has.counts, want.counts, current.prze);
   const line = (l, v, c) => `<div class="cost-l${c ? " " + c : ""}">${l}<span class="v">${v}</span></div>`;
@@ -3054,7 +3087,7 @@ oMode.addEventListener("change", () => { oOverride = null; syncWellMode(); });
 syncMineMode();
 syncWellMode();
 
-/* views: Buildings at the bare address, the envelopes at #planner, one nation at #planner/<id> */
+/* views: the envelopes at #planner and at the bare address, one nation at #planner/<id>, Buildings at #buildings */
 const views = { buildings: $("viewBuildings"), planner: $("viewPlanner"), nation: $("viewNation"), plan: $("viewPlan"),
                 mine: $("viewMine"), wells: $("viewWells") };
 function show(view) {
@@ -3070,7 +3103,7 @@ function planHead() {
   $("pEnv").style.setProperty("--env", envColour(current));
 }
 function route() {
-  const m = location.hash.match(/^#planner(?:\/([^/]+)(?:\/([^/]+))?)?$/);
+  const m = (location.hash || "#planner").match(/^#planner(?:\/([^/]+)(?:\/([^/]+))?)?$/);
   const next = m && m[1] ? nations.find(n => n.id === decodeURIComponent(m[1])) || null : null;
   const nextPlan = next && m[2] ? (next.plans || []).find(p => p.id === decodeURIComponent(m[2])) || null : null;
   if (nextPlan) {
@@ -3109,7 +3142,7 @@ function go(hash) {
   route();
 }
 document.querySelectorAll(".tab[data-view]").forEach(t =>
-  t.addEventListener("click", () => go(t.dataset.view === "buildings" ? "" : "#" + t.dataset.view)));
+  t.addEventListener("click", () => go("#" + t.dataset.view)));
 window.addEventListener("hashchange", route);
 window.addEventListener("popstate", route);
 route();
