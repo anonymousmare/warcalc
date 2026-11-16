@@ -3658,9 +3658,7 @@ function makeRow(side, data){
   tr.dataset.fid = rowFid(side, data);
   uncapFor(side, data?.training);   // a level past 20 coming in ticks the box, not cut to 20
 
-  const typeOpts = (side === "defender"
-    ? ["Cavalry","Tanks","Pegasi","Unicorns","Naval","Alicorns"]
-    : ["Cavalry","Tanks","Pegasi","Unicorns","Naval"]);
+  const typeOpts = ["Cavalry","Tanks","Pegasi","Unicorns","Naval","Alicorns"];
 
   tr.innerHTML = `
     <td class="col-sprite"><span class="spriteSlot"></span></td>
@@ -5485,6 +5483,30 @@ function trainDrift(){
           skip: document.getElementById("drillSkip").checked ? 1 : 0};
 }
 
+/* whether a drift moves training at the start of battle tick n: the first
+   tick not ignored, then every drift.every ticks after it */
+const driftDue = (d, n) => !!d && n > d.skip && (n - 1 - d.skip) % d.every === 0;
+
+/* the drift's shift on whoever is on the field, reinforcements left alone:
+   {atk, def, moved, train}, moved 0 and train null when nobody can move.
+   Raising stops at 20 even on an uncapped side; a unit already past it keeps its training */
+function driftShift(atk, def, drift){
+  const RAISE_CAP = 20, own = drift.side === "attacker" ? atk : def;
+  const can = own.some(u => !u.reserve && (drift.step < 0 ? u.training > 0 : u.training < RAISE_CAP));
+  if (!can) return {atk, def, moved: 0, train: null};
+  const span = rows => { const tr = rows.filter(u => !u.reserve).map(u => u.training);
+                         return [Math.min(...tr), Math.max(...tr)]; };
+  const shift = rows => rows.map(u => u.reserve ? u : Object.assign({}, u,
+    {training: drift.step < 0 ? Math.max(0, u.training + drift.step)
+              : Math.max(u.training, Math.min(RAISE_CAP, u.training + drift.step))}));
+  const moved = shift(own);
+  return {atk: drift.side === "attacker" ? moved : atk, def: drift.side === "attacker" ? def : moved,
+          moved: drift.step, train: {side: drift.side, step: drift.step, from: span(own), to: span(moved)}};
+}
+/* tick 1, the battle on screen, under the drift: shifted only when the drift is due on it */
+const driftTick1 = (atk, def, drift) => driftDue(drift, 1) ? driftShift(atk, def, drift)
+                                                            : {atk, def, moved: 0, train: null};
+
 /* survivors as force rows simulate() will take */
 const chainRows = (units, isAtk) =>
   survivorRows(units, isAtk).map(u => Object.assign({}, u, {nick: u.name || "",
@@ -5516,17 +5538,7 @@ function chainBattles(atkRows, defRows, bonus, drift = trainDrift(), orders = nu
     atk = atk.concat(aIn); def = def.concat(dIn);
     /* every drift.every ticks the side's training moves before the fight, while it can */
     let moved = 0, train = null;
-    if (drift && t > drift.skip && (t - drift.skip) % drift.every === 0 && drifting()){
-      const span = rows => { const tr = rows.filter(u => !u.reserve).map(u => u.training);
-                             return [Math.min(...tr), Math.max(...tr)]; };
-      const shift = rows => rows.map(u => u.reserve ? u : Object.assign({}, u,
-        {training: drift.step < 0 ? Math.max(0, u.training + drift.step)
-                  : Math.max(u.training, Math.min(RAISE_CAP, u.training + drift.step))}));
-      const from = span(drift.side === "attacker" ? atk : def);
-      if (drift.side === "attacker") atk = shift(atk); else def = shift(def);
-      moved = drift.step;
-      train = {side: drift.side, step: drift.step, from, to: span(drift.side === "attacker" ? atk : def)};
-    }
+    if (driftDue(drift, t + 1)) ({atk, def, moved, train} = driftShift(atk, def, drift));
     /* then the instructions, on everyone now on the field */
     let notes = [], ordered = false, buys = [], links = [];
     if (orders){
@@ -5981,7 +5993,7 @@ function deathsGrid(atkDead, defDead, ns){
   </div>`;
 }
 
-function render(result, atkRaw, defRaw, bonus, notes){
+function render(result, atkRaw, defRaw, bonus, notes, train = null){
   const {units, log, casualties, stalls} = result;
   lastResult = result;
   survSnapshot = null;
@@ -6015,7 +6027,7 @@ function render(result, atkRaw, defRaw, bonus, notes){
       ${stallsNote(stalls)}
 
       <div>
-        ${exchangeLogBlock(units, log, bonus, "logExchange", "death", unspentLine(units), ordNote(notes))}
+        ${exchangeLogBlock(units, log, bonus, "logExchange", "death", unspentLine(units), driftNote(train) + ordNote(notes))}
         ${casualtiesBlock(units, casualties, "logCasualties")}
       </div>
     </div>
@@ -6569,21 +6581,16 @@ function liftedNote(lists){
       + "Check the Training column, then copy a fresh code to replace the old one.");
 }
 
-/* drop a decoded list onto a side, minding who may field alicorns */
+/* drop a decoded list onto a side */
 function addUnits(side, units){
   units = noNames(units);
   setBarracks(side, units?.barracks);
-  let skipped = 0;
   const kept = [], rows = [];
-  (units || []).forEach(u=>{
-    if (side === "attacker" && u.type === "Alicorns"){ skipped++; return; }
-    kept.push(u); rows.push(makeRow(side, u));
-  });
+  (units || []).forEach(u=>{ kept.push(u); rows.push(makeRow(side, u)); });
   /* a script riding on the list takes over the side, pointed at the rows it just made */
   if (units?.orders) ordAdopt(side, units.orders, canonOrder(kept).map(i => rows[i]));
   refreshCounts();
-  if (skipped) alert(`Alicorns can only be fielded as defenders — skipped ${skipped}.`);
-  return (units || []).length - skipped;
+  return (units || []).length;
 }
 
 /* pasted preset JSON — the same shape the export buttons write:
@@ -6691,9 +6698,7 @@ function importRows(side){
                   : "Nothing matched the expected format. Each unit block must end with a Training: line.");
       return;
     }
-    const kept = noNames(units).filter(u => !(side === "attacker" && u.type === "Alicorns"));
-    if (kept.length < units.length)
-      alert("Alicorns can only be fielded as defenders — skipping that entry.");
+    const kept = noNames(units);
     kept.forEach(u => makeRow(side, u));
     setBarracks(side, barracks);
     refreshCounts();
@@ -6803,8 +6808,6 @@ function importBattle(){
     setSide("attacker", noNames(a.units));
     setSide("defender", noNames(d.units));
     scheduleSave();
-    const ali = a.units.filter(u => u.type === "Alicorns").length;
-    if (ali) alert(`Alicorns can only be fielded as defenders — skipped ${ali}.`);
     return;
   }
   const sh = parseShareable(ta.value);
@@ -6882,7 +6885,7 @@ function reinfPredict(battle, ticks){
       name: `${r.type}_${r.weapon}_${r.armor}_size_${r.size}_train_${r.training}`}); };
   /* the code's advanced instructions run on each tick, as Resolve battle runs them */
   const prog = progOf(battle), orders = ordAny(prog);
-  const atkAll = withFids((battle.attacker || []).filter(u => u.type !== "Alicorns"), "attacker");
+  const atkAll = withFids(battle.attacker || [], "attacker");
   const defAll = withFids(battle.defender || [], "defender");
   let atk = [], def = [], dmg = null;
   const dead = [];
@@ -6929,7 +6932,8 @@ function reinfPredict(battle, ticks){
 function reinfPeek(prog, tick){
   const atkAll = readSide("attacker"), defAll = readSide("defender");
   const bonus = document.getElementById("defBonus").value;
-  const o = ordRun(prog, 1, atkAll.filter(u => !waitOf(u)), defAll.filter(u => !waitOf(u)), null);
+  const d1 = driftTick1(atkAll.filter(u => !waitOf(u)), defAll.filter(u => !waitOf(u)), trainDrift());
+  const o = ordRun(prog, 1, d1.atk, d1.def, null);
   const r1 = simulate(o.atk, o.def, bonus);
   const a0 = chainRows(r1.units, true).concat(atkAll.filter(u => waitOf(u)));
   const d0 = chainRows(r1.units, false).concat(defAll.filter(u => waitOf(u)));
@@ -7370,7 +7374,7 @@ function setSide(side, units){
   /* a list laid down fresh counts its ids up from 1, front line first, and any
      force the instructions make that it lands on moves out of the way */
   fidCountUp = !(units || []).some(u => u?.fid);
-  const kept = (units || []).filter(u => !(side === "attacker" && u.type === "Alicorns"));   // attackers can't field them
+  const kept = units || [];
   (fidCountUp ? withFids(kept, side) : kept).forEach(u => makeRow(side, u));
   if (fidCountUp) ordRehome(side);
   fidCountUp = false;
@@ -7801,7 +7805,7 @@ function ordBlockHTML(b, side, F){
     case "destroy": head = `destroy ${fs("fid", b.fid)}`; break;
     case "trim":    head = `destroy ${ordNum("n", b.n, 1)} troops of ${fs("fid", b.fid)}`; break;
     case "raise": {
-      const types = KIT_TYPES.filter(t => side === "defender" || t !== "Alicorns");
+      const types = KIT_TYPES;
       if (!types.includes(b.type)) b.type = types[0];
       const set = LOADOUTS[b.type];
       if (!set.weapons.includes(b.weapon)) b.weapon = set.weapons[0];
@@ -8130,7 +8134,7 @@ function ordRun(prog, tick, atk, def, prevDmg){
       }
       case "raise": {
         const set = LOADOUTS[b.type], n = Math.max(0, Math.floor(+b.n) || 0);
-        if (!set || !n || (side === "attacker" && b.type === "Alicorns")) break;
+        if (!set || !n) break;
         const fid = ordMadeFid(b, side);
         const u = {type: b.type, size: n, training: clampInt(b.training, 0, trainCap(side)),
                    weapon: set.weapons.includes(b.weapon) ? b.weapon : set.weapons[0],
@@ -8218,7 +8222,7 @@ function ordLater(prog, tick){
    the instructions will do in it: what they buy, whose losses are whose.
    `prog` may be null for a battle without any. Throws as simulate() does */
 function ordBattle(atkAll, defAll, bonus, prog, drift = null, chain = true){
-  const atk = atkAll.filter(u => !waitOf(u)), def = defAll.filter(u => !waitOf(u));
+  const {atk, def} = driftTick1(atkAll.filter(u => !waitOf(u)), defAll.filter(u => !waitOf(u)), drift);
   const o = prog ? ordRun(prog, 1, atk, def, null) : {atk, def, notes: [], buys: [], links: [], changed: false};
   const r1 = simulate(o.atk, o.def, bonus);
   const a0 = chainRows(r1.units, true).concat(atkAll.filter(u => waitOf(u)));
@@ -9125,10 +9129,11 @@ document.getElementById("btnRun").addEventListener("click", ()=>{
   lastReserves = {attacker: atkAll.filter(u=>u.reserve), defender: defAll.filter(u=>u.reserve)};
   /* the instructions as they stand now are the ones every tick of this battle runs */
   lastOrders = ordAny(ORD) ? ordSnap() : null;
-  const o = lastOrders ? ordRun(lastOrders, 1, atk, def, null) : {atk, def, notes:[]};
+  const d1 = driftTick1(atk, def, trainDrift());
+  const o = lastOrders ? ordRun(lastOrders, 1, d1.atk, d1.def, null) : {atk: d1.atk, def: d1.def, notes:[]};
   try{
     render(simulate(o.atk, o.def, document.getElementById("defBonus").value), o.atk, o.def,
-           document.getElementById("defBonus").value, o.notes);
+           document.getElementById("defBonus").value, o.notes, d1.train);
     if (document.getElementById("autoChain").checked) toggleChain();
   } catch(e){
     document.getElementById("results").innerHTML =
@@ -9469,9 +9474,9 @@ function hitDamage(src, dst, bonus){
 }
 
 /* a unit's training on battle tick n under a drift, the way chainBattles moves
-   it: tick 1 never moves, raising stops at 20, reinforcements never move */
+   it: first on tick 1 + skip, raising stops at 20, reinforcements never move */
 function driftedTrain(tr, n, d){
-  const c = Math.floor(Math.max(0, n - 1 - d.skip) / d.every);
+  const c = n > d.skip ? Math.floor((n - 1 - d.skip) / d.every) + 1 : 0;
   if (!c) return tr;
   return d.step < 0 ? Math.max(0, tr + c * d.step) : tr >= 20 ? tr : Math.min(20, tr + c * d.step);
 }
@@ -9663,14 +9668,17 @@ function makeContext(ownProfiles, foeProfiles, bonusOwn, bonusFoe, wantLosses, t
 
   /* the damage tables flat, one row per source, so the inner loop indexes
      a single typed array instead of walking an array of arrays */
+  /* tick 1 fights at the training the drift has already moved it to */
+  const own1 = own.map(u => driftProfile(u, 1, drift, true));
+  const foe1 = foe.map(u => driftProfile(u, 1, drift, false));
   const MO = new Float64Array(K * M);
   for (let i = 0; i < K; i++)
-    for (let j = 0; j < M; j++) MO[i * M + j] = hitDamage(own[i], foe[j], bonusOwn);
+    for (let j = 0; j < M; j++) MO[i * M + j] = hitDamage(own1[i], foe1[j], bonusOwn);
   let MF = null;
   if (losses){
     MF = new Float64Array(M * K);
     for (let j = 0; j < M; j++)
-      for (let i = 0; i < K; i++) MF[j * K + i] = hitDamage(foe[j], own[i], bonusFoe);
+      for (let i = 0; i < K; i++) MF[j * K + i] = hitDamage(foe1[j], own1[i], bonusFoe);
   }
 
   /* with the training drifting, every tick fights from tables of its own */
@@ -9856,13 +9864,14 @@ function buildCandidates(opts, foeProfiles, bonusOwn, bonusFoe){
       const p = solProfile({type, weapon:w, armor:a, size:1, training:opts.training});
       const T = opts.drift ? Math.max(1, opts.ticks || 1) : 1;
       const perHit = foeProfiles.map(f => {
-        let best = hitDamage(p, f, bonusOwn);
-        for (let t = 2; t <= T; t++)
+        let best = 0;
+        for (let t = 1; t <= T; t++)
           best = Math.max(best, hitDamage(driftProfile(p, t, opts.drift, true),
                                           driftProfile(f, t, opts.drift, false), bonusOwn));
         return best;
       });
-      const incoming = foeProfiles.map(f => hitDamage(f, p, bonusFoe));
+      const incoming = foeProfiles.map(f => hitDamage(driftProfile(f, 1, opts.drift, false),
+                                                      driftProfile(p, 1, opts.drift, true), bonusFoe));
       if (opts.goal !== "survive" && !perHit.some(v => v > 0)) return;
       out.push({type, weapon:w, armor:a, bits:cost.bits, wbits:cost.bits * lean, lean,
                 cost, perHit, incoming, p});
@@ -11097,7 +11106,6 @@ function* ceSolveGen(opts, foeRows, bonusOwn, bonusFoe){
   const note = (phase, at, of, msg) => { lastNote = Date.now(); return {phase, done:false, at, of, msg}; };
 
   let all = buildCandidates(Object.assign({}, opts, {goal:o.goal}), foeProfiles, bonusOwn, bonusFoe);
-  if (opts.side === "attacker") all = all.filter(c => c.type !== "Alicorns");
   if (!all.length){ yield {done:true, error:noLoadouts(o)}; return; }
   /* over several ticks killing them is how you live through it, so even a
      pure survival run keeps the loadouts that hit hard */
@@ -11844,11 +11852,10 @@ function syncSolveSide(){
   const ali = document.querySelector('[data-solve-type][value="Alicorns"]');
   const aliLean = document.querySelector('[data-solve-lean="Alicorns"]');
   if (ali){
-    ali.disabled = side !== "defender";
-    if (side !== "defender") ali.checked = false;
-    ali.parentElement.style.opacity = side === "defender" ? "1" : ".4";
+    ali.disabled = false;
+    ali.parentElement.style.opacity = "1";
   }
-  if (aliLean) aliLean.disabled = side !== "defender";
+  if (aliLean) aliLean.disabled = false;
 }
 
 /* ---- nation lean ---------------------------------------------------
@@ -13034,7 +13041,7 @@ const ctrEl = id => document.getElementById(id);
 let ctrBusy = false, ctrHalt = false, ctrLast = null;
 
 /* both sides of the fight get searched at once, so every unit type is a
-   legal target — alicorns included, since they can stand as defenders */
+   legal target — alicorns included */
 const CTR_TARGET_TYPES = ["Cavalry","Tanks","Pegasi","Unicorns","Naval","Alicorns"];
 
 function fillCounterTypes(){
@@ -13100,8 +13107,6 @@ function counterOpts(base, mode){
   };
 }
 
-/* alicorns never attack, so there is nothing of theirs to absorb */
-const ctrAbsorbImpossible = base => base.foe.type === "Alicorns";
 
 async function searchCounters(o, onProg){
   const foeProfiles = [solProfile(o.foe)];
@@ -13286,9 +13291,7 @@ function counterColumn(run, mode, base){
   const head = kill ? "Killing" : "Absorb";
 
   let body;
-  if (!run && !kill && ctrAbsorbImpossible(base)){
-    body = `<div class="note">Alicorns never attack.</div>`;
-  } else if (!run){
+  if (!run){
     body = `<div class="note warn">Search stopped.</div>`;
   } else if (!run.results.length){
     body = `<div class="note warn">${ctrHalt ? "Search stopped." : "Nothing found."}</div>`;
@@ -14423,7 +14426,7 @@ function asFight(name, b, chain){
   const hit = asFights.get(name);
   if (hit && hit.key === key) return hit.out;
   const rows = (list, isAtk) => (Array.isArray(list) ? list : [])
-    .filter(u => u && UNIT_COST[u.type] && !(isAtk && u.type === "Alicorns") && gsNum(u.size) >= 1)
+    .filter(u => u && UNIT_COST[u.type] && gsNum(u.size) >= 1)
     .map(u=>{
       const weapon = u.weapon || "ScroungedWeapons", armor = u.armor || "ScroungedArmor";
       const size = Math.floor(gsNum(u.size)), training = clampInt(u.training, 0, TRAIN_UNCAPPED);
