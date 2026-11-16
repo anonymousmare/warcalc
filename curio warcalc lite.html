@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Warcalc Lite 1.0 — CLOP</title>
+<title>Curio's Warcalc Lite 1.1 — CLOP</title>
 <style>
 :root{
   --bg:#272b30;
@@ -14,32 +14,275 @@
   --border:#1c1e22;
   --border-soft:rgba(0,0,0,.6);
   --link:#ffffff;
-
   --btn-default-a:#484e55; --btn-default-b:#313539;
   --btn-primary-a:#8a9196; --btn-primary-b:#70787d;
   --btn-success-a:#78cc78; --btn-success-b:#53be53;
   --btn-info-a:#74cae3;    --btn-info-b:#4ab9db;
   --btn-warning-a:#faa123; --btn-warning-b:#e48806;
   --btn-danger-a:#f17a77;  --btn-danger-b:#ec4d49;
+  --btn-ink:#fff; --btn-ink-dim:rgba(255,255,255,.72); --btn-shadow:0 -1px 0 rgba(0,0,0,.4);
+  --btn-default-ink:var(--btn-ink); --btn-default-ink-dim:var(--btn-ink-dim); --btn-default-shadow:var(--btn-shadow);   
+  --chip-x:rgba(255,255,255,.6);
+  --font:"Helvetica Neue",Helvetica,Arial,sans-serif;
+  --head-font:var(--font);
+  --mono:"SFMono-Regular",Menlo,Consolas,monospace;
+  --strong:#fff;
+  --faint:#5d6168; --faint-2:#6e7378; --rule-dim:#8a8f98;  --sw-ink:#d4d8dd;
+  --input-bg:#fff; --input-ink:#22262a;
+  --hi:255,255,255;   
+  --lo:0,0,0;         
+  --accent:#4ab9db;
+  --atk:#f17a77; --atk-rgb:241,122,119; --atk-deep:#b04542; --atk-lost:#a8514f;
+  --def:#74cae3; --def-rgb:116,202,227; --def-deep:#3a7fa0; --def-lost:#4f8a9c;
+  --good:#78cc78; --good-rgb:120,204,120;
+  --warn:#faa123; --warn-rgb:250,161,35;
+  --gold:#e2c760; --gold-rgb:226,199,96; --gold-dim:#8f7830; --gold-hov:#b09540; --gold-box:#b8972a; --gold-train:#b8962e;
+  --tone-b-rgb:92,168,226; --tone-c-rgb:162,116,226; --grey-rgb:120,126,134;
+  --paper-atk:#321f27; --ink-atk:#e3ccd4;
+  --paper-def:#1c2531; --ink-def:#cbd9e7;
+  --paper-moss:#1f2b24; --ink-moss:#cddfd2;
+  --surv-atk:#241a1a; --surv-def:#1a2026; --worth-bg:#22252a;
+  --opt-wine:#c46a86; --opt-wine-hov:#e08aa4; --opt-wine-box:#8e2f4f;
+  --opt-blue:#6fa8dc; --opt-blue-hov:#94c2ec; --opt-blue-box:#3b78b5;
+  --opt-purple:#a58bd8; --opt-purple-hov:#c0aaf0; --opt-purple-box:#7453b8;
+  --t-cav:#FF0000; --t-tank:#0076FF; --t-peg:#FF6EC7; --t-uni:#00FF21; --t-nav:#00FFFF;
+  --pc-wine:#a5535e; --pc-rust:#ad6a45; --pc-ochre:#a8914f; --pc-moss:#6e8f5c; --pc-teal:#4f8c84;
+  --pc-steel:#5a809e; --pc-slate:#6a70a3; --pc-plum:#866599; --pc-rose:#a3647f;
 }
+:is([data-theme="white"],[data-theme="applejack"],[data-theme="rainbow"]){
+  --pc-wine:#8a2f3c; --pc-rust:#8f4519; --pc-ochre:#735b12; --pc-moss:#3d6229; --pc-teal:#1d625a;
+  --pc-steel:#245679; --pc-slate:#3a4589; --pc-plum:#5e3478; --pc-rose:#80305d;
+}
+[data-theme] body{min-height:100vh;background-repeat:no-repeat}
+:is([data-theme="white"],[data-theme="applejack"],[data-theme="rainbow"]){
+  --icon-edge:drop-shadow(0 0 .6px rgba(var(--hi),.9)) drop-shadow(0 1px 1px rgba(var(--hi),.35))}
+[data-theme="white"]{--icon-edge:drop-shadow(0 0 .5px rgba(0,0,0,.5)) drop-shadow(0 1px 1px rgba(0,0,0,.15))}
+:where(.res-icon,.gear-img,.ref-train img,.ref-ammo img){filter:var(--icon-edge,none)}
+:is([data-theme="white"],[data-theme="applejack"],[data-theme="rainbow"]) :is(.ref-train,.ref-ammo) img{opacity:1}
+[data-theme] :where(button,select){font-family:var(--font)}
+@font-face{font-family:"Lovelt";src:url("https://files.catbox.moe/h1xvtm.ttf") format("truetype");font-display:swap}
+:root[data-theme="white"]{
+  color-scheme:light;
+  --bg:#fff; --text:#333; --text-dim:#777; --strong:#333; --faint:#999; --faint-2:#999; --rule-dim:#999; --sw-ink:#555;
+  --sunken:#f5f5f5; --raised:#fff; --border:#ddd; --border-soft:rgba(0,0,0,.15); --link:#428bca;
+  --btn-default-a:#fff; --btn-default-b:#e0e0e0;
+  --btn-primary-a:#428bca; --btn-primary-b:#2d6ca2;
+  --btn-success-a:#5cb85c; --btn-success-b:#419641;
+  --btn-info-a:#5bc0de;    --btn-info-b:#2aabd2;
+  --btn-warning-a:#f0ad4e; --btn-warning-b:#eb9316;
+  --btn-danger-a:#d9534f;  --btn-danger-b:#c12e2a;
+  --btn-ink:#fff; --btn-shadow:0 -1px 0 rgba(0,0,0,.2);
+  --btn-default-ink:#333; --btn-default-ink-dim:#777; --btn-default-shadow:0 1px 0 #fff; --chip-x:#999;
+  --input-bg:#fff; --input-ink:#555;
+  --hi:0,0,0; --lo:110,110,110;
+  --accent:#428bca;
+  --atk:#c9302c; --atk-rgb:217,83,79; --atk-deep:#a94442; --atk-lost:#a94442;
+  --def:#2a7fa8; --def-rgb:91,192,222; --def-deep:#31708f; --def-lost:#31708f;
+  --good:#3c8d3c; --good-rgb:92,184,92;
+  --warn:#d58512; --warn-rgb:240,173,78;
+  --gold:#a07a12; --gold-rgb:240,196,25; --gold-dim:#8a6d3b; --gold-hov:#6b5329; --gold-box:#c09853; --gold-train:#8a6d3b;
+  --paper-atk:#f2dede; --ink-atk:#a94442;
+  --paper-def:#d9edf7; --ink-def:#31708f;
+  --paper-moss:#dff0d8; --ink-moss:#3c763d;
+  --surv-atk:#fbf0f0; --surv-def:#eef6fb; --worth-bg:#f5f5f5;
+  --opt-wine:#a94466; --opt-wine-hov:#c9567f; --opt-wine-box:#a94466;
+  --opt-blue:#337ab7; --opt-blue-hov:#23527c; --opt-blue-box:#337ab7;
+  --opt-purple:#6f42c1; --opt-purple-hov:#59339d; --opt-purple-box:#6f42c1;
+  --t-cav:#d00; --t-tank:#0060d0; --t-peg:#d6339a; --t-uni:#14a020; --t-nav:#0a9a9a;
+}
+[data-theme="white"] .panel{box-shadow:0 1px 2px rgba(0,0,0,.05)}
+[data-theme="white"] .panel > .panel-head:first-child{margin:-14px -14px 12px;padding:9px 14px;border-radius:3px 3px 0 0;
+  background-image:linear-gradient(#f5f5f5,#e8e8e8);border-bottom-color:#ddd}
+[data-theme="white"] .well{background-image:linear-gradient(#e8e8e8,#f5f5f5);border-color:#dcdcdc;
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.05),0 1px 0 rgba(255,255,255,.1)}
+[data-theme="white"] .btn{border-color:#ccc}
+[data-theme="white"] :is(.btn-primary,.btn-success,.btn-info,.btn-warning,.btn-danger){border-color:rgba(0,0,0,.18)}
+:root[data-theme="black"]{
+  color-scheme:dark;
+  --bg:#060606; --text:#888; --text-dim:#6f6f6f; --strong:#fff; --faint:#555; --faint-2:#555; --rule-dim:#666; --sw-ink:#bbb;
+  --sunken:#151515; --raised:#222; --border:#282828; --border-soft:#282828; --link:#2a9fd6;
+  --btn-default-a:#424242; --btn-default-b:#424242;
+  --btn-primary-a:#2a9fd6; --btn-primary-b:#2a9fd6;
+  --btn-success-a:#77b300; --btn-success-b:#77b300;
+  --btn-info-a:#93c;       --btn-info-b:#93c;
+  --btn-warning-a:#f80;    --btn-warning-b:#f80;
+  --btn-danger-a:#c00;     --btn-danger-b:#c00;
+  --btn-shadow:none; --btn-default-shadow:none;
+  --input-bg:#fff; --input-ink:#555;
+  --accent:#2a9fd6;
+  --atk:#e5484d; --atk-rgb:204,0,0; --atk-deep:#a30000; --atk-lost:#b33;
+  --def:#2a9fd6; --def-rgb:42,159,214; --def-deep:#1f79a3; --def-lost:#2386b4;
+  --good:#77b300; --good-rgb:119,179,0;
+  --warn:#f80; --warn-rgb:255,136,0;
+  --gold:#e6c229; --gold-rgb:230,194,41; --gold-dim:#9a8420; --gold-hov:#c2a52a; --gold-box:#c9a619; --gold-train:#a8901f;
+  --tone-b-rgb:42,159,214; --tone-c-rgb:153,51,204;
+  --paper-atk:#2a0e0e; --ink-atk:#e8c4c4;
+  --paper-def:#0c1c26; --ink-def:#bfdcee;
+  --paper-moss:#141f05; --ink-moss:#cfe3a6;
+  --surv-atk:#1a0a0a; --surv-def:#08141b; --worth-bg:#111;
+  --opt-wine:#d0587e; --opt-wine-box:#a8325a; --opt-blue:#2a9fd6; --opt-blue-hov:#5bb8e3; --opt-blue-box:#2a9fd6;
+  --opt-purple:#b366e0; --opt-purple-hov:#cc8cf0; --opt-purple-box:#93c;
+}
+[data-theme="black"] .panel{border-color:#282828}
+[data-theme="black"] .btn{border-color:transparent}
+[data-theme="black"] :is(.btn,.badge){border-radius:4px}
+:root[data-theme="optimal"]{
+  color-scheme:dark;
+  --font:"Times New Roman",Times,serif; --head-font:"Lovelt","Times New Roman",serif; --font-size:15px;
+  --bg:#000; --text:#fff; --text-dim:#c9a3c9; --strong:#fff; --faint:#8a6a8a; --faint-2:#8a6a8a; --rule-dim:#ff9fff; --sw-ink:#ff9fff;
+  --sunken:#000; --raised:#000; --border:#ff9fff; --border-soft:rgba(255,159,255,.45); --link:#ff9fff;
+  --btn-default-a:#000; --btn-default-b:#000;
+  --btn-primary-a:#000; --btn-primary-b:#000;
+  --btn-success-a:#000; --btn-success-b:#000;
+  --btn-info-a:#000;    --btn-info-b:#000;
+  --btn-warning-a:#000; --btn-warning-b:#000;
+  --btn-danger-a:#000;  --btn-danger-b:#000;
+  --btn-shadow:none; --btn-default-shadow:none;
+  --input-bg:#000; --input-ink:#fff;
+  --hi:255,159,255; --lo:0,0,0;
+  --accent:#ff9fff;
+  --atk:#ff7aa2; --atk-rgb:255,122,162; --atk-deep:#c24d74; --atk-lost:#ff7aa2;
+  --def:#a9d8ff; --def-rgb:169,216,255; --def-deep:#6c9ec9; --def-lost:#a9d8ff;
+  --good:#b6ffb0; --good-rgb:182,255,176;
+  --warn:#ffc46b; --warn-rgb:255,196,107;
+  --gold:#ffe08a; --gold-rgb:255,224,138; --gold-dim:#c9a957; --gold-hov:#ffe08a; --gold-box:#e97de0; --gold-train:#c9a957;
+  --tone-b-rgb:169,216,255; --tone-c-rgb:255,159,255; --grey-rgb:255,159,255;
+  --paper-atk:#2a1530; --ink-atk:#ffd6f5;
+  --paper-def:#14142e; --ink-def:#d9dcff;
+  --paper-moss:#5b375b; --ink-moss:#fff;
+  --surv-atk:#1a0b1a; --surv-def:#0b0b1c; --worth-bg:#0d050d;
+  --opt-wine:#ff9fff; --opt-wine-hov:#ffd0ff; --opt-wine-box:#e97de0;
+  --opt-blue:#a9d8ff; --opt-blue-hov:#d4ecff; --opt-blue-box:#6c9ec9;
+  --opt-purple:#c9a3ff; --opt-purple-hov:#e2ccff; --opt-purple-box:#9a6bdf;
+}
+[data-theme="optimal"] h1,[data-theme="optimal"] h2{color:#ff9fff;font-weight:400}
+[data-theme="optimal"] h3{font-family:var(--font);font-weight:700}
+[data-theme="optimal"] .panel{border-radius:.25rem;box-shadow:0 .25rem .5rem 0 #ff9fff}
+[data-theme="optimal"] .well{border-color:#ff9fff;box-shadow:0 0 .5rem .01rem rgba(255,159,255,.5)}
+[data-theme="optimal"] input,[data-theme="optimal"] select,[data-theme="optimal"] textarea{border-color:#fff}
+[data-theme="optimal"] :is(input,textarea)::placeholder{color:#5b375b}
+[data-theme="optimal"] :is(.btn,.badge){border:1px solid #ff9fff;
+  box-shadow:0 0 .5rem .05rem rgba(255,159,255,.5)}
+[data-theme="optimal"] :is(.btn):hover{background-image:none;background-color:#5b375b;filter:none}
+[data-theme="optimal"] .btn:active{background-image:none;background-color:#ff9fff;color:#000}
+[data-theme="optimal"] :is(.btn-danger,.badge-danger){border-color:#fff;box-shadow:0 0 .25rem .1rem rgba(255,255,255,.5)}
+[data-theme="optimal"] :is(.btn-success){background-image:none;background-color:#5b375b}
+[data-theme="optimal"] .badge-info{color:#a9d8ff;border-color:#a9d8ff;box-shadow:0 0 .4rem rgba(169,216,255,.5)}
+[data-theme="optimal"] .badge-danger{color:#ff7aa2}
+[data-theme="optimal"] ::selection{background:#ff9fff;color:#000}
+:root[data-theme="applejack"]{
+  color-scheme:light;
+  --font:"Caudex",Georgia,"Times New Roman",serif; --head-font:"Rye","IM Fell English SC",Georgia,serif;
+  --bg:#eadfae; --text:#2f2115; --text-dim:#7a5a36; --strong:#4d2a12; --faint:#a88c63; --faint-2:#a88c63; --rule-dim:#8d5828; --sw-ink:#4d2a12;
+  --sunken:#f4dfad; --raised:#fff2d1; --border:#bd823a; --border-soft:rgba(141,88,40,.38); --link:#9f321f;
+  --btn-default-a:#f7e5bf; --btn-default-b:#c99b62;
+  --btn-primary-a:#c98a42; --btn-primary-b:#8d5828;
+  --btn-success-a:#81994c; --btn-success-b:#546b2d;
+  --btn-info-a:#5d86b3;    --btn-info-b:#2f5b8a;
+  --btn-warning-a:#eba845; --btn-warning-b:#c27a1c;
+  --btn-danger-a:#d45e34;  --btn-danger-b:#9f2f18;
+  --btn-ink:#fff9df; --btn-shadow:0 -1px 0 rgba(52,28,9,.45);
+  --btn-default-ink:#2b190b; --btn-default-ink-dim:#6b4a2a; --btn-default-shadow:0 1px 0 rgba(255,250,226,.7); --chip-x:#7a5a36;
+  --input-bg:#fffaf0; --input-ink:#2f2115;
+  --hi:77,42,18; --lo:120,78,36;
+  --accent:#c24a27;
+  --atk:#a73620; --atk-rgb:167,54,32; --atk-deep:#8a2b18; --atk-lost:#a73620;
+  --def:#2f5f8f; --def-rgb:47,95,143; --def-deep:#244b72; --def-lost:#2f5f8f;
+  --good:#506629; --good-rgb:113,137,61;
+  --warn:#c46a12; --warn-rgb:196,106,18;
+  --gold:#9a6a10; --gold-rgb:214,160,40; --gold-dim:#8a6416; --gold-hov:#6b4c0f; --gold-box:#b07d1c; --gold-train:#8a6416;
+  --tone-b-rgb:47,95,143; --tone-c-rgb:113,137,61; --grey-rgb:141,88,40;
+  --paper-atk:#f5d6c3; --ink-atk:#6e2416;
+  --paper-def:#dce4e6; --ink-def:#1f3c5a;
+  --paper-moss:#e1e6c4; --ink-moss:#3d4f1e;
+  --surv-atk:#f9e1cc; --surv-def:#ece7cf; --worth-bg:#f4dfad;
+  --opt-wine:#8e2f4f; --opt-wine-hov:#b0405f; --opt-wine-box:#8e2f4f;
+  --opt-blue:#2f5f8f; --opt-blue-hov:#4377aa; --opt-blue-box:#2f5f8f;
+  --opt-purple:#6a3f9a; --opt-purple-hov:#8455b8; --opt-purple-box:#6a3f9a;
+  --t-cav:#b3261e; --t-tank:#1f5aa6; --t-peg:#b8327c; --t-uni:#3f7a1f; --t-nav:#16797c;
+}
+[data-theme="applejack"] body{background:
+  radial-gradient(circle at 11% 38%,rgba(170,77,34,.45) 0 3px,transparent 4px),
+  radial-gradient(circle at 87% 39%,rgba(170,77,34,.45) 0 3px,transparent 4px),
+  linear-gradient(90deg,#b7cfb8 0%,#d9e5c7 14%,#eadfae 30%,#eadfae 70%,#d9e5c7 86%,#b7cfb8 100%) #eadfae}
+[data-theme="applejack"] h1,[data-theme="applejack"] h2{color:#a73620;font-weight:400;letter-spacing:.02em;text-shadow:0 1px 0 #fff2c7}
+[data-theme="applejack"] h3{color:#4d2a12;font-weight:700}
+[data-theme="applejack"] .panel{border-width:2px;border-color:#bd823a;
+  box-shadow:inset 0 0 0 2px rgba(255,250,226,.7),0 6px 16px rgba(61,35,10,.22)}
+[data-theme="applejack"] .panel-head{border-bottom:2px dashed #c17732}
+[data-theme="applejack"] .well{background-color:#f4dfad;border-color:#bd823a}
+[data-theme="applejack"] .btn{border-color:#7d562d;box-shadow:inset 0 1px 0 rgba(255,255,220,.35),0 2px 0 rgba(52,28,9,.3)}
+[data-theme="applejack"] .btn-success{border-color:#37491c}
+[data-theme="applejack"] .btn-danger{border-color:#64230f}
+[data-theme="applejack"] ::selection{background:#c24a27;color:#fff2d1}
+:root[data-theme="rainbow"]{
+  color-scheme:light;
+  --font:"Trebuchet MS",Verdana,Arial,sans-serif; --head-font:"Trebuchet MS",Verdana,Arial,sans-serif;
+  --mono:"Courier New",Courier,monospace;
+  --bg:#b9e8ff; --text:#063a94; --text-dim:#3d6db5; --strong:#052c7c; --faint:#7ea6d8; --faint-2:#7ea6d8; --rule-dim:#55aaf1; --sw-ink:#063a94;
+  --sunken:#e5f8ff; --raised:#f1fbff; --border:#72b6f1; --border-soft:rgba(29,105,199,.28); --link:#2448c9;
+  --btn-default-a:#eff8ff; --btn-default-b:#9bd8ff;
+  --btn-primary-a:#7cc9ff; --btn-primary-b:#3f96e9;
+  --btn-success-a:#7ee08b; --btn-success-b:#38b54c;
+  --btn-info-a:#b08cff;    --btn-info-b:#8e55ff;
+  --btn-warning-a:#ffd34d; --btn-warning-b:#ff9a1f;
+  --btn-danger-a:#ff8f8f;  --btn-danger-b:#ec4040;
+  --btn-ink:#fff; --btn-shadow:0 1px 1px rgba(5,44,124,.55);
+  --btn-default-ink:#063a94; --btn-default-ink-dim:#3d6db5; --btn-default-shadow:0 1px 0 rgba(255,255,255,.8); --chip-x:#3d6db5;
+  --input-bg:#fff; --input-ink:#063a94;
+  --hi:6,58,148; --lo:29,105,199;
+  --accent:#ff4fc8;
+  --atk:#e0245e; --atk-rgb:255,91,91; --atk-deep:#b51d4c; --atk-lost:#e0245e;
+  --def:#1d69c7; --def-rgb:85,170,241; --def-deep:#14509c; --def-lost:#1d69c7;
+  --good:#1f9a35; --good-rgb:102,217,120;
+  --warn:#e67700; --warn-rgb:255,154,31;
+  --gold:#b88600; --gold-rgb:255,214,60; --gold-dim:#9a7400; --gold-hov:#7a5c00; --gold-box:#e0a800; --gold-train:#9a7400;
+  --tone-b-rgb:85,170,241; --tone-c-rgb:142,85,255; --grey-rgb:85,170,241;
+  --paper-atk:#ffe3ec; --ink-atk:#a3164a;
+  --paper-def:#dceeff; --ink-def:#0b3d8a;
+  --paper-moss:#ddf6e2; --ink-moss:#1f6b2c;
+  --surv-atk:#fff0f4; --surv-def:#eaf6ff; --worth-bg:#e5f8ff;
+  --opt-wine:#d0217f; --opt-wine-hov:#ff4fc8; --opt-wine-box:#ff4fc8;
+  --opt-blue:#1d69c7; --opt-blue-hov:#2f8af0; --opt-blue-box:#1d69c7;
+  --opt-purple:#7a3ff0; --opt-purple-hov:#8e55ff; --opt-purple-box:#8e55ff;
+  --t-cav:#e01b1b; --t-tank:#0b5bd3; --t-peg:#e0218f; --t-uni:#1f9a2a; --t-nav:#0a8f9e;
+}
+[data-theme="rainbow"] body{background:
+  linear-gradient(180deg,rgba(255,255,255,.62),transparent 120px),
+  radial-gradient(ellipse at 18% 18%,rgba(255,255,255,.9) 0 8%,transparent 8.4%),
+  radial-gradient(ellipse at 78% 12%,rgba(255,255,255,.7) 0 10%,transparent 10.5%),
+  linear-gradient(180deg,#b9e8ff,#6eb9f6 1400px,#d9f8ff 2600px) #d9f8ff}
+[data-theme="rainbow"] .panel{border:2px solid #72b6f1;border-radius:8px;background:rgba(239,250,255,.92);
+  box-shadow:0 4px 14px rgba(11,79,160,.28),inset 0 0 0 2px rgba(255,255,255,.78)}
+[data-theme="rainbow"] .panel > .panel-head:first-child{margin:-12px -12px 12px;padding:6px 10px;border-radius:6px;
+  border:1px solid #8bd0ff;background:linear-gradient(#7cc9ff,#3f96e9);
+  --text:#fff;--text-dim:#e5f8ff;--strong:#fff;--sunken:#eff8ff;--border-soft:rgba(5,44,124,.35)}
+[data-theme="rainbow"] .panel > .panel-head:first-child h2{color:#fff;text-transform:uppercase;font-weight:700;letter-spacing:.02em;
+  text-shadow:-1px -1px 0 #2066c3,1px -1px 0 #2066c3,-1px 1px 0 #2066c3,1px 1px 0 #2066c3,0 2px 0 #174d9a}
+[data-theme="rainbow"] .panel > .panel-head:first-child :is(.ap-sel,.bp-sel){color:#063a94}
+[data-theme="rainbow"] h2{color:#1d69c7;font-weight:700}
+[data-theme="rainbow"] .well{border:2px solid #9bd8ff;border-radius:6px}
+[data-theme="rainbow"] .log,[data-theme="rainbow"] .mono{font-weight:700}
+[data-theme="rainbow"] .btn{border-color:#4d8bdc;border-radius:6px;box-shadow:inset 1px 1px 0 rgba(255,255,255,.6)}
+[data-theme="rainbow"] input,[data-theme="rainbow"] select,[data-theme="rainbow"] textarea{border-color:#74aeea}
+[data-theme="rainbow"] ::selection{background:#ff4fc8;color:#fff}
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
 body{
   background:var(--bg);
   color:var(--text);
-  font:14px/1.45 "Helvetica Neue",Helvetica,Arial,sans-serif;
+  font:var(--font-size,14px)/1.45 var(--font);
   padding:20px;
 }
-h1,h2,h3{margin:0 0 10px;font-weight:500;color:#fff;letter-spacing:.01em}
+h1,h2,h3{margin:0 0 10px;font-weight:500;color:var(--strong);letter-spacing:.01em;font-family:var(--head-font)}
 h1{font-size:26px}
 h2{font-size:19px}
 h3{font-size:15px;color:var(--text)}
 a{color:var(--link)}
-.mono{font-family:"SFMono-Regular",Menlo,Consolas,monospace}
+.mono{font-family:var(--mono)}
 .muted{color:var(--text-dim)}
 .small{font-size:12px}
 
-/* ---------- surfaces ---------- */
 .panel{
   background:var(--raised);
   border:1px solid var(--border);
@@ -61,51 +304,51 @@ a{color:var(--link)}
 .panel-head h2{margin:0;flex:0 0 auto}
 .spacer{flex:1 1 auto}
 
-/* ---------- controls ---------- */
 .btn{
   display:inline-block;border:1px solid var(--border-soft);border-radius:4px;
-  padding:5px 12px;font-size:13px;font-weight:500;color:#fff;cursor:pointer;
-  text-shadow:0 -1px 0 rgba(0,0,0,.4);
+  padding:5px 12px;font-size:13px;font-weight:500;color:var(--btn-default-ink);cursor:pointer;
+  text-shadow:var(--btn-default-shadow);
   background-image:linear-gradient(to bottom,var(--btn-default-a),var(--btn-default-b));
 }
 .btn:hover{filter:brightness(1.14)}
 .btn:active{filter:brightness(.9)}
-.btn:focus-visible{outline:2px solid #74cae3;outline-offset:1px}
+.btn:focus-visible{outline:2px solid var(--def);outline-offset:1px}
 .btn-primary{background-image:linear-gradient(to bottom,var(--btn-primary-a),var(--btn-primary-b))}
 .btn-success{background-image:linear-gradient(to bottom,var(--btn-success-a),var(--btn-success-b))}
 .btn-info{background-image:linear-gradient(to bottom,var(--btn-info-a),var(--btn-info-b))}
 .btn-warning{background-image:linear-gradient(to bottom,var(--btn-warning-a),var(--btn-warning-b))}
 .btn-danger{background-image:linear-gradient(to bottom,var(--btn-danger-a),var(--btn-danger-b))}
+.btn-primary,.btn-success,.btn-info,.btn-warning,.btn-danger{color:var(--btn-ink);text-shadow:var(--btn-shadow)}
 .btn-xs{padding:2px 8px;font-size:12px}
 
 .badge{
-  display:inline-block;padding:2px 8px;border-radius:9px;font-size:11px;font-weight:600;color:#fff;
-  text-shadow:0 -1px 0 rgba(0,0,0,.4);border:1px solid var(--border-soft);
+  display:inline-block;padding:2px 8px;border-radius:9px;font-size:11px;font-weight:600;color:var(--btn-default-ink);
+  text-shadow:var(--btn-default-shadow);border:1px solid var(--border-soft);
   background-image:linear-gradient(to bottom,var(--btn-default-a),var(--btn-default-b));
 }
 .badge-success{background-image:linear-gradient(to bottom,var(--btn-success-a),var(--btn-success-b))}
 .badge-danger{background-image:linear-gradient(to bottom,var(--btn-danger-a),var(--btn-danger-b))}
 .badge-info{background-image:linear-gradient(to bottom,var(--btn-info-a),var(--btn-info-b))}
 .badge-warning{background-image:linear-gradient(to bottom,var(--btn-warning-a),var(--btn-warning-b))}
+.badge-success,.badge-danger,.badge-info,.badge-warning{color:var(--btn-ink);text-shadow:var(--btn-shadow)}
 
 input,select,textarea{
-  background:#fff;color:#22262a;border:1px solid var(--border-soft);border-radius:3px;
+  background:var(--input-bg);color:var(--input-ink);border:1px solid var(--border-soft);border-radius:3px;
   padding:4px 6px;font:13px/1.3 inherit;
 }
-input:focus,select:focus,textarea:focus{outline:2px solid #4ab9db;outline-offset:-1px}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
 input[type=number]{width:100%}
 select{width:100%}
-textarea{width:100%;min-height:170px;font-family:"SFMono-Regular",Menlo,Consolas,monospace;font-size:12px}
+textarea{width:100%;min-height:170px;font-family:var(--mono);font-size:12px}
 label{font-size:12px;color:var(--text-dim);display:block;margin-bottom:3px}
 
-/* ---------- tables ---------- */
 table{border-collapse:collapse;width:100%}
 th,td{padding:5px 7px;text-align:left;vertical-align:middle}
 thead th{
   font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);
   font-weight:600;border-bottom:1px solid var(--border-soft);
 }
-tbody tr{border-bottom:1px solid rgba(0,0,0,.35)}
+tbody tr{border-bottom:1px solid rgba(var(--lo),.35)}
 tbody tr:last-child{border-bottom:none}
 
 .force-table td{padding:6px 5px}
@@ -121,10 +364,10 @@ tbody tr:last-child{border-bottom:none}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 @media (max-width:1100px){.grid2,.grid3{grid-template-columns:1fr}}
 
-/* ---------- sprite ---------- */
 .sprite{
-  width:80px;height:50px;display:block;object-fit:contain;
-  background:var(--sunken);border:1px solid var(--border-soft);border-radius:3px;
+  width:80px;height:50px;box-sizing:content-box;display:block;object-fit:contain;
+  image-rendering:pixelated;
+  background:var(--sunken);border:1px solid var(--border-soft);
 }
 .sprite-lg{width:80px;height:50px;margin:0 auto}
 .sprite-missing.sprite-lg{margin:0 auto}
@@ -134,16 +377,15 @@ tbody tr:last-child{border-bottom:none}
 }
 .sprite-missing.sprite-lg{font-size:20px}
 
-/* ---------- log ---------- */
 .log{
-  max-height:320px;overflow:auto;font-family:"SFMono-Regular",Menlo,Consolas,monospace;
+  max-height:320px;overflow:auto;font-family:var(--mono);
   font-size:12px;line-height:1.6;
 }
-.log div{padding:2px 0;border-bottom:1px solid rgba(0,0,0,.25)}
-.log b{color:#fff;font-weight:600}
+.log div{padding:2px 0;border-bottom:1px solid rgba(var(--lo),.25)}
+.log b{color:var(--strong);font-weight:600}
 .unit-ref{font-weight:600;cursor:help;border-bottom:1px dotted currentColor}
-.ref-atk{color:#f17a77}
-.ref-def{color:#74cae3}
+.ref-atk{color:var(--atk)}
+.ref-def{color:var(--def)}
 
 #tip{
   position:fixed;z-index:999;display:none;pointer-events:none;
@@ -153,47 +395,57 @@ tbody tr:last-child{border-bottom:none}
 .tip-head{display:flex;gap:10px;align-items:flex-start;margin-bottom:8px}
 .tip-head > div{line-height:1.15}
 .tip-head > div > div{margin-top:1px}
-.tip-title{color:#fff;font-weight:600;font-size:13px;line-height:1.2}
+.tip-title{color:var(--strong);font-weight:600;font-size:13px;line-height:1.2}
 .tip-math td{font-size:12px;padding:1px 4px}
 .tip-math tbody tr{border:none}
-.tip-math .n{text-align:right;font-family:"SFMono-Regular",Menlo,Consolas,monospace}
-.tip-math .tot td{border-top:1px solid var(--border-soft);padding-top:4px;color:#fff}
+.tip-math .n{text-align:right;font-family:var(--mono)}
+.tip-math .tot td{border-top:1px solid var(--border-soft);padding-top:4px;color:var(--strong)}
 .dmg-ref{cursor:help;border-bottom:1px dotted currentColor}
 .tip-table{width:100%;border-top:1px solid var(--border-soft);padding-top:4px}
 .tip-table th{font-size:10px;padding:3px 4px}
 .tip-table td{font-size:12px;padding:1px 4px}
 .tip-table tbody tr{border:none}
-.kill{color:#f17a77;font-weight:600}
-.hurt{color:#faa123}
+.kill{color:var(--atk);font-weight:600}
+.hurt{color:var(--warn)}
 
 .surv-card{
   width:150px;text-align:center;padding:10px;border-radius:4px;
   border:1px solid var(--border-soft);background:var(--sunken);
 }
-.surv-atk{background:#241a1a;border-color:rgba(241,122,119,.22)}
-.surv-def{background:#1a2026;border-color:rgba(116,202,227,.18)}
+.surv-atk{background:var(--surv-atk);border-color:rgba(var(--atk-rgb),.22)}
+.surv-def{background:var(--surv-def);border-color:rgba(var(--def-rgb),.18)}
 .surv-dead{opacity:.45}
 .surv-col h3{margin-bottom:8px}
 .surv-grid{display:flex;gap:12px;flex-wrap:wrap}
 
 .note{
-  border-left:3px solid #4ab9db;background:rgba(74,202,227,.07);
+  border-left:3px solid var(--accent);background:rgba(var(--def-rgb),.07);
   padding:8px 11px;border-radius:0 3px 3px 0;font-size:12.5px;margin-bottom:14px;
 }
-.note.warn{border-left-color:#faa123;background:rgba(250,161,35,.07)}
-details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
-.stat-table input{width:62px;text-align:right;font-family:"SFMono-Regular",Menlo,Consolas,monospace;font-size:12px}
+.note.warn{border-left-color:var(--warn);background:rgba(var(--warn-rgb),.07)}
+details summary{cursor:pointer;color:var(--strong);font-size:13px;padding:2px 0}
+.stat-table input{width:62px;text-align:right;font-family:var(--mono);font-size:12px}
 .stat-table td,.stat-table th{padding:3px 5px;font-size:12px}
 .stat-table tbody th{font-weight:500;color:var(--text);text-transform:none;letter-spacing:0;border:none}
 
-/* ---------- top bar / presets ---------- */
-.topbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.topbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;position:relative}
+.clear-mid{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:8px}
+.sprite-theme{width:auto;margin:0;padding:1px 4px;font-size:11px;background:var(--sunken);color:var(--text);border-color:var(--border-soft)}
+.hk-toggle{display:inline-flex;align-items:center;gap:5px;margin:0;font-size:12px;color:var(--text-dim);cursor:pointer;white-space:nowrap}
+.hk-toggle:hover{color:var(--text)}
+.theme-pick select{width:auto;padding:1px 4px;font-size:12px}
+.surv-col h3{display:flex;align-items:center;gap:6px}
+#horsewife{position:fixed;inset:0;width:100vw;height:100vh;border:0;margin:0;padding:0;z-index:940;
+  pointer-events:none;background:transparent;color-scheme:normal;
+  --mx:-999px;--my:-999px;
+  -webkit-mask-image:radial-gradient(circle at var(--mx) var(--my),rgba(0,0,0,.08) 0,rgba(0,0,0,.08) 18px,#000 130px);
+  mask-image:radial-gradient(circle at var(--mx) var(--my),rgba(0,0,0,.08) 0,rgba(0,0,0,.08) 18px,#000 130px)}
 .topbar h1{margin:0}
 .caret-btn{
   background:none;border:none;color:var(--text-dim);font-size:20px;line-height:1;
   cursor:pointer;padding:0 4px;transition:transform .12s;display:inline-block;
 }
-.caret-btn:hover{color:#fff}
+.caret-btn:hover{color:var(--strong)}
 .caret-btn.open{transform:rotate(90deg)}
 .battle-presets{display:flex;align-items:center;gap:4px;opacity:.45;transition:opacity .15s}
 .battle-presets:hover,.battle-presets:focus-within{opacity:1}
@@ -202,16 +454,15 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .bp-btn{
   background:none;border:none;color:var(--text-dim);font-size:11px;cursor:pointer;padding:1px 3px;
 }
-.bp-btn:hover{color:#fff;text-decoration:underline}
-.bp-btn.ok{color:#78cc78}
+.bp-btn:hover{color:var(--strong);text-decoration:underline}
+.bp-btn.ok{color:var(--good)}
 
-/* the bare - and + beside the Tr heading step every row's training */
 .force-table th.col-train{position:relative}
 .tr-sw{position:absolute;left:24px;top:50%;transform:translateY(-50%);display:none;gap:3px;line-height:1}
 .force-table th.col-train:hover .tr-sw{display:flex}
 .tr-sw button{
   all:unset;cursor:pointer;position:relative;width:12px;height:12px;opacity:.45;
-  border-radius:50%;background:rgba(120,126,134,.14);font-size:0;color:#d4d8dd;
+  border-radius:50%;background:rgba(var(--grey-rgb),.14);font-size:0;color:var(--sw-ink);
 }
 .tr-sw button::before,.tr-sw button[data-step="1"]::after{
   content:"";position:absolute;left:50%;top:50%;background:currentColor;
@@ -220,8 +471,6 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .tr-sw button[data-step="1"]::after{width:1.5px;height:6px}
 .tr-sw button:hover{opacity:1}
 
-/* the crunch report — a link can carry the spreadsheet's own totals, and a
-   mismatch has to be impossible to click past */
 .modal-wrap{
   position:fixed;inset:0;z-index:950;background:rgba(0,0,0,.62);
   display:flex;align-items:flex-start;justify-content:center;padding:56px 16px;overflow:auto;
@@ -232,7 +481,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 }
 .modal-head{display:flex;align-items:center;gap:9px;padding:10px 14px;
   border-bottom:1px solid var(--border-soft)}
-.modal-head h2{margin:0;font-size:14px;color:#fff}
+.modal-head h2{margin:0;font-size:14px;color:var(--strong)}
 .modal-body{padding:12px 14px;font-size:12.5px;max-height:62vh;overflow:auto}
 .modal-foot{padding:9px 14px;border-top:1px solid var(--border-soft);
   display:flex;gap:8px;align-items:center}
@@ -245,22 +494,21 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .crunch-table th{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;
   color:var(--text-dim);font-weight:500}
 .crunch-table th:first-child,.crunch-table td:first-child{text-align:left;width:100%}
-.crunch-table td.n{font-family:"SFMono-Regular",Menlo,Consolas,monospace}
+.crunch-table td.n{font-family:var(--mono)}
 .crunch-table tr.crunch-head td{font-weight:700}
-.crunch-short{color:#f17a77}
-.crunch-over{color:#faa123}
-.t-cavalry {color:#FF0000}
-.t-tanks   {color:#0076FF}
-.t-pegasi  {color:#FF6EC7}
-.t-unicorns{color:#00FF21}
-.t-naval   {color:#00FFFF}
+.crunch-short{color:var(--atk)}
+.crunch-over{color:var(--warn)}
+.t-cavalry {color:var(--t-cav)}
+.t-tanks   {color:var(--t-tank)}
+.t-pegasi  {color:var(--t-peg)}
+.t-unicorns{color:var(--t-uni)}
+.t-naval   {color:var(--t-nav)}
 .army-presets{display:flex;align-items:center;gap:4px;opacity:.45;transition:opacity .15s}
 .army-presets:hover,.army-presets:focus-within{opacity:1}
 .ap-sel{width:auto;max-width:112px;font-size:11px;padding:1px 4px;
   background:var(--sunken);color:var(--text);border-color:var(--border-soft)}
 .v-div{color:var(--text-dim);opacity:.4;font-size:12px;margin:0 1px}
 
-/* ---------- resources ---------- */
 .res-icon{
   width:16px;height:16px;display:block;flex:0 0 16px;
   image-rendering:pixelated;image-rendering:crisp-edges;
@@ -268,9 +516,8 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .res-chip{display:inline-flex;align-items:center;gap:4px;margin:0 9px 0 0;font-size:12px;white-space:nowrap;vertical-align:middle;line-height:16px}
 .res-chip .mono{font-size:12px}
 .res-none{color:var(--text-dim);font-size:12px;font-style:italic}
-.bits{font-family:"SFMono-Regular",Menlo,Consolas,monospace;color:#fff}
+.bits{font-family:var(--mono);color:var(--strong)}
 
-/* ---------- cost footer ---------- */
 .cost-foot{
   margin-top:12px;padding-top:10px;border-top:1px solid var(--border-soft);
 }
@@ -281,7 +528,7 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .cost-drop > summary::-webkit-details-marker{display:none}
 .cost-drop > summary:before{content:"▸";display:inline-block;transition:transform .12s}
 .cost-drop[open] > summary:before{transform:rotate(90deg)}
-.cost-drop > summary:hover{color:#fff}
+.cost-drop > summary:hover{color:var(--strong)}
 .cost-body{padding-top:8px}
 .cost-row{
   display:flex;gap:10px;align-items:center;padding:3px 0;font-size:12px;
@@ -290,12 +537,11 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .cost-row .cost-val{flex:1 1 auto;text-align:left}
 .has-tip > .cost-label{border-bottom:1px dotted var(--text-dim);cursor:help;display:inline-block;flex:0 0 138px}
 
-/* Resources row doubles as the raw dropdown */
 .res-drop > summary{list-style:none;cursor:pointer}
 .res-drop > summary::-webkit-details-marker{display:none}
 .res-drop > summary .caret{display:inline-block;transition:transform .12s;color:var(--text-dim)}
 .res-drop[open] > summary .caret{transform:rotate(90deg)}
-.res-drop > summary:hover .cost-label{color:#fff}
+.res-drop > summary:hover .cost-label{color:var(--strong)}
 .res-drop .raw-body{padding:2px 0 2px 12px}
 .res-drop .raw-body .cost-label{flex:0 0 126px}
 
@@ -305,16 +551,40 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 .tip-break td{font-size:12px;padding:6px 4px;vertical-align:top}
 .tip-break tbody tr{border:none}
 .tip-break tbody tr + tr td{border-top:1px solid var(--border-soft)}
-.tip-break .u{color:#fff;white-space:nowrap}
+.tip-break .u{color:var(--strong);white-space:nowrap}
 </style>
+<script>
+const THEMES = {grey:"Grey", white:"White", black:"Black", optimal:"Optimal", applejack:"Applejack", rainbow:"Rainbow Dash"};
+const THEME_FONTS = {
+  applejack:"https://fonts.googleapis.com/css2?family=Rye&family=Caudex:ital,wght@0,400;0,700;1,400&display=swap",
+  rainbow:"https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
+};
+function applyTheme(t){
+  if (!THEMES[t]) t = "grey";
+  if (t === "grey") delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = t;
+  const href = THEME_FONTS[t];
+  if (href && !document.querySelector(`link[data-theme-font="${t}"]`)){
+    const l = document.createElement("link");
+    l.rel = "stylesheet"; l.href = href; l.dataset.themeFont = t;
+    document.head.appendChild(l);
+  }
+  return t;
+}
+try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
+</script>
 </head>
 <body>
 
 <div class="topbar">
-  <h1>Warcalc Lite 1.0 <button class="caret-btn" id="btnTools" title="Import / export presets" aria-expanded="false">›</button></h1>
+  <h1>Curio's Warcalc Lite 1.1 <button class="caret-btn" id="btnTools" title="Settings, import / export presets" aria-expanded="false">›</button></h1>
   <div class="battle-presets">
     <button class="bp-btn" id="btlCopy" title="Copy the whole battle as a code  (shift-click for the long form)">copy</button>
-    <button class="bp-btn" id="btlLink" title="Copy a link that loads this battle">link</button>
+  </div>
+  <div class="clear-mid">
+    <select class="sprite-theme" data-sprite-theme="attacker" aria-label="Attacker sprites" title="Attacker sprites"></select>
+    <button class="btn btn-xs" id="btnClearAll" title="Clear the attackers and the defenders, and the battle result">Clear all</button>
+    <select class="sprite-theme" data-sprite-theme="defender" aria-label="Defender sprites" title="Defender sprites"></select>
   </div>
   <span class="spacer"></span>
   <div class="battle-presets">
@@ -327,9 +597,14 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 </div>
 
 <div class="panel" id="toolsPanel" style="display:none">
-  <div class="panel-head"><h2>Presets</h2><span class="spacer"></span>
+  <div class="panel-head"><h2>Settings</h2><span class="spacer"></span>
     <span class="small muted" id="toolsCount"></span></div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <label class="hk-toggle theme-pick" for="themeSel">Theme
+      <select id="themeSel"></select></label>
+    <label class="hk-toggle theme-pick" for="wifeSel">Horsewife
+      <select id="wifeSel"></select></label>
+    <span class="v-div">|</span>
     <button class="btn btn-xs" id="expArmies">Export army presets (JSON)</button>
     <button class="btn btn-xs" id="expBattles">Export battle presets (JSON)</button>
     <button class="btn btn-xs" id="expAll">Export everything</button>
@@ -343,7 +618,6 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
   </div>
 </div>
 
-<!-- ============ FORCES ============ -->
 <div class="grid2">
   <div class="panel">
     <div class="panel-head">
@@ -398,7 +672,6 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
   </div>
 </div>
 
-<!-- ============ RUN ============ -->
 <div class="panel">
   <div style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap">
     <div style="width:150px">
@@ -410,11 +683,9 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
   </div>
 </div>
 
-<!-- ============ RESULTS ============ -->
 <div id="results"></div>
 <div id="tip"></div>
 
-<!-- ============ IMPORT ============ -->
 <div class="panel">
   <div class="panel-head"><h2>Import units</h2></div>
   <textarea id="txtImport" spellcheck="false" placeholder="an army code &#8212; 3F3F&#10;a battle code &#8212; +3F3F-9kQw2&#10;&#10;or the long form:&#10;4_ACFU_Nope&#10;Cavalry&#10;ACFU&#10;Nope&#10;Size: 200&#10;Training: 20&#10;&#10;or a whole nation page, copied off the screen&#10;&#10;or preset JSON, as the Export buttons write it"></textarea>
@@ -429,10 +700,6 @@ details summary{cursor:pointer;color:#fff;font-size:13px;padding:2px 0}
 <script>
 "use strict";
 
-/* ===================================================================
-   1. DEFINITIONS  (mirrors $forcetypes / $weapontypes / $armortypes)
-   =================================================================== */
-
 const FORCE_TYPES = {Cavalry:1, Tanks:2, Pegasi:3, Unicorns:4, Naval:5, Alicorns:6};
 const TYPES = {1:"cavalry", 2:"tanks", 3:"pegasi", 4:"unicorns", 5:"naval"};
 const TYPE_NUMS = [1,2,3,4,5];
@@ -445,7 +712,6 @@ const ARMOR_IDS = {ScroungedArmor:0,Barding:1,Bigdog:2,Nope:3,Trundle:4,Shepherd
   Cooler:8,Wonder:9,Griffin:10,Dragon:11,Hornshield:12,Librarian:13,Shining:14,D2A:15,
   "C-PON3":16,Esohes:17,Shubidu:18};
 
-// Which weapons/armor each unit type may equip (from bindDropdownsInner)
 const LOADOUTS = {
   Alicorns:{weapons:["ScroungedWeapons"], armor:["ScroungedArmor"]},
   Cavalry:{weapons:["ScroungedWeapons","PRC-E6","PRC-E7","PRC-E8","ACFU","ATFU","APFU","AUFU"],
@@ -466,9 +732,6 @@ const LABELS = {"Chem-LightBattery":"Chem-Light Battery",PropWash:"Prop Wash",St
   ScroungedArmor:"Scrounged Armor"};
 const label = k => LABELS[k] || k;
 
-/* weapondefs / armordefs, verbatim from tables_with_data.sql.
-   ids 0 (Scrounged) are absent by design: the PHP treats id 0 as falsy
-   and applies its hardcoded 0.25 damage / 1.0 armor fallbacks. */
 let WEAPON_DEFS = {
   "PRC-E6":            {cavalry:0.80, tanks:0.80, pegasi:0.80, unicorns:0.80, naval:0.80},
   "PRC-E7":            {cavalry:0.90, tanks:0.90, pegasi:0.90, unicorns:0.90, naval:0.90},
@@ -512,15 +775,10 @@ let ARMOR_DEFS = {
   "Shubidu":   {cavalry:0.40, tanks:0.40, pegasi:0.40, unicorns:0.40, naval:0.40}
 };
 
-/* ===================================================================
-   1b. ECONOMY — resources, recipes, unit hire/upkeep, gear build costs
-   =================================================================== */
-
 const BIT = "฿";
 
 const money = n => Math.round(n).toLocaleString("en-US");
 
-/* resource icons live on the game's own site, filed under the name shown on screen */
 const ICON_BASE = "https://4clop.org/images/icons/";
 const iconUrl = name => ICON_BASE + encodeURIComponent(name) + ".png";
 
@@ -541,7 +799,6 @@ const RESOURCES = {
 };
 const RES_ORDER = Object.keys(RESOURCES);
 
-/* crafted parts -> raw components + the bits the crafting step costs */
 const CRAFT = {
   machinery: {res:{copper:1, energy:1},      bits:200},
   vehicle:   {res:{copper:1, energy:1},      bits:300},
@@ -555,7 +812,7 @@ const UNIT_COST = {
   Pegasi:  {hire:300000, upkeep:{coffee:5}},
   Unicorns:{hire:400000, upkeep:{gems:5}},
   Naval:   {hire:250000, upkeep:{gasoline:5}},
-  Alicorns:{hire:0,      upkeep:{}}          // no published price
+  Alicorns:{hire:2000000, upkeep:{gems:10}}
 };
 
 const WEAPON_COST = {
@@ -613,7 +870,6 @@ function addRes(into, from, mult){
   return into;
 }
 
-/* replace crafted parts with what they are actually made of */
 function toRaw(res){
   const out = {};
   let craftBits = 0;
@@ -639,27 +895,65 @@ function resChips(res){
     `<span class="res-chip">${resIcon(k)}<span class="mono">${res[k]}</span></span>`).join("");
 }
 
-/* ===================================================================
-   2. SPRITES
-   Same filename scheme overview.php uses:
-   images/{lowertype}/w-{armor_id}-{weapon_id}.png
-   Scrounged gear is id 0 on both axes, so unequipped units land on w-0-0.png.
-   Anything that 404s is replaced with a question mark.
-   =================================================================== */
 const IMG_BASE = "https://4clop.org/images/";
 
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 
-function spritePath(type, weapon, armor){
-  return `${IMG_BASE}${type.toLowerCase()}/w-${ARMOR_IDS[armor]}-${WEAPON_IDS[weapon]}.png`;
+const SPRITE_THEMES = {
+  Equestrian: IMG_BASE,
+  Rheinmetall: "https://cloppenmanager.neocities.org/"
+};
+const LS_SPRITE_THEME = "warcalc.spriteTheme";
+const spriteTheme = (() => {
+  let t = {};
+  try { t = JSON.parse(localStorage.getItem(LS_SPRITE_THEME) || "{}") || {}; } catch(e){}
+  const ok = k => SPRITE_THEMES[k] ? k : "Equestrian";
+  return {attacker: ok(t.attacker), defender: ok(t.defender)};
+})();
+
+function spritePath(type, weapon, armor, side){
+  const base = (side && SPRITE_THEMES[spriteTheme[side]]) || IMG_BASE;
+  return `${base}${type.toLowerCase()}/w-${ARMOR_IDS[armor]}-${WEAPON_IDS[weapon]}.png`;
 }
 
 function buildSprite(type, weapon, armor, big, meta){
+  const side = meta?.side;
   const tip = typeof tipAttrs === "function"
     ? tipAttrs(type, weapon, armor, meta?.size, meta?.training) : "";
-  return `<img class="sprite${big ? " sprite-lg" : ""}" src="${esc(spritePath(type, weapon, armor))}"
+  const src = spritePath(type, weapon, armor, side), plain = spritePath(type, weapon, armor);
+  return `<img class="sprite${big ? " sprite-lg" : ""}" src="${esc(src)}"
     alt="${esc(type)} — ${esc(label(weapon))} / ${esc(label(armor))}" loading="lazy"
-    ${tip} onerror="this.replaceWith(spriteMissing(this))">`;
+    ${side ? `data-sp-side="${side}" data-sp="${esc(type)}|${esc(weapon)}|${esc(armor)}"` : ""}
+    ${src !== plain ? `data-sp-fb="${esc(plain)}"` : ""}
+    ${tip} onerror="spriteFail(this)">`;
+}
+
+function spriteFail(img){
+  const fb = img.dataset.spFb;
+  if (fb && img.getAttribute("src") !== fb){
+    delete img.dataset.spFb;
+    img.src = fb;
+    return;
+  }
+  img.replaceWith(spriteMissing(img));
+}
+
+function repaintSprites(side){
+  document.querySelectorAll(`[data-sp-side="${side}"]`).forEach(el => {
+    const [type, weapon, armor] = el.dataset.sp.split("|");
+    const src = spritePath(type, weapon, armor, side), plain = spritePath(type, weapon, armor);
+    let img = el;
+    if (el.tagName !== "IMG"){
+      img = document.createElement("img");
+      img.className = "sprite" + (el.classList.contains("sprite-lg") ? " sprite-lg" : "");
+      img.alt = `${type} — ${label(weapon)} / ${label(armor)}`;
+      Object.entries(el.dataset).forEach(([k, v]) => { img.dataset[k] = v; });
+      img.setAttribute("onerror", "spriteFail(this)");
+      el.replaceWith(img);
+    }
+    if (src !== plain) img.dataset.spFb = plain; else delete img.dataset.spFb;
+    img.src = src;
+  });
 }
 
 function spriteMissing(img){
@@ -670,10 +964,6 @@ function spriteMissing(img){
   return span;
 }
 
-/* ===================================================================
-   3. ROW MANAGEMENT
-   =================================================================== */
-
 let rowSeq = 0;
 
 function makeRow(side, data){
@@ -681,9 +971,7 @@ function makeRow(side, data){
   tr.dataset.side = side;
   tr.dataset.id = ++rowSeq;
 
-  const typeOpts = (side === "defender"
-    ? ["Cavalry","Tanks","Pegasi","Unicorns","Naval","Alicorns"]
-    : ["Cavalry","Tanks","Pegasi","Unicorns","Naval"]);
+  const typeOpts = ["Cavalry","Tanks","Pegasi","Unicorns","Naval","Alicorns"];
 
   tr.innerHTML = `
     <td class="col-sprite"><span class="spriteSlot"></span></td>
@@ -740,14 +1028,13 @@ function paintRow(tr){
   const size = tr.querySelector(".size").value;
   const slot = tr.querySelector(".spriteSlot");
 
-  // keep the same <img> when only size/training moved — avoids a sprite reload
   const cur = slot.querySelector("[data-tip-t]");
   if (type && cur && cur.dataset.tipT === type && cur.dataset.tipW === weapon && cur.dataset.tipA === armor){
     cur.dataset.tipSize = size;
     cur.dataset.tipTrain = training;
   } else {
     slot.innerHTML = type
-      ? buildSprite(type, weapon, armor, false, {size, training})
+      ? buildSprite(type, weapon, armor, false, {size, training, side: tr.dataset.side})
       : `<span class="muted small">—</span>`;
   }
   refreshCosts();
@@ -761,12 +1048,6 @@ function refreshCounts(){
   refreshCosts();
 }
 
-/* ===================================================================
-   3b. COST SUMMARY per side
-   =================================================================== */
-
-/* tooltips whose body is arbitrary html live in this registry, keyed by
-   data-tip-key, so we never have to shove markup through an attribute */
 const TIPS = new Map();
 let tipSeq = 0;
 function regTip(html, ns){
@@ -785,7 +1066,7 @@ function sideCosts(side){
   const items = [];
 
   rows.forEach(u=>{
-    const n = Math.max(0, u.size);            // every cost is per troop
+    const n = Math.max(0, u.size);
     const uc = UNIT_COST[u.type] || {hire:0, upkeep:{}};
     hire += uc.hire * n;
     addRes(upkeep, uc.upkeep, n);
@@ -874,7 +1155,7 @@ function renderCosts(side){
           extra: `<div class="cost-row"><span class="cost-label">equipment all-in</span>
                     <span class="cost-val bits">${money(c.gearBits + c.craftBits)}</span></div>`
         })}
-        <div class="cost-row" style="margin-top:6px;padding-top:7px;border-top:1px solid rgba(0,0,0,.35)">
+        <div class="cost-row" style="margin-top:6px;padding-top:7px;border-top:1px solid rgba(var(--lo),.35)">
           <span class="cost-label" style="color:var(--text)">Total up front</span>
           <span class="cost-val bits" style="font-size:13px">${money(c.hire + c.gearBits + c.craftBits)}</span>
         </div>
@@ -882,7 +1163,6 @@ function renderCosts(side){
     </details>`;
 }
 
-/* the Resources row is itself the toggle for the raw breakdown */
 function resourceBlock(o){
   return `<details class="res-drop"${o.open ? " open" : ""}>
       <summary${o.resKey ? ` class="cost-row has-tip" data-tip-key="${o.resKey}"` : ` class="cost-row"`}>
@@ -926,10 +1206,6 @@ function readSide(side){
   return out;
 }
 
-/* ===================================================================
-   4. SIMULATION — direct port of huge-ovipositor-backend.php
-   =================================================================== */
-
 function buildUnit(raw, forceId, isInvader){
   const u = {
     force_id: forceId,
@@ -937,7 +1213,7 @@ function buildUnit(raw, forceId, isInvader){
     size: raw.size,
     training: raw.training,
     type: FORCE_TYPES[raw.type],
-    origType: raw.type,          // kept because alicorns get retyped to Naval below
+    origType: raw.type,
     weapon: raw.weapon,
     armor: raw.armor,
     weapon_id: WEAPON_IDS[raw.weapon],
@@ -952,13 +1228,12 @@ function buildUnit(raw, forceId, isInvader){
   const wd = WEAPON_DEFS[raw.weapon];
   const ad = ARMOR_DEFS[raw.armor];
 
-  if (u.type === 6){                       // alicorns
-    u.type = 5;                            // "treat them like naval for now"
+  if (u.type === 6){
+    u.type = 5;
     TYPE_NUMS.forEach(n=>{ u.dmg[TYPES[n]] = 10; u.arm[TYPES[n]] = 0.1; });
   } else {
     TYPE_NUMS.forEach(n=>{
       const t = TYPES[n];
-      // PHP: !$rs['weapon_id'] — id 0 (Scrounged) is falsy, so it takes the fallback
       u.dmg[t] = (!u.weapon_id || !wd) ? 0.25 : Number(wd[t]);
       u.arm[t] = (!u.armor_id  || !ad) ? 1    : Number(ad[t]);
     });
@@ -966,7 +1241,6 @@ function buildUnit(raw, forceId, isInvader){
   return u;
 }
 
-// array_multisort helper: stable sort of parallel arrays by key list
 function multisort(items, keys){
   return items.map((v,i)=>({v,i}))
     .sort((a,b)=>{
@@ -989,7 +1263,6 @@ function simulate(attackers, defenders, defenderBonus){
   attackers.forEach(r=>{ const u = buildUnit(r, ++fid, true);  units[u.force_id]=u; invaders.push(u); });
   defenders.forEach(r=>{ const u = buildUnit(r, ++fid, false); units[u.force_id]=u; repellers.push(u); });
 
-  // --- damage buckets: [damageValue][targetTypeName] = [units]
   function damageBuckets(side){
     const b = {};
     side.forEach(u=>{
@@ -1000,7 +1273,6 @@ function simulate(attackers, defenders, defenderBonus){
         (b[key][t] ??= []).push(u);
       });
     });
-    // krsort numerically (highest damage first)
     const sortedKeys = Object.keys(b).sort((a,c)=>parseFloat(c)-parseFloat(a));
     const out = [];
     sortedKeys.forEach(k=>{
@@ -1017,7 +1289,6 @@ function simulate(attackers, defenders, defenderBonus){
     return out;
   }
 
-  // --- defender pools: [defenderOwnType][attackerType] = [units], sorted by armor asc
   function defenderPools(side){
     const p = {};
     side.forEach(u=>{
@@ -1044,11 +1315,9 @@ function simulate(attackers, defenders, defenderBonus){
   const repellerDefenders= defenderPools(repellers);
 
   const hitinfo = {}, damageinfo = {};
-  // PHP arrays keep insertion order; JS objects with numeric keys re-sort
-  // ascending, which would scramble the exchange log. Track order separately.
   const hitOrder = [];
   const stalls = [];
-  let budget = 4_000_000;   // guard: PHP would hang here on a 0-damage matchup
+  let budget = 4_000_000;
 
   function runSide(buckets, enemyPools, applyBonus){
     for (const bucket of buckets){
@@ -1073,7 +1342,6 @@ function simulate(attackers, defenders, defenderBonus){
               if (applyBonus) dmg = dmg * 0.75;
 
               if (dmg <= 0){
-                // PHP would spin forever here; record and skip.
                 stalls.push(`${A.name} does 0 damage to ${D.name} — skipped`);
                 continue;
               }
@@ -1091,8 +1359,8 @@ function simulate(attackers, defenders, defenderBonus){
               }
               if (outOfHits) break;
             }
-            if (outOfHits) break;          // PHP: break 2 -> exits while(hits)
-            if (!fought){ breakTypeLoop = true; break; }  // PHP: break 2 -> next type
+            if (outOfHits) break;
+            if (!fought){ breakTypeLoop = true; break; }
           }
           if (breakTypeLoop) break;
         }
@@ -1105,7 +1373,6 @@ function simulate(attackers, defenders, defenderBonus){
     runSide(repellerDamages, invaderDefenders,  false);
   }
 
-  // --- apply casualties
   const log = [];
   for (const [aid, did] of hitOrder){
     log.push({aid, did, damage: round6(damageinfo[aid][did]), hits: hitinfo[aid][did]});
@@ -1129,14 +1396,8 @@ function simulate(attackers, defenders, defenderBonus){
 const round3 = n => Math.round((n + Number.EPSILON) * 1000) / 1000;
 const round6 = n => Math.round((n + Number.EPSILON) * 1e6) / 1e6;
 
-/* ===================================================================
-   5. RESULTS RENDERING
-   =================================================================== */
-
 const fmt = n => Number.isInteger(n) ? String(n) : String(round3(n));
 
-// What the unit actually fights with, after the alicorn override and the
-// id-0 scrounged fallbacks. Mirrors buildUnit().
 function effectiveStats(type, weapon, armor){
   const dmg = {}, arm = {};
   if (type === "Alicorns"){
@@ -1157,8 +1418,8 @@ function tipHTML(type, weapon, armor, size, training){
   const rows = TYPE_NUMS.map(n=>{
     const t = TYPES[n];
     return `<tr><td>${t.charAt(0).toUpperCase()+t.slice(1)}</td>
-      <td class="mono" style="text-align:right;color:#f17a77">${fmt(dmg[t])}</td>
-      <td class="mono" style="text-align:right;color:#74cae3">${fmt(arm[t])}</td></tr>`;
+      <td class="mono" style="text-align:right;color:var(--atk)">${fmt(dmg[t])}</td>
+      <td class="mono" style="text-align:right;color:var(--def)">${fmt(arm[t])}</td></tr>`;
   }).join("");
   const w = gearCost("weapon", weapon), a = gearCost("armor", armor);
   const n = (size != null && size !== "") ? Math.max(0, parseInt(size, 10) || 0) : 1;
@@ -1178,16 +1439,14 @@ function tipHTML(type, weapon, armor, size, training){
         ${size != null
           ? `<div class="small mono muted">size ${esc(size)} \u00b7 training ${esc(training)}</div>`
           : ""}
-        ${type === "Alicorns"
-          ? `<div class="small muted">no price data</div>`
-          : `<div class="small mono">${money(uc.hire * n)}</div>`}
+        <div class="small mono">${money(uc.hire * n)}</div>
       </div>
     </div>
     <table class="tip-table">
       <thead><tr>
         <th>vs</th>
-        <th style="text-align:right;color:#f17a77">${esc(label(weapon))}</th>
-        <th style="text-align:right;color:#74cae3">${esc(label(armor))}</th>
+        <th style="text-align:right;color:var(--atk)">${esc(label(weapon))}</th>
+        <th style="text-align:right;color:var(--def)">${esc(label(armor))}</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>
@@ -1207,10 +1466,9 @@ function unitRef(u){
     ${tipAttrs(u.origType, u.weapon, u.armor, u.size, u.training)}>${esc(u.name)}</span>`;
 }
 
-/* ---- hover math for a single exchange-log damage figure ---- */
 function dmgMathTip(A, D, l, bonusApplied){
-  const vsDef = TYPES[D.type];        // what the attacker's weapon rates against
-  const vsAtk = TYPES[A.type];        // what the defender's armor rates against
+  const vsDef = TYPES[D.type];
+  const vsAtk = TYPES[A.type];
   const base = A.dmg[vsDef];
   const armv = D.arm[vsAtk];
   const tExp = (A.training - D.training) / 20;
@@ -1221,12 +1479,12 @@ function dmgMathTip(A, D, l, bonusApplied){
 
   return `<div class="tip-title">Damage breakdown</div>
     <table class="tip-math" style="margin-top:6px">
-      <tr><td><span style="color:#f17a77">${esc(label(A.weapon))}</span>
+      <tr><td><span style="color:var(--atk)">${esc(label(A.weapon))}</span>
               <span class="muted">vs ${cap(vsDef)}</span></td>
-          <td class="n" style="color:#f17a77">${fmt(base)}</td></tr>
-      <tr><td><span style="color:#74cae3">${esc(label(D.armor))}</span>
+          <td class="n" style="color:var(--atk)">${fmt(base)}</td></tr>
+      <tr><td><span style="color:var(--def)">${esc(label(D.armor))}</span>
               <span class="muted">vs ${cap(vsAtk)}</span></td>
-          <td class="n" style="color:#74cae3">×${fmt(armv)}</td></tr>
+          <td class="n" style="color:var(--def)">×${fmt(armv)}</td></tr>
       <tr><td>training <span class="muted">${A.training} vs ${D.training}</span></td>
           <td class="n">×${fmt(round3(tMul))}</td></tr>
       ${bonusApplied ? `<tr><td>defender bonus</td><td class="n">×0.75</td></tr>` : ""}
@@ -1237,7 +1495,6 @@ function dmgMathTip(A, D, l, bonusApplied){
 `;
 }
 
-/* ---- what a side lost, in money and materiel ---- */
 function deathCosts(units, isAtk){
   const items = [];
   let troops = 0, hire = 0, gear = 0;
@@ -1295,15 +1552,66 @@ function deathsColumn(title, cls, d){
         <span class="cost-val bits">${money(d.gear)}</span></div>
       ${resourceBlock({res:d.res, rawRes:d.rawRes, craftBits:d.craftBits,
                        resKey:resKey, rawKey:rawKey, open:false})}
-      <div class="cost-row" style="margin-top:6px;padding-top:7px;border-top:1px solid rgba(0,0,0,.35)">
+      <div class="cost-row" style="margin-top:6px;padding-top:7px;border-top:1px solid rgba(var(--lo),.35)">
         <span class="cost-label" style="color:var(--text)">Total burned</span>
         <span class="cost-val bits" style="font-size:13px">${money(d.hire + d.gear + d.craftBits)}</span></div>
     </div>
   </div>`;
 }
 
+let lastResult = null, lastBonus = "Yes", survSnapshot = null;
+
+const survivorRows = (units, isAtk) =>
+  Object.values(units)
+    .filter(u => (!!u.attack_mission) === isAtk && u.remaining > 0)
+    .map(u => ({type:u.origType, weapon:u.weapon, armor:u.armor, size:u.remaining, training:u.training}));
+
+function applySurvivors(){
+  const btn = document.getElementById("btnApplySurv");
+  if (!btn) return;
+  if (survSnapshot){
+    setSide("attacker", survSnapshot.attacker);
+    setSide("defender", survSnapshot.defender);
+    survSnapshot = null;
+    scheduleSave();
+    btn.textContent = "Use survivors";
+    btn.className = "btn btn-xs btn-warning";
+    btn.title = "Replace both force lists with the survivors";
+    return;
+  }
+  if (!lastResult) return;
+  survSnapshot = {attacker: packSide("attacker"), defender: packSide("defender")};
+  setSide("attacker", survivorRows(lastResult.units, true));
+  setSide("defender", survivorRows(lastResult.units, false));
+  scheduleSave();
+  btn.textContent = "Undo";
+  btn.className = "btn btn-xs";
+  btn.title = "Put the old ones back";
+}
+
+async function copySurvivors(btn, side, longForm){
+  if (!lastResult) return;
+  let text;
+  if (side){
+    const units = survivorRows(lastResult.units, side === "attacker");
+    if (!units.length){ alert("Nothing to copy — none of that side survived."); return; }
+    text = longForm ? compText(units) : encodeArmy(units);
+  } else {
+    const atk = survivorRows(lastResult.units, true), def = survivorRows(lastResult.units, false);
+    if (!atk.length && !def.length){ alert("Nothing to copy — nobody survived."); return; }
+    text = longForm
+      ? `=== ATTACKERS ===\n\n${compText(atk)}\n\n=== DEFENDERS ===\n\n${compText(def)}`
+      : encodeBattle(atk, def, lastBonus);
+  }
+  if (await copyText(text)) flashOk(btn, "copied");
+  else alert("This browser would not let the page reach the clipboard.");
+}
+
 function render(result, atkRaw, defRaw, bonus){
   const {units, log, casualties, stalls} = result;
+  lastResult = result;
+  lastBonus = bonus;
+  survSnapshot = null;
   const all = Object.values(units);
   const sum = (f, inv) => all.filter(u=>!!u.attack_mission === inv).reduce((a,u)=>a+f(u), 0);
   const atkTotal = sum(u=>u.size, true),  atkLeft = sum(u=>u.remaining, true);
@@ -1354,17 +1662,23 @@ function render(result, atkRaw, defRaw, bonus){
     </div>
 
     <div class="panel">
-      <div class="panel-head"><h2>Survivors</h2></div>
+      <div class="panel-head"><h2>Survivors</h2>
+        <span class="spacer"></span>
+        <button class="btn btn-xs btn-warning" id="btnApplySurv"
+          title="Replace both force lists with the survivors">Use survivors</button>
+        <button class="bp-btn" data-surv-copy="" title="Copy the survivors as a battle code  (shift-click for the long form)">copy</button>
+      </div>
       <div class="grid2">
         ${[["Attackers", true, "surv-atk"], ["Defenders", false, "surv-def"]].map(([hd, inv, cls])=>{
           const side = all.filter(u=>!!u.attack_mission === inv);
           return `<div class="surv-col">
-            <h3>${hd}</h3>
+            <h3>${hd} <button class="bp-btn" data-surv-copy="${inv ? "attacker" : "defender"}"
+              title="Copy the surviving ${hd.toLowerCase()} as an army code  (shift-click for the long form)">copy</button></h3>
             <div class="surv-grid">${
               side.length ? side.map(u=>`<div class="surv-card ${cls}${u.dead ? " surv-dead" : ""}">
-                  ${buildSprite(u.origType, u.weapon, u.armor, true, {size:u.size, training:u.training})}
+                  ${buildSprite(u.origType, u.weapon, u.armor, true, {size:u.size, training:u.training, side: inv ? "attacker" : "defender"})}
                   <div class="small mono" style="margin-top:7px;word-break:break-all;color:var(--text-dim)">${esc(label(u.weapon))} / ${esc(label(u.armor))}</div>
-                  <div class="mono" style="margin-top:4px;font-size:15px;${u.dead?'color:#f17a77':''}">
+                  <div class="mono" style="margin-top:4px;font-size:15px;${u.dead?'color:var(--atk)':''}">
                     ${u.dead ? "DESTROYED" : `<b>${u.remaining}</b> <span class="muted small">/ ${u.size}</span>`}
                   </div>
                 </div>`).join("") : '<div class="muted small">None fielded.</div>'}</div>
@@ -1385,27 +1699,11 @@ function render(result, atkRaw, defRaw, bonus){
         ${deathsColumn("Defenders", "badge-info", defDead)}
       </div>
     </div>`;
+  document.getElementById("btnApplySurv")?.addEventListener("click", applySurvivors);
+  el.querySelectorAll("[data-surv-copy]").forEach(b=>
+    b.addEventListener("click", e=>copySurvivors(b, b.dataset.survCopy, e.shiftKey)));
   el.scrollIntoView({behavior:"smooth", block:"start"});
 }
-
-/* ===================================================================
-   5b. ARMY CODES — the short form, the same one the full calculator
-   reads and writes, so a code copied in either opens in the other.
-   ===================================================================
-   A unit is only ever three facts: which of the 109 legal
-   type/weapon/armour loadouts it wears, how trained it is (0-20), and how
-   many of it there are. Those three numbers are poured one after another
-   into a single mixed-radix integer, and that integer is written out in
-   base 62.
-
-   A battle code is the two sides' integers with a sigil in front of each:
-   "+" opens the attackers, "-" the defenders with the defender bonus on,
-   "=" the defenders with it off.
-
-   The full calculator may tack on reinforcements ("_"), unit names (".")
-   and a Barracks level ("~"). Lite reads past all three: names and
-   Barracks are dropped, and reinforcements are left out, since they sit
-   out the one tick Lite resolves. */
 
 const TRAIN_MAX = 20;
 const clampInt = (v, lo, hi) => Math.min(hi, Math.max(lo, parseInt(v, 10) || 0));
@@ -1413,18 +1711,15 @@ const clampInt = (v, lo, hi) => Math.min(hi, Math.max(lo, parseInt(v, 10) || 0))
 const CODE_ALPHA = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 const CODE_DIGIT = new Map([...CODE_ALPHA].map((c, i) => [c, BigInt(i)]));
 
-/* every legal loadout, in an order that must never be reshuffled — the
-   index into this list IS the type, the weapon and the armour */
 const KIT_TYPES = ["Cavalry","Tanks","Pegasi","Unicorns","Naval","Alicorns"];
 const KITS = [];
 KIT_TYPES.forEach(t => LOADOUTS[t].weapons.forEach(w =>
   LOADOUTS[t].armor.forEach(a => KITS.push([t, w, a]))));
 const KIT_AT  = new Map(KITS.map((k, i) => [k.join("|"), i]));
-const R_KIT   = BigInt(KITS.length);      // 109 loadouts
-const R_TRAIN = 21n;                      // training 0 … 20
-const R_CLASS = 4n;                       // which size bracket
+const R_KIT   = BigInt(KITS.length);
+const R_TRAIN = 21n;
+const R_CLASS = 4n;
 
-/* four size brackets, cheapest first, because most units are small */
 const SIZE_CLASS = [
   {base: 1,        radix: 256n},
   {base: 257,      radix: 65536n},
@@ -1450,8 +1745,6 @@ function unb62(s){
   return v;
 }
 
-/* gear that does not belong to the type falls back to that type's first
-   loadout rather than poisoning the whole code */
 function kitIndex(u){
   let i = KIT_AT.get([u.type, u.weapon, u.armor].join("|"));
   if (i !== undefined) return i;
@@ -1469,8 +1762,6 @@ function sizeParts(n){
   return {cls: 0, off: 0};
 }
 
-/* built back to front: the last unit goes in first, so the first unit is
-   the first one to come back out */
 function encodeArmy(units){
   let v = 0n;
   for (let i = (units || []).length - 1; i >= 0; i--){
@@ -1481,18 +1772,17 @@ function encodeArmy(units){
     v = v * R_CLASS + BigInt(cls);
     v = v * R_TRAIN + BigInt(tr);
     v = v * R_KIT   + BigInt(kitIndex(u));
-    v = v * 2n + 1n;          // "there is a unit here" — without it an army
-  }                           // of one all-zero unit would encode as nothing
+    v = v * 2n + 1n;
+  }
   return b62(v);
 }
 
-/* the front line only; .reserves counts the reinforcements left behind */
 function decodeArmy(code){
   const [body, brk, tail] = String(code).split("~");
   if (tail !== undefined || (brk !== undefined && !/^\d{1,2}$/.test(brk))) throw new Error("not a code");
   const [stacks, names, more] = body.split(".");
   if (more !== undefined) throw new Error("not a code");
-  if (names !== undefined) unb62(names);           // must still be a valid code
+  if (names !== undefined) unb62(names);
   const [front, reinf, extra] = stacks.split("_");
   if (extra !== undefined) throw new Error("not a code");
   const units = decodeStacks(front || "0");
@@ -1505,7 +1795,7 @@ function decodeStacks(code){
   const pop = r => { const d = Number(v % r); v /= r; return d; };
   const out = [];
   while (v > 0n){
-    if (!pop(2n)) break;                       // malformed tail, stop there
+    if (!pop(2n)) break;
     const [type, weapon, armor] = KITS[pop(R_KIT)];
     const training = pop(R_TRAIN);
     const cls = pop(R_CLASS);
@@ -1522,7 +1812,6 @@ const encodeBattle = (atk, def, bonus) =>
 const RE_ARMY_CODE   = /^(?=.)[0-9A-Za-z]*(_[0-9A-Za-z]+)?(\.[0-9A-Za-z]+)?(~\d{1,2})?$/;
 const RE_BATTLE_CODE = /^\+([0-9A-Za-z]*(?:_[0-9A-Za-z]+)?(?:\.[0-9A-Za-z]+)?(?:~\d{1,2})?)([-=])([0-9A-Za-z]*(?:_[0-9A-Za-z]+)?(?:\.[0-9A-Za-z]+)?(?:~\d{1,2})?)$/;
 
-/* null when the text is not a battle code at all */
 function decodeBattle(code){
   const m = RE_BATTLE_CODE.exec(code);
   if (!m) return null;
@@ -1533,23 +1822,15 @@ function decodeBattle(code){
   }catch(e){ return null; }
 }
 
-/* reinforcements a code carried that Lite leaves out — said once */
 function noteReserves(...lists){
   const n = lists.reduce((t, l) => t + ((l && l.reserves) || 0), 0);
   if (n) alert(`That code carries ${n} reinforcement stack${n === 1 ? "" : "s"}. `
              + "Warcalc Lite resolves the front line only, so they were left out.");
 }
 
-
-/* ---- the crunch: the roster spreadsheet's 43 counts, in one cell ----
-   Slot i is written as its letter followed by the count in plain decimal;
-   "r" is training, one higher than it reads. Warcalc adds the same 43
-   totals up from the code it was handed and says where the two disagree. */
-const CRUNCH_ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqr";   // 43 + training
+const CRUNCH_ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqr";
 const CRUNCH_TRAIN = 43;
 
-/* the sheet's row order, which is NOT warcalc's own — cavalry list APFU
-   ahead of ATFU there — so this table is the one that must not drift */
 const CRUNCH_SLOTS = [
   ["type","Cavalry","Cavalry Amount"],
   ["weapon","PRC-E6","PRC-E6"], ["weapon","PRC-E7","PRC-E7"], ["weapon","PRC-E8","PRC-E8"],
@@ -1592,7 +1873,6 @@ function crunchFromUnits(units){
   return n;
 }
 
-/* null for "no crunch here", which is not the same as a crunch of zeroes */
 function decodeCrunch(code){
   if (!code || !/^(?:[A-Za-z]\d+)+$/.test(code)) return null;
   const counts = CRUNCH_SLOTS.map(()=>0);
@@ -1626,14 +1906,9 @@ function crunchDiff(want, units){
   return rows;
 }
 
-/* ---- shareable links ----
-   "#" + battle code, then the crunches after a "*" each: attacker first,
-   defender second, either may be left empty. */
 const battleFragment = () => encodeBattle(packSide("attacker"), packSide("defender"),
                                           document.getElementById("defBonus").value);
-const battleLink = () => location.href.split("#")[0] + "#" + battleFragment();
 
-/* takes a whole url, a bare fragment, or a bare battle code */
 function parseShareable(text){
   let frag = String(text || "").trim();
   const hash = frag.indexOf("#");
@@ -1648,7 +1923,6 @@ function parseShareable(text){
                            defender: decodeCrunch((parts[2] || "").trim())}};
 }
 
-/* ---- the mismatch report ---- */
 function closeModal(){ document.getElementById("modalWrap")?.remove(); }
 
 function showCrunchReport(sides){
@@ -1701,7 +1975,6 @@ function showCrunchReport(sides){
   return true;
 }
 
-/* ---- loading a link ---- */
 function applyShareable(sh){
   setSide("attacker", sh.battle.attacker);
   setSide("defender", sh.battle.defender);
@@ -1711,8 +1984,6 @@ function applyShareable(sh){
   showCrunchReport(sh.crunch);
 }
 
-/* a link loads once and then gets out of the way, so a later reload keeps
-   whatever the player has since changed rather than snapping back */
 function loadFromHash(){
   const sh = parseShareable(location.hash);
   if (!sh) return false;
@@ -1721,27 +1992,12 @@ function loadFromHash(){
   return true;
 }
 
-/* ===================================================================
-   6. IMPORT — army codes, battle codes, links, preset JSON, the long
-   form, and a nation page copied straight off the screen
-   =================================================================== */
-
-/* drop a decoded list onto a side, minding who may field alicorns */
 function addUnits(side, units){
-  let skipped = 0;
-  (units || []).forEach(u=>{
-    if (side === "attacker" && u.type === "Alicorns"){ skipped++; return; }
-    makeRow(side, u);
-  });
+  (units || []).forEach(u=>makeRow(side, u));
   refreshCounts();
-  if (skipped) alert(`Alicorns can only be fielded as defenders — skipped ${skipped}.`);
-  return (units || []).length - skipped;
+  return (units || []).length;
 }
 
-/* pasted preset JSON — the same shape the export buttons write:
-   {kind:"armyPresets", armyPresets:{name:[units]}}, battlePresets likewise,
-   or just a bare [units] list. Returns null when the text isn't JSON at all.
-   Names and reinforcement flags from the full calculator are dropped. */
 function parsePresetJSON(text){
   const t = String(text || "").trim();
   if (!/^[{[]/.test(t)) return null;
@@ -1770,7 +2026,6 @@ function parsePresetJSON(text){
   return out;
 }
 
-/* one name out of several: the only one, or ask */
 function pickPresetName(names, what){
   if (names.length <= 1) return names[0] || null;
   const ans = prompt(`That JSON holds ${names.length} ${what}. Which one?\n\n`
@@ -1787,7 +2042,6 @@ function importRows(side){
   const code = text.trim();
   if (!code) return;
 
-  /* preset JSON: an army goes whole onto this side, a battle gives its half */
   const json = parsePresetJSON(code);
   if (json){
     if (json.error){ alert(json.error); return; }
@@ -1807,7 +2061,6 @@ function importRows(side){
     return;
   }
 
-  /* a battle code (or a whole link) hands each button its own half */
   const sh = parseShareable(code);
   if (sh){
     if (!addUnits(side, sh.battle[side])) alert("That code has nothing on that side.");
@@ -1816,7 +2069,6 @@ function importRows(side){
     return;
   }
 
-  /* a bare army code */
   if (RE_ARMY_CODE.test(code)){
     let units;
     try{ units = decodeArmy(code); }
@@ -1829,8 +2081,6 @@ function importRows(side){
   }
 
   try{
-    /* a pasted nation page (or the battle long form) carries both sides
-       under their own headings; this button takes its own half */
     const sides = splitLongSides(text);
     const units = parseLongForm(sides ? sides[side] : text);
     if (!units.length){
@@ -1846,9 +2096,6 @@ function importRows(side){
   }
 }
 
-/* the long form, one unit a block ending in its Training: line — warcalc's
-   own, or the game's army / nation page copied straight off the screen.
-   Names and reinforcements are read past. */
 function parseLongForm(text){
   const clean = s => String(s).trim().split(" ").join("");
   const lines = String(text).split(/\r?\n|\r/);
@@ -1875,11 +2122,8 @@ function parseLongForm(text){
   return units;
 }
 
-/* "Attackers" / "Defenders" alone on a line, as the nation page heads its
-   two lists, or warcalc's "=== ATTACKERS ===" */
 const RE_SIDE_HEAD = /^(?:===\s*)?(attackers|defenders)(?:\s*===)?$/i;
 
-/* cuts a paste at its side headings; null when it has none */
 function splitLongSides(text){
   const out = {attacker: "", defender: ""};
   let cur = null, found = false;
@@ -1891,8 +2135,6 @@ function splitLongSides(text){
   return found ? out : null;
 }
 
-/* a battle replaces both sides rather than adding to them — the same
-   thing loading a battle preset does */
 function importBattle(){
   const ta = document.getElementById("txtImport");
   const json = parsePresetJSON(ta.value);
@@ -1913,7 +2155,6 @@ function importBattle(){
     scheduleSave();
     return;
   }
-  /* a pasted nation page: its Attackers and Defenders lists fill each side */
   const sides = splitLongSides(ta.value);
   if (sides){
     const a = parseLongForm(sides.attacker), d = parseLongForm(sides.defender);
@@ -1925,8 +2166,6 @@ function importBattle(){
     setSide("attacker", a);
     setSide("defender", d);
     scheduleSave();
-    const ali = a.filter(u => u.type === "Alicorns").length;
-    if (ali) alert(`Alicorns can only be fielded as defenders — skipped ${ali}.`);
     return;
   }
   const sh = parseShareable(ta.value);
@@ -1939,9 +2178,6 @@ function importBattle(){
   applyShareable(sh);
 }
 
-/* ---- clipboard ----
-   the block importRows() parses: a key line, then type / weapon / armor,
-   then the two labelled numbers */
 const compText = units => units.map(u=>[
     `${u.type}_${u.weapon}_${u.armor}`,
     u.type, label(u.weapon), label(u.armor),
@@ -1955,7 +2191,7 @@ async function copyText(text){
       return true;
     }
   }catch(e){}
-  try{                                     // file:// and older browsers
+  try{
     const ta = document.createElement("textarea");
     ta.value = text;
     ta.setAttribute("readonly", "");
@@ -1968,7 +2204,6 @@ async function copyText(text){
   }catch(e){ return false; }
 }
 
-/* a button that says it worked, then goes back to being a button */
 function flashOk(btn, word){
   if (!btn) return;
   const text = btn.textContent;
@@ -1977,7 +2212,6 @@ function flashOk(btn, word){
   setTimeout(()=>{ btn.textContent = text; btn.classList.remove("ok"); }, 1200);
 }
 
-/* a plain click gives the short code, shift gives the long readable block */
 async function copyComposition(side, btn, longForm){
   const units = packSide(side);
   if (!units.length){ alert("Nothing to copy — that side is empty."); return; }
@@ -1996,10 +2230,6 @@ async function copyBattleCode(btn, longForm){
   if (await copyText(text)) flashOk(btn, "copied");
   else alert("This browser would not let the page reach the clipboard.");
 }
-
-/* ===================================================================
-   6b. STORAGE — autosave, army presets, battle presets
-   =================================================================== */
 
 const LS_KEY  = "warcalc.autosave";
 const LS_ARMY = "warcalc.armyPresets";
@@ -2020,21 +2250,18 @@ const store = {
   del(key){ try{ localStorage.removeItem(key); }catch(e){} }
 };
 
-/* a unit stripped down to what is worth saving */
 const packSide = side => readSide(side).map(u=>({
   type:u.type, weapon:u.weapon, armor:u.armor, size:u.size, training:u.training}));
 
 function setSide(side, units){
   document.getElementById(side === "attacker" ? "tbodyAttacker" : "tbodyDefender").innerHTML = "";
   (units || []).forEach(u=>{
-    if (side === "attacker" && u.type === "Alicorns") return;   // attackers can't field them
-    if (u.reserve) return;   // full-calc reinforcements sit out the one tick Lite resolves
+    if (u.reserve) return;
     makeRow(side, u);
   });
   refreshCounts();
 }
 
-/* ---- autosave ---- */
 let autosaveArmed = false;
 let saveTimer = null;
 function scheduleSave(){
@@ -2059,7 +2286,6 @@ function restoreAutosave(){
   return true;
 }
 
-/* ---- army presets (shared pool, loadable into either side) ---- */
 const getArmies  = () => store.get(LS_ARMY, {});
 const getBattles = () => store.get(LS_BATL, {});
 
@@ -2115,7 +2341,6 @@ function deleteArmyPreset(){
   refreshPresetSelects();
 }
 
-/* ---- battle presets (both sides + bonus) ---- */
 function saveBattlePreset(){
   const name = (prompt("Name this battle:", "") || "").trim();
   if (!name) return;
@@ -2149,7 +2374,6 @@ function deleteBattlePreset(){
   refreshPresetSelects();
 }
 
-/* ---- json in / out ---- */
 function downloadJSON(obj, filename){
   const blob = new Blob([JSON.stringify(obj, null, 2)], {type:"application/json"});
   const a = document.createElement("a");
@@ -2194,10 +2418,6 @@ function importJSON(text){
   alert(`Imported ${added} preset(s).`);
 }
 
-/* ===================================================================
-   7. WIRING
-   =================================================================== */
-
 document.querySelectorAll("[data-add]").forEach(b=>
   b.addEventListener("click", ()=>makeRow(b.dataset.add)));
 
@@ -2211,7 +2431,6 @@ document.getElementById("btnImportAtk").addEventListener("click", ()=>importRows
 document.getElementById("btnImportDef").addEventListener("click", ()=>importRows("defender"));
 document.getElementById("btnImportBattle").addEventListener("click", importBattle);
 
-/* the - and + by a side's Tr heading move every row's training one step */
 document.querySelectorAll("[data-tr-step]").forEach(b=>
   b.addEventListener("click", ()=>{
     const side = b.dataset.trStep, step = +b.dataset.step;
@@ -2222,7 +2441,6 @@ document.querySelectorAll("[data-tr-step]").forEach(b=>
       });
   }));
 
-/* --- army presets --- */
 document.querySelectorAll("[data-ap-save]").forEach(b=>
   b.addEventListener("click", ()=>saveArmyPreset(b.dataset.apSave)));
 document.querySelectorAll("[data-ap-load]").forEach(b=>
@@ -2231,28 +2449,17 @@ document.querySelectorAll("[data-ap-copy]").forEach(b=>
   b.addEventListener("click", e=>copyComposition(b.dataset.apCopy, b, e.shiftKey)));
 document.querySelectorAll("[data-ap-del]").forEach(b=>
   b.addEventListener("click", ()=>deleteArmyPreset()));
-/* the two selects share one pool, so keep them in step */
 document.querySelectorAll("[data-ap-sel]").forEach(sel=>
   sel.addEventListener("change", ()=>{
     document.querySelectorAll("[data-ap-sel]").forEach(o=>{ o.value = sel.value; });
   }));
 
-/* --- battle presets --- */
 document.getElementById("bpSave").addEventListener("click", saveBattlePreset);
 document.getElementById("bpLoad").addEventListener("click", loadBattlePreset);
 document.getElementById("bpDel").addEventListener("click", deleteBattlePreset);
 document.getElementById("btlCopy").addEventListener("click",
   e=>copyBattleCode(e.currentTarget, e.shiftKey));
-document.getElementById("btlLink").addEventListener("click", async e=>{
-  const btn = e.currentTarget;
-  if (!packSide("attacker").length && !packSide("defender").length){
-    alert("Nothing to link to — both sides are empty."); return;
-  }
-  if (await copyText(battleLink())) flashOk(btn, "copied");
-  else alert("This browser would not let the page reach the clipboard.");
-});
 
-/* --- tools drawer --- */
 const toolsBtn = document.getElementById("btnTools");
 const toolsPanel = document.getElementById("toolsPanel");
 toolsBtn.addEventListener("click", ()=>{
@@ -2292,7 +2499,85 @@ document.getElementById("wipeSaves").addEventListener("click", ()=>{
 document.getElementById("btnClearResults").addEventListener("click", ()=>{
   document.getElementById("results").innerHTML = "";
   clearTips("death");
+  lastResult = null;
+  survSnapshot = null;
 });
+
+document.getElementById("btnClearAll").addEventListener("click", ()=>{
+  document.getElementById("tbodyAttacker").innerHTML = "";
+  document.getElementById("tbodyDefender").innerHTML = "";
+  refreshCounts();
+  document.getElementById("btnClearResults").click();
+});
+
+document.querySelectorAll("[data-sprite-theme]").forEach(sel => {
+  const side = sel.dataset.spriteTheme;
+  sel.innerHTML = Object.keys(SPRITE_THEMES).map(k => `<option value="${esc(k)}">${esc(k)}</option>`).join("");
+  sel.value = spriteTheme[side];
+  sel.addEventListener("change", () => {
+    spriteTheme[side] = SPRITE_THEMES[sel.value] ? sel.value : "Equestrian";
+    try { localStorage.setItem(LS_SPRITE_THEME, JSON.stringify(spriteTheme)); } catch(e){}
+    repaintSprites(side);
+  });
+});
+
+{
+  const sel = document.getElementById("themeSel");
+  sel.innerHTML = Object.entries(THEMES).map(([k, n]) => `<option value="${k}">${n}</option>`).join("");
+  sel.value = document.documentElement.dataset.theme || "grey";
+  sel.addEventListener("change", ()=>store.set("warcalc.theme", applyTheme(sel.value)));
+}
+
+const LS_WIFE = "warcalc.horsewife";
+const HORSEWIVES = ["Twilight Sparkle", "Rainbow Dash", "Pinkie Pie", "Rarity", "Applejack", "Fluttershy",
+  "Princess Celestia", "Princess Luna", "Nightmare Moon"];
+const HORSEWIFE_OWN = {
+  "Princess Celestia": {baseurl:"ponies/Princess%20Celestia/", ini:[
+    'Behavior,"stand",0.1,15,10,0,"stand_right.gif","stand_left.gif",MouseOver,"","","",False,0,0,"",True,"","","0,0","0,0",False,0,Fixed',
+    'Behavior,"walk",0.15,15,10,1,"walk_right.gif","walk_left.gif",Diagonal_horizontal,"","","",False,0,0,"",True,"","","0,0","0,0",False,0,Fixed',
+    'Behavior,"fly",0.15,15,10,1,"fly_right.gif","fly_left.gif",Diagonal_Vertical,"","","",False,0,0,"",True,"","","96,84","95,84",False,0,Fixed',
+    'Behavior,"scroll_arrive",0.15,3.2,3.2,0,"scroll_arrive_right.gif","scroll_arrive_left.gif",None,"","","",False,0,0,"",True,"","","96,100","95,100",False,0,Fixed']},
+  "Princess Luna": {baseurl:"ponies/Princess%20Luna/", ini:[
+    'Behavior,"stand",0.1,15,5,0,"luna_idle_right.gif","luna_idle_left.gif",MouseOver,"","","",False,0,0,"",True,,,"72,64","72,64",False,0',
+    'Behavior,"walk",0.15,10,5,1,"luna_walk_right.gif","luna_walk_left.gif",Diagonal_horizontal,"","","",False,0,0,"",True,,,"72,64","72,64",False,0',
+    'Behavior,"flight",0.1,8,4,2,"luna-flight-right.gif","luna-flight-left.gif",All,"","","",False,0,0,"",True,,,"72,68","72,68",False,0']}
+};
+function setHorsewife(name){
+  document.getElementById("horsewife")?.remove();
+  if (!HORSEWIVES.includes(name)) return "";
+  const f = document.createElement("iframe");
+  f.id = "horsewife";
+  f.title = name;
+  f.setAttribute("aria-hidden", "true");
+  f.tabIndex = -1;
+  f.src = "https://browser.pony.house/ponies-iframe.html#allowDemoController=false&allowDoubleClickControl=false"
+    + "&fadeDuration=500&volume=1&fps=25&speed=1&audioEnabled=false&dontSpeak=true&showFps=false"
+    + "&showLoadProgress=false&speakProbability=0.1&paddock=false&grass=false";
+  const own = HORSEWIFE_OWN[name];
+  const as = own ? name + " (grown)" : name;
+  if (own) f.src += "&ponies.length=1&ponies.0.baseurl=" + encodeURIComponent(own.baseurl)
+    + "&ponies.0.ini=" + encodeURIComponent([`Name,"${as}"`, 'Categories,"mares","alicorns"', ...own.ini].join("\n"));
+  f.src += "&spawn." + encodeURIComponent(as.toLowerCase()) + "=1";
+  document.body.appendChild(f);
+  return name;
+}
+{
+  let x = -999, y = -999, queued = false;
+  const paint = ()=>{
+    queued = false;
+    const f = document.getElementById("horsewife");
+    if (f){ f.style.setProperty("--mx", x + "px"); f.style.setProperty("--my", y + "px"); }
+  };
+  const move = (nx, ny)=>{ x = nx; y = ny; if (!queued){ queued = true; requestAnimationFrame(paint); } };
+  document.addEventListener("pointermove", e => move(e.clientX, e.clientY), {passive:true});
+  document.documentElement.addEventListener("pointerleave", ()=>move(-999, -999));
+}
+{
+  const sel = document.getElementById("wifeSel");
+  sel.innerHTML = `<option value="">None</option>` + HORSEWIVES.map(n => `<option>${n}</option>`).join("");
+  sel.value = setHorsewife(store.get(LS_WIFE, ""));
+  sel.addEventListener("change", ()=>store.set(LS_WIFE, setHorsewife(sel.value)));
+}
 
 document.getElementById("defBonus").addEventListener("change", scheduleSave);
 
@@ -2311,7 +2596,6 @@ document.getElementById("btnRun").addEventListener("click", ()=>{
   }
 });
 
-/* hover cards for unit names and sprites */
 const tipEl = document.getElementById("tip");
 
 document.addEventListener("mouseover", e=>{
@@ -2347,7 +2631,6 @@ function moveTip(e){
   tipEl.style.top  = y + "px";
 }
 
-/* boot */
 (function checkStorage(){
   store.set("warcalc.probe", 1); store.del("warcalc.probe");
   if (storageOK) return;
