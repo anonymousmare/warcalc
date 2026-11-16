@@ -16069,7 +16069,7 @@ function mgRender(){
   clearTips("mg");
   if (document.activeElement !== mgEl("mgBits")) mgEl("mgBits").value = mg.bits ? money(mg.bits) : "";
   if (document.activeElement !== mgEl("mgTw")) mgEl("mgTw").value = mg.tw;
-  mgEl("mgLimit").innerHTML = `<span>Deal limit <b>${money(mgLimit())}</b> a resource</span>` +
+  mgEl("mgLimit").innerHTML = `<span>Deal limit is <b>${money(mgLimit())}</b></span>` +
     `<span title="50,000, and 1 more for every 100,000 bits">Market limit is <b>${money(mgMarketLimit())}</b></span>`;
   mgEl("mgPlayers").innerHTML = mg.players.length ? mg.players.map((p, i) => mgBlock(p, i, calcs[i], names)).join("")
     : `<div class="panel mg-empty">Look top right</div>`;
