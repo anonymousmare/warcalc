@@ -365,8 +365,9 @@ tbody tr:last-child{border-bottom:none}
 @media (max-width:1100px){.grid2,.grid3{grid-template-columns:1fr}}
 
 .sprite{
-  width:80px;height:50px;display:block;object-fit:contain;
-  background:var(--sunken);border:1px solid var(--border-soft);border-radius:3px;
+  width:80px;height:50px;box-sizing:content-box;display:block;object-fit:contain;
+  image-rendering:pixelated;
+  background:var(--sunken);border:1px solid var(--border-soft);
 }
 .sprite-lg{width:80px;height:50px;margin:0 auto}
 .sprite-missing.sprite-lg{margin:0 auto}
@@ -579,7 +580,6 @@ try{ applyTheme(JSON.parse(localStorage.getItem("warcalc.theme"))); }catch(e){}
   <h1>Curio's Warcalc Lite 1.1 <button class="caret-btn" id="btnTools" title="Settings, import / export presets" aria-expanded="false">›</button></h1>
   <div class="battle-presets">
     <button class="bp-btn" id="btlCopy" title="Copy the whole battle as a code  (shift-click for the long form)">copy</button>
-    <button class="bp-btn" id="btlLink" title="Copy a link that loads this battle">link</button>
   </div>
   <div class="clear-mid">
     <select class="sprite-theme" data-sprite-theme="attacker" aria-label="Attacker sprites" title="Attacker sprites"></select>
@@ -812,7 +812,7 @@ const UNIT_COST = {
   Pegasi:  {hire:300000, upkeep:{coffee:5}},
   Unicorns:{hire:400000, upkeep:{gems:5}},
   Naval:   {hire:250000, upkeep:{gasoline:5}},
-  Alicorns:{hire:0,      upkeep:{}}
+  Alicorns:{hire:2000000, upkeep:{gems:10}}
 };
 
 const WEAPON_COST = {
@@ -1439,9 +1439,7 @@ function tipHTML(type, weapon, armor, size, training){
         ${size != null
           ? `<div class="small mono muted">size ${esc(size)} \u00b7 training ${esc(training)}</div>`
           : ""}
-        ${type === "Alicorns"
-          ? `<div class="small muted">no price data</div>`
-          : `<div class="small mono">${money(uc.hire * n)}</div>`}
+        <div class="small mono">${money(uc.hire * n)}</div>
       </div>
     </div>
     <table class="tip-table">
@@ -1910,7 +1908,6 @@ function crunchDiff(want, units){
 
 const battleFragment = () => encodeBattle(packSide("attacker"), packSide("defender"),
                                           document.getElementById("defBonus").value);
-const battleLink = () => location.href.split("#")[0] + "#" + battleFragment();
 
 function parseShareable(text){
   let frag = String(text || "").trim();
@@ -2462,14 +2459,6 @@ document.getElementById("bpLoad").addEventListener("click", loadBattlePreset);
 document.getElementById("bpDel").addEventListener("click", deleteBattlePreset);
 document.getElementById("btlCopy").addEventListener("click",
   e=>copyBattleCode(e.currentTarget, e.shiftKey));
-document.getElementById("btlLink").addEventListener("click", async e=>{
-  const btn = e.currentTarget;
-  if (!packSide("attacker").length && !packSide("defender").length){
-    alert("Nothing to link to — both sides are empty."); return;
-  }
-  if (await copyText(battleLink())) flashOk(btn, "copied");
-  else alert("This browser would not let the page reach the clipboard.");
-});
 
 const toolsBtn = document.getElementById("btnTools");
 const toolsPanel = document.getElementById("toolsPanel");
