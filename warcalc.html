@@ -13178,8 +13178,8 @@ async function runCounter(){
   const base = readCounterBase();
   if (!base.foe.type){ alert("Pick a unit type first."); return; }
 
-  const jobs = [{mode:"kill", opts:counterOpts(base, "kill")}];
-  if (!ctrAbsorbImpossible(base)) jobs.push({mode:"absorb", opts:counterOpts(base, "absorb")});
+  const jobs = [{mode:"kill",   opts:counterOpts(base, "kill")},
+                {mode:"absorb", opts:counterOpts(base, "absorb")}];
 
   ctrBusy = true; ctrHalt = false;
   ctrEl("btnCounter").disabled = true;
